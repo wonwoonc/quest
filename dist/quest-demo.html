@@ -1295,7 +1295,8 @@ function bootstrap({mode = 'empty', seed = null, host = window} = {}) {
     if (mode === 'demo') host.document.querySelector('#demo-label').textContent = ' · 가상 데이터 데모';
     const app = startLegacyApp({runtime:{createAPI}, storage, seed});
     installBackups({document:host.document, storage, getState:() => app.state,
-      confirm:host.confirm.bind(host), alert:host.alert.bind(host), reload:() => host.location.reload(), URL:host.URL, Blob:host.Blob});
+      confirm:host.confirm.bind(host), alert:host.alert.bind(host), reload:() => host.location.reload(), URL:host.URL, Blob:host.Blob,
+      getDownloads:async () => { const rt = host.claude; return rt && typeof rt.use === 'function' ? rt.use('downloads') : null; }});
     return app;
   } catch (error) {
     const target = host.document.querySelector('#app');
@@ -3812,16 +3813,23 @@ Object.assign(__exports,{activityDate,isOwnPrivateEntry,buildDayActivityIndex,se
 "use strict";
 const {parseBackup} = __require("storage.js");
 /** Explicit file actions only. Uses the SAME storage instance as the UI runtime. */
-function installBackups({document, storage, getState, confirm, alert, reload, URL, Blob}) {
+function installBackups({document, storage, getState, confirm, alert, reload, URL, Blob, getDownloads = async () => null}) {
   async function handle(event) {
     const b = event.target.closest('[data-act="bkexp"],[data-act="bkimp"],[data-act="bkreset"]');
     if (!b) return;
     try {
       if (b.dataset.act === 'bkexp') {
-        const raw = storage.export(getState());
+        const raw = storage.export(getState()), filename = 'quest-backup-'+new Date().toISOString().slice(0,10)+'.json';
+        // Hosted viewer (published page): plain download links are blocked, use the platform save prompt.
+        let dl = null; try { dl = await getDownloads(); } catch { dl = null; }
+        if (dl) {
+          try { await dl.save({filename, data:raw}); }
+          catch (error) { if (error?.code !== 'declined') alert('백업 저장 실패: '+(error?.message || error?.code || '알 수 없는 오류')); }
+          return;
+        }
         const a = document.createElement('a');
         const href = URL.createObjectURL(new Blob([raw], {type:'application/json'}));
-        a.href = href; a.download = 'quest-backup-'+new Date().toISOString().slice(0,10)+'.json';
+        a.href = href; a.download = filename;
         document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(href), 3000);
       } else if (b.dataset.act === 'bkimp') {
         const input = document.createElement('input'); input.type = 'file'; input.accept = '.json,application/json';

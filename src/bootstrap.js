@@ -10,7 +10,8 @@ export function bootstrap({mode = 'empty', seed = null, host = window} = {}) {
     if (mode === 'demo') host.document.querySelector('#demo-label').textContent = ' · 가상 데이터 데모';
     const app = startLegacyApp({runtime:{createAPI}, storage, seed});
     installBackups({document:host.document, storage, getState:() => app.state,
-      confirm:host.confirm.bind(host), alert:host.alert.bind(host), reload:() => host.location.reload(), URL:host.URL, Blob:host.Blob});
+      confirm:host.confirm.bind(host), alert:host.alert.bind(host), reload:() => host.location.reload(), URL:host.URL, Blob:host.Blob,
+      getDownloads:async () => { const rt = host.claude; return rt && typeof rt.use === 'function' ? rt.use('downloads') : null; }});
     return app;
   } catch (error) {
     const target = host.document.querySelector('#app');
