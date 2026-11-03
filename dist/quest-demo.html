@@ -2359,6 +2359,13 @@ function calendarDaySheet(date, asPage = false){
 }
 function viewCalDay(){ const date = S.view.date; if (!date || activityDate(date) !== date) return viewCal();
   const html = calendarDaySheet(date, true); return `<section class="card calday">${html}</section>`; }
+// Daily quests in week/month: past = completed records, today = scheduled, future = only the NEXT occurrence,
+// and only once today's is done (or not scheduled today). After midnight it rolls forward by itself.
+function habitView(){ const t = today(), actQ = mineOf("quest").filter(q => q.active !== false), occ = (q, d) => occursOn(qRepeat(q), d) && activityDate(q.createdAt || 0) <= d;
+  const nextOf = new Map(actQ.map(q => { let d = addD(t, 1); for (let k = 0; k < 400 && !occ(q, d); k++) d = addD(d, 1); return [q.id, occ(q, d) ? d : ""]; }));
+  return d => d < t ? mineOf("quest").filter(q => (q.done || {})[d]).map(q => ({...q, doneHabit:true}))
+    : d === t ? habitsOn(t)
+    : actQ.filter(q => nextOf.get(q.id) === d && (!occ(q, t) || !!(q.done || {})[t])).map(q => ({...q, doneHabit:false})); }
 function viewCal(){
   if (!hasProfile()) return viewToday();
   const C = S.cal || (S.cal = {mode:"day", date:today()}), mode = C.mode, date = C.date, by = tasksByDate(), t = today();
@@ -2392,9 +2399,10 @@ function viewCal(){
   } else if (mode === "week"){
     const s0 = monStart(date), days = Array.from({length:7}, (_, i) => addD(s0, i)), hl = hr => `${hr}시`;
     const hourOf = m => +m.time.slice(0,2) || 24, nowH = new Date().getHours() || 24;
-    const timedAll = days.flatMap(d => (by[d] || []).filter(m => m.time)), anyAllday = days.some(d => (by[d] || []).some(m => !m.time));
+    const timedAll = days.flatMap(d => (by[d] || []).filter(m => m.time)), anyAllday0 = days.some(d => (by[d] || []).some(m => !m.time));
+    const hv = habitView(), hbByDay = Object.fromEntries(days.map(d => [d, hv(d)])), anyAllday = anyAllday0 || days.some(d => hbByDay[d].some(q => !q.time));
     const first = timedAll.length ? Math.min(...timedAll.map(hourOf)) : (days.includes(t) ? nowH : 8);
-    const hbByDay = Object.fromEntries(days.map(d => [d, habitsOn(d)]));
+    
     const chip = m => m._ghost ? `<div class="wti wck ghost" data-act="tedit" data-id="${m.id}" role="button" tabindex="0" title="오늘로 넘어간 태스크"><span class="gdot">↷</span><div class="wtx"><span>${esc(m.name)}</span></div></div>` : `<div class="wti wck ${m.done ? "done" : ""}" data-act="tedit" data-id="${m.id}" role="button" tabindex="0"><button class="wchk ${m.done ? "on" : ""}" data-act="mcheck" data-id="${m.id}" aria-pressed="${!!m.done}" aria-label="${esc(m.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(m.name)}</span></div></div>`;
     h += `<div class="wgrid" id="wgscroll" data-d="${s0}" data-first="${first}"><div class="wg">`;
     h += `<div class="wgc corner"></div>` + days.map(d => { const x = pd(d); return `<button class="wgc head ${d === t ? "is-today" : ""}" data-act="cdate" data-v="${d}"><b>${WD[x.getDay()]}</b><span class="num">${x.getMonth()+1}/${x.getDate()}</span></button>`; }).join("");
@@ -2409,13 +2417,7 @@ function viewCal(){
     const activities = dayActivityIndex();
     h += `<p class="hint">지난 날짜는 기록 보기 · 오늘부터는 일정 보기</p>`;
     h += `<section class="card mgrid mtask"><div class="wk">${["월","화","수","목","금","토","일"].map(w => `<span>${w}</span>`).join("")}</div><div class="days">`;
-    // Daily quests: past = completed records, today = scheduled, future = only the NEXT occurrence,
-    // and only once today's is done (or not scheduled today). After midnight it rolls forward by itself.
-    const actQ = mineOf("quest").filter(q => q.active !== false), occ = (q, d) => occursOn(qRepeat(q), d) && activityDate(q.createdAt || 0) <= d;
-    const nextOf = new Map(actQ.map(q => { let d = addD(t, 1); for (let k = 0; k < 400 && !occ(q, d); k++) d = addD(d, 1); return [q.id, occ(q, d) ? d : ""]; }));
-    const monthHabits = d => d < t ? mineOf("quest").filter(q => (q.done || {})[d]).map(q => ({...q, doneHabit:true}))
-      : d === t ? habitsOn(t)
-      : actQ.filter(q => nextOf.get(q.id) === d && (!occ(q, t) || !!(q.done || {})[t])).map(q => ({...q, doneHabit:false}));
+    const monthHabits = habitView();
     for (let i = 0; i < 42; i++){ const d = addD(start, i), x = pd(d); if (i >= 35 && x.getMonth() !== mo) break; const l = byTime(by[d] || []); const hq = habitsOn(d), mh = monthHabits(d);
       const acts = selectDayActivities(activities,d), dailyIds = new Set(acts.daily.map(x => x.id));
       const count = acts.count + hq.filter(q => q.doneHabit && !dailyIds.has(q.id)).length;

@@ -1114,3 +1114,13 @@ test('month view: daily quests show past completions, today with a checkbox, and
   h.click('hcheckd',{id:'qa',d:T}); await h.settle();
   const after = h.nodes.get('app').innerHTML; assert.ok([...after.matchAll(/data-id="qa" data-d="([^"]+)"/g)].map(m => m[1]).includes(TM) || !inMonth(TM),'completing today adds the next one');
 });
+test('week view: daily quests follow the same today/next-occurrence rule as month',async()=>{
+  const base = await profileUI(), saved = base.snapshot(), DAYMS = 86400000, kd = t => new Date(t+9*3600000).toISOString().slice(0,10);
+  const T = kd(Date.now()), TM = kd(Date.now()+DAYMS), D2 = kd(Date.now()+2*DAYMS), old = Date.now()-30*DAYMS;
+  saved.mine.qa = {id:'qa',kind:'quest',name:'안 한 데일리',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{},createdAt:old};
+  saved.mine.qb = {id:'qb',kind:'quest',name:'한 데일리',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{[T]:Date.now()},createdAt:old};
+  const h = await profileUI(saved); h.route('cal'); h.click('cmode',{v:'week'});
+  const html = h.nodes.get('app').innerHTML, ds = id => [...html.matchAll(new RegExp(`data-act="hcheckd" data-id="${id}" data-d="([^"]+)"`,'g'))].map(m => m[1]);
+  const wk = d => html.includes(`data-v="${d}"`);
+  assert.deepEqual(ds('qa'),[T]); assert.deepEqual(ds('qb'),[T, TM].filter(wk)); assert.ok(!ds('qb').includes(D2));
+});
