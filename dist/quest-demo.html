@@ -2306,7 +2306,7 @@ function viewToday(){
     h += `<div class="starter"><b>이런 데일리 퀘스트로 시작해 보세요</b><div class="chips">${SUGGEST.map(([n]) => `<button class="chip" data-act="suggest" data-v="${esc(n)}">+ ${esc(n)}</button>`).join("")}</div></div>`;
   } else if (!total) h += `<p class="empty-row">오늘 할 데일리 퀘스트가 없어요.</p>`;
   h += todo.map(row).join("");
-  h += done.map(row).join("") + `</section>`;
+  h += done.map(row).join("") + `<button class="tadd-pill" data-act="sheet" data-k="add" data-v="daily">+ 퀘스트 추가</button></section>`;
   return h;
 }
 function goalRow(p, nested = false){
@@ -2705,6 +2705,7 @@ function viewWebDash(){
   const uid = S.me, gs = goalsOf(uid).filter(g => g.status !== "done").sort(gOrder);
   const head = (t, side = "") => `<div class="wd-gh"><h2>${t}</h2>${side}</div>`;
   const save = S.qTab; S.qTab = "daily"; let d = viewToday(); S.qTab = save;
+  d = d.replace(/<button class="iconbtn gear wd-cgear"[^>]*>[\s\S]*?<\/button>/, "");
   d = d.replace(/^<div class="seg"[\s\S]*?<\/div>/, "");
   const cnt = (d.match(/<span class="cnt num">([^<]*)<\/span>/) || [])[1] || "";
   d = d.replace(/<div class="ch"><h2>데일리 퀘스트[\s\S]*?<\/button><\/div>/, "");
