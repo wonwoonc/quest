@@ -1302,7 +1302,7 @@ function bootstrap({mode = 'empty', seed = null, host = window} = {}) {
     if (mode === 'demo') host.document.querySelector('#demo-label').textContent = ' · 가상 데이터 데모';
     const app = startLegacyApp({runtime:{createAPI}, storage, seed});
     installBackups({document:host.document, storage, getState:() => app.state,
-      confirm:host.confirm.bind(host), alert:host.alert.bind(host), reload:() => host.location.reload(), URL:host.URL, Blob:host.Blob,
+      confirm:app.confirm || host.confirm.bind(host), alert:app.notify || host.alert.bind(host), reload:() => host.location.reload(), URL:host.URL, Blob:host.Blob,
       getDownloads:async () => { const rt = host.claude; return rt && typeof rt.use === 'function' ? rt.use('downloads') : null; }});
     return app;
   } catch (error) {
@@ -3215,6 +3215,10 @@ function openCompose(extra = {}){
 const rewardSheet = o => openSheet({type:"reward-got", ...o});
 
 /* ================= toast / level up ================= */
+// In-app confirm (browser confirm() is blocked inside the hosted artifact viewer).
+const UNDO_ASK = {t:"완료를 취소할까요?", d:"받은 경험치와 코인이 회수돼요. 코인이 모자라면 다음 수입에서 정산돼요.", ok:"완료 취소"};
+function ask(o, cb){ S.parentSheet = S.compose && S.compose.type !== "confirm" ? S.compose : null; S.compose = {type:"confirm", t:esc(o.t), d:esc(o.d || ""), ok:esc(o.ok || "확인"), cb}; renderSheet(); }
+function askAsync(text){ return new Promise(res => { let done = false; ask({t:text, ok:"확인"}, () => { done = true; res(true); }); const c0 = S.compose; const iv = setInterval(() => { if (S.compose !== c0 && !done){ clearInterval(iv); res(false); } else if (done) clearInterval(iv); }, 200); }); }
 let tt = 0;
 function toast(html){ const t = $("#toast"); t.innerHTML = html; t.classList.toggle("mid", !!($("#overlay").innerHTML || "").trim()); t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), 2200); }
 function levelUp(L){ toast(`Lv.${L} 달성! 성장 꾸미기 보상은 상점 보관함에서 확인해요.`); }
@@ -3326,15 +3330,15 @@ document.addEventListener("click", e => {
   switch (a){
     case "shop-tab": S.shopTab=b.dataset.v; break;
     case "wishlist": {const r=S.mine[id];if(r)run(()=>api.putMine(id,{...r,wishlist:!r.wishlist}));return;}
-    case "style-buy": if(!confirm('꾸미기를 구매할까요? 구매 후 10분 이내, 상품당 한 번만 취소할 수 있어요.'))return;run(()=>api.buyStyle(id),()=>toast('꾸미기를 구매했어요. 보관함에서 적용하세요.'));return;
+    case "style-buy": ask({t:'꾸미기를 구매할까요?',d:'구매 후 10분 이내, 상품당 한 번만 취소할 수 있어요.',ok:'구매'},()=>run(()=>api.buyStyle(id),()=>toast('꾸미기를 구매했어요. 보관함에서 적용하세요.')));return;
     case "style-equip": run(()=>api.equip(id),()=>toast('꾸미기 적용을 바꿨어요'));return;
     case "milestone-pick": run(()=>api.chooseMilestone(+b.dataset.v,id),()=>toast('성장 보상을 선택했어요'));return;
-    case "purchase-use": if(!confirm('사용 완료로 처리하면 환불할 수 없어요. 사용했나요?'))return;run(()=>api.purchaseAction(id,'use'),()=>{toast('사용 완료로 기록했어요');if(S.compose)renderSheet();});return;
-    case "purchase-cancel": if(!confirm('구매를 취소하고 실제 사용 코인을 돌려받을까요?'))return;run(()=>api.purchaseAction(id,'cancel'),()=>{toast('취소·환불했어요');if(S.compose)renderSheet();});return;
-    case "purchase-hide": if(!confirm('기록만 숨깁니다. 환불되지 않아요.'))return;run(()=>api.purchaseAction(id,'hide'),()=>{toast('기록을 숨겼어요');if(S.compose)renderSheet();});return;
+    case "purchase-use": ask({t:'사용 완료로 처리할까요?',d:'사용 완료로 처리하면 환불할 수 없어요.',ok:'사용 완료'},()=>run(()=>api.purchaseAction(id,'use'),()=>{toast('사용 완료로 기록했어요');if(S.compose)renderSheet();}));return;
+    case "purchase-cancel": ask({t:'구매를 취소할까요?',d:'사용한 코인을 돌려받아요.',ok:'취소·환불'},()=>run(()=>api.purchaseAction(id,'cancel'),()=>{toast('취소·환불했어요');if(S.compose)renderSheet();}));return;
+    case "purchase-hide": ask({t:'기록을 숨길까요?',d:'기록만 숨기고 환불되지 않아요.',ok:'숨기기'},()=>run(()=>api.purchaseAction(id,'hide'),()=>{toast('기록을 숨겼어요');if(S.compose)renderSheet();}));return;
     case "preview-login":
     case "preview-kakao": entryScreen = 'character'; S.compose = null; $('#overlay').innerHTML = ''; schedule(); scrollTo(0,0); toast(a === 'preview-kakao' ? '실제 카카오 가입은 연결되지 않았어요. 캐릭터 만들기를 미리 볼 수 있어요.' : '인증 없이 캐릭터 만들기로 이동했어요.'); return;
-    case "cfok": { const P = S.pend; S.pend = null; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); if (!P) return; S.armed = P.key;
+    case "cfok": { if (c && c.cb){ const cb = c.cb; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); cb(); return; } const P = S.pend; S.pend = null; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); if (!P) return; S.armed = P.key;
       const fb = document.createElement("button"); fb.hidden = true; Object.assign(fb.dataset, P.data, {confirmed:"1"}); document.body.appendChild(fb); fb.click(); fb.remove(); return; }
     case "cfno": closeSheet(); return;
     case "back": if (S.vstack && S.vstack.length){ S.view = S.vstack.pop(); schedule(); scrollTo(0,0); return; } history.length > 1 ? history.back() : go("today"); return;
@@ -3474,13 +3478,13 @@ document.addEventListener("click", e => {
       patch.editedAt = Date.now();
       run(() => api.editPost(c.pid, patch), () => { delete S.drafts["ep-text"]; delete S.drafts["ep-val"]; closeSheet(); toast("스토리를 수정했어요"); }); return; }
     case "qcheck": { const q = S.mine[id]; if (!q || !S.canWrite) return; const done = {...(q.done||{})}, k = today(), was = !!done[k];
-      if(was&&!confirm('완료를 취소하면 실제 지급 보상이 회수됩니다. 부족한 코인은 정산 조정 잔액으로 남고 다음 수입으로 상계돼요. 계속할까요?'))return;
       if (was) delete done[k]; else done[k] = Date.now();
-      run(() => api.putMine(id, {...q, done}),r=>{S.quietXp=true;if(!was)S.pop={id,xp:r.xp,c:r.coins,at:Date.now()};toast(`실제 반영 ${r.xp} XP · ${r.coins} 코인`);}); return; }
+      const go0 = () => run(() => api.putMine(id, {...S.mine[id], done}),r=>{S.quietXp=true;if(!was)S.pop={id,xp:r.xp,c:r.coins,at:Date.now()};toast(`실제 반영 ${r.xp} XP · ${r.coins} 코인`);});
+      if (was) ask(UNDO_ASK, go0); else go0(); return; }
     case "shareq": { const q = S.mine[id]; if (!q) return; openCompose({ref:habitSnap(q), fixed:true, title:`🔥 ${esc(q.name)}<br>${streakOf(q).cur}일째 해냈어요`}); return; }
     case "mcheck": { const m = S.mine[id]; if (!m || !S.canWrite) return; const nd = !m.done;
-      if(!nd&&!confirm('완료를 취소하면 실제 지급 보상이 회수됩니다. 부족한 코인은 정산 조정 잔액으로 남고 다음 수입으로 상계돼요. 계속할까요?'))return;
-      run(() => api.putMine(id, {...m, done:nd, doneAt:nd ? Date.now() : null}), r => {S.quietXp=true;if(nd)S.pop={id,xp:r.xp,c:r.coins,at:Date.now()};toast(`실제 반영 ${r.xp} XP · ${r.coins} 코인`);if (m.projectId) syncProgress(m.projectId); }); return; }
+      const go0 = () => run(() => api.putMine(id, {...S.mine[id], done:nd, doneAt:nd ? Date.now() : null}), r => {S.quietXp=true;if(nd)S.pop={id,xp:r.xp,c:r.coins,at:Date.now()};toast(`실제 반영 ${r.xp} XP · ${r.coins} 코인`);if (m.projectId) syncProgress(m.projectId); });
+      if (!nd) ask(UNDO_ASK, go0); else go0(); return; }
     case "sharem": { const m = S.mine[id], pj = m && S.projects[m.projectId]; if (!pj) return; openCompose({ref:{type:"mission", id:pj.id, label:pj.title, mission:m.name}, fixed:true, title:"✅ 태스크 완료"}); return; }
     case "mtoday": { const m = S.mine[id]; if (!m) return; run(() => api.putMine(id, {...m, today:!isToday(m)})); return; }
     case "qtoggle": { const q = S.mine[id]; run(() => api.putMine(id, {...q, active:q.active === false})); return; }
@@ -3669,7 +3673,7 @@ if (!entryScreen && !hasProfile()) entryScreen = 'login';
 api = runtime.createAPI({state:S, storage, id:uid8, now:Date.now, color:COLORS[0]});
 MY = computeMine(); S.lastXp = MY.xp; S.lastLv = MY.L;
 applyTheme(); route(); schedule();
-return {state:S, api, snapshot:() => storage.capture(S)};
+return {state:S, api, snapshot:() => storage.capture(S), confirm:askAsync, notify:msg => toast(esc(msg))};
 }
 
 Object.assign(__exports,{startLegacyApp});
@@ -3871,11 +3875,11 @@ function installBackups({document, storage, getState, confirm, alert, reload, UR
             const text = await f.text();
             // Validate BEFORE prompting/replacing; never load quest:v1 automatically.
             parseBackup(text);
-            if (!confirm('현재 '+storage.mode+' 작업 공간을 이 백업으로 교체할까요? 기존 기록은 덮어씁니다.')) return;
+            if (!(await confirm('현재 '+storage.mode+' 작업 공간을 이 백업으로 교체할까요? 기존 기록은 덮어씁니다.'))) return;
             storage.import(text); reload();
           } catch (error) { alert('백업 가져오기 실패: '+error.message); }
         }; input.click();
-      } else if (confirm('현재 '+storage.mode+' 작업 공간만 초기화할까요? 되돌릴 수 없습니다.')) {
+      } else if (await confirm('현재 '+storage.mode+' 작업 공간만 초기화할까요? 되돌릴 수 없습니다.')) {
         storage.reset(); reload();
       }
     } catch (error) { alert('백업 작업 실패: '+error.message); }

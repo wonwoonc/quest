@@ -537,7 +537,7 @@ test('completion timestamp survives edits/viewing, undo clears and recomplete st
   const previous = h.snapshot().mine.done.doneAt;
   h.click('tedit',{id:'done'}); h.nodes.set('te-name',{value:'수정한 완료 태스크'}); h.nodes.set('te-note',{value:'메모'});
   h.click('submit-tedit'); await h.settle(); assert.equal(h.snapshot().mine.done.doneAt,previous);
-  h.click('mcheck',{id:'done'}); await h.settle(); assert.equal(h.snapshot().mine.done.doneAt,null);
+  h.click('mcheck',{id:'done'}); h.click('cfok'); await h.settle(); assert.equal(h.snapshot().mine.done.doneAt,null);
   h.click('mcheck',{id:'done'}); await h.settle(); assert.ok(h.snapshot().mine.done.doneAt >= previous);
   const before = h.snapshot(); h.click('cdate',{v:'2026-11-02'}); h.click('sheet-close'); assert.deepEqual(h.snapshot(),before);
 });
@@ -958,8 +958,9 @@ for(const id of ['alv','hlv','tlv'])test(`${id}: reactive input and legacy actio
 test('completion UI uses approved amounts, confirmation protects undo, manual goal completion is possible',async()=>{
   const h=await linkedUI();h.route('today');h.click('mcheck',{id:'tm'});await h.settle();
   assert.match(h.nodes.get('toast').innerHTML,/30 XP · 60 코인/);
-  const before=h.snapshot();h.click('mcheck',{id:'tm'});await h.settle();assert.deepEqual(h.snapshot(),before,'default reject confirmation prevents undo');
-  h.context.confirm=()=>true;h.click('mcheck',{id:'tm'});await h.settle();assert.equal(h.snapshot().mine.tm.done,false);
+  const before=h.snapshot();h.click('mcheck',{id:'tm'});await h.settle();assert.deepEqual(h.snapshot(),before,'undo waits for the in-app confirmation');
+  assert.match(h.nodes.get('overlay').innerHTML,/완료를 취소할까요\?/);h.click('cfno');await h.settle();assert.deepEqual(h.snapshot(),before,'cancel keeps completion');
+  h.click('mcheck',{id:'tm'});h.click('cfok');await h.settle();assert.equal(h.snapshot().mine.tm.done,false);
   assert.match(h.nodes.get('toast').innerHTML,/-30 XP · -60 코인/);
   h.click('project',{p:'main'});assert.doesNotMatch(h.nodes.get('app').innerHTML,/활동일·주간 횟수 제한 없음|지금 완료 시|같은 목표는 평생 한 번만 지급/);assert.match(h.nodes.get('app').innerHTML,/최대 200 XP · 100 코인/);
   h.click('pdone',{p:'main'});h.click('pdone',{p:'main'});await h.settle();
@@ -1123,4 +1124,12 @@ test('week view: daily quests follow the same today/next-occurrence rule as mont
   const html = h.nodes.get('app').innerHTML, ds = id => [...html.matchAll(new RegExp(`data-act="hcheckd" data-id="${id}" data-d="([^"]+)"`,'g'))].map(m => m[1]);
   const wk = d => html.includes(`data-v="${d}"`);
   assert.deepEqual(ds('qa'),[T]); assert.deepEqual(ds('qb'),[T, TM].filter(wk)); assert.ok(!ds('qb').includes(D2));
+});
+
+test('daily quest undo uses the in-app confirm sheet (browser confirm is never called)',async()=>{
+  const base=await profileUI(),saved=base.snapshot();saved.mine.qz={id:'qz',kind:'quest',name:'취소 테스트',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{},createdAt:1};
+  const h=await profileUI(saved);h.route('today');h.context.confirm=()=>{throw new Error('native confirm used');};const q=saved.mine.qz;
+  h.click('qcheck',{id:q.id});await h.settle();const k=Object.keys(h.snapshot().mine[q.id].done||{}).length;assert.ok(k>=1);
+  h.click('qcheck',{id:q.id});await h.settle();assert.match(h.nodes.get('overlay').innerHTML,/data-act="cfok"/);
+  h.click('cfok');await h.settle();assert.equal(Object.keys(h.snapshot().mine[q.id].done||{}).length,k-1);
 });
