@@ -972,10 +972,12 @@ a.goldchip{text-decoration:none}
 .morebtn.more10 em{font-style:normal;color:var(--muted);margin-left:2px}
 .tlate{flex:none;font-size:12px;font-weight:700;color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent);border-radius:6px;padding:2px 6px;white-space:nowrap}
 .qrow.ghost{opacity:.55;cursor:pointer}
-.qrow.paused{opacity:.6}
-.qrow.paused b{color:var(--sub)}
-.qrow .pdot{flex:none;width:20px;height:20px;display:grid;place-items:center;border-radius:50%;border:1.6px dashed var(--muted);color:var(--muted)}
-.qrow .pdot svg{width:10px;height:10px}
+.qfoot2{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-right:14px}
+.archbtn{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:6px 6px;border-radius:10px;color:var(--muted);font:inherit;font-size:13px;font-weight:700;cursor:pointer;position:relative}
+.archbtn:hover{background:var(--fill);color:var(--sub)}
+.archbtn svg{width:17px;height:17px}
+.archbtn em{font-style:normal;color:var(--accent)}
+.archbtn::after{content:"";position:absolute;inset:-6px -2px}
 .qrow.ghost .gdot,.wti.ghost .gdot{flex:none;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;border:1.5px dashed var(--muted);color:var(--muted);font-size:12px}
 .wti.ghost{opacity:.55;background:transparent;border:1px dashed var(--line)}
 .wti.ghost .gdot{width:18px;height:18px;font-size:10px}
@@ -2168,7 +2170,7 @@ function xpPop(el, xp, c){ if (!el || !el.getBoundingClientRect) return; const r
 function habitRow(q){
   const lv = HLV[lvKey(q.lv)], done = !!(q.done||{})[today()], st = streakOf(q);
   return `<div class="row qrow" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><button class="check ${done?"on":""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button>
-    <span class="t"><b class="${done?"done":""}">${esc(q.name)}</b><small><span class="fire">🔥 ${st.cur || 0}${streakUnit(q)}</span>${q.active === false ? " · 쉬는 중" : ""}</small></span>${xpFloat(q.id)}</div>`;
+    <span class="t"><b class="${done?"done":""}">${esc(q.name)}</b><small><span class="fire">🔥 ${st.cur || 0}${streakUnit(q)}</span>${q.active === false ? " · 보관" : ""}</small></span>${xpFloat(q.id)}</div>`;
 }
 const lateDays = m => !m.done && m.origDue && m.origDue < (m.due || today()) ? Math.round((pd(today()) - pd(m.origDue)) / DAY) : 0;
 function taskTimeTag(m){
@@ -2310,9 +2312,8 @@ function viewToday(){
     h += `<div class="starter"><b>이런 데일리 퀘스트로 시작해 보세요</b><div class="chips">${SUGGEST.map(([n]) => `<button class="chip" data-act="suggest" data-v="${esc(n)}">+ ${esc(n)}</button>`).join("")}</div></div>`;
   } else if (!total) h += `<p class="empty-row">오늘 할 데일리 퀘스트가 없어요.</p>`;
   h += todo.map(row).join("");
-  const paused = mineOf("quest").filter(q => q.active === false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
-  const pausedRow = q => `<div class="row qrow paused" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><span class="pdot" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="5" width="3.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="3.5" height="14" rx="1.2"/></svg></span><span class="t"><b>${esc(q.name)}</b><small>눌러서 다시 시작</small></span></div>`;
-  h += done.map(row).join("") + (paused.length ? `<button class="tfold" data-act="toggle" data-k="paused" aria-expanded="${!!S.openPaused}"><span>쉬는 중 <em class="num">${paused.length}개</em></span><span class="chev2 ${S.openPaused ? "open" : ""}">${I.chev}</span></button>` + (S.openPaused ? paused.map(pausedRow).join("") : "") : "") + `<button class="tadd-pill" data-act="sheet" data-k="add" data-v="daily">+ 퀘스트 추가</button></section>`;
+  const archived = mineOf("quest").filter(q => q.active === false).length;
+  h += done.map(row).join("") + `<div class="qfoot2"><button class="tadd-pill" data-act="sheet" data-k="add" data-v="daily">+ 퀘스트 추가</button><button class="archbtn" data-act="archive" aria-label="보관한 데일리 퀘스트 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4"/></svg>보관${archived ? ` <em class="num">${archived}</em>` : ""}</button></div></section>`;
   return h;
 }
 function goalRow(p, nested = false){
@@ -2748,7 +2749,7 @@ function viewProfile(){
     if (pt === "daily"){
       if (!mine) h += `<div class="card empty"><strong>데일리 퀘스트는 본인만 볼 수 있어요</strong>공유한 데일리 퀘스트는 스토리에서 볼 수 있어요.</div>`;
       else { const qs = mineOf("quest").sort((a,b) => (b.active !== false) - (a.active !== false) || streakOf(b).cur - streakOf(a).cur);
-        h += qs.length ? `<section class="card tight">${qs.map(q => { const st = streakOf(q), lv = HLV[lvKey(q.lv)]; return `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq" title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span><span class="t"><b>${esc(q.name)}${q.active === false ? ` <span class="tday soft">쉬는 중</span>` : ""}</b><small>${repeatLabel(q)} · 최장 ${st.best}${streakUnit(q)} · 총 ${st.total}회</small></span><span class="streak num">🔥 ${st.cur}</span></button>`; }).join("")}</section>` : `<div class="card empty"><strong>아직 데일리 퀘스트가 없어요</strong></div>`; }
+        h += qs.length ? `<section class="card tight">${qs.map(q => { const st = streakOf(q), lv = HLV[lvKey(q.lv)]; return `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq" title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span><span class="t"><b>${esc(q.name)}${q.active === false ? ` <span class="tday soft">보관</span>` : ""}</b><small>${repeatLabel(q)} · 최장 ${st.best}${streakUnit(q)} · 총 ${st.total}회</small></span><span class="streak num">🔥 ${st.cur}</span></button>`; }).join("")}</section>` : `<div class="card empty"><strong>아직 데일리 퀘스트가 없어요</strong></div>`; }
     } else {
       const list = pt === "sub" ? Object.values(S.projects).filter(p => p.owner === uid && p.parentId) : goals;
       const act = list.filter(g => g.status !== "done"), dn = list.filter(g => g.status === "done"), nm = pt === "sub" ? "서브 퀘스트" : "메인 퀘스트";
@@ -3000,7 +3001,7 @@ function renderSheet(){ IXC = null;
     ${timeOnlyField(c)}
     ${difficultySelector(c,'quest','hlv')}
     <button class="btn big full" data-act="submit-hedit" ${S.busy?"disabled":""}>저장</button>
-    <div class="btnrow">${dn ? `<button class="btn soft" data-act="shareq" data-id="${q.id}">공유</button>` : ""}<button class="btn sec" data-act="htoggle">${q.active === false ? "다시 시작" : "쉬기"}</button><button class="btn sec" style="color:var(--warn)" data-act="hdel">${S.armed === "hd"+c.id ? "정말 삭제" : "삭제"}</button></div>`); }
+    <div class="btnrow">${dn ? `<button class="btn soft" data-act="shareq" data-id="${q.id}">공유</button>` : ""}<button class="btn sec" data-act="htoggle">${q.active === false ? "보관 해제" : "보관"}</button><button class="btn sec" style="color:var(--warn)" data-act="hdel">${S.armed === "hd"+c.id ? "정말 삭제" : "삭제"}</button></div>`); }
   if (c.type === "post") return postSheet(quick);
   if (c.type === "mission") return sheetWrap("태스크 추가", "", `
     <div class="field"><input type="text" id="ms-name" maxlength="80" placeholder="예: 기획서 초안 쓰기" value="${D("ms-name")}" aria-label="태스크"></div>
@@ -3132,11 +3133,13 @@ function renderSheet(){ IXC = null;
     <div class="field"><textarea id="ep-text" rows="6" maxlength="1000" aria-label="내용">${D("ep-text")}</textarea></div>
     ${p.imgs ? `<p class="hint" style="margin:-4px 0 14px">사진 ${p.imgs}장은 그대로 유지돼요.</p>` : ""}
     <button class="btn big full" data-act="submit-postedit" ${S.busy?"disabled":""}>저장</button>`); }
+  if (c.type === "archive"){ const qs = mineOf("quest").filter(q => q.active === false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+    return sheetWrap(`보관한 데일리 퀘스트${qs.length ? ` <span class="num" style="color:var(--accent)">${qs.length}</span>` : ""}`, "", qs.length ? `<div class="sheetlist">${qs.map(q => { const st = streakOf(q); return `<div class="row"><span class="t tap" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><b>${esc(q.name)}</b><small>${repeatLabel(q)} · 최장 ${st.best}${streakUnit(q)} · 총 ${st.total}회</small></span><button class="btn soft sm" data-act="unarch" data-id="${esc(q.id)}">보관 해제</button></div>`; }).join("")}</div>` : `<p class="empty-row" style="padding:4px 0 16px">보관한 데일리 퀘스트가 없어요.<br>데일리 퀘스트를 눌러 '보관'하면 여기로 옮겨져요.</p>`); }
   if (c.type === "hset"){ const qs = mineOf("quest").sort((a,b) => (a.createdAt||0) - (b.createdAt||0)), act = qs.filter(q => q.active !== false), ps = qs.filter(q => q.active === false);
     const r = q => { const st = streakOf(q), lv = HLV[lvKey(q.lv)]; return `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq" title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span><span class="t"><b>${esc(q.name)}</b><small>${repeatLabel(q)} · 🔥 ${st.cur}${streakUnit(q)} · 최장 ${st.best}${streakUnit(q)}</small></span>${I.chev}</button>`; };
     return sheetWrap("데일리 퀘스트 설정", "", `
     <div class="sheetlist">${act.length ? `<p class="lab" style="margin:0 20px 4px">진행 중 ${act.length}</p>${act.map(r).join("")}` : `<p class="empty-row">진행 중인 데일리 퀘스트가 없어요.</p>`}
-    ${ps.length ? `<p class="lab" style="margin:14px 20px 4px">쉬는 중 ${ps.length}</p>${ps.map(r).join("")}` : ""}</div>
+    ${ps.length ? `<p class="lab" style="margin:14px 20px 4px">보관 ${ps.length}</p>${ps.map(r).join("")}` : ""}</div>
     <button class="btn big full" data-act="sheet" data-k="add" data-v="daily">+ 데일리 퀘스트 추가</button>`); }
   if (c.type === "reward-got") return sheetWrap("", "", `<div class="reward"><div class="big">${c.emoji}</div><h2 style="justify-content:center">${c.title}</h2><p class="desc" style="margin:0">${c.desc}</p>
     <div class="gain">${c.xp ? `<span>+${fmt(c.xp)} XP</span>` : ""}${c.g ? `<span>${c.g > 0 ? "+" : ""}${fmt(c.g)} 코인</span>` : ""}</div>
@@ -3378,7 +3381,7 @@ document.addEventListener("click", e => {
     case "unblock": { if (S.compose && S.compose.type === "umenu") closeSheet(); const st = getSet(); run(() => api.putMine("settings", {kind:"settings", ...st, blocked:st.blocked.filter(x => x !== u)}), () => toast("차단을 해제했어요")); return; }
     case "unhide": { const st = getSet(); st.hidden.splice(+b.dataset.i, 1); run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
     case "tfold": { const l = LS.get("tfold", []), k = b.dataset.k; LS.set("tfold", l.includes(k) ? l.filter(x => x !== k) : [...l, k]); break; }
-    case "toggle": { const m = {habits:"openHabits", later:"openLater", done:"openDone", ach:"openAch", blk:"openBlk", subdone:"openSubDone", buys:"openBuys", tdone:"openTDone", paused:"openPaused"}[b.dataset.k]; S[m] = !S[m]; break; }
+    case "toggle": { const m = {habits:"openHabits", later:"openLater", done:"openDone", ach:"openAch", blk:"openBlk", subdone:"openSubDone", buys:"openBuys", tdone:"openTDone"}[b.dataset.k]; S[m] = !S[m]; break; }
     case "compose": if (pid && S.projects[pid]) openCompose({ref:{type:"project", id:pid, label:S.projects[pid].title}, fixed:true}); else openCompose(); return;
     case "sheet": { if (!S.canWrite) return; if (!hasProfile() && b.dataset.k !== "profile"){ toast("먼저 캐릭터를 만들어 주세요"); return; }
       const k = b.dataset.k; if (k === "post") return openCompose();
@@ -3470,6 +3473,8 @@ document.addEventListener("click", e => {
     case "emocustom": S.planner.custom = true; reDiary(); setTimeout(() => { const x = $("#pl-emo"); x && x.focus(); }, 0); return;
     case "emoadd": { const v = (($("#pl-emo")||{}).value||"").trim(); if (!v){ toast("감정을 적어 주세요"); return; } S.planner.extra = [...new Set([...(S.planner.extra||[]), v])]; S.planner.emo = v; S.planner.custom = false; delete S.drafts["pl-emo"]; reDiary(); return; }
     case "hset": openSheet({type:"hset"}); return;
+    case "archive": openSheet({type:"archive"}); return;
+    case "unarch": { const q = S.mine[id]; if (!q) return; run(() => api.putMine(id, {...q, active:true}), () => { toast(`'${esc(q.name)}' 보관을 해제했어요`); if (S.compose && S.compose.type === "archive") renderSheet(); }); return; }
     case "pemo": S.planner.emo = S.planner.emo === b.dataset.v ? null : b.dataset.v; reDiary(); return;
     case "pedit": { const d = S.mine["d-"+today()]; S.planner = {...S.planner, edit:true, cond:d ? d.cond : 70, emo:d ? d.emo : null, share:d ? !!diaryPost("d-"+today()) : S.planner.share}; S.drafts["pl-text"] = d ? d.text : ""; break; }
     case "psave": { if (!S.canWrite) return; const P = S.planner, text = (dq("#pl-text").value||"").trim(), cond = +dq("#pl-cond").value, share = !!(dq("#pl-share") && dq("#pl-share").checked);
@@ -3529,7 +3534,7 @@ document.addEventListener("click", e => {
     case "submit-hedit": { const q = S.mine[c.id], name = ($("#he-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (dupQ(name, c.id)){ toast(DUPMSG); return; } if (!c.days.length){ toast("요일을 골라 주세요"); return; }
       const rp2 = buildRepeat(c); if (needsDays(rp2.type) && !rp2.days.length){ toast("요일을 골라 주세요"); return; }
       if (!c.time){ toast("시간을 골라 주세요"); return; } run(() => api.putMine(c.id, {...q, name, time:c.time, repeat:rp2, days:rp2.days||[], lv:c.hlv}), () => { closeSheet(); toast("저장했어요"); }); return; }
-    case "htoggle": { const q = S.mine[c.id]; run(() => api.putMine(c.id, {...q, active:q.active === false}), () => { closeSheet(); toast(q.active === false ? "다시 시작했어요" : "쉬는 중으로 옮겼어요"); }); return; }
+    case "htoggle": { const q = S.mine[c.id]; run(() => api.putMine(c.id, {...q, active:q.active === false}), () => { closeSheet(); toast(q.active === false ? "보관을 해제했어요" : "보관했어요"); }); return; }
     case "hcheckd": { e.stopPropagation(); const q = S.mine[id]; if (!q) return; const d = b.dataset.d; if (d !== today()){ toast("지난 날짜의 완료는 바꿀 수 없어요"); return; } const dn = {...(q.done||{})}; if (dn[d]) delete dn[d]; else dn[d] = Date.now(); run(() => api.putMine(id, {...q, done:dn}), () => { toast(dn[d] ? "완료했어요" : "완료를 취소했어요"); }); return; }
     case "hdel": { const hid = c.id; if (S.armed !== "hd"+hid){ arm("hd"+hid); renderSheet(); return; } S.armed = null; run(() => api.delMine(hid), () => { closeSheet(); toast("데일리 퀘스트를 삭제했어요"); }); return; }
     case "submit-add": { if (!readTime(c)) return; const name = ($("#ad-name").value||"").trim(); if (!name){ toast("무엇을 할지 적어 주세요"); $("#ad-name").focus(); return; }

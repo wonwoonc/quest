@@ -972,10 +972,12 @@ a.goldchip{text-decoration:none}
 .morebtn.more10 em{font-style:normal;color:var(--muted);margin-left:2px}
 .tlate{flex:none;font-size:12px;font-weight:700;color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent);border-radius:6px;padding:2px 6px;white-space:nowrap}
 .qrow.ghost{opacity:.55;cursor:pointer}
-.qrow.paused{opacity:.6}
-.qrow.paused b{color:var(--sub)}
-.qrow .pdot{flex:none;width:20px;height:20px;display:grid;place-items:center;border-radius:50%;border:1.6px dashed var(--muted);color:var(--muted)}
-.qrow .pdot svg{width:10px;height:10px}
+.qfoot2{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-right:14px}
+.archbtn{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:6px 6px;border-radius:10px;color:var(--muted);font:inherit;font-size:13px;font-weight:700;cursor:pointer;position:relative}
+.archbtn:hover{background:var(--fill);color:var(--sub)}
+.archbtn svg{width:17px;height:17px}
+.archbtn em{font-style:normal;color:var(--accent)}
+.archbtn::after{content:"";position:absolute;inset:-6px -2px}
 .qrow.ghost .gdot,.wti.ghost .gdot{flex:none;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;border:1.5px dashed var(--muted);color:var(--muted);font-size:12px}
 .wti.ghost{opacity:.55;background:transparent;border:1px dashed var(--line)}
 .wti.ghost .gdot{width:18px;height:18px;font-size:10px}
