@@ -1,0 +1,1981 @@
+import {createCharacterClient, generateCharacter} from './character-client.js';
+import {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, levelStart, koreaDate, economySummary, goalEligibility, CATALOG, migrateEconomy} from './economy.js';
+import {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} from './day-activities.js';
+export function startLegacyApp({runtime, storage, seed = null}) {
+const entryParams = new URLSearchParams(location.search || '');
+const devCharacter = entryParams.get('devCharacter') === '1';
+const characterClient = createCharacterClient({enabled:devCharacter});
+const photoNotice = '사진 기반 생성은 개발 테스트에서만 이용할 수 있어요';
+// UI routes only. These flags are not an authentication/session boundary.
+const requestedScreen = entryParams.get('screen') || document.documentElement.dataset.entryScreen;
+let entryScreen = requestedScreen === 'login' ? 'login' : requestedScreen === 'character' ? 'character' : null;
+/* ================= rules ================= */
+const DAY = 86400000, MAX_IMGS = 4, DAILY_CAP = 10;
+const COLORS = ["#3DBE8B","#F29B4B","#5B9CEB","#EB6E93","#9C7CE6"];
+const levels = kind => Object.fromEntries(TIERS.map(k => { const r=activityReward(kind,k), meta=(kind==='quest'?DAILY_DIFFICULTY:TASK_DIFFICULTY)[k]; return [k,{...meta,xp:r.xp,c:r.coins}]; }));
+const HLV = levels('quest'), TLV = levels('mission');
+const lvKey = tierKey;
+const tlv = m => TLV[m.lv] || TLV.normal;
+const GOAL = {xp:200, c:100}, PROJ = {xp:60, c:30}, DIARY = {xp:10, c:5};
+const OLD_TIER = {light:150, basic:800, special:1500, deluxe:3000, ultimate:8000};
+const EMOS = [["기쁨","😄"],["평온","😌"],["설렘","🤩"],["피곤","😪"],["불안","😟"],["우울","😢"],["화남","😤"]];
+const EMOI = Object.fromEntries(EMOS);
+const MOODS = ["뿌듯해요","설레요","힘들어요","막막해요","포기하고 싶어요","다시 해볼게요"];
+const HARD = ["힘들어요","막막해요","포기하고 싶어요"];
+const UNITS = ["kg","개","만 원"];
+const WD = ["일","월","화","수","목","금","토"];
+const RANKS = [[30,"전설의 모험가"],[20,"마스터 모험가"],[10,"베테랑 모험가"],[5,"모험가"],[1,"견습 모험가"]];
+
+/* ================= state ================= */
+const S = {
+  mode:"loading", me:null, canWrite:true, ob:{face:"", making:false},
+  profiles:{}, projects:{}, feed:{}, replies:{}, follows:{}, mine:{}, names:{},
+  view:{name:"feed"}, openHabits:false, openLater:false, openDone:false, qTab:"daily", feedTab:"all", profTab:"posts",
+  drafts:{}, media:{}, mediaLoading:new Set(), compose:null, busy:false, swatch:COLORS[0],
+  planner:{cond:70, emo:null, share:false}, lastXp:null, lastLv:null, armed:null, scrolls:{}, actSeenView:0,
+  feedSeen:0, ackAt:Date.now(), notifiedAt:null, statSig:""
+};
+let api = null, MY = null;
+const LS = storage.preferences;
+S.qTab = LS.get("qTab", "daily");
+let actSeen = LS.get("actSeen", 0), seenStories = new Set(LS.get("seen", []));
+S.feedSeen = LS.get("feedSeen", 0); LS.set("feedSeen", Date.now());
+
+/* ================= helpers ================= */
+const $ = s => document.querySelector(s);
+const dq = s => (S.compose && S.compose.type === "diary" && document.querySelector("#overlay "+s)) || $(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid8 = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+const keyOf = id => String(id).replace(/[^A-Za-z0-9_\-.~:@+]/g,"_");
+const pad = n => String(n).padStart(2,"0");
+const dk = t => { const d = new Date(t); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+const today = () => koreaDate(Date.now());
+const dayStart = t => { const d = new Date(t); d.setHours(0,0,0,0); return d.getTime(); };
+function ago(t){
+  const s = (Date.now()-t)/1000;
+  if (s < 60) return "방금"; if (s < 3600) return Math.floor(s/60)+"분"; if (s < 86400) return Math.floor(s/3600)+"시간";
+  if (s < 86400*7) return Math.floor(s/86400)+"일"; const d = new Date(t); return (d.getMonth()+1)+"월 "+d.getDate()+"일";
+}
+const fmt = n => Number(n).toLocaleString("ko-KR");
+const numFmt = v => (Math.round(Number(v)*10)/10).toLocaleString("ko-KR", {maximumFractionDigits:1});
+const parseNum = s => { const v = parseFloat(String(s||"").replace(/,/g,"")); return isFinite(v) ? v : null; };
+const lvStart = levelStart;
+const levelOf = economyLevel;
+const rankOf = L => RANKS.find(r => L >= r[0])[1];
+const on = v => !!(v && (v.at || (typeof v === "number" && v > 0)));
+function dday(end){ if (!end) return ""; const n = Math.round((dayStart(new Date(end).getTime()) - dayStart(Date.now()))/DAY); return n > 0 ? "D-"+n : n === 0 ? "D-Day" : "D+"+(-n); }
+const isToday = m => m.period ? perAnchor(m.period, today()) === m.due : m.due ? m.due <= today() : (m.today === true || (m.today == null && (m.pri === "focus" || m.pri === "p1")));
+const dueOf = m => m.due || (!m.done && isToday(m) ? today() : "");
+function rollOver(){ if (!S.me || !S.canWrite || !api || S.mode === "loading") return; const t = today(), late = mineOf("mission").filter(m => !m.done && !m.period && m.due && m.due < t);
+  if (!late.length || S.rolling) return; S.rolling = true;
+  (async () => { for (const m of late){ try{ const nm = {...m, due:t, origDue:m.origDue || m.due}; S.mine[m.id] = nm; await api.putMine(m.id, nm); }catch(e){} } S.rolling = false; schedule(); })(); }
+const dateOf = m => m.done ? activityDate(m.doneAt) : m.period ? "" : dueOf(m);
+const perAnchor = (per, d) => per === "week" ? monStart(d) : per === "month" ? d.slice(0,8) + "01" : per === "year" ? d.slice(0,5) + "01-01" : d;
+const perEnd = (per, a) => per === "week" ? addD(a, 6) : per === "month" ? (() => { const x = pd(a); return dk(new Date(x.getFullYear(), x.getMonth()+1, 0).getTime()); })() : per === "year" ? a.slice(0,5) + "12-31" : a;
+function perName(per, a){ const t = today(), x = pd(a);
+  if (per === "week") return a === monStart(t) ? "이번 주" : a === addD(monStart(t), 7) ? "다음 주" : `${x.getMonth()+1}/${x.getDate()} 주`;
+  if (per === "month") return a === perAnchor("month", t) ? "이번 달" : `${x.getMonth()+1}월`;
+  return a === perAnchor("year", t) ? "올해" : `${x.getFullYear()}년`; }
+const tomorrow = () => dk(Date.now() + DAY);
+const hintBar = (k, text) => true ? "" : `<div class="hintbar" data-hint="${k}"><span>💡 ${text}</span><button class="hint-x" data-act="hintx" data-k="${k}" aria-label="안내 닫기">${I.close}</button></div>`;
+const hintDone = k => { if (!LS.get("hint_" + k, 0)){ LS.set("hint_" + k, 1); document.querySelectorAll(`[data-hint="${k}"]`).forEach(x => x.remove()); } };
+const restDays = () => (S.mine.rest && S.mine.rest.days) || {};
+function dueLabel(m){ if (m.period && m.due){ if (m.done) return ""; return perEnd(m.period, m.due) < today() ? `<span class="tday late">기한 지남</span>` : `<span class="tday soft">${perName(m.period, m.due)}</span>`; }
+  const d = dueOf(m); if (!d || m.done) return ""; const t = today(); if (d < t) return `<span class="tday late">기한 지남</span>`; if (d === t) return S._noToday ? "" : `<span class="tday">오늘</span>`; if (d === tomorrow()) return `<span class="tday soft">내일</span>`; const x = new Date(d+"T00:00"); return `<span class="tday soft">${x.getMonth()+1}/${x.getDate()}</span>`; }
+const dueField = (c) => { const t = today(), tm = tomorrow(), other = c.due && !c.period && c.due !== t && c.due !== tm;
+  return `<div class="field"><span class="lab">날짜·시간 <span class="hint">필수</span></span><div class="chips">${[["오늘", t],["내일", tm]].map(([l,v]) => `<button class="chip" data-act="cdue1" data-v="${v}" aria-pressed="${!c.period && c.due === v}">${l}</button>`).join("")}<button class="chip" data-act="dpopen" data-k="due" aria-pressed="${!!other}">📅 ${other ? fmtD(c.due) : "날짜"}</button><button class="chip" data-act="tmset" aria-pressed="${!!c.time}">🕒 <span class="tmval">${c.time ? tmLabel(c.time) : "시간"}</span></button></div>${c._dp === "due" ? miniCal(c, "due") : ""}${c._tw ? timeWheel(c) : ""}</div>`; };
+const TW_H = 36;
+function timeWheel(c){ const [h, m] = (c.time || "09:00").split(":").map(Number), mi = Math.round(m/5) % 12;
+  const col = (k, n, step, sel) => `<div class="twc" data-tw="${k}" data-sel="${sel}"><i></i><i></i>${Array.from({length:n}, (_, i) => `<span>${pad(i*step)}</span>`).join("")}<i></i><i></i></div>`;
+  return `<div class="tw"><div class="twwrap"><div class="twband"></div>${col("h", 24, 1, h)}<b>:</b>${col("m", 12, 5, mi)}</div>${hintBar("tw", "가운데 숫자를 누르면 직접 입력할 수 있어요")}<button class="tw-ok" data-act="tmdone">완료</button></div>`; }
+function initTW(){ document.querySelectorAll("#overlay .twc").forEach(el => { el.scrollTop = (+el.dataset.sel) * TW_H; el.querySelectorAll("span").forEach((x, i) => x.classList.toggle("on", i === +el.dataset.sel)); }); }
+let twT = null;
+document.addEventListener("input", e => { if (e.target.id !== "rday-in" || !S.compose) return; const n = parseInt(e.target.value, 10);
+  if (!n || n < 1 || n > 31) return; const c = S.compose; c.rday = n; document.querySelectorAll("#overlay .chips.day31 .chip").forEach(el => el.setAttribute("aria-pressed", String(+el.dataset.v === n))); });
+document.addEventListener("input", e => { if (e.target.id !== "tw-in" || !S.compose) return; const v = parseTime(e.target.value); if (!v) return; const c = S.compose; c.time = v; S._twQuiet = Date.now();
+  const [h, m] = v.split(":").map(Number); const box = e.target.closest(".tw"); const hs = box.querySelector('[data-tw="h"]'), ms = box.querySelector('[data-tw="m"]');
+  hs.scrollTop = h * TW_H; ms.scrollTop = (Math.round(m/5) % 12) * TW_H; const t = document.querySelector("#overlay .tmval"); if (t) t.textContent = tmLabel(v); });
+function twCommit(inp){ hintDone("tw"); const c = S.compose; if (!c || inp._done || !inp.isConnected) return; inp._done = true; const k = inp.dataset.tw, n = parseInt(inp.value, 10), box = inp.closest(".tw"); inp.remove(); if (isNaN(n)) return;
+  let [h, m] = (c.time || "09:00").split(":").map(Number); if (k === "h") h = Math.max(0, Math.min(23, n)); else m = Math.max(0, Math.min(59, n));
+  c.time = `${pad(h)}:${pad(m)}`; S._twQuiet = Date.now(); const hs = box.querySelector('[data-tw="h"]'), ms = box.querySelector('[data-tw="m"]');
+  hs.scrollTop = h * TW_H; ms.scrollTop = (Math.round(m/5) % 12) * TW_H;
+  const t = document.querySelector("#overlay .tmval"); if (t) t.textContent = tmLabel(c.time); }
+document.addEventListener("click", e => { const sp = e.target.closest(".twc span"); if (!sp) return; e.stopPropagation(); const col = sp.parentNode, spans = [...col.querySelectorAll("span")], idx = spans.indexOf(sp);
+  if (!sp.classList.contains("on")){ col.scrollTo({top:idx * TW_H, behavior:"smooth"}); return; }
+  const wrap = col.closest(".twwrap"), r = col.getBoundingClientRect(), wr = wrap.getBoundingClientRect(), [h, m] = (S.compose.time || "09:00").split(":");
+  const inp = document.createElement("input"); inp.className = "tw-edit"; inp.dataset.tw = col.dataset.tw; inp.inputMode = "numeric"; inp.maxLength = 2; inp.value = col.dataset.tw === "h" ? h : m; inp.setAttribute("aria-label", col.dataset.tw === "h" ? "시 입력" : "분 입력");
+  Object.assign(inp.style, {left:(r.left - wr.left) + "px", width:r.width + "px"}); wrap.appendChild(inp); inp.focus(); inp.select();
+  inp.addEventListener("keydown", ev => { if (ev.key === "Enter"){ ev.preventDefault(); twCommit(inp); } else if (ev.key === "Escape"){ inp._done = true; inp.remove(); } });
+  inp.addEventListener("blur", () => twCommit(inp)); }, true);
+document.addEventListener("scroll", e => { const el = e.target; if (!el.classList || !el.classList.contains("twc")) return; const c = S.compose; if (!c) return;
+  if (S._twQuiet && Date.now() - S._twQuiet < 400){ const idx0 = Math.round(el.scrollTop / TW_H); el.querySelectorAll("span").forEach((x, i) => x.classList.toggle("on", i === idx0)); return; }
+  const idx = Math.max(0, Math.min(el.querySelectorAll("span").length - 1, Math.round(el.scrollTop / TW_H))); el.querySelectorAll("span").forEach((x, i) => x.classList.toggle("on", i === idx));
+  const box = el.closest(".tw"), hs = box.querySelector('[data-tw="h"]'), ms = box.querySelector('[data-tw="m"]');
+  const h = Math.round(hs.scrollTop / TW_H), m = Math.round(ms.scrollTop / TW_H) * 5; c.time = `${pad(Math.max(0, Math.min(23, h)))}:${pad(Math.max(0, Math.min(55, m)))}`;
+  const v = document.querySelector("#overlay .tmval"); if (v) v.textContent = tmLabel(c.time); }, true);
+function parseTime(str){ let t0 = String(str||"").trim().toUpperCase().replace(/\s+/g, ""); if (!t0) return "";
+  let pm = /PM|오후|저녁|밤/.test(t0), am = /AM|오전|새벽|아침/.test(t0); t0 = t0.replace(/AM|PM|오전|오후|저녁|밤|새벽|아침|시/g, ":").replace(/분/g, "").replace(/[.]/g, ":");
+  let m = t0.match(/^:?(\d{1,2}):?(\d{2})?:?$/) || t0.match(/^(\d{1,2})(\d{2})$/); if (!m) return null;
+  let h = +m[1], mi = +(m[2] || 0); if (mi > 59 || h > 24) return null; if (pm && h < 12) h += 12; if (am && h === 12) h = 0; if (h === 24) h = 0;
+  return `${pad(h)}:${pad(mi)}`; }
+function readMetric(c){ if (!c.unit) return null; const s0 = parseNum(($("#pj-ms")||{}).value), t0 = parseNum(($("#pj-mt")||{}).value); if (s0 == null || t0 == null || s0 === t0){ toast("지금 숫자와 목표 숫자를 넣어 주세요"); return false; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return false; } return {unit, start:s0, target:t0}; }
+function readTime(c){ const el = $("#tm-in"); if (!el) return true; const v = parseTime(el.value); if (v === null){ toast("시간을 확인해 주세요. 예: 9:30, 21:00"); el.focus(); return false; } c.time = v; delete S.drafts["tm-in"]; return true; }
+const TSLOTS = Array.from({length:48}, (_, i) => `${pad(Math.floor(i/2))}:${i % 2 ? "30" : "00"}`);
+const tmLabel = v => { if (!v) return ""; const [h, mi] = v.split(":").map(Number); return `${h || 24}:${pad(mi)}`; };
+const fmtD = v => { const x = new Date(v+"T00:00"); return `${x.getFullYear() !== new Date().getFullYear() ? x.getFullYear()+"년 " : ""}${x.getMonth()+1}월 ${x.getDate()}일 (${WD[x.getDay()]})`; };
+function miniCal(c, key){
+  const v = c[key] || "", base = c._dpm || (v || today()).slice(0,8) + "01", f0 = new Date(base+"T00:00"), y = f0.getFullYear(), mo = f0.getMonth(), t = today();
+  const off = (f0.getDay()+6)%7, days = new Date(y, mo+1, 0).getDate();
+  let cells = ""; for (let i = 0; i < off; i++) cells += `<span></span>`;
+  for (let d = 1; d <= days; d++){ const ds = `${y}-${pad(mo+1)}-${pad(d)}`; cells += `<button class="${ds === v ? "sel" : ""} ${ds === t ? "tdy" : ""}" data-act="dppick" data-k="${key}" data-v="${ds}">${d}</button>`; }
+  return `<div class="dpcal"><div class="dphead"><button data-act="dpnav" data-v="-1" aria-label="이전 달">${I.back}</button><b>${y}년 ${mo+1}월</b><button class="fwd" data-act="dpnav" data-v="1" aria-label="다음 달">${I.back}</button></div>
+    <div class="dpgrid wk">${["월","화","수","목","금","토","일"].map(w => `<span>${w}</span>`).join("")}</div><div class="dpgrid">${cells}</div></div>`;
+}
+const datePick = (c, key, label, optional, required = false) => { const v = c[key] || "";
+  return `<div class="field"><span class="lab">${label}${required ? ' <span class="hint">필수</span>' : optional ? ' <span class="hint">선택</span>' : ""}</span><div class="dprow"><button class="dpbtn ${v ? "" : "empty"}" data-act="dpopen" data-k="${key}">📅 ${v ? fmtD(v) : "날짜 선택"}</button>${v && !required ? `<button class="link" data-act="dpclear" data-k="${key}">지우기</button>` : ""}</div>${c._dp === key ? miniCal(c, key) : ""}</div>`; };
+const priceOf = r => r.cost || OLD_TIER[r.tier] || 150;
+const isProj = p => !!(p && p.parentId);
+const goalsOf = uid => Object.values(S.projects).filter(p => p.owner === uid && !p.parentId);
+const subsOf = gid => Object.values(S.projects).filter(p => p.parentId === gid).sort((a,b) => (a.status === "done") - (b.status === "done") || (a.createdAt||0) - (b.createdAt||0));
+const famIds = p => p.parentId ? [p.id] : [p.id, ...subsOf(p.id).map(x => x.id)];
+const goalLabel = p => p ? (p.parentId ? `🔗 ${p.title}` : `🎯 ${p.title}`) : "";
+
+/* ================= sprite & icons ================= */
+const SPR = ["...c.cc.c...","...cccccc...","...bbbbbb...","..bbbbbbbb..","..brrrrrrb..","..bdbbbbdb..",".kbbbbbbbbk.",".kbbbddbbbk.",".kkbbbbbbkk.","..kbbbbbbk..","...b....b...","...d....d..."];
+function sprite(color, L, size){
+  let r = "";
+  SPR.forEach((row,y) => { if (y < 2 && L < 20) return;
+    [...row].forEach((ch,x) => { let f = null;
+      if (ch==="b") f = color; else if (ch==="d") f = "#1B2420"; else if (ch==="r") f = L >= 5 ? "#E5404F" : color;
+      else if (ch==="c") f = "#F5B53A"; else if (ch==="k" && L >= 10) f = "#3A63B8";
+      if (f) r += `<rect x="${x}" y="${y}" width="1.04" height="1.04" style="fill:${f}"/>`; }); });
+  return `<svg class="sprite" viewBox="${L >= 20 ? "0 0 12 12" : "0 1 12 11"}" width="${size}" height="${size}" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
+}
+/* sprites as cached <img> data URIs: one DOM node instead of ~70 <rect>s per avatar */
+const SPRC = new Map();
+function spriteImg(color, L, size){ const k = color + "|" + (L >= 20 ? 20 : L >= 10 ? 10 : L >= 5 ? 5 : 1); let u = SPRC.get(k);
+  if (!u){ u = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(sprite(color, L, 12).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ').replace(/ class="sprite"| aria-hidden="true"/g, "")); SPRC.set(k, u); }
+  return `<img class="sprite" src="${u}" width="${size}" height="${size}" alt="" aria-hidden="true" draggable="false" style="image-rendering:pixelated">`; }
+const I = {
+  dash:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="10" rx="2"/><rect x="13" y="3" width="8" height="6" rx="2"/><rect x="3" y="15" width="8" height="6" rx="2"/><rect x="13" y="11" width="8" height="10" rx="2"/></svg>',
+  target:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>',
+  camera:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h3l1.6-2.3a1 1 0 0 1 .8-.4h5.2a1 1 0 0 1 .8.4L17 7.5h3a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18V9A1.5 1.5 0 0 1 4 7.5Z"/><circle cx="12" cy="13" r="3.6"/></svg>',
+  sun:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4.6"/><path d="M12 1.8v2.6M12 19.6v2.6M4.8 4.8l1.8 1.8M17.4 17.4l1.8 1.8M1.8 12h2.6M19.6 12h2.6M4.8 19.2l1.8-1.8M17.4 6.6l1.8-1.8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  grow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+  write:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19Zm0 5a1 1 0 0 0-1 1V11H8.5a1 1 0 1 0 0 2H11v2.5a1 1 0 1 0 2 0V13h2.5a1 1 0 1 0 0-2H13V8.5a1 1 0 0 0-1-1Z"/></svg>',
+  feed:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm2 4v2h12V7Zm0 4v2h12v-2Zm0 4v2h8v-2Z"/></svg>',
+  flag:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 2.5a1 1 0 0 1 1 1V4h11.6a1 1 0 0 1 .8 1.6L16 9l2.4 3.4a1 1 0 0 1-.8 1.6H6v6.5a1 1 0 1 1-2 0v-17a1 1 0 0 1 1-1Z"/></svg>',
+  bag:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 7V6a4 4 0 1 1 8 0v1h2.2a1 1 0 0 1 1 .9l1.1 12a1 1 0 0 1-1 1.1H4.7a1 1 0 0 1-1-1.1l1.1-12a1 1 0 0 1 1-.9Zm2 0h4V6a2 2 0 1 0-4 0Zm-1 3a1 1 0 0 0-1 1 4 4 0 0 0 8 0 1 1 0 1 0-2 0 2 2 0 1 1-4 0 1 1 0 0 0-1-1Z"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.6 2.5a1 1 0 0 1 1 .8l.3 1.9c.6.3 1.1.6 1.6 1l1.8-.7a1 1 0 0 1 1.2.4l1.6 2.8a1 1 0 0 1-.2 1.3l-1.5 1.2a7 7 0 0 1 0 1.8l1.5 1.2a1 1 0 0 1 .2 1.3l-1.6 2.8a1 1 0 0 1-1.2.4l-1.8-.7c-.5.4-1 .7-1.6 1l-.3 1.9a1 1 0 0 1-1 .8h-3.2a1 1 0 0 1-1-.8l-.3-1.9c-.6-.3-1.1-.6-1.6-1l-1.8.7a1 1 0 0 1-1.2-.4l-1.6-2.8a1 1 0 0 1 .2-1.3l1.5-1.2a7 7 0 0 1 0-1.8L3.1 9.9a1 1 0 0 1-.2-1.3l1.6-2.8a1 1 0 0 1 1.2-.4l1.8.7c.5-.4 1-.7 1.6-1l.3-1.9a1 1 0 0 1 1-.8ZM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>',
+  cal:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2.5a1 1 0 0 1 1 1V4h8v-.5a1 1 0 1 1 2 0V4h1a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v-.5a1 1 0 0 1 1-1ZM5 9v10h14V9Zm2 2h3v3H7Z"/></svg>',
+  menu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  home:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.3 2.8a1 1 0 0 1 1.4 0l8.6 8.2c.6.6.2 1.7-.7 1.7H19V20a1 1 0 0 1-1 1h-3.5v-5.5a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1V21H6a1 1 0 0 1-1-1v-7.3H3.4c-.9 0-1.3-1.1-.7-1.7Z"/></svg>',
+  user:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0 10.5c4.4 0 8 2.3 8 5.3V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1.2c0-3 3.6-5.3 8-5.3Z"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-6 6v3.5L4.3 15.6A1 1 0 0 0 5.2 17h13.6a1 1 0 0 0 .9-1.4L18 12.5V9a6 6 0 0 0-6-6ZM9.5 19.5a2.6 2.6 0 0 0 5 0"/></svg>',
+  heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-9.6-9.3A5.3 5.3 0 0 1 12 5.9a5.3 5.3 0 0 1 9.6 5.3C19.5 15.9 12 20.5 12 20.5Z"/></svg>',
+  heartOn:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5s-7.5-4.6-9.6-9.3A5.3 5.3 0 0 1 12 5.9a5.3 5.3 0 0 1 9.6 5.3C19.5 15.9 12 20.5 12 20.5Z"/></svg>',
+  reply:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3.5 20l1.2-4.2A8.5 8.5 0 1 1 20.5 11.5Z"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  close:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  chev:'<svg class="chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>',
+  burst:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5s-7.5-4.6-9.6-9.3A5.3 5.3 0 0 1 12 5.9a5.3 5.3 0 0 1 9.6 5.3C19.5 15.9 12 20.5 12 20.5Z"/></svg>'
+};
+
+
+/* ================= emoji → icons ================= */
+const EI = (() => {
+  const sv = (d, o = {}) => `<svg viewBox="0 0 24 24" fill="${o.fill || "none"}" stroke="${o.stroke || "currentColor"}" stroke-width="${o.w || 2}" stroke-linecap="round" stroke-linejoin="round"${o.color ? ` style="color:${o.color}"` : ""}>${d}</svg>`;
+  const face = (inner, color) => sv(`<circle cx="12" cy="12" r="9"/>${inner}`, {color});
+  const dot = (x, y) => `<circle cx="${x}" cy="${y}" r="1.1" fill="currentColor" stroke="none"/>`;
+  const heart = "M12 20.5s-7.5-4.6-9.6-9.3A5.3 5.3 0 0 1 12 5.9a5.3 5.3 0 0 1 9.6 5.3C19.5 15.9 12 20.5 12 20.5Z";
+  const bubble = sv(`<path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3.5 20l1.2-4.2A8.5 8.5 0 1 1 20.5 11.5Z"/>`);
+  const book = sv(`<path d="M5 18V6a2 2 0 0 1 2-2h12v13H7a2 2 0 0 0-2 2 2 2 0 0 0 2 2h12"/><path d="M9 8h6"/>`);
+  const cam = sv(`<path d="M4 7.5h3l1.6-2.3a1 1 0 0 1 .8-.4h5.2a1 1 0 0 1 .8.4L17 7.5h3a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18V9A1.5 1.5 0 0 1 4 7.5Z"/><circle cx="12" cy="13" r="3.6"/>`);
+  const spark = sv(`<path d="M11 3l1.7 4.6L17.3 9.3l-4.6 1.7L11 15.6 9.3 11 4.7 9.3l4.6-1.7Z"/><path d="M18.5 14.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8Z"/>`, {color:"#E0A100"});
+  const pencil = sv(`<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16Z"/><path d="M13.5 6.5l4 4"/>`);
+  const sprout = sv(`<path d="M12 21v-8"/><path d="M12 13c0-4-3-6-7-6 0 4 3 6 7 6Z"/><path d="M12 11c0-3 2.5-5 6-5 0 3-2.5 5-6 5Z"/>`, {color:"#2FA36F"});
+  const smile = face(`${dot(9,10)}${dot(15,10)}<path d="M8.5 14.5q3.5 3 7 0"/>`);
+  const m = {
+    "🎯": sv(`<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/>`),
+    "🔥": sv(`<path d="M12 21.5c3.9 0 6.8-2.7 6.8-6.6 0-3.5-2.3-5.4-3.5-7.5-.3 1.8-1.1 2.9-2.3 3.4.4-3.3-1.2-6.3-3.9-7.8.3 2.9-1.4 4.9-2.9 6.7-1.3 1.6-2 3.2-2 5.2 0 3.9 3 6.6 7.8 6.6Z" fill="currentColor" fill-opacity=".18"/>`, {color:"#F08A24"}),
+    "🔗": sv(`<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2"/>`),
+    "🏆": sv(`<path d="M7 4h10v5a5 5 0 0 1-10 0Z" fill="currentColor" fill-opacity=".18"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 20h8"/>`, {color:"#D99A00"}),
+    "🪙": sv(`<circle cx="12" cy="12" r="9" fill="#F5C542" stroke="#C99212"/><circle cx="12" cy="12" r="5.4" stroke="#C99212" stroke-width="1.6"/>`, {stroke:"#C99212"}),
+    "💰": sv(`<circle cx="12" cy="12" r="9" fill="#F5C542" stroke="#C99212"/><circle cx="12" cy="12" r="5.4" stroke="#C99212" stroke-width="1.6"/>`, {stroke:"#C99212"}),
+    "🎁": sv(`<rect x="3.5" y="8" width="17" height="4.5" rx="1"/><path d="M5 12.5V20h14v-7.5M12 8v12M12 8C10.5 4.5 7 4.6 7.2 6.8 7.4 8 9.5 8 12 8Zm0 0c1.5-3.5 5-3.4 4.8-1.2C16.6 8 14.5 8 12 8Z"/>`),
+    "✅": sv(`<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16.2 9.5"/>`, {color:"var(--accent)"}),
+    "🎉": sv(`<path d="M4 20l4.5-12 7.5 7.5Z" fill="currentColor" fill-opacity=".15"/><path d="M14 3.5v2M20.5 10h-2M18 6l1.5-1.5M12.5 8.5c1-1.6 1-3 0-4.5M15.5 11.5c1.6-1 3-1 4.5 0"/>`, {color:"#E0A100"}),
+    "💭": bubble, "💬": bubble,
+    "📈": sv(`<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>`),
+    "📊": sv(`<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>`),
+    "📓": book, "📔": book,
+    "❤": sv(`<path d="${heart}" fill="#E5404F"/>`, {stroke:"#E5404F"}),
+    "🤍": sv(`<path d="${heart}"/>`),
+    "🔒": sv(`<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>`),
+    "🕒": sv(`<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>`),
+    "🛡": sv(`<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.9-7.5-9.5V6z"/><path d="M9 12l2 2 4-4"/>`),
+    "📅": sv(`<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>`),
+    "📝": pencil, "✏": pencil,
+    "💪": sv(`<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>`),
+    "🙌": spark, "👏": spark, "✨": spark,
+    "🙋": sv(`<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c.8-3.8 3.8-6 7.5-6s6.7 2.2 7.5 6"/>`),
+    "🤗": smile, "😄": face(`${dot(9,10)}${dot(15,10)}<path d="M8 13.5h8a4 4 0 0 1-8 0Z" fill="currentColor" fill-opacity=".2"/>`),
+    "😌": face(`<path d="M7.5 10.5q1.5 1.2 3 0M13.5 10.5q1.5 1.2 3 0M9 15q3 2 6 0"/>`),
+    "🤩": face(`<path d="M9 8.3v3.4M7.3 10h3.4M15 8.3v3.4M13.3 10h3.4"/><path d="M8 13.5h8a4 4 0 0 1-8 0Z" fill="currentColor" fill-opacity=".2"/>`),
+    "😪": face(`<path d="M7.5 10.5h3M13.5 10.5h3"/><circle cx="12" cy="15.5" r="1.4"/>`),
+    "😟": face(`${dot(9,10)}${dot(15,10)}<path d="M8.5 16q1.2-1.3 2.3 0t2.4 0 2.3 0"/>`),
+    "😢": face(`${dot(9,10)}${dot(15,10)}<path d="M9 16.5q3-2.6 6 0M16.8 11.6q1 1.5 0 2.3-1-.8 0-2.3Z"/>`),
+    "😤": face(`<path d="M7.5 8.3l3 1.3M16.5 8.3l-3 1.3"/>${dot(9,11)}${dot(15,11)}<path d="M9 16.5q3-2.4 6 0"/>`),
+    "👋": sv(`<circle cx="10" cy="8" r="4"/><path d="M3 20.5c.8-3.8 3.4-6 7-6 1.4 0 2.7.3 3.7 1M18 13v6M15 16h6"/>`),
+    "⚠": sv(`<path d="M10.3 4.2 2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z"/><path d="M12 9.5v4.5"/><circle cx="12" cy="17.3" r=".9" fill="currentColor"/>`),
+    "🛒": sv(`<path d="M3 4h2.5l2.2 11h10.6l2-8H6.6"/><circle cx="9" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/>`),
+    "📸": cam, "📷": cam,
+    "🏁": sv(`<path d="M5 21V4M5 4h12l-2.5 4L17 12H5"/>`),
+    "⭐": sv(`<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9Z" fill="#F5C542"/>`, {stroke:"#D99A00"}),
+    "🚀": sv(`<path d="M12 15l-3-3c1.5-4.6 5-8 10.5-8.5C19 9 15.6 12.5 12 15Z"/><path d="M9 12H5l2.5-4H12M12 15v4l4-2.5V12M6.5 16.5c-1.2 1-1.7 3.5-1.7 3.5s2.5-.5 3.5-1.7"/>`),
+    "🧘": sprout, "🌱": sprout,
+    "🌿": sv(`<path d="M5 19C5 10 10 5 19 5c0 9-5 14-14 14Z"/><path d="M5 19l8-8"/>`, {color:"#2FA36F"}),
+    "🌳": sv(`<path d="M12 22v-7"/><path d="M8 16a4 4 0 0 1-1-7.9A5 5 0 0 1 16.6 7 4.5 4.5 0 0 1 16 16Z" fill="currentColor" fill-opacity=".15"/>`, {color:"#2FA36F"}),
+  };
+  return m;
+})();
+const EIRE = new RegExp("(" + Object.keys(EI).join("|") + ")️?", "g");
+function iconText(node){
+  const t = node.nodeValue; if (!t || !EIRE.test(t)) return; EIRE.lastIndex = 0;
+  const pe = node.parentNode; if (!pe || pe.closest && (pe.closest("svg,textarea,script,style,title"))) return;
+  const frag = document.createDocumentFragment(); let last = 0;
+  t.replace(EIRE, (all, k, i) => { if (i > last) frag.appendChild(document.createTextNode(t.slice(last, i))); const sp = document.createElement("span"); sp.className = "ei"; sp.setAttribute("aria-hidden", "true"); sp.innerHTML = EI[k]; frag.appendChild(sp); last = i + all.length; return all; });
+  if (last < t.length) frag.appendChild(document.createTextNode(t.slice(last)));
+  pe.replaceChild(frag, node);
+}
+function iconize(root){
+  if (root.nodeType === 3){ iconText(root); return; } if (root.nodeType !== 1 || root.closest("svg,textarea,script,style")) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), list = []; let n; while ((n = w.nextNode())) if (EIRE.test(n.nodeValue)){ EIRE.lastIndex = 0; list.push(n); } else EIRE.lastIndex = 0;
+  list.forEach(iconText);
+}
+new MutationObserver(ms => { for (const m of ms){ if (m.type === "characterData") iconText(m.target); else m.addedNodes.forEach(iconize); } }).observe(document.body, {childList:true, subtree:true, characterData:true});
+iconize(document.body);
+
+/* ================= derived: my stats ================= */
+const mineOf = kind => Object.values(S.mine).filter(d => d.kind === kind);
+const WDORD = [1,2,3,4,5,6,0];
+const dayNum = d => Math.round(Date.UTC(+d.slice(0,4), +d.slice(5,7)-1, +d.slice(8,10)) / 86400000);
+const dimOf = (y,m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+const clampN = (x,lo,hi) => Math.min(hi, Math.max(lo, +x || lo));
+function qRepeat(q){
+  const r = q && q.repeat;
+  if (r && r.type) return r;
+  const days = ((q && q.days) || []).slice();
+  return {type: days.length >= 7 ? "daily" : "weekly", days: days.length ? days : [1,2,3,4,5,6,0]};
+}
+function occursOn(r, d){
+  const dn = dayNum(d), wd = new Date(dn * 86400000).getUTCDay();
+  const y = +d.slice(0,4), mo = +d.slice(5,7), da = +d.slice(8,10);
+  const anchor = r.anchor || d;
+  switch (r.type){
+    case "daily": return true;
+    case "weekly": return (r.days || []).includes(wd);
+    case "biweekly": { if (!(r.days || []).includes(wd)) return false; const w = clampN(r.weeks || 2, 2, 4);
+      const wk = Math.floor((dn + 3) / 7) - Math.floor((dayNum(anchor) + 3) / 7); return ((wk % w) + w) % w === 0; }
+    case "every": { const k = dn - dayNum(anchor), e = clampN(r.every || 3, 2, 30); return k >= 0 && k % e === 0; }
+    case "monthly": return da === Math.min(clampN(r.day || 1, 1, 31), dimOf(y, mo));
+    case "monthn": { const m = clampN(r.months || 3, 2, 6);
+      const diff = (y - +anchor.slice(0,4)) * 12 + (mo - +anchor.slice(5,7));
+      return diff >= 0 && diff % m === 0 && da === Math.min(clampN(r.day || 1, 1, 31), dimOf(y, mo)); }
+    case "runrest": { const on = clampN(r.on || 2, 1, 13), off = clampN(r.off || 1, 1, 13), n = on + off, k = dn - dayNum(anchor);
+      return k >= 0 && ((k % n) + n) % n < on; }
+  }
+  return false;
+}
+const isSched = (q, t) => occursOn(qRepeat(q), koreaDate(t));
+function repeatLabel(q){
+  const r = qRepeat(q), dl = WDORD.filter(i => (r.days || []).includes(i)).map(i => WD[i]).join("·");
+  switch (r.type){
+    case "daily": return "매일";
+    case "weekly": return (r.days || []).length >= 7 ? "매일" : "매주 " + dl;
+    case "biweekly": return `${clampN(r.weeks || 2, 2, 4)}주마다 ${dl}`;
+    case "every": return `${clampN(r.every || 3, 2, 30)}일마다`;
+    case "monthly": return `매월 ${clampN(r.day || 1, 1, 31)}일`;
+    case "monthn": return `${clampN(r.months || 3, 2, 6)}개월마다 ${clampN(r.day || 1, 1, 31)}일`;
+    case "runrest": return `${clampN(r.on || 2, 1, 13)}일 하고 ${clampN(r.off || 1, 1, 13)}일 쉬기`;
+  }
+  return "매주";
+}
+const streakUnit = q => (qRepeat(q).type === "daily" || qRepeat(q).type === "weekly") ? "일" : "회";
+function streakOf(q){
+  const done = q.done || {}, rd = restDays(); let cur = 0, t = Date.now();
+  for (let i = 0; i < 400; i++){
+    if (t < dayStart(q.createdAt || 0)) break;
+    if (isSched(q, t)){ if (rd[koreaDate(t)]){} else if (done[koreaDate(t)]) cur++; else if (i > 0) break; }
+    t -= DAY;
+  }
+   let best = 0, run = 0; t = new Date(koreaDate(q.createdAt || Date.now())+'T00:00:00+09:00').getTime();
+  while (t <= Date.now()){
+    if (isSched(q, t)){ if (rd[koreaDate(t)]){} else if (done[koreaDate(t)]){ run++; best = Math.max(best, run); } else if (koreaDate(t) !== today()) run = 0; }
+    t += DAY;
+  }
+  return {cur, best:Math.max(best, cur), total:Object.keys(done).length};
+}
+const normQ = n => String(n || "").replace(/\s+/g, " ").trim().toLowerCase();
+const dupQ = (name, except) => mineOf("quest").some(q => q.id !== except && normQ(q.name) === normQ(name));
+const DUPMSG = "같은 이름의 데일리 퀘스트가 이미 있어요";
+function computeMine(){
+  let best = 0, td = 0;
+  for (const q of mineOf("quest")) best = Math.max(best, streakOf(q).best);
+  for (const m of mineOf("mission")) if (m.done) td++;
+  const doneMine = Object.values(S.projects).filter(p => p.owner === S.me && p.status === "done");
+  const gd = doneMine.filter(p => !p.parentId).length, sd = doneMine.length - gd;
+  return {...economySummary(S), best, md:td, pd:gd};
+}
+function statsOf(uid){
+  if (uid === S.me && MY) return MY;
+  const s = (S.profiles[uid] || {}).stats || {};
+  return {xp:s.xp||0, gold:s.gold||0, best:s.best||0, md:s.md||0, pd:s.pd||0, ...levelOf(s.xp||0)};
+}
+const prof = id => S.profiles[id] || {};
+const nameOf = id => prof(id).nick || S.names[id] || "이름 없는 모험가";
+const colorOf = id => prof(id).color || COLORS[2];
+const hasProfile = () => !!(S.me && S.profiles[S.me]);
+const canAct = () => S.canWrite && hasProfile();
+const isFollowing = (a, b) => !!S.follows[keyOf(a)+"~"+keyOf(b)];
+function chibi(color, L, face, size){ const src = face && (face.startsWith("data:") ? face : S.media[face]);
+  const fc = src ? `<span class="cface"><img src="${src}" alt="" draggable="false"></span>` : `<span class="cface" data-k="${esc(face)}"></span>`;
+  return `<span class="chibi" style="width:${size}px;height:${size}px" aria-hidden="true"><svg viewBox="0 0 100 100"><ellipse cx="50" cy="97" rx="20" ry="3" fill="#000" opacity=".12"/>
+    <rect x="39" y="78" width="9" height="16" rx="4" fill="#2B3440"/><rect x="52" y="78" width="9" height="16" rx="4" fill="#2B3440"/>
+    <ellipse cx="42.5" cy="94.5" rx="6.5" ry="3.2" fill="#1B2420"/><ellipse cx="57.5" cy="94.5" rx="6.5" ry="3.2" fill="#1B2420"/>
+    <g transform="rotate(16 32 62)"><rect x="27" y="58" width="10" height="22" rx="5" fill="${color}"/><circle cx="32" cy="80" r="4.6" fill="#F6D2B5"/></g>
+    <g transform="rotate(-16 68 62)"><rect x="63" y="58" width="10" height="22" rx="5" fill="${color}"/><circle cx="68" cy="80" r="4.6" fill="#F6D2B5"/></g>
+    <rect x="32" y="55" width="36" height="30" rx="11" fill="${color}"/><rect x="32" y="55" width="36" height="30" rx="11" fill="#fff" opacity=".12"/>
+    ${L >= 5 ? `<rect x="32" y="76" width="36" height="4.5" fill="#E5404F"/>` : ""}${L >= 20 ? `<path d="M40 5l5 5 5-7 5 7 5-5-2 9H42z" fill="#F5B53A"/>` : ""}</svg>${fc}</span>`; }
+const faceOf = uid => prof(uid).face || "";
+function fullbody(image, size){ const src = image && (image.startsWith('data:') ? image : S.media[image]);
+  return `<span class="avatar-fullbody" style="width:${size}px;height:${size}px"${src ? '' : ` data-k="${esc(image)}"`}>${src ? `<img src="${esc(src)}" alt="전신 캐릭터" draggable="false">` : ''}</span>`; }
+const fig = (uid, size, inner) => faceOf(uid) ? (prof(uid).avatarStyle === 'fullbody' ? fullbody(faceOf(uid), size) : chibi(colorOf(uid), statsOf(uid).L, faceOf(uid), size)) : spriteImg(colorOf(uid), statsOf(uid).L, inner || Math.round(size*.64));
+const av = (uid, size, act = true) => `<${act?`button data-act="profile" data-u="${esc(uid)}" aria-label="${esc(nameOf(uid))} 프로필"`:"span"} class="av ${uid===S.me?'eco-avatar':''}" style="width:${size}px;height:${size}px">${fig(uid, size)}</${act?"button":"span"}>`;
+const liked = p => on((p.reactions||{})[S.me]);
+const likeN = p => Object.values(p.reactions||{}).filter(on).length;
+const SETDEF = {notif:{like:true, reply:true, follow:true, join:true}, blocked:[], hidden:[], hidePosts:[]};
+const getSet = () => { const d = S.mine.settings || {}; return {notif:{...SETDEF.notif, ...(d.notif||{})}, blocked:d.blocked || [], hidden:d.hidden || [], hidePosts:d.hidePosts || []}; };
+const isBlocked = u => getSet().blocked.includes(u);
+const canSee = p => p.author === S.me || (!isBlocked(p.author) && !getSet().hidePosts.includes(p.id) && (!prof(p.author).private || isFollowing(S.me, p.author)));
+const hiddenHit = t => { const ws = getSet().hidden; return ws.length && ws.some(w => w && String(t||"").includes(w)); };
+/* per-render index: replies by post, numeric values by ref (O(n) once instead of O(n) per post) */
+let IXC = null;
+function IX(){ if (IXC) return IXC; const rb = new Map(), vb = new Map();
+  for (const r of Object.values(S.replies)){ let a = rb.get(r.postId); if (!a) rb.set(r.postId, a = []); a.push(r); }
+  for (const a of rb.values()) a.sort((x,y) => x.createdAt - y.createdAt);
+  for (const x of Object.values(S.feed)) if (x.ref && typeof x.value === "number"){ let a = vb.get(x.ref.id); if (!a) vb.set(x.ref.id, a = []); a.push(x); }
+  for (const d of Object.values(S.mine)) if (d.kind === "mlog" && d.projectId){ let a = vb.get(d.projectId); if (!a) vb.set(d.projectId, a = []); (d.logs || []).forEach((l, i) => a.push({id:d.id + "~" + i, value:l.v, createdAt:l.at, _priv:true, ref:{id:d.projectId}})); }
+  for (const a of vb.values()) a.sort((x,y) => x.createdAt - y.createdAt);
+  return IXC = {rb, vb}; }
+const valHist = id => IX().vb.get(id) || [];
+const valLatest = id => { const h = valHist(id); return h.length ? h[h.length-1] : undefined; };
+const repliesOf = pid => (IX().rb.get(pid) || []).filter(r => r.author === S.me || (!isBlocked(r.author) && !hiddenHit(r.text)));
+const feedSorted = () => Object.values(S.feed).filter(canSee).sort((a,b) => b.createdAt - a.createdAt);
+function applyTheme(){ const t = LS.get("theme", "system"), el = document.documentElement; if (t === "system") el.removeAttribute("data-theme"); else el.setAttribute("data-theme", t); }
+function goalProgress(p){
+  if (p.owner === S.me){ const ids = famIds(p), ms = mineOf("mission").filter(m => ids.includes(m.projectId)); return {done:ms.filter(m => m.done).length, total:ms.length}; }
+  return p.progress || {done:0, total:0};
+}
+const todayHabits = () => mineOf("quest").filter(q => q.active !== false && isSched(q, Date.now())).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+
+/* ================= render core ================= */
+let raf = 0;
+function schedule(){ if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); }
+const WEB = matchMedia("(min-width:1024px)");
+S.navMini = !!LS.get("navMini", false);
+WEB.addEventListener && WEB.addEventListener("change", () => schedule());
+function render(){ IXC = null;
+  MY = S.me ? computeMine() : null;
+  applyCosmetics();
+  const setup = !!entryScreen || !hasProfile();
+  document.body.classList.toggle('onboarding', setup);
+  if (setup && S.mode !== 'loading'){
+    $('#topbar').innerHTML = ''; $('#nav').innerHTML = ''; $('#replybar').innerHTML = ''; $('#pill').innerHTML = '';
+    $('#app').dataset.v = entryScreen === 'login' ? 'login' : 'profile';
+    $('#app').dataset.pt = '';
+    $('#app').innerHTML = entryScreen === 'login' ? loginScreen() : onboarding();
+    loadMedia(document);
+    return;
+  }
+  renderTop(); renderNav();
+  if (S.mode === "loading"){ $("#app").innerHTML = `<p class="empty">불러오는 중…</p>`; return; }
+  const a = document.activeElement, fid = a && a.id && a.closest && a.closest("#app") ? a.id : null;
+  const sel = fid && a.selectionStart != null ? [a.selectionStart, a.selectionEnd] : null;
+  const v = S.view.name;
+  if (v === "profile" && !S.view.uid) S.view.uid = S.me;
+  if (S.liveWin){ const wu = v === "profile" && S.view.uid !== S.me ? S.view.uid : null, wp = v === "post" ? S.view.pid : null; queueMicrotask(() => S.liveWin.watch(wu, wp)); }
+  rollOver();
+   const dash = v === "dash" && hasProfile();
+  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, shop:viewShop, cal:viewCal, dash:viewFeed}[v] || viewToday)());
+  { const gg = dash && $(".wd-goals .wd-ggrid"); if (gg && S.wdGs) gg.scrollLeft = S.wdGs; }
+  $("#app").dataset.v = S.me && !hasProfile() && S.canWrite ? "profile" : dash ? "dash" : v; $("#app").dataset.pt = v === "profile" || v === "today" ? (S.profTab || "") : "";
+  renderReplyBar(); renderPill();
+  if (fid){ const el = document.getElementById(fid); if (el){ el.focus({preventScroll:true}); if (sel && el.setSelectionRange) try{ el.setSelectionRange(sel[0], sel[1]); }catch(e){} } }
+  loadMedia(document);
+  { const fm = document.getElementById("feedmore"); if (fm){ if (S._feedIO) S._feedIO.disconnect();
+      S._feedIO = new IntersectionObserver(es => { if (!es.some(e => e.isIntersecting)) return; S._feedIO.disconnect(); const shown = S.feedN || 20, total = feedSorted().length;
+        if (shown < total) S.feedN = shown + 20; else if (S.liveWin && !S.liveWin.done()){ S.feedN = shown + 20; S.liveWin.more(); return; } schedule(); }, {rootMargin:"600px 0px"});
+      S._feedIO.observe(fm); } }
+  { const pm = document.getElementById("profmore"); if (pm){ if (S._profIO) S._profIO.disconnect();
+      S._profIO = new IntersectionObserver(es => { if (!es.some(e => e.isIntersecting)) return; S._profIO.disconnect(); S.profN = (S.profN || 20) + 20; schedule(); }, {rootMargin:"600px 0px"}); S._profIO.observe(pm); } }
+  const wgs = document.getElementById("wgscroll");
+  if (wgs){ const key = "w" + wgs.dataset.d;
+    if (S.wgKey === key && S.wgTop != null){ wgs.scrollTop = S.wgTop; wgs.scrollLeft = S.wgLeft || 0; }
+    else { const nowH = new Date().getHours() || 24, hasToday = !!wgs.querySelector(".head.is-today"), target = hasToday ? nowH : (+wgs.dataset.first || 9);
+      const lab = wgs.querySelector(`.tlab[data-h="${target}"]`), head = wgs.querySelector(".head"), hh = head ? head.offsetHeight : 0;
+      if (lab) wgs.scrollTop = Math.max(0, lab.offsetTop - hh - (wgs.clientHeight - hh - lab.offsetHeight) / 2);
+      const th = wgs.querySelector(".head.is-today"), labW = 52;
+      wgs.scrollLeft = th ? Math.max(0, th.offsetLeft - labW - (wgs.clientWidth - labW - th.offsetWidth) / 2) : 0;
+      S.wgKey = key; S.wgTop = wgs.scrollTop; S.wgLeft = wgs.scrollLeft; }
+    wgs.onscroll = () => { S.wgKey = key; S.wgTop = wgs.scrollTop; S.wgLeft = wgs.scrollLeft; }; }
+  const tls = document.getElementById("tlscroll");
+  if (tls){ const key = tls.dataset.d;
+    if (S.tlKey === key && S.tlTop != null) tls.scrollTop = S.tlTop;
+    else { const nowH = new Date().getHours() || 24, target = tls.dataset.d === today() ? nowH : (+tls.dataset.first || 9);
+      const row = tls.querySelector(`[data-h="${target}"]`); tls.scrollTop = row ? Math.max(0, row.offsetTop - (tls.clientHeight - row.offsetHeight) / 2) : 0; S.tlKey = key; S.tlTop = tls.scrollTop; }
+    tls.onscroll = () => { S.tlKey = key; S.tlTop = tls.scrollTop; }; }
+  const ycur = document.querySelector(".ymon.ycur");
+  if (ycur && S.yCenter){ S.yCenter = false; requestAnimationFrame(() => { const r0 = ycur.getBoundingClientRect(), nav = document.querySelector(".nav"), nh = nav ? nav.offsetHeight : 0; window.scrollTo(0, Math.max(0, r0.top + window.scrollY - (window.innerHeight - nh - r0.height) / 2)); }); }
+  if (S.pop){ const pp = S.pop; if (Date.now() - pp.at > 2000) S.pop = null; else { const el = [...document.querySelectorAll(`.check.on[data-id="${pp.id}"]`)].find(x => x.offsetParent); if (el){ S.pop = null; requestAnimationFrame(() => xpPop(el, pp.xp, pp.c)); } } }
+  let announced = false;
+  if (S.me && S.lastXp != null){
+    const acts = activityItems(); if (S.notifiedAt == null) S.notifiedAt = Date.now();
+    const fresh = acts.filter(x => x.at > S.notifiedAt);
+    if (fresh.length){ S.notifiedAt = Math.max(...fresh.map(x => x.at)); toast(actText(fresh[0]) + (fresh.length > 1 ? ` 외 ${fresh.length-1}건` : "")); announced = true; }
+  }
+  if (MY && hasProfile()){
+    if (S.lastXp != null && MY.xp > S.lastXp){ if (MY.L > S.lastLv) levelUp(MY.L); else if (!announced && !S.quietXp) toast(`경험치 <b>+${MY.xp - S.lastXp} XP</b>`); S.quietXp = false; }
+    S.lastXp = MY.xp; S.lastLv = MY.L;
+    publishStats();
+  }
+}
+let statT = 0;
+function publishStats(){
+  if (S.mode !== "live" || !S.canWrite || !MY) return;
+  const st = {xp:MY.xp, gold:MY.gold, best:MY.best, md:MY.md, pd:MY.pd};
+  const sig = JSON.stringify(st); if (sig === JSON.stringify((prof(S.me).stats)||{}) || sig === S.statSig) return;
+  S.statSig = sig; clearTimeout(statT); statT = setTimeout(() => { api.saveStats(st).catch(() => { S.statSig = ""; }); }, 1500);
+}
+function bannerHtml(){ return "";
+}
+const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
+function renderTop(){
+  const v = S.view.name, sub = v === "post" || v === "project" || v === "activity" || v === "settings" || (v === "profile" && S.view.uid !== S.me);
+  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", shop:"상점", cal:"캘린더", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
+  const n = activityItems().filter(x => x.at > actSeen).length;
+  $("#topbar").innerHTML = `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : ""}<h1>${title}</h1>
+    ${S.me && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
+    ${hasProfile() && !sub ? `<button class="iconbtn" data-act="go" data-v="settings" aria-label="설정">${I.gear}</button>` : ""}`;
+}
+function renderNav(){
+  const v = S.view.name, cur = c => c ? 'aria-current="page"' : "";
+  $("#nav").innerHTML = `
+    <a href="#dash" ${cur(v==="dash")}>${I.dash}<span>대시보드</span></a>
+    <a href="#me" ${cur(isMine())}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5.5C9 3.5 5.5 3.5 2.5 4.5v15c3-1 6.5-1 9.5 1 3-2 6.5-2 9.5-1v-15c-3-1-6.5-1-9.5 1Z"/><path d="M12 5.5v15M5.5 8.5c1.2-.2 2.4 0 3.5.5M5.5 12c1.2-.2 2.4 0 3.5.5M15 9c1.1-.5 2.3-.7 3.5-.5M15 12.5c1.1-.5 2.3-.7 3.5-.5"/></svg><span>스토리</span></a>
+    <a href="#feed" ${cur(v==="feed")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7.5" r="3"/><path d="M2.5 20v-2a6.5 6.5 0 0 1 13 0v2M16 4.7a3 3 0 0 1 0 5.6M18 12a6 6 0 0 1 3.5 5.5V20"/></svg><span>커뮤니티</span></a>
+    <a href="#shop" ${cur(v==="shop")}>${I.bag}<span>상점</span></a>
+    <a href="#cal" ${cur(v==="cal")}>${I.cal}<span>캘린더</span></a>
+    <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`;
+  document.body.classList.toggle("navmini", !!S.navMini);
+}
+function renderReplyBar(){
+  const p = S.view.name === "post" && S.feed[S.view.pid], show = p && canAct() && !p.noReply;
+  document.body.classList.toggle("has-replybar", !!show);
+  $("#replybar").innerHTML = show ? `<div class="replybar"><button data-act="reply" data-p="${p.id}">${av(S.me, 30, false)}<span>${p.author === S.me ? "답글 남기기…" : esc(nameOf(p.author))+"님에게 답글 남기기…"}</span></button></div>` : "";
+}
+
+/* ================= 오늘 ================= */
+function charCard(uid, extra = "", nameExtra = ""){
+  const s = statsOf(uid);
+  return `<section class="card pcard" style="--pc:${colorOf(uid)}">
+    <div class="char"><div class="stage">${fig(uid, 80, 60)}</div>
+      <div style="min-width:0;flex:1"><h2 class="cname">${esc(nameOf(uid))}${nameExtra}</h2><p>Lv.${s.L} ${rankOf(s.L)} ${uid===S.me?esc(equippedTitle()):''}</p>
+        <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
+        <div class="barmeta lft"><span class="num">${s.need===0?'MAX':`${fmt(s.cur)} / ${fmt(s.need)} XP`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div></div></div>
+    ${extra}</section>`;
+}
+function xpFloat(){ return ""; }
+function xpPop(el, xp, c){ if (!el || !el.getBoundingClientRect) return; const r0 = el.getBoundingClientRect(), sp = document.createElement("span");
+  sp.className = "xpop"; sp.textContent = `+${xp} XP · +${c}🪙`; sp.style.left = (r0.right + 8) + "px"; sp.style.top = (r0.top + r0.height / 2) + "px";
+  document.body.appendChild(sp); setTimeout(() => sp.remove(), 1000); }
+function habitRow(q){
+  const lv = HLV[lvKey(q.lv)], done = !!(q.done||{})[today()], st = streakOf(q);
+  return `<div class="row qrow" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><button class="check ${done?"on":""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button>
+    <span class="t"><b class="${done?"done":""}">${esc(q.name)}</b><small><span class="fire">🔥 ${st.cur || 0}${streakUnit(q)}</span> · ${repeatLabel(q)}${q.active === false ? " · 쉬는 중" : ""}</small></span>${xpFloat(q.id)}</div>`;
+}
+const lateDays = m => !m.done && m.origDue && m.origDue < (m.due || today()) ? Math.round((pd(today()) - pd(m.origDue)) / DAY) : 0;
+function taskTimeTag(m){
+  return m.time ? `<span class="tday soft">${tmLabel(m.time)}</span>` : "";
+}
+function taskRow(m, showGoal = true, nested = false, {showTime = true, showDate = true} = {}){
+  const meta = [], ld = lateDays(m), tag = showTime ? taskTimeTag(m) : "";
+  if (m._ghost) return `<div class="row qrow ghost" data-act="tedit" data-id="${esc(m.id)}" role="button" tabindex="0"><span class="gdot" aria-hidden="true">↷</span><span class="t"><b>${esc(m.name)}</b><small class="task-meta">오늘로 넘어갔어요 ${tag}</small></span></div>`;
+  const dl = showDate ? dueLabel(m) : ""; if (dl) meta.push(dl);
+  if (tag) meta.push(tag);
+  if (m.note) meta.push("📝 메모");
+  return `<div class="row qrow ${nested ? "sq2" : ""}" data-act="tedit" data-id="${esc(m.id)}" role="button" tabindex="0"><button class="check ${m.done?"on":""}" data-act="mcheck" data-id="${esc(m.id)}" aria-pressed="${!!m.done}" aria-label="${esc(m.name)} 완료">${I.check}</button>
+    <span class="t"><b class="${m.done?"done":""}">${esc(m.name)}</b>${ld ? `<span class="tlate">${ld}일째 미룸</span>` : ""}${meta.length ? `<small class="task-meta">${meta.join(" ")}</small>` : ""}</span>${xpFloat(m.id)}</div>`;
+}
+function ring(done, total){
+  const r = 26, C = 2*Math.PI*r, pct = total ? done/total : 0;
+  return `<svg class="pring" viewBox="0 0 64 64" width="64" height="64" aria-hidden="true"><circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--track)" stroke-width="7"/>${pct > 0 ? `<circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${(C*pct).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 32 32)"/>` : ""}</svg>`;
+}
+const myEmos = () => [...new Set([...mineOf("diary").map(d => d.emo).filter(e => e && !EMOI[e]), ...(S.planner.extra||[])])].slice(0, 8);
+function diaryForm(d, P){ return `
+    <div class="cond"><span class="lab">컨디션</span><input type="range" id="pl-cond" min="0" max="100" step="5" value="${P.cond}" style="--p:${P.cond}%" aria-label="컨디션"><b class="num" id="pl-cond-v">${P.cond}%</b></div>
+    <div class="emos" role="group" aria-label="감정">${EMOS.map(([n,e]) => `<button data-act="pemo" data-v="${n}" aria-pressed="${P.emo===n}">${e} ${n}</button>`).join("")}${myEmos().map(n => `<button data-act="pemo" data-v="${esc(n)}" aria-pressed="${P.emo===n}">💭 ${esc(n)}</button>`).join("")}${P.custom ? "" : `<button class="emoadd" data-act="emocustom">+ 직접 입력</button>`}</div>
+    ${P.custom ? `<div class="addline" style="padding:0;margin:-4px 0 14px"><input type="text" id="pl-emo" maxlength="10" placeholder="감정 (예: 뿌듯함)" value="${D("pl-emo")}" aria-label="감정 직접 입력"><button class="btn sm sec" data-act="emoadd">추가</button></div>` : ""}
+    <label class="lab" for="pl-text">일기</label>
+    <textarea id="pl-text" rows="8" maxlength="5000" placeholder="오늘 있었던 일, 떠오른 생각을 자유롭게 적어 보세요">${esc(S.drafts["pl-text"] ?? (d && d.text) ?? "")}</textarea>
+    <label class="toggle"><input type="checkbox" id="pl-share" ${P.share?"checked":""}> 커뮤니티에도 공유하기</label>
+    <button class="btn big full" data-act="psave" ${S.busy?"disabled":""}>${d ? "수정" : "저장"}${d ? "" : `<span class="x">최대 ${DIARY.xp} XP · ${DIARY.c} 코인</span>`}</button>
+    ${d ? `<button class="btn big full sec" style="margin-top:10px;color:var(--warn)" data-act="ldel" data-id="d-${d.date}">저널 삭제</button>` : ""}`; }
+const diaryPost = key => Object.values(S.feed).find(p => p.author === S.me && p.ref && p.ref.type === "diary" && p.ref.id === key);
+function logToday(){ return S.mine["d-"+today()] || S.planner.edit ? diaryCard() : `<section class="card wd-lognew"><div class="ch"><h2>오늘의 저널</h2><span class="side">+${DIARY.xp} XP · +${DIARY.c} 코인</span></div><p class="hint">오늘 컨디션과 감정, 하루를 짧게 남겨 보세요.</p><button class="btn soft full" data-act="sheet" data-k="diary">오늘 저널 쓰기</button></section>`; }
+function diaryList(){ return diaryCard() + diaryList0(); }
+function diaryList0(){
+  const ds = mineOf("diary").sort((a,b) => (b.date||"") < (a.date||"") ? -1 : 1);
+  if (!ds.length) return "";
+  const avg = Math.round(ds.reduce((a,d) => a + (d.cond||0), 0) / ds.length), cnt = {};
+  ds.forEach(d => { if (d.emo) cnt[d.emo] = (cnt[d.emo]||0) + 1; });
+  const top = Object.entries(cnt).sort((a,b) => b[1] - a[1]).slice(0, 3);
+  let h = `<section class="card dsum"><div><b class="num">${ds.length}</b><span>기록한 날</span></div><div><b class="num">${avg}%</b><span>평균 컨디션</span></div><div><b>${top.map(([e]) => EMOI[e] || "💭").join(" ") || "-"}</b><span>자주 느낀 감정</span></div></section>`;
+  let lastMo = ""; const byMo = {}; ds.forEach(d => { const k = (d.date||"").slice(0,7); byMo[k] = (byMo[k]||0) + 1; });
+  if (!S.jOpen) S.jOpen = new Set([(ds[0].date||"").slice(0,7)]);
+  for (const d of ds){
+    const x = pd(d.date), mk = (d.date||"").slice(0,7), mo = `${x.getFullYear()}년 ${x.getMonth()+1}월`, op = S.jOpen.has(mk);
+    if (mk !== lastMo){ h += `<button class="jmo" data-act="jfold" data-k="${mk}" aria-expanded="${op}"><span>${mo} <em class="num">${byMo[mk]}개</em></span><span class="chev2 ${op ? "open" : ""}">${I.chev}</span></button>`; lastMo = mk; }
+    if (!op) continue;
+    const open = S.openDiary === d.id, long = (d.text||"").length > 90 || (d.text||"").includes("\n");
+    h += `<section class="card dentry" ${long ? `data-act="dopen" data-id="${d.id}" role="button" tabindex="0"` : ""}>
+      <div class="dh"><span class="em">${EMOI[d.emo] || "💭"}</span><div><b>${x.getMonth()+1}월 ${x.getDate()}일 ${WD[x.getDay()]}요일</b><small>${esc(d.emo||"")} · 컨디션 ${d.cond ?? "-"}%</small></div>${S.canWrite ? `<button class="dedit" data-act="dedit" data-id="${d.id}">수정</button>` : ""}</div>
+      ${d.text ? `<p class="dtext ${open || !long ? "" : "clamp"}">${esc(d.text)}</p>${long ? `<span class="dmore">${open ? "접기" : "더 보기"}</span>` : ""}` : `<p class="dtext muted">일기 없이 기록만 남겼어요.</p>`}</section>`;
+  }
+  return h;
+}
+function diaryCard(){
+  const d = S.mine["d-"+today()], P = S.planner;
+  if (d && !P.edit) return `<section class="card"><div class="ch"><h2>오늘의 저널</h2><button class="side btnlink" data-act="pedit">수정</button></div>
+    <div class="diary-done"><span class="em">${EMOI[d.emo]||"💭"}</span><div><b>컨디션 ${d.cond}% · ${esc(d.emo||"")}</b>${d.text ? `<p class="dtext">${esc(d.text)}</p>` : ""}</div></div></section>`;
+  return `<section class="card diaryc"><div class="ch"><h2>오늘의 저널</h2>${d ? "" : `<span class="side">+${DIARY.xp} XP · +${DIARY.c} 코인</span>`}</div>${diaryForm(d, P)}</section>`;
+}
+const SUGGEST = [["물 2리터 마시기","easy"],["스트레칭 10분","easy"],["10분 독서","normal"],["자기 전 하루 정리","easy"]];
+const tFold = id => (LS.get("tfold", [])).includes(id);
+function taskTab(o = {}){
+  const k = today(), ms = mineOf("mission"), sortT = l => l.sort((a,b) => (dueOf(a)||"9") < (dueOf(b)||"9") ? -1 : (dueOf(a)||"9") > (dueOf(b)||"9") ? 1 : (a.time||"99") < (b.time||"99") ? -1 : 1);
+  const open = ms.filter(m => !m.done), late = sortT(open.filter(m => dueOf(m) && dueOf(m) < k && !m.period)), tod = sortT(open.filter(m => dueOf(m) === k || (m.period && isToday(m)))), up = sortT(open.filter(m => dueOf(m) > k && !m.period)), none = open.filter(m => !dueOf(m) && !m.period);
+  const doneT = ms.filter(m => m.done && m.doneAt && dk(m.doneAt) === k), left = tod.length + late.length;
+  const rolled = open.filter(m => m.origDue && m.origDue < k && m.due === k);
+  let h = rolled.length >= 5 && LS.get("rolldis", "") !== k ? `<section class="card rollcard"><div class="rc-t"><b>지난 태스크 ${rolled.length}개가 오늘로 넘어왔어요</b><small>안 할 태스크는 한 번에 정리할 수 있어요</small></div><div class="rc-b"><button class="btn sm sec" data-act="rolldis">그대로 두기</button><button class="btn sm" style="background:var(--warn)" data-act="rolldel">모두 삭제</button></div></section>` : "";
+  h += `<section class="card today"><div class="ringwrap">${ring(doneT.length, doneT.length + left)}<b class="num">${doneT.length}/${doneT.length + left}</b></div>${xpFloat("*")}
+    <div class="tinfo"><small>오늘의 태스크</small><h2>${left ? `${left}개 남았어요` : doneT.length ? "오늘 태스크 완료! 🎉" : "오늘 할 태스크가 없어요"}</h2><p>${up.length && !o.noUp ? `다가오는 태스크 ${up.length}개` : ""}</p></div></section>`;
+  const block = (title, l, cls = "") => l.length ? `<p class="grp ${cls}">${title} <span class="num">${l.length}</span></p>${l.map(m => taskRow(m)).join("")}` : "";
+  h += `<section class="card tight qlist">${block("⚠️ 기한 지남", late, "warn")}${block("오늘", tod)}${o.noUp ? "" : block("다가오는", up)}${o.noNone ? "" : block("미지정", none)}${!ms.length || (!open.length && !doneT.length) ? `<p class="empty-row">아직 태스크가 없어요.</p>` : !(late.length + tod.length + (o.noUp ? 0 : up.length) + (o.noNone ? 0 : none.length)) && !doneT.length ? `<p class="empty-row">오늘 할 태스크가 없어요.</p>` : ""}
+    ${doneT.length ? `<button class="morebtn" data-act="toggle" data-k="tdone">오늘 완료 ${doneT.length}개 ${S.openTDone ? "접기" : "보기"}</button>${S.openTDone ? doneT.map(m => taskRow(m)).join("") : ""}` : ""}
+    <button class="tadd-pill" data-act="taskadd">+ 태스크 추가</button></section>`;
+  return h;
+}
+function subTab(){
+  const k = today(), vis = m => !m.done || (m.doneAt && dk(m.doneAt) === k);
+  const all = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId), act = all.filter(p => p.status !== "done").sort((a,b) => (a.end||"9") < (b.end||"9") ? -1 : 1), dn = all.filter(p => p.status === "done");
+  let h = "";
+  if (!act.length) h += `<div class="card empty"><strong>진행 중인 서브 퀘스트가 없어요</strong>메인 퀘스트를 몇 단계의 서브 퀘스트로 나눠 보세요.</div>`;
+  for (const g of act){
+    const pr = goalProgress(g), pct = pr.total ? pr.done/pr.total*100 : 0, par = S.projects[g.parentId];
+    const ts = mineOf("mission").filter(m => m.projectId === g.id && vis(m)).sort((a,b) => a.done - b.done || isToday(b) - isToday(a) || (a.createdAt||0) - (b.createdAt||0)), shut = tFold(g.id), left = ts.filter(m => !m.done).length;
+    h += `<section class="card tight mq qlist">${coverHtml(g)}<button class="mqh" data-act="project" data-p="${g.id}">
+      ${par ? `<span class="parlab">🎯 ${esc(par.title)}</span>` : ""}
+      <span class="mtop"><b>${esc(g.title)}</b>${I.chev}</span>
+      <span class="bar green"><i style="width:${pct}%"></i></span>
+      <small>태스크 ${pr.done}/${pr.total}</small></button>
+      <button class="tfold" data-act="tfold" data-k="${g.id}" aria-expanded="${!shut}"><span>태스크 ${ts.length ? `<em class="num">${left ? `${left}개 남음` : "모두 완료"}</em>` : ""}</span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : ts.map(m => { S._bare = true; try{ return taskRow(m, false); } finally { S._bare = false; } }).join("") + `<button class="morebtn add" data-act="taskadd" data-p="${g.id}">+ 태스크 추가</button>`}</section>`;
+  }
+  h += `<button class="btn soft full" data-act="sheet" data-k="add" data-v="sub">+ 서브 퀘스트 추가</button>`;
+  if (dn.length) h += `<section class="card tight"><button class="row" data-act="toggle" data-k="subdone"><span class="t"><b>✓ 완료한 서브 퀘스트 ${dn.length}개</b></span><span class="chev2 ${S.openSubDone?"open":""}">${I.chev}</span></button>${S.openSubDone ? dn.map(g => goalRow(g)).join("") : ""}</section>`;
+  return h;
+}
+const gOrder = (a,b) => ((a.order ?? 1e9) - (b.order ?? 1e9)) || ((a.end||"9") < (b.end||"9") ? -1 : (a.end||"9") > (b.end||"9") ? 1 : 0);
+function mainTab(){
+  const all = goalsOf(S.me), act = all.filter(p => p.status !== "done").sort(gOrder), ach = all.filter(p => p.status === "done");
+  const k = today(), vis = m => !m.done || (m.doneAt && dk(m.doneAt) === k);
+  const subsFor = id => mineOf("mission").filter(m => m.projectId === id && vis(m)).sort((a,b) => a.done - b.done || isToday(b) - isToday(a) || (a.createdAt||0) - (b.createdAt||0));
+  let h = `<section class="card today"><div class="ringwrap">${ring(ach.length, all.length)}<b class="num">${ach.length}/${all.length}</b></div>
+    <div class="tinfo"><small>메인 퀘스트</small><h2>${act.length ? `${act.length}개 남았어요` : all.length ? "모두 달성했어요 🎉" : "아직 메인 퀘스트가 없어요"}</h2></div></section>`;
+  if (act.length >= 2) h += hintBar("reo", "카드를 길게 눌러 끌면 순서를 바꿀 수 있어요");
+  if (!act.length) h += `<div class="card empty"><strong>진행 중인 메인 퀘스트가 없어요</strong>큰 목표를 세우고 태스크로 나눠 보세요.</div>`;
+  for (const g of act){
+    const pr = goalProgress(g), pct = pr.total ? pr.done/pr.total*100 : 0, links = subsOf(g.id).filter(x => x.status !== "done");
+    const latest = valLatest(g.id);
+    const mv = g.metric ? `📈 ${numFmt(latest ? latest.value : g.metric.start)} → ${numFmt(g.metric.target)}${esc(g.metric.unit)}` : "";
+    const cvF = (LS.get("cvfold", [])).includes(g.id), up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`;
+    h += `<section class="card tight mq qlist" data-reo="${g.id}">${cvF ? `<button class="cvopen" data-act="cvfold" data-p="${g.id}">표지 펴기 <span style="display:inline-flex;transform:rotate(180deg)">${up}</span></button>` : `<div class="cvwrap">${coverHtml(g, {badge:false})}<button class="cvtog" data-act="cvfold" data-p="${g.id}" aria-label="표지 접기">${up}</button></div>`}<div class="mqh mqh2" data-act="project" data-p="${g.id}" role="button" tabindex="0">${qHead(g)}</div>
+      ${(() => { const all = subsOf(g.id); const sk = "s:" + g.id, shut = tFold(sk); return `<div class="mqsubs"><button class="tfold" data-act="tfold" data-k="${sk}" aria-expanded="${!shut}"><span>서브 퀘스트 <em class="num">${all.filter(x => x.status === "done").length}/${all.length}</em></span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : all.map(x => goalRow(x, true)).join("") + `<button class="tadd-pill" data-act="sheet" data-k="sub" data-p="${g.id}">+ 서브 퀘스트 추가</button>`}</div>`; })()}
+      ${(() => { const ts = [g.id, ...links.map(x => x.id)].flatMap(id => subsFor(id)).sort((a,b) => a.done - b.done || isToday(b) - isToday(a) || (a.createdAt||0) - (b.createdAt||0)), shut = tFold(g.id), left = ts.filter(m => !m.done).length;
+        return `<button class="tfold" data-act="tfold" data-k="${g.id}" aria-expanded="${!shut}"><span>태스크 ${ts.length ? `<em class="num">${left ? `${left}개 남음` : "모두 완료"}</em>` : ""}</span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : ts.map(m => { S._bare = true; try{ return taskRow(m, false); } finally { S._bare = false; } }).join("") + `<button class="tadd-pill" data-act="taskadd" data-p="${g.id}">+ 태스크 추가</button>`}`; })()}</section>`;
+  }
+  const loose = mineOf("mission").filter(m => (!m.projectId || !S.projects[m.projectId]) && vis(m)).sort((a,b) => a.done - b.done || isToday(b) - isToday(a));
+  // 개별 태스크 카드는 메인 탭에서 표시하지 않음
+  h += `<button class="btn soft full" data-act="sheet" data-k="add" data-v="big">+ 메인 퀘스트 추가</button>`;
+  if (ach.length) h += `<section class="card tight"><button class="row" data-act="toggle" data-k="ach"><span class="t"><b>🏆 업적 ${ach.length}개</b></span><span class="chev2 ${S.openAch?"open":""}">${I.chev}</span></button>${S.openAch ? ach.map(g => goalRow(g)).join("") : ""}</section>`;
+  return h;
+}
+function viewToday(){
+  if (!S.me) return `<div class="card empty"><strong>로컬 프로필이 필요해요</strong>로컬 개발 모드에서 테스트 캐릭터를 만들어 주세요.</div>`;
+  if (!hasProfile()) return S.canWrite ? onboarding() : `<div class="card empty"><strong>보기 전용이에요</strong>커뮤니티에서 다른 모험가의 기록을 볼 수 있어요.</div>`;
+  const k = today(), d = new Date();
+  const hs = todayHabits(), ms = mineOf("mission");
+  const items = hs.map(q => ({q, done:!!(q.done||{})[k], xp:HLV[lvKey(q.lv)].xp}));
+  const todo = items.filter(x => !x.done), done = items.filter(x => x.done), total = items.length;
+  const left = todo.reduce((a,x) => a + x.xp, 0), all = total > 0 && !todo.length, s = MY;
+  const tab = S.qTab === "sub" ? "main" : (S.qTab || "daily");
+  let h = `<div class="seg" role="group" aria-label="퀘스트 종류"><button data-act="qtab" data-t="daily" aria-pressed="${tab==="daily"}">데일리</button><button data-act="qtab" data-t="task" aria-pressed="${tab==="task"}">태스크</button><button data-act="qtab" data-t="main" aria-pressed="${tab==="main"}">메인</button></div>`;
+  if (tab === "main"){ S._noToday = true; try{ return h + mainTab(); } finally { S._noToday = false; } }
+  if (tab === "sub"){ S._noToday = true; try{ return h + subTab(); } finally { S._noToday = false; } }
+  if (tab === "task"){ S._noToday = true; try{ return h + taskTab({noUp:true, noNone:true}); } finally { S._noToday = false; } }
+  h += `<section class="card today"><button class="iconbtn gear wd-cgear" data-act="hset" aria-label="데일리 퀘스트 설정">${I.menu}</button>
+    <div class="ringwrap">${ring(done.length, total)}<b class="num">${done.length}/${total}</b></div>${xpFloat("*")}
+    <div class="tinfo"><small>데일리 퀘스트</small>
+      <h2>${restDays()[today()] && !all ? "🛡️ 오늘은 쉬는 날이에요" : all ? "데일리 퀘스트 완료! 🎉" : total ? `${todo.length}개 남았어요` : "오늘의 데일리 퀘스트"}</h2>
+      ${all ? `<p><button class="btn soft xs" data-act="shareday">오늘 공유하기</button></p>` : ""}</div></section>`;
+  const row = x => x.q ? habitRow(x.q) : taskRow(x.m);
+  h += `<section class="card tight qlist" aria-label="데일리 퀘스트">`;
+  if (!total && !mineOf("quest").length){
+    h += `<div class="starter"><b>이런 데일리 퀘스트로 시작해 보세요</b><div class="chips">${SUGGEST.map(([n]) => `<button class="chip" data-act="suggest" data-v="${esc(n)}">+ ${esc(n)}</button>`).join("")}</div></div>`;
+  } else if (!total) h += `<p class="empty-row">오늘 할 데일리 퀘스트가 없어요.</p>`;
+  h += todo.map(row).join("");
+  h += done.map(row).join("") + `</section>`;
+  return h;
+}
+function goalRow(p, nested = false){
+  const pr = goalProgress(p), pct = pr.total ? pr.done/pr.total*100 : (p.status === "done" ? 100 : 0), sp = isProj(p);
+  const subs = sp ? [] : subsOf(p.id), info = [];
+  if (p.status === "done") info.push(sp ? "완료" : "달성 완료"); else if (pr.total) info.push(`태스크 ${pr.done}/${pr.total}`); else info.push("진행 중");
+  if (subs.length) info.push(`서브 ${subs.filter(x => x.status === "done").length}/${subs.length}`);
+  if (sp && !nested && S.projects[p.parentId]) info.push("🎯 " + esc(S.projects[p.parentId].title));
+  if (p.metric) info.push(`📈 ${esc(p.metric.unit)}`);
+  return `<button class="row ${nested?"nested":""}" data-act="project" data-p="${p.id}"><span class="ic sq ${p.status==="done"?"gold":"ok"}" style="font-size:12px">${p.status==="done" ? "🏆" : (dday(p.end) || (sp ? "🔗" : "🎯"))}</span>
+    <span class="t"><b>${esc(p.title)}</b><small>${info.join(" · ")}</small><span class="bar green"><i style="width:${pct}%"></i></span></span>${I.chev}</button>`;
+}
+
+/* ================= calendar ================= */
+const pd = s0 => { const [y,m,d] = s0.split("-").map(Number); return new Date(y, m-1, d); };
+const addD = (s0, n) => { const d = pd(s0); d.setDate(d.getDate()+n); return dk(d.getTime()); };
+const monStart = s0 => { const d = pd(s0), w = (d.getDay()+6)%7; d.setDate(d.getDate()-w); return dk(d.getTime()); };
+function tasksByDate(){ const o = {}; for (const m of mineOf("mission").filter(m => isOwnPrivateEntry(m, S.me))){ const d = dateOf(m); if (d) (o[d] = o[d] || []).push(m); if (!m.done && m.origDue && m.origDue !== d) (o[m.origDue] = o[m.origDue] || []).push({...m, _ghost:true}); } return o; }
+const dayActivityIndex = () => buildDayActivityIndex({mine:S.mine, feed:S.feed, projects:S.projects, me:S.me});
+const habitsOn = d => { const t0 = pd(d).getTime(); return mineOf("quest").filter(q => q.active !== false && isSched(q, t0) && (q.createdAt||0) <= t0 + 86399999).map(q => ({...q, doneHabit:!!(q.done||{})[d]})); };
+function calHabitChip(q, d){ const done = q.doneHabit, canEdit = d === today();
+  return `<div class="wti wck habit ${done?"done":""}" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><button class="wchk ${done?"on":""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit?"":"disabled"} aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(q.name)}</span></div></div>`; }
+function calendarDaySheet(date){
+  const index = dayActivityIndex(), day = selectDayActivities(index, date);
+  const row = (entry, act, key, label, text = '') => `<button class="row" data-act="${act}" data-${key}="${esc(entry.id)}"><span class="t"><b>${esc(label)}</b>${text ? `<small>${esc(text)}</small>` : ''}</span>${I.chev}</button>`;
+  const section = (title, entries, render) => `<section class="day-section"><h3>${title} <span class="num">${entries.length}</span></h3>${entries.length ? entries.map(render).join('') : '<p class="empty-row">기록이 없어요.</p>'}</section>`;
+  let body = `<div class="day-activities" data-date="${esc(date)}"><p class="hint">기록·완료 · 한국 시간 기준</p>${!day.count ? '<p class="empty-row">이 날의 기록이나 완료한 항목이 없어요.</p>' : ''}`;
+  body += section('저널', day.journals, d => row(d,'journal-view','id',`컨디션 ${d.cond ?? '-'}% · ${d.emo || '저널'}`,d.text || '내용 없는 저널'));
+  body += section('스토리', day.stories, p => row(p,'day-post','p',p.text || p.ref?.label || '사진 스토리',p.ref?.type === 'diary' ? '이 날 게시한 저널 공유 스토리 · 저널 완료와 별개' : '이 날 게시한 내 스토리 · 완료 여부와 별개'));
+  body += `<h3 class="day-group">완료</h3>`;
+  body += section('데일리 퀘스트', day.daily, q => row(q,'hedit','id',q.name));
+  body += section('태스크', day.tasks, m => taskRow(m,true,false,{showTime:false,showDate:false}));
+  body += section('메인 퀘스트', day.main, p => row(p,'day-project','p',p.title));
+  body += section('서브 퀘스트', day.sub, p => row(p,'day-project','p',p.title));
+  const scheduled = (tasksByDate()[date] || []).filter(m => !m.done && !m._ghost);
+  body += section('예정 · 태스크', scheduled, m => taskRow(m,true,false,{showTime:false,showDate:false}));
+  body += `<button class="btn sec full" data-act="day-schedule" data-v="${esc(date)}">일별 일정 보기·추가</button>`;
+  const unknown = [...index.unknown.tasks, ...index.unknown.main, ...index.unknown.sub];
+  if (unknown.length) body += `<details class="day-unknown"><summary>날짜 미확인 · 전체 과거 완료 ${unknown.length}개</summary><p class="hint">완료 시각이 없어 이 날의 기록·완료 개수에 포함하지 않았어요.</p>${unknown.map(x => `<p>${esc(x.name || x.title)} · 날짜 미확인</p>`).join('')}</details>`;
+  return sheetWrap(`${esc(fmtD(date))} 기록`, '', body+'</div>');
+}
+function viewCal(){
+  if (!hasProfile()) return viewToday();
+  const C = S.cal || (S.cal = {mode:"day", date:today()}), mode = C.mode, date = C.date, by = tasksByDate(), t = today();
+  const cnt = d => { const l = (by[d] || []).filter(m => !m._ghost); return {n:l.length, done:l.filter(m => m.done).length, late:l.some(m => !m.done && d < t)}; };
+  let h = `<div class="seg" role="group" aria-label="보기">${[["day","일"],["week","주"],["month","월"],["year","연"]].map(([k,l]) => `<button data-act="cmode" data-v="${k}" aria-pressed="${mode===k}">${l}</button>`).join("")}</div>`;
+  const D0 = pd(date);
+  const cgs = mode === "year" ? [] : goalsOf(S.me).filter(p => p.status !== "done").sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : (a.end||"9999") > (b.end||"9999") ? 1 : 0);
+  if (cgs.length){ const gi = Math.max(0, Math.min(cgs.length - 1, S.calGi || 0)), g = cgs[gi]; S.calGi = gi;
+    const pr = goalProgress(g), pct = pr.total ? pr.done/pr.total*100 : 0, links = subsOf(g.id).filter(x => x.status !== "done");
+    h += `<section class="card tight mq calmq"><button class="mqh" data-act="project" data-p="${g.id}"><span class="mtop">${g.end ? `<span class="dd">${dday(g.end)}</span>` : ""}<b>${esc(g.title)}</b>${I.chev}</span><span class="bar green"><i style="width:${pct}%"></i></span><small>태스크 ${pr.done}/${pr.total}${links.length ? ` · 서브 ${links.length}` : ""}</small></button>${cgs.length > 1 ? `<div class="cpager"><button data-act="cgi" data-v="-1" ${gi ? "" : "disabled"} aria-label="이전 메인 퀘스트">${I.back}</button><span class="num">${gi + 1}/${cgs.length}</span><button class="fwd" data-act="cgi" data-v="1" ${gi < cgs.length - 1 ? "" : "disabled"} aria-label="다음 메인 퀘스트">${I.back}</button></div>` : ""}</section>`; }
+  const title = mode === "day" ? `${D0.getMonth()+1}월 ${D0.getDate()}일 ${WD[D0.getDay()]}요일` : mode === "week" ? (() => { const a = pd(monStart(date)), b2 = pd(addD(monStart(date), 6)); return `${a.getMonth()+1}.${a.getDate()} – ${b2.getMonth()+1}.${b2.getDate()}`; })() : mode === "month" ? `${D0.getFullYear()}년 ${D0.getMonth()+1}월` : `${D0.getFullYear()}년`;
+  h += `<div class="calnav"><button class="iconbtn" data-act="cstep" data-v="-1" aria-label="이전">${I.back}</button><b>${title}</b><button class="iconbtn fwd" data-act="cstep" data-v="1" aria-label="다음">${I.back}</button>${date !== t ? `<button class="btn sec xs" data-act="ctoday">오늘</button>` : ""}</div>`;
+  const calTaskRow = m => taskRow(m, true, false, {showTime:false, showDate:false});
+  const dayList = d => { const l = (by[d] || []).sort((a,b) => a.done - b.done); return l.length ? l.map(calTaskRow).join("") : `<p class="empty-row">태스크가 없어요.</p>`; };
+  const addBtn = d => `<button class="morebtn add" data-act="taskadd" data-d="${d}">+ 태스크 추가</button>`;
+  const perCard = (per, a, label) => { const l = mineOf("mission").filter(m => m.period === per && m.due === a).sort((x,y) => x.done - y.done || (x.createdAt||0) - (y.createdAt||0)), dn = l.filter(m => m.done).length;
+    return `<section class="card tight percard"><div class="ch"><h2>${label}</h2>${l.length ? `<span class="side num">${dn}/${l.length}</span>` : ""}</div>${l.length ? l.map(calTaskRow).join("") : `<p class="empty-row">아직 없어요.</p>`}<button class="morebtn add" data-act="sheet" data-k="add" data-v="once" data-d="${a}" data-per="${per}">+ ${label}</button></section>`; };
+  const byTime = l => l.slice().sort((a,b) => (a.time||"99") < (b.time||"99") ? -1 : (a.time||"99") > (b.time||"99") ? 1 : a.done - b.done);
+  if (mode === "day"){
+    const l = by[date] || [], untimed = l.filter(m => !m.time), timed = l.filter(m => m.time);
+    const hb = habitsOn(date), hbAll = hb.filter(q => !q.time), hbTimed = hb.filter(q => q.time);
+    const hl = hr => `${hr}시`, nowH = new Date().getHours() || 24;
+    h += `<section class="card tight tl">${byTime(untimed).map((m, i) => `<div class="tlrow allday"><span class="tlh">${i ? "" : "종일"}</span><div class="tlc">${calTaskRow(m)}</div></div>`).join("")}${hbAll.length ? `<div class="tlrow allday"><span class="tlh">종일</span><div class="tlc">${hbAll.map(q => calHabitChip(q, date)).join("")}</div></div>` : ""}
+      <div class="tlscroll" id="tlscroll" data-d="${date}" data-first="${timed.length ? Math.min(...timed.map(m => +m.time.slice(0,2) || 24)) : (date === t ? nowH : 8)}">`;
+    for (let hr = 1; hr <= 24; hr++){ const items = byTime(timed.filter(m => (+m.time.slice(0,2) || 24) === hr)), now = date === t && nowH === hr;
+      const hItems = hbTimed.filter(q => (+q.time.slice(0,2) || 24) === hr);
+      h += `<div class="tlrow ${now ? "now" : ""}" data-h="${hr}"><span class="tlh num">${hl(hr)}</span><div class="tlc">${items.map(calTaskRow).join("")}${hItems.map(q => calHabitChip(q, date)).join("")}${(!items.length && !hItems.length) ? `<button class="tlempty" data-act="taskadd" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 태스크 추가"></button>` : ""}</div></div>`; }
+    h += `</div>`;
+    h += `${addBtn(date)}</section>`;
+    const none = mineOf("mission").filter(m => !m.done && !dueOf(m));
+  } else if (mode === "week"){
+    const s0 = monStart(date), days = Array.from({length:7}, (_, i) => addD(s0, i)), hl = hr => `${hr}시`;
+    const hourOf = m => +m.time.slice(0,2) || 24, nowH = new Date().getHours() || 24;
+    const timedAll = days.flatMap(d => (by[d] || []).filter(m => m.time)), anyAllday = days.some(d => (by[d] || []).some(m => !m.time));
+    const first = timedAll.length ? Math.min(...timedAll.map(hourOf)) : (days.includes(t) ? nowH : 8);
+    const hbByDay = Object.fromEntries(days.map(d => [d, habitsOn(d)]));
+    const chip = m => m._ghost ? `<div class="wti wck ghost" data-act="tedit" data-id="${m.id}" role="button" tabindex="0" title="오늘로 넘어간 태스크"><span class="gdot">↷</span><div class="wtx"><span>${esc(m.name)}</span></div></div>` : `<div class="wti wck ${m.done ? "done" : ""}" data-act="tedit" data-id="${m.id}" role="button" tabindex="0"><button class="wchk ${m.done ? "on" : ""}" data-act="mcheck" data-id="${m.id}" aria-pressed="${!!m.done}" aria-label="${esc(m.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(m.name)}</span></div></div>`;
+    h += `<div class="wgrid" id="wgscroll" data-d="${s0}" data-first="${first}"><div class="wg">`;
+    h += `<div class="wgc corner"></div>` + days.map(d => { const x = pd(d); return `<button class="wgc head ${d === t ? "is-today" : ""}" data-act="cpick" data-v="${d}" data-m="day"><b>${WD[x.getDay()]}</b><span class="num">${x.getMonth()+1}/${x.getDate()}</span></button>`; }).join("");
+    if (anyAllday) h += `<div class="wgc tlab">종일</div>` + days.map(d => `<div class="wgc cell allday ${d === t ? "is-today" : ""}">${byTime((by[d] || []).filter(m => !m.time)).map(chip).join("")}${hbByDay[d].filter(q => !q.time).map(q => calHabitChip(q, d)).join("")}</div>`).join("");
+    for (let hr = 1; hr <= 24; hr++){
+      h += `<div class="wgc tlab num ${days.includes(t) && nowH === hr ? "now" : ""}" data-h="${hr}">${hl(hr)}</div>` + days.map(d => { const items = byTime((by[d] || []).filter(m => m.time && hourOf(m) === hr)); const hq = hbByDay[d].filter(q => q.time && (+q.time.slice(0,2) || 24) === hr);
+        return `<div class="wgc cell ${d === t ? "is-today" : ""}">${items.map(chip).join("")}${hq.map(q => calHabitChip(q, d)).join("")}${(!items.length && !hq.length) ? `<button class="tlempty" data-act="taskadd" data-d="${d}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 태스크 추가"></button>` : ""}</div>`; }).join("");
+    }
+    h += `</div></div>`;
+  } else if (mode === "month"){
+    const first = new Date(D0.getFullYear(), D0.getMonth(), 1), start = monStart(dk(first.getTime())), mo = D0.getMonth();
+    const activities = dayActivityIndex();
+    h += `<p class="hint">날짜 눌러 기록 보기</p>`;
+    h += `<section class="card mgrid mtask"><div class="wk">${["월","화","수","목","금","토","일"].map(w => `<span>${w}</span>`).join("")}</div><div class="days">`;
+    for (let i = 0; i < 42; i++){ const d = addD(start, i), x = pd(d); if (i >= 35 && x.getMonth() !== mo) break; const l = byTime(by[d] || []); const hq = habitsOn(d);
+      const acts = selectDayActivities(activities,d), dailyIds = new Set(acts.daily.map(x => x.id));
+      const count = acts.count + hq.filter(q => q.doneHabit && !dailyIds.has(q.id)).length;
+      h += `<div class="mcell ${x.getMonth() !== mo ? "out" : ""} ${d === t ? "is-today" : ""}" data-act="cdate" data-v="${d}"><button class="mn" data-act="cdate" data-v="${d}" aria-label="${d} 날짜 눌러 기록 보기${count ? ` · 기록·완료 ${count}개` : ''}">${x.getDate()}${count ? `<small class="activity-count">${count}</small>` : ''}</button>${hq.slice(0,1).map(q => `<i class="hab ${q.doneHabit ? "done" : ""}"><span class="mtx"><span>${esc(q.name)}</span></span></i>`).join("")}${l.slice(0,3).map(m => `<i class="${m.done ? "done" : !m.done && d < t ? "late" : ""}"><button class="mchk ${m.done ? "on" : ""}" data-act="mcheck" data-id="${esc(m.id)}" aria-pressed="${!!m.done}" aria-label="${esc(m.name)} 완료">${I.check}</button><span class="mtx"><span>${esc(m.name)}</span></span></i>`).join("")}${l.length > 3 ? `<i class="more">+${l.length - 3}</i>` : ""}</div>`; }
+    h += `</div></section>`;
+  } else {
+    const y = D0.getFullYear();
+    h += `<div class="ygrid">`;
+    for (let mo = 0; mo < 12; mo++){ let n = 0, dn = 0; const days = new Date(y, mo+1, 0).getDate();
+      let cells = ""; const off = (new Date(y, mo, 1).getDay()+6)%7; for (let i = 0; i < off; i++) cells += `<i class="e"></i>`;
+      for (let d = 1; d <= days; d++){ const ds = `${y}-${pad(mo+1)}-${pad(d)}`, c0 = cnt(ds); n += c0.n; dn += c0.done; cells += `<i class="${c0.n ? (c0.done === c0.n ? "l3" : c0.done ? "l2" : "l1") : ""} ${ds === t ? "t" : ""}">${d}</i>`; }
+      h += `<div class="ymon ${mo === D0.getMonth() ? "ycur" : ""}" role="button" tabindex="0" data-act="cpick" data-v="${y}-${pad(mo+1)}-01" data-m="month"><b>${mo+1}월</b><small class="num">${n ? `${dn}/${n}` : ""}</small><span class="ymini">${cells}</span></div>`; }
+    h += `</div>`;
+  }
+  return h;
+}
+
+/* ================= settings ================= */
+const sw = (act, on0, extra = "") => `<button class="sw ${on0 ? "on" : ""}" data-act="${act}" ${extra} role="switch" aria-checked="${on0}"><i></i></button>`;
+function viewSettings(){
+  if (!hasProfile()) return viewToday();
+  const st = getSet(), me = prof(S.me), th = LS.get("theme", "system");
+  let h = `<p class="sect3">계정</p><section class="card tight">
+    <button class="row" data-act="sheet" data-k="profile"><span class="t"><b>프로필 편집</b><small>닉네임 · 소개 · 캐릭터 색</small></span>${I.chev}</button>
+    <div class="row"><span class="t"><b>로컬 비공개 표시</b><small>화면 필터만 적용 · 서버 접근 제어/승인 기능 없음</small></span>${sw("setpriv", !!me.private)}</div></section>`;
+  h += `<p class="sect3">알림</p><section class="card tight">${[["like","공감","내 글과 답글에 공감했을 때"],["reply","답글","내 글에 답글이 달렸을 때"],["follow","팔로우","새 팔로워가 생겼을 때"],["join","함께하기","내 데일리 퀘스트를 함께 시작했을 때"]].map(([k,l,d]) => `<div class="row"><span class="t"><b>${l}</b><small>${d}</small></span>${sw("setn", st.notif[k], `data-k="${k}"`)}</div>`).join("")}</section>`;
+  h += `<p class="sect3">화면</p><section class="card"><div class="ch" style="margin-bottom:10px"><h2 style="font-size:16px">화면 모드</h2></div><div class="seg sm">${[["system","시스템"],["light","라이트"],["dark","다크"]].map(([k,l]) => `<button data-act="theme" data-v="${k}" aria-pressed="${th===k}">${l}</button>`).join("")}</div></section>`;
+  h += `<p class="sect3">개인정보 보호</p><section class="card tight">
+    <button class="row" data-act="toggle" data-k="blk"><span class="t"><b>차단한 계정</b><small>${st.blocked.length ? `${st.blocked.length}명` : "없음"}</small></span><span class="chev2 ${S.openBlk?"open":""}">${I.chev}</span></button>
+    ${S.openBlk ? st.blocked.map(u => `<div class="row nested">${av(u, 36, false)}<span class="t"><b>${esc(nameOf(u))}</b></span><button class="btn sec xs" data-act="unblock" data-u="${esc(u)}">해제</button></div>`).join("") : ""}
+    <div class="row" style="flex-wrap:wrap"><span class="t"><b>숨길 단어</b><small>이 단어가 들어간 답글은 보이지 않아요</small></span></div>
+    <form class="addline" data-form="hide" style="padding-top:0"><input type="text" id="set-hide" placeholder="단어 입력 후 추가" value="${D("set-hide")}" aria-label="숨길 단어"><button class="btn sm sec" type="submit">추가</button></form>
+    ${st.hidden.length ? `<div class="chips" style="padding:0 20px 14px">${st.hidden.map((w,i) => `<button class="chip" data-act="unhide" data-i="${i}">${esc(w)} ✕</button>`).join("")}</div>` : ""}</section>`;
+  h += `<p class="sect3">데이터</p><section class="card tight">
+    <button class="row" data-act="bkexp"><span class="t"><b>백업 내보내기</b><small>지금까지 기록을 JSON 파일로 저장</small></span>${I.chev}</button>
+    <button class="row" data-act="bkimp"><span class="t"><b>백업 불러오기</b><small>저장한 JSON 파일로 복원</small></span>${I.chev}</button>
+    <button class="row" data-act="bkreset"><span class="t"><b>전체 초기화</b><small>모든 기록을 지우고 처음부터</small></span>${I.chev}</button></section>`;
+  h += `<p class="sect3">정보</p><section class="card tight"><div class="row"><span class="t"><b>로컬 테스트 프로필</b><small>로그인/서버 미연결 · 이 브라우저에만 저장</small></span></div><div class="row"><span class="t"><b>앱 버전</b><small>프로토타입 0.1</small></span></div></section>`;
+  return h;
+}
+
+/* ================= shop ================= */
+const hueOf = t => [...String(t)].reduce((a,ch) => (a*31 + ch.charCodeAt(0)) % 360, 7);
+function equippedTitle(){const e=S.economy?.equipped||{};return CATALOG.find(x=>x.id===e.title)?.style||'';}
+function applyCosmetics(){const e=S.economy?.equipped||{};for(const type of ['frame','background','cardtheme'])document.documentElement.setAttribute('data-eco-'+type,CATALOG.find(x=>x.id===e[type])?.style||'');}
+function purchaseHistory(){const e=S.economy,rows=Object.values(e.purchases).filter(p=>!p.hidden&&!S.mine[p.id]?.hidden).sort((a,b)=>b.at-a.at);return rows.map(p=>`<div class="row"><span class="t"><b>${esc(p.name)}</b><small>${fmt(p.cost||0)} 코인 · ${p.legacy?'이전 구매':({planned:'사용 예정',used:'사용 완료',owned:'보유',cancelled:'취소'})[p.state]}</small></span><span class="eco-actions">${p.state==='planned'&&!p.legacy?`<button class="btn sec sm" data-act="purchase-use" data-id="${esc(p.id)}">사용 완료</button><button class="btn sec sm" data-act="purchase-cancel" data-id="${esc(p.id)}">취소·환불</button>`:''}${p.kind==='style'&&p.state==='owned'?`<button class="btn sec sm" data-act="purchase-cancel" data-id="${esc(p.id)}">10분 이내 취소</button>`:''}<button class="link" data-act="purchase-hide" data-id="${esc(p.id)}">기록 숨김</button></span></div>`).join('')||'<p class="empty-row">구매 기록이 없어요.</p>';}
+const PURCHASE_LABEL = {planned:'사용 예정',used:'사용 완료',owned:'보유',cancelled:'취소 완료'};
+function purchaseRows(){ const e=S.economy; return Object.values(e.purchases).filter(p=>!p.hidden&&!S.mine[p.id]?.hidden).sort((a,b)=>b.at-a.at); }
+function rewardHistory(rewardId){ return purchaseRows().filter(p => (p.rewardId || p.id) === rewardId || S.mine[p.id]?.rewardId === rewardId); }
+function purchaseActions(p){ return `${p.state==='planned'&&!p.legacy?`<button class="btn sec sm" data-act="purchase-use" data-id="${esc(p.id)}">사용 완료</button><button class="btn sec sm" data-act="purchase-cancel" data-id="${esc(p.id)}">취소·환불</button>`:''}${p.kind==='style'&&p.state==='owned'?`<button class="btn sec sm" data-act="purchase-cancel" data-id="${esc(p.id)}">10분 이내 취소</button>`:''}<button class="link" data-act="purchase-hide" data-id="${esc(p.id)}">기록 숨김</button>`; }
+function viewShop(){
+  if(!hasProfile())return viewToday();const q=economySummary(S),e=S.economy,tab=S.shopTab||'items';
+  let h=`<section class="card shophero"><span>사용 가능 코인</span><b class="num">🪙 ${fmt(q.gold)}</b></section><div class="chips eco-tabs">${[['items','아이템'],['personal','보상'],['inventory','보관함']].map(([k,n])=>`<button class="chip" data-act="shop-tab" data-v="${k}" aria-pressed="${tab===k}">${n}</button>`).join('')}</div>`;
+  if(tab==='items'){const items=CATALOG.filter(x=>x.cost);h+=items.length?`<div class="rgrid">${items.map(x=>`<div class="rcard"><div class="eco-sample sample-${x.style}">${esc(x.name)}</div><div class="rbody"><b>${esc(x.name)}</b><div class="rprice"><span>${x.cost} 코인</span><button class="btn sec sm" data-act="style-buy" data-id="${x.id}" ${e.inventory[x.id]||q.gold<x.cost?'disabled':''}>${e.inventory[x.id]?'보유':'구매'}</button></div></div></div>`).join('')}</div>`:`<div class="card empty"><strong>아직 아이템이 없어요</strong></div>`;}
+  if(tab==='personal')h+=`<div class="rgrid">${mineOf('reward').sort((a,b)=>priceOf(a)-priceOf(b)).map(r=>`<div class="rcard"><div class="rbody"><b>${esc(r.name)}</b><small>${r.repeat==='once'?'1회':'반복'} · ${priceOf(r)} 코인${r.dailyLimit?` · 일 ${r.dailyLimit}회`:''}${r.weeklyLimit?` · 주 ${r.weeklyLimit}회`:''}</small><div class="eco-actions"><button class="btn sm" data-act="buy" data-id="${r.id}" ${q.gold<priceOf(r)?'disabled':''}>교환</button><button class="link" data-act="redit" data-id="${r.id}">수정</button><button class="link" data-act="wishlist" data-id="${r.id}">${r.wishlist?'찜 해제':'찜'}</button></div>${(() => { const hr = rewardHistory(r.id).slice(0,3);
+        return hr.length ? `<div class="rhist">${hr.map(p => `<div class="rhrow"><span class="rhstate ${p.state}">${PURCHASE_LABEL[p.state] || '보유'}</span><span class="rhtime num">${p.at ? new Date(p.at + 9*3600000).toISOString().slice(5,10).replace('-','.') : ''}</span><span class="eco-actions">${purchaseActions(p)}</span></div>`).join('')}</div>` : ''; })()}</div></div>`).join('')}<button class="rcard radd" data-act="sheet" data-k="reward"><b>＋ 보상 추가</b><small>하고 싶은 거 / 갖고 싶은 거</small></button></div>`;
+  if(tab==='inventory'){h+=`<section class="card">${CATALOG.filter(x=>e.inventory[x.id]).map(x=>`<div class="row"><span class="t"><b>${esc(x.name)}</b><small>${e.inventory[x.id].source==='level'?'레벨 성장 보상':'상점 구매'}</small></span><button class="btn sec sm" data-act="style-equip" data-id="${x.id}">${e.equipped[x.type]===x.id?'해제':'적용'}</button></div>`).join('')||'<p>아직 아이템이 없어요.</p>'}${purchaseRows().length ? `<details class="rfold"><summary>구매·사용 기록 ${purchaseRows().length}건</summary>${purchaseRows().map(p=>`<div class="row"><span class="t"><b>${esc(p.name)}</b><small>${fmt(p.cost||0)} 코인 · ${p.legacy?'이전 구매':(PURCHASE_LABEL[p.state]||'보유')}</small></span><span class="eco-actions">${purchaseActions(p)}</span></div>`).join('')}</details>` : ''}${Object.entries(e.milestones).filter(([,m])=>m.choice&&!m.selected).map(([L])=>`<div class="field"><b>레벨 ${JSON.parse(L)} 선택 보상</b><div class="chips">${CATALOG.filter(x=>!e.inventory[x.id]).map(x=>`<button class="chip" data-act="milestone-pick" data-v="${JSON.parse(L)}" data-id="${x.id}">${esc(x.name)}</button>`).join('')}</div></div>`).join('')}</section>`;}
+  return h;
+}
+
+/* ================= feed ================= */
+function refHtml(p){
+  const r = p.ref; if (!r) return "";
+  if (r.type === "project" || r.type === "mission"){
+    const pj = S.projects[r.id];
+    const sp = isProj(pj), kind = sp ? "서브 퀘스트" : "메인 퀘스트", par = sp && S.projects[pj.parentId];
+    if (r.type === "mission") return `<div class="ref" data-act="project" data-p="${esc(r.id)}" role="button" tabindex="0"><span class="ri">✅</span><span class="rt"><b>태스크 완료 · ${esc(r.mission||"")}</b>${taskTimeTag(r)}</span>${I.chev}</div>`;
+    return `<button class="ref" data-act="project" data-p="${r.id}"><span class="ri">${r.type==="mission"?"✅":sp?"🔗":"🎯"}</span><span class="rt"><b>${r.type==="mission" ? "태스크 완료 · "+esc(r.mission||"") : esc(pj ? pj.title : r.label)}</b><small>${r.type==="mission" ? esc(pj ? goalLabel(pj) : "🎯 "+r.label) : (pj ? (pj.status === "done" ? (sp ? "완료한 서브 퀘스트" : "업적") : `${kind} · ${dday(pj.end) || "진행 중"}`) : "메인 퀘스트")}${par && r.type !== "mission" ? ` · 🎯 ${esc(par.title)}` : ""}</small></span>${I.chev}</button>`;
+  }
+  if (r.type === "project_done"){ const sp = isProj(S.projects[r.id]) || r.sub; return `<button class="ref done" data-act="project" data-p="${r.id}"><span class="ri">🏆</span><span class="rt"><b>${sp ? "서브 퀘스트 완료" : "메인 퀘스트 달성"} · ${esc(r.label)}</b><small>완료 기록 · 공유 자체는 무보상</small></span>${I.chev}</button>`; }
+  if (r.type === "quest"){
+    const x = r.extra || {}, lv = HLV[lvKey(x.lv)], n = Object.values(p.joiners||{}).filter(on).length, joined = on((p.joiners||{})[S.me]);
+    return `<div class="ref quest"><span class="ri">🔥</span><span class="rt"><b>${esc(r.label)} · ${x.streak||0}일 연속</b><small><span title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span> 데일리 퀘스트${n ? ` · ${n}명이 함께해요` : ""}</small></span>
+      ${p.author !== S.me && canAct() ? `<button class="btn ${joined?"sec":"soft"} xs join" data-act="join" data-p="${p.id}" ${joined?"disabled":""}>${joined ? "함께하는 중" : "나도 하기"}</button>` : ""}</div>`;
+  }
+  if (r.type === "diary"){ const x = r.extra || {}; return `<div class="ref diary"><span class="ri">${EMOI[x.emo]||"📓"}</span><span class="rt"><b>${r.label && r.label !== "오늘의 기록" ? esc(r.label) : "오늘의 저널"} · ${esc(x.emo||"")}</b><small>컨디션 ${x.cond ?? "-"}%</small></span></div>`; }
+  return "";
+}
+function metricFor(post){
+  const pj = post.ref && S.projects[post.ref.id]; if (!pj || !pj.metric || typeof post.value !== "number") return "";
+  const m = pj.metric, hist = valHist(pj.id);
+  const idx = hist.findIndex(x => x.id === post.id); if (idx < 0) return "";
+  const cur = post.value, prev = idx > 0 ? hist[idx-1].value : m.start, delta = Math.round((cur - prev)*10)/10;
+  const down = m.target < m.start, good = down ? delta < 0 : delta > 0, span = m.target - m.start, pct = span ? Math.max(0, Math.min(100, (cur - m.start)/span*100)) : 0;
+  const reached = down ? cur <= m.target : cur >= m.target;
+  return `<div class="metric"><div class="mv"><b>${numFmt(cur)}</b><span>${esc(m.unit)}</span>${delta ? `<em class="${good?"good":"bad"}">${delta>0?"▲":"▼"} ${numFmt(Math.abs(delta))}${esc(m.unit)}</em>` : ""}</div>
+    ${spark([m.start, ...hist.slice(0, idx+1).map(x => x.value)])}<div class="mbar"><i style="width:${pct}%"></i></div>
+    <small>${numFmt(m.start)}${esc(m.unit)}에서 시작 · ${reached ? `<b>목표 ${numFmt(m.target)}${esc(m.unit)} 도달!</b>` : `목표 ${numFmt(m.target)}${esc(m.unit)}까지 <b>${numFmt(Math.abs(m.target - cur))}${esc(m.unit)}</b>`}</small></div>`;
+}
+function spark(vals, w = 96, h = 40){
+  if (vals.length < 2) return "";
+  const mn = Math.min(...vals), mx = Math.max(...vals), r = mx - mn || 1, p = 4;
+  const pts = vals.map((v,i) => [p + i*(w-2*p)/(vals.length-1), p + (1-(v-mn)/r)*(h-2*p)]), last = pts[pts.length-1];
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><polyline points="${pts.map(q => q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ")}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.6" fill="currentColor"/></svg>`;
+}
+function postRow(p, o = {}){
+  const a = p.author, s = statsOf(a), lk = liked(p), n0 = likeN(p), n = p.hideLikes && a !== S.me ? 0 : n0, reps = repliesOf(p.id), imgs = p.imgs || 0;
+  const showFollow = !o.inThread && hasProfile() && a !== S.me && S.canWrite, fol = isFollowing(S.me, a);
+  return `<div class="tp ${o.focus?"focus":""}">
+    <div class="rail">${av(a, 40)}${o.line ? '<span class="ln"></span>' : ""}</div>
+    <div class="body">
+      <div class="ph"><button class="nm" data-act="profile" data-u="${esc(a)}">${esc(nameOf(a))}</button><span class="pillLv">Lv.${s.L}</span><time>${ago(p.createdAt)}${p.editedAt ? " · 수정됨" : ""}</time>
+        ${showFollow ? `<button class="btn ${fol ? "sec" : "soft"} sm fol" data-act="follow" data-u="${esc(a)}">${fol ? "팔로잉" : "팔로우"}</button>` : ""}${hasProfile() && S.canWrite ? `<button class="pmenu" data-act="pmenu" data-p="${p.id}" aria-label="게시물 메뉴">${I.menu}</button>` : ""}</div>
+      ${refHtml(p)}
+
+      ${metricFor(p)}
+      ${p.text ? `<div class="txtwrap"><p class="txt" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}>${esc(p.text)}</p><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
+      ${imgs ? `<div class="media" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}><div class="car ${imgs>1?"multi":""}">${Array.from({length:imgs}, (_,i) => { const k = p.id+"~"+i; return `<div class="pimg" data-k="${k}">${S.media[k]?`<img src="${S.media[k]}" alt="" draggable="false">`:""}</div>`; }).join("")}</div><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
+      <div class="acts">
+        <button class="ab ${lk?"on":""}" data-act="like" data-p="${p.id}" ${canAct() && a !== S.me ? "" : "disabled"} aria-pressed="${lk}" aria-label="공감">${lk ? I.heartOn : I.heart}${n?`<span class="num">${n}</span>`:""}</button>
+        <button class="ab" data-act="${o.focus && !p.noReply ? "reply" : "open"}" data-p="${p.id}" aria-label="답글" ${o.focus && p.noReply ? "disabled" : ""}>${I.reply}${reps.length?`<span class="num">${reps.length}</span>`:""}</button>
+      </div>
+      ${n && o.focus ? likersLine(p, n) : ""}
+    </div></div>`;
+}
+function likersLine(p, n){
+  const likers = Object.entries(p.reactions||{}).filter(([,r]) => on(r)).sort((a,b) => b[1].at - a[1].at).map(([u]) => u);
+  const lead = likers.find(u => u !== S.me) || likers[0];
+  const who = lead === S.me ? "내가" : `<b>${esc(nameOf(lead))}</b>님${n > 1 ? "" : "이"}`;
+  return `<div class="likers"><span class="stackav">${likers.slice(0,3).map(u => av(u, 20, false)).join("")}</span><span>${who}${n > 1 ? ` 외 ${n-1}명이` : ""} 공감했어요</span></div>`;
+}
+function commentPreview(reps, pid){
+  const last = reps.filter(r => !r.parentId).slice(-1)[0] || reps[reps.length-1];
+  return `<button class="cprev" data-act="open" data-p="${pid}"><b>${esc(nameOf(last.author))}</b>${esc(last.text)}</button>${reps.length > 1 ? `<button class="cprev all" data-act="open" data-p="${pid}">답글 ${reps.length}개 모두 보기</button>` : ""}`;
+}
+function nudge(p, reps){
+  if (!canAct() || p.noReply || p.author === S.me || reps.some(r => r.author === S.me)) return "";
+  const t = p.ref && p.ref.type; let opts = null;
+  if (HARD.includes(p.mood) || (t === "diary" && ["우울","불안","피곤","화남"].includes((p.ref.extra||{}).emo))) opts = ["힘내요 💪","저도 그래요 🙋","토닥토닥 🤗"];
+  else if (t === "project_done") opts = ["축하해요 🎉","정말 대단해요 👏"];
+  else if (t === "quest") opts = ["연속 기록 대단해요 🔥","저도 자극받아요 💪"];
+  else if (t === "mission") opts = ["대단해요 👏","하나씩 해내는 중이네요 🙌"];
+  else if (p.mood === "설레요" || p.mood === "다시 해볼게요") opts = ["응원할게요 🔥","같이 해요 🙌"];
+  if (!opts) return "";
+  return `<div class="nudge"><span>한마디 보내기</span>${opts.map(x => `<button data-act="nudge" data-p="${p.id}" data-t="${x}">${x}</button>`).join("")}</div>`;
+}
+function storyUsers(){
+  const since = Date.now() - DAY, by = {};
+  for (const p of feedSorted()) if (p.createdAt >= since) (by[p.author] = by[p.author] || []).push(p);
+  return Object.entries(by).map(([uid, items]) => ({uid, items:items.sort((a,b) => a.createdAt - b.createdAt), unseen:items.some(i => !seenStories.has(i.id))}))
+    .sort((a,b) => (b.uid===S.me) - (a.uid===S.me) || b.unseen - a.unseen);
+}
+function storyRail(){
+  const users = storyUsers(), meHas = users.some(u => u.uid === S.me);
+  if (!users.length && !hasProfile()) return "";
+  let h = `<div class="stories" aria-label="오늘의 기록">`;
+  if (hasProfile() && !meHas) h += `<button class="story" data-act="compose"><span class="ring seen">${av(S.me, 58, false)}<span class="plus">+</span></span><span class="nm">내 기록</span></button>`;
+  for (const u of users) h += `<button class="story" data-act="story" data-u="${esc(u.uid)}"><span class="ring ${u.unseen?"":"seen"}">${av(u.uid, 58, false)}</span><span class="nm">${u.uid===S.me?"내 기록":esc(nameOf(u.uid))}</span></button>`;
+  return h + `</div>`;
+}
+function viewFeed(){
+  if (S.me && !hasProfile() && S.canWrite && S.mode !== "loading") return onboarding();
+  let h = canAct() ? storyComposer() : "";
+  let items = feedSorted();
+  if (!items.length){
+    return h + `<div class="card empty"><strong>아직 스토리가 없어요</strong>데일리 퀘스트를 해내고 첫 기록을 공유해 보세요.</div>`;
+  }
+  const fresh = S.feedSeen ? items.filter(p => p.createdAt > S.feedSeen && p.author !== S.me) : [];
+  const rest = items.filter(p => !fresh.includes(p));
+  let count = 0; const emit = p => { h += `<article class="card feedcard">${postRow(p)}</article>`; if (++count === 3) h += suggestCard(); };
+  if (fresh.length){ h += `<p class="sect">새 스토리 ${fresh.length}개</p>`; fresh.forEach(emit); h += `<div class="caught"><b><span>${I.check}</span>새 스토리를 모두 봤어요</b>지난 스토리를 이어서 보여드릴게요</div>`; }
+  const n = S.feedN || 20; rest.slice(0, n).forEach(emit);
+  if (count < 3) h += suggestCard();
+  const more = rest.length > n || (S.liveWin && !S.liveWin.done());
+  if (more) h += `<div class="feedmore" id="feedmore">${S.loadingMore ? "불러오는 중…" : "스토리를 더 불러오고 있어요"}</div>`;
+  else if (rest.length > 20) h += `<p class="feedend">모든 스토리를 다 봤어요</p>`;
+  return h;
+}
+function personRow(u){
+  const f = isFollowing(S.me, u), s = statsOf(u);
+  return `<div class="row">${av(u, 44)}<span class="t" data-act="profile" data-u="${esc(u)}" role="button" tabindex="0"><b>${esc(nameOf(u))} <span class="pillLv">Lv.${s.L}</span></b><small>${esc(prof(u).bio || rankOf(s.L))}</small></span>
+    ${canAct() ? `<button class="btn ${f?"sec":"soft"} sm" data-act="follow" data-u="${esc(u)}">${f?"팔로잉":"팔로우"}</button>` : ""}</div>`;
+}
+function suggestCard(){
+  if (!hasProfile()) return "";
+  const people = Object.keys(S.profiles).filter(u => u !== S.me && !isFollowing(S.me, u)).sort((a,b) => statsOf(b).xp - statsOf(a).xp).slice(0, 4);
+  return people.length ? `<section class="card tight" aria-label="추천 모험가"><div class="ch"><h2>함께 성장할 모험가</h2></div>${people.map(personRow).join("")}</section>` : "";
+}
+function viewPost(){
+  const p = S.feed[S.view.pid];
+  if (!p) return `<div class="card empty"><strong>지워진 글이에요</strong>작성자가 이 글을 삭제했어요.</div>`;
+  let h = `<article class="card feedcard">${postRow(p, {focus:true})}</article>`;
+  const reps = repliesOf(p.id), tops = reps.filter(r => !r.parentId || !S.replies[r.parentId]);
+  h += `<section class="card flush" aria-label="답글"><div class="ch" style="padding:14px 20px 0;margin-bottom:0"><h2>답글 ${reps.length}개</h2></div>`;
+  if (!reps.length) h += `<p class="empty" style="padding:24px 20px">${canAct() ? "첫 답글로 응원을 건네 보세요." : "아직 답글이 없어요."}</p>`;
+  for (const r of tops){ const kids = reps.filter(x => x.parentId === r.id); h += replyRow(r, false, kids.length > 0) + kids.map(k => replyRow(k, true, false)).join(""); }
+  return h + `<div style="height:8px"></div></section>`;
+}
+function replyRow(c, child, line){
+  const lk = on((c.likes||{})[S.me]), n = Object.values(c.likes||{}).filter(on).length, parent = c.parentId && S.replies[c.parentId];
+  return `<div class="reply ${child?"child":""}"><div class="rail">${av(c.author, child?28:36)}${line ? '<span class="ln"></span>' : ""}</div>
+    <div class="body"><div class="ph"><button class="nm" data-act="profile" data-u="${esc(c.author)}">${esc(nameOf(c.author))}</button><span class="pillLv">Lv.${statsOf(c.author).L}</span><time>${ago(c.createdAt)}</time></div>
+      ${parent && child ? `<div class="to">${esc(nameOf(parent.author))}님에게 답글</div>` : ""}<p class="txt">${esc(c.text)}</p>
+      <div class="acts"><button class="ab ${lk?"on":""}" data-act="rlike" data-c="${c.id}" ${canAct() && c.author !== S.me ? "" : "disabled"} aria-pressed="${lk}" aria-label="답글 공감">${lk?I.heartOn:I.heart}${n?`<span class="num">${n}</span>`:""}</button>
+        <button class="ab" data-act="reply" data-p="${c.postId}" data-c="${parent ? c.parentId : c.id}" data-to="${c.id}" ${canAct()?"":"disabled"} aria-label="답글 달기">${I.reply}<span>답글</span></button></div></div></div>`;
+}
+
+/* ================= goal ================= */
+function viewGoal(){
+  const p = S.projects[S.view.pid];
+  if (!p) return `<div class="card empty"><strong>지워진 메인 퀘스트예요</strong></div>`;
+  const sp = isProj(p), kind = sp ? "서브 퀘스트" : "메인 퀘스트", par = sp && S.projects[p.parentId], RW = sp ? PROJ : GOAL;
+  const a = p.owner, mine = a === S.me && S.canWrite, pr = goalProgress(p), ids = famIds(p), subs = sp ? [] : subsOf(p.id);
+  const posts = Object.values(S.feed).filter(x => x.ref && ids.includes(x.ref.id)).sort((x,y) => x.createdAt - y.createdAt);
+  const latest = valLatest(p.id);
+  let h = `<section class="card thead">
+    ${coverHtml(p, {badge:false})}
+    <div class="ph">${av(a, 40)}<div class="who"><button class="nm" data-act="profile" data-u="${esc(a)}">${esc(nameOf(a))}</button><span class="pillLv">Lv.${statsOf(a).L}</span><small>${rankOf(statsOf(a).L)}</small></div>
+      ${hasProfile() && a !== S.me && S.canWrite ? `<button class="btn ${isFollowing(S.me,a)?"sec":"soft"} sm" data-act="follow" data-u="${esc(a)}">${isFollowing(S.me,a)?"팔로잉":"팔로우"}</button>` : ""}${mine ? `<button class="pmenu" data-act="gmenu" data-p="${p.id}" aria-label="${kind} 메뉴">${I.menu}</button>` : ""}</div>
+    ${par ? `<button class="parentlink" data-act="project" data-p="${par.id}">🎯 ${esc(par.title)} ${I.chev}</button>` : ""}
+    <h2>${sp ? "🔗 " : ""}${esc(p.title)}</h2>
+    <div class="tags">${p.end && p.status !== "done" ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${p.end ? `<span class="tag">${fmtD(p.end)}까지</span>` : ""}<span class="tag rw">최대 ${RW.xp} XP · ${RW.c} 코인</span></div>
+    ${pr.total ? `<div class="prog"><div class="bar green"><i style="width:${pr.done/pr.total*100}%"></i></div><span class="num">태스크 ${pr.done}/${pr.total}</span></div>` : ""}
+    ${latest ? metricFor(latest) : p.metric ? `<p class="hint" style="margin:12px 0 0">📈 ${numFmt(p.metric.start)}${esc(p.metric.unit)} → 목표 ${numFmt(p.metric.target)}${esc(p.metric.unit)}</p>` : ""}
+    ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요</div>` : ""}
+    ${mine && p.status !== "done" ? (p.metric ? `<button class="btn soft full mlogbtn" data-act="mlog" data-p="${p.id}">📈 오늘 수치 기록 <span class="hint">나만 보기</span></button>` : `<button class="btn sec full mlogbtn" data-act="gedit" data-p="${p.id}">📈 수치 기록 켜기 <span class="hint">kg · 개 · 만 원 등으로 진행도 보기</span></button>`) : ""}
+    ${mine && p.status !== "done" ? `<div class="btnrow"><button class="btn" data-act="compose" data-p="${p.id}">스토리 쓰기</button><button class="btn gold" data-act="pdone" data-p="${p.id}">${S.armed==="pd"+p.id ? "한 번 더 누르면 " + (sp ? "완료" : "달성") : (sp ? "✓ 완료" : "🏆 달성")}</button></div>` : ""}
+  </section>`;
+  if (!sp && (subs.length || mine)) h += `<section class="card tight"><div class="ch"><h2>서브 퀘스트</h2>${mine && p.status !== "done" ? `<button class="side btnlink" data-act="sheet" data-k="sub" data-p="${p.id}">+ 추가</button>` : `<span class="side">${subs.length}</span>`}</div>
+    ${subs.length ? subs.map(x => goalRow(x, true)).join("") : `<p class="empty-row">메인 퀘스트를 서브 퀘스트로 나눌 수 있어요.</p>`}</section>`;
+  if (mine){
+    const ms = mineOf("mission").filter(m => m.projectId === p.id).sort((x,y) => x.done - y.done);
+    const subT = sp ? [] : subs.map(x => ({x, l:mineOf("mission").filter(m => m.projectId === x.id).sort((a,b) => a.done - b.done)})).filter(o => o.l.length);
+    const allT = ms.concat(...subT.map(o => o.l));
+    const tkey = m => (dueOf(m) || "9999-99-99") + " " + (m.time || "99:99"); const srt = allT.sort((a,b) => a.done - b.done || (tkey(a) < tkey(b) ? -1 : tkey(a) > tkey(b) ? 1 : 0) || (a.createdAt||0) - (b.createdAt||0));
+    const bare = m => { S._bare = true; try{ return taskRow(m, false); } finally { S._bare = false; } };
+    const openT = srt.filter(m => !m.done), doneT = srt.filter(m => m.done), gN = (S.gtN && S.gtN.pid === p.id) ? S.gtN.n : 10, dOpen = S.gDone === p.id;
+    const trows = openT.slice(0, gN).map(bare).join("") + (openT.length > gN ? `<button class="morebtn more10" data-act="gtmore" data-p="${p.id}">더 보기 <em class="num">${openT.length - gN}</em></button>` : "")
+      + (doneT.length ? `<button class="tfold" data-act="gdone" data-p="${p.id}" aria-expanded="${dOpen}"><span>완료 <em class="num">${doneT.length}개</em></span><span class="chev2 ${dOpen ? "open" : ""}">${I.chev}</span></button>${dOpen ? doneT.map(bare).join("") : ""}` : ""); 
+    h += `<section class="card tight qlist"><div class="ch"><h2>태스크</h2><span class="side num">${allT.filter(m => m.done).length}/${allT.length}</span></div>${trows}${allT.length ? "" : `<p class="empty-row">태스크가 없어요.</p>`}
+      ${p.status !== "done" ? `<button class="morebtn add" data-act="taskadd" data-p="${p.id}">+ 태스크 추가</button>` : ""}</section>`;
+  }
+  h += posts.length ? `<article class="card feedcard">${posts.map((x, i) => postRow(x, {line:i < posts.length-1, inThread:true})).join("")}</article>` : `<div class="card empty">아직 스토리가 없어요.</div>`;
+  if (mine) h += `<button class="btn sec full gdelbtn" data-act="pdel" data-p="${p.id}">${S.armed === "px"+p.id ? "한 번 더 누르면 삭제돼요" : `${kind} 삭제`}</button>`;
+  return h;
+}
+
+function coverHtml(g, o = {}){ const mine = g.owner === S.me && S.canWrite, k = g.cover, done = g.status === "done";
+  let h0 = 0; for (const ch of g.id) h0 = (h0 * 31 + ch.charCodeAt(0)) % 360;
+  const img = k ? `<div class="qcimg" data-k="${esc(k)}">${S.media[k] ? `<img src="${S.media[k]}" alt="" draggable="false">` : ""}</div>` : `<div class="qcph" style="background:linear-gradient(135deg,hsl(${h0} 55% 70%),hsl(${(h0+40)%360} 45% 45%))">${g.parentId ? "🔗" : "🎯"}</div>`;
+  const badge = o.badge === false ? "" : done ? `<span class="qcbadge done">🏆 ${g.parentId ? "완료" : "달성"}</span>` : g.end ? `<span class="qcbadge">${dday(g.end)}</span>` : "";
+  return `<div class="qcover" data-act="project" data-p="${g.id}" role="button" tabindex="0" aria-label="${esc(g.title)}">${img}${badge}${mine ? `<button class="qccam" data-act="gcover" data-p="${g.id}" aria-label="대표 사진 ${k ? "바꾸기" : "추가"}">${I.camera}</button>` : ""}</div>`; }
+function coverField(c){ const v = c.cover || "", src = v.startsWith("data:") ? v : (v && S.media[v]);
+  return `<div class="field cvfield"><span class="lab">대표 사진 <span class="hint">선택</span></span><button type="button" class="cvbox" data-act="cvpick">${v ? (src ? `<img src="${src}" alt="">` : `<span data-k="${esc(v)}"></span>`) + `<em>사진 바꾸기</em>` : `📷 사진 추가`}</button>${v ? `<button class="link" style="margin-top:6px" data-act="cvdel">사진 빼기</button>` : ""}</div>`; }
+async function saveCover(c){ const v = c.cover; if (!v) return null; if (v.startsWith("data:")){ const k = "cv-" + uid8(); await api.putMedia(k, v); return k; } return v; }
+function wdMetric(g){ const m = g.metric; if (!m) return `<div class="wdm none"><div class="wdm-t"><span class="wdm-l">📈</span><b>수치 기록 없음</b></div><span class="bar"><i style="width:0%"></i></span><div class="wdm-s">수정에서 수치로 기록을 켜면 진행도가 보여요</div></div>`; const cur = lastVal(g), mp = m.target !== m.start ? Math.round(Math.max(0, Math.min(100, (cur - m.start)/(m.target - m.start)*100))) : 0, u = esc(m.unit);
+  return `<div class="wdm"><div class="wdm-t"><span class="wdm-l">${I.trend || "📈"}</span><b class="num">${numFmt(cur)}${u}</b><small class="num">/ ${numFmt(m.target)}${u}</small></div><span class="bar"><i style="width:${mp}%"></i></span><div class="wdm-s num">시작 ${numFmt(m.start)}${u} · 남은 ${numFmt(Math.abs(Math.round((m.target - cur)*10)/10))}${u}</div></div>`; }
+function qHead(g){ const pr = goalProgress(g), m = g.metric, cur = m ? lastVal(g) : null, mp = m && m.target !== m.start ? Math.max(0, Math.min(100, (cur - m.start)/(m.target - m.start)*100)) : null, tp = pr.total ? Math.round(pr.done/pr.total*100) : 0, pct = Math.round(mp != null ? mp : tp);
+  return `<div class="pgtop"><span class="st">진행 중</span>${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}<b class="pct num">${pct}%</b></div><h3 class="qh3">${esc(g.title)}</h3><div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">태스크 ${pr.done}/${pr.total}</span></div>${wdMetric(g)}`; }
+function pgCard(g){
+  const pr = goalProgress(g), done = g.status === "done", subs = subsOf(g.id);
+  const latest = valLatest(g.id);
+  const m = g.metric, cur = m ? (latest ? latest.value : m.start) : null;
+  const mpct = m && m.target !== m.start ? Math.max(0, Math.min(100, (cur - m.start)/(m.target - m.start)*100)) : null;
+  const pct = Math.round(done ? 100 : mpct != null ? mpct : pr.total ? pr.done/pr.total*100 : 0);
+  const meta = [];
+  meta.push(`✅ 태스크 ${pr.done}/${pr.total}`);
+  if (subs.length) meta.push(`🔗 서브 ${subs.filter(x => x.status === "done").length}/${subs.length}`);
+  if (m) meta.push(`📈 ${numFmt(cur)} → ${numFmt(m.target)}${esc(m.unit)}`);
+  return `<section class="card pgc ${done ? "done" : ""}" data-act="project" data-p="${g.id}" role="button" tabindex="0">
+    ${coverHtml(g, {badge:false})}
+    <div class="pgtop">${done ? `<span class="st done">🏆 ${g.doneAt ? `${new Date(g.doneAt).getMonth()+1}/${new Date(g.doneAt).getDate()} 달성` : "달성"}</span>` : `<span class="st">진행 중</span>${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}`}<b class="pct num">${pct}%</b></div>
+    ${g.parentId && S.projects[g.parentId] ? `<span class="parlab">🎯 ${esc(S.projects[g.parentId].title)}</span>` : ""}<h3>${esc(g.title)}</h3>
+    <span class="bar green big"><i style="width:${pct}%"></i></span>
+    <div class="pgmeta">${meta.map(x => `<span>${x}</span>`).join("")}</div>
+    ${subs.length ? `<div class="pgsubs">${subs.map(x => { const p2 = goalProgress(x); return `<button class="pgsub ${x.status === "done" ? "ok" : ""}" data-act="project" data-p="${x.id}"><span>${x.status === "done" ? "✓" : "🔗"}</span>${esc(x.title)}${p2.total && x.status !== "done" ? ` <em class="num">${p2.done}/${p2.total}</em>` : ""}</button>`; }).join("")}</div>` : ""}
+  </section>`;
+}
+
+/* ================= profile ================= */
+function storyComposer(){
+  const ph = S.inPhotos || [], ps = goalsOf(S.me).filter(g => g.status !== "done"), selQ = S.inRef && S.inRef.startsWith("q:") && S.mine[S.inRef.slice(2)], sel = selQ ? null : S.inRef && S.projects[S.inRef];
+  return `<section class="card scomp">
+    <div class="srow">${av(S.me, 36, false)}<textarea id="ps-text" rows="${S.drafts["ps-text"] ? 4 : 2}" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("ps-text")}</textarea></div>
+    ${ph.length ? `<div class="thumbs">${ph.map((src,i) => `<div><img src="${src}" alt="첨부 사진 ${i+1}"><button data-act="inunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
+    ${sel || selQ ? `<span class="qsel"><button class="btn soft sm" data-act="qpick">${sel ? esc(goalLabel(sel)) : "🔥 " + esc(selQ.name)}</button><button class="qx" data-act="inref" data-v="" aria-label="퀘스트 연결 빼기">×</button></span>` : ""}
+    ${sel && sel.metric ? (() => { const lv = lastVal(sel); return `<div class="field svalf"><label class="lab" for="ps-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lv)}${esc(sel.metric.unit)} · 목표 ${numFmt(sel.metric.target)}${esc(sel.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ps-val" placeholder="${numFmt(lv)}" value="${D("ps-val")}"><span>${esc(sel.metric.unit)}</span></div></div>`; })() : ""}
+    <div class="sact"><div class="sbtns"><button class="btn sec sm ibtn" data-act="qpick">${I.target}퀘스트</button><button class="btn sec sm ibtn" data-act="inphoto" ${ph.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진</button></div><button class="btn sm" data-act="inpost" ${S.busy?"disabled":""}>공유하기</button></div></section>`;
+}
+function profHead(uid){ const mine = uid === S.me, p = prof(uid), posts = feedSorted().filter(x => x.author === uid);
+  const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
+  const can = !mine && hasProfile() && S.canWrite, f = isFollowing(S.me, uid), bl = isBlocked(uid);
+  const side = mine ? (S.canWrite ? `<button class="editp" data-act="sheet" data-k="profile">프로필 편집</button>` : "") : (can && !bl ? `<button class="editp fbtn ${f ? "" : "on"}" data-act="follow" data-u="${esc(uid)}">${f ? "팔로잉" : "팔로우"}</button>` : can && bl ? `<button class="editp" data-act="unblock" data-u="${esc(uid)}">차단 해제</button>` : "");
+  const dots = can ? `<button class="pdots" data-act="umenu" data-u="${esc(uid)}" aria-label="더보기"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>` : "";
+  return charCard(uid, `${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ""}
+    <div class="counts ccl"><button data-act="dstory" data-u="${esc(uid)}"><b class="num">${posts.length}</b><span>스토리</span></button><button data-act="flist" data-v="followers" data-u="${esc(uid)}"><b class="num">${followers}</b><span>팔로워</span></button><button data-act="flist" data-v="following" data-u="${esc(uid)}"><b class="num">${following}</b><span>팔로잉</span></button></div>
+${dots}`, side);
+}
+function webProfCard(uid){
+  const s = statsOf(uid), p = prof(uid), c = colorOf(uid), posts = feedSorted().filter(x => x.author === uid).length;
+  const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
+  return `<section class="card wdp" style="--pc:${c};background:color-mix(in srgb,${c} 11%,var(--card))"><div class="wdp-cv" style="background:linear-gradient(160deg,color-mix(in srgb,${c} 22%,var(--card)),color-mix(in srgb,${c} 55%,var(--card)))"><div class="wdp-fig">${fig(uid, 150, 104)}</div></div>
+    <div class="wdp-name"><h3>${esc(nameOf(uid))}</h3>${uid === S.me && S.canWrite ? `<button class="editp" data-act="sheet" data-k="profile">프로필 편집</button>` : ""}</div>
+     <p class="wdp-lv">Lv.${s.L} ${rankOf(s.L)} ${uid===S.me?esc(equippedTitle()):''}</p>
+    <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
+    <div class="barmeta lft"><span class="num">${s.need===0?'MAX':`${fmt(s.cur)} / ${fmt(s.need)} XP`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div>
+    ${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ""}
+    <div class="counts ccl"><button data-act="dstory"><b class="num">${posts}</b><span>스토리</span></button><button data-act="flist" data-v="followers" data-u="${esc(uid)}"><b class="num">${followers}</b><span>팔로워</span></button><button data-act="flist" data-v="following" data-u="${esc(uid)}"><b class="num">${following}</b><span>팔로잉</span></button></div></section>`;
+}
+function nowStep(g, html){ if (g.parentId) return html; const cur = subsOf(g.id).filter(x => x.status !== "done").sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : 1)[0];
+  const i0 = html.lastIndexOf("</section>");
+  if (!cur) return html;
+  return html.slice(0, i0) + `<button class="pgnow" data-act="project" data-p="${cur.id}"><span class="lb">지금 단계</span><b>${esc(cur.title)}</b>${cur.end ? `<em>${dday(cur.end)}</em>` : ""}</button>` + html.slice(i0); }
+function viewWebDash(){
+  const uid = S.me, gs = goalsOf(uid).filter(g => g.status !== "done").sort(gOrder);
+  const head = (t, side = "") => `<div class="wd-gh"><h2>${t}</h2>${side}</div>`;
+  const save = S.qTab; S.qTab = "daily"; let d = viewToday(); S.qTab = save;
+  d = d.replace(/^<div class="seg"[\s\S]*?<\/div>/, "");
+  const cnt = (d.match(/<span class="cnt num">([^<]*)<\/span>/) || [])[1] || "";
+  d = d.replace(/<div class="ch"><h2>데일리 퀘스트[\s\S]*?<\/button><\/div>/, "");
+  const strip = (list, key, act, nm, n, kind, empty) => { n = Math.max(list.length, 1); const off = 0;
+    const nav = WEB.matches && list.length > 2 ? `<button class="wd-rnav" data-act="wdgs" data-v="-1" aria-label="이전 ${nm}">${I.back}</button><button class="wd-rnav fwd" data-act="wdgs" data-v="1" aria-label="다음 ${nm}">${I.back}</button>` : "";
+    return `${nav ? `<div class="wd-ovnav">${nav}</div>` : ""}
+      ${(() => { const k = Math.min(n, list.length), addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 추가"><span class="wd-plus">+</span><b>${nm} 추가</b>${list.length ? "" : `<small>${empty}</small>`}</button>`;
+        return `<div class="wd-ggrid hs">${list.slice(off, off + n).map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 태스크 [^<]*<\/span>/, "").replace(/<span>🔗 서브 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(<span class="bar green big">[\s\S]*?<\/span>)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; return `<div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">태스크 ${pr.done}/${pr.total}</span></div>` + wdMetric(x); }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
+  const subs = Object.values(S.projects).filter(p => p.owner === uid && p.parentId && p.status !== "done" && S.projects[p.parentId]).sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : 1);
+  const goals = (gs.length >= 2 ? hintBar("reo", "카드를 길게 눌러 끌면 순서를 바꿀 수 있어요") : "") + `${strip(gs, "wdGi", "wdgi", "메인 퀘스트", 2, "big", "이루고 싶은 큰 목표를 세워 보세요")}
+`;
+  let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}</div><div class="wd-goals">${goals}</div>
+      <div class="wd-bot"><div class="wd-sec"><div class="wd-stack">${d}</div></div>
+      <div class="wd-tl"><div class="wd-sec"><div class="wd-merge wd-fix">${(() => { S._noToday = true; S._noTime = true; let tt; try{ tt = taskTab({noUp:true}); } finally { S._noToday = false; S._noTime = false; }
+        return tt; })()}</div></div>
+        <div class="wd-sec"><div class="wd-stack wd-logst">${logToday()}${(() => { const ds = mineOf("diary").filter(x => x.date !== today()).sort((a,b) => (b.date||"") < (a.date||"") ? -1 : 1).slice(0, 3);
+          return ds.length ? `<section class="card tight wd-logs"><div class="ch"><h2>최근 저널</h2><button class="side btnlink" data-act="wdlogs">전체 보기</button></div>${ds.map(x => { const t = pd(x.date); return `<div class="row wdlog"><span class="em">${EMOI[x.emo] || "💭"}</span><span class="t"><b>${t.getMonth()+1}월 ${t.getDate()}일 ${WD[t.getDay()]} · 컨디션 ${x.cond ?? "-"}%</b><small>${esc(x.text || "일기 없이 기록만 남겼어요.")}</small></span></div>`; }).join("")}</section>` : ""; })()}</div></div></div></div></div>`;
+  return h;
+}
+function viewProfile(){
+  const uid = S.view.uid;
+  if (!uid) return `<div class="card empty"><strong>로그인이 필요해요</strong></div>`;
+  if (uid === S.me && !hasProfile()) return S.canWrite ? onboarding() : `<div class="card empty"><strong>보기 전용이에요</strong></div>`;
+  const mine = uid === S.me, p = prof(uid);
+  const posts = feedSorted().filter(x => x.author === uid), goals = goalsOf(uid);
+  const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
+  let h = profHead(uid);
+  if (!mine && (isBlocked(uid) || (p.private && !isFollowing(S.me, uid)))) return h + `<div class="card empty"><strong>${isBlocked(uid) ? "차단한 계정이에요" : "🔒 비공개 계정이에요"}</strong>${isBlocked(uid) ? "차단을 해제하면 다시 볼 수 있어요." : "팔로우하면 게시물과 퀘스트를 볼 수 있어요."}</div>`;
+  h += `<div class="segwrap"><button class="helpdot" data-act="ptabhelp" data-v="${mine ? 1 : ""}" aria-label="탭 설명 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r="1.3" fill="currentColor" stroke="none"/></svg></button><div class="seg" role="group" aria-label="보기"><button data-act="ptab" data-t="posts" aria-pressed="${S.profTab==="posts"}">스토리</button><button data-act="ptab" data-t="goals" aria-pressed="${S.profTab==="goals"}">퀘스트</button>${mine ? `<button data-act="ptab" data-t="diary" aria-pressed="${S.profTab==="diary"}">저널</button>` : ""}</div></div>`;
+  if (S.profTab === "diary" && mine) return h + diaryList();
+  if (S.profTab === "goals" && mine) return h + viewToday();
+  if (S.profTab === "goals"){ const pt = S.pqTab === "sub" ? "main" : (S.pqTab || "main");
+    h += `<div class="seg sm2" role="group" aria-label="퀘스트 종류">${[["daily","데일리"],["main","메인"]].map(([k,l]) => `<button data-act="pqtab" data-t="${k}" aria-pressed="${pt===k}">${l}</button>`).join("")}</div>`;
+    if (pt === "daily"){
+      if (!mine) h += `<div class="card empty"><strong>데일리 퀘스트는 본인만 볼 수 있어요</strong>공유한 데일리 퀘스트는 스토리에서 볼 수 있어요.</div>`;
+      else { const qs = mineOf("quest").sort((a,b) => (b.active !== false) - (a.active !== false) || streakOf(b).cur - streakOf(a).cur);
+        h += qs.length ? `<section class="card tight">${qs.map(q => { const st = streakOf(q), lv = HLV[lvKey(q.lv)]; return `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq" title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span><span class="t"><b>${esc(q.name)}${q.active === false ? ` <span class="tday soft">쉬는 중</span>` : ""}</b><small>${repeatLabel(q)} · 최장 ${st.best}${streakUnit(q)} · 총 ${st.total}회</small></span><span class="streak num">🔥 ${st.cur}</span></button>`; }).join("")}</section>` : `<div class="card empty"><strong>아직 데일리 퀘스트가 없어요</strong></div>`; }
+    } else {
+      const list = pt === "sub" ? Object.values(S.projects).filter(p => p.owner === uid && p.parentId) : goals;
+      const act = list.filter(g => g.status !== "done"), dn = list.filter(g => g.status === "done"), nm = pt === "sub" ? "서브 퀘스트" : "메인 퀘스트";
+      if (!list.length) h += `<div class="card empty"><strong>${mine ? `아직 ${nm}가 없어요` : `공개된 ${nm}가 없어요`}</strong></div>`;
+      if (act.length) h += `<p class="sect3">진행 중 ${act.length}</p>` + act.map(pgCard).join("");
+      if (dn.length) h += `<p class="sect3">${pt === "sub" ? "✓ 완료" : "🏆 달성"} ${dn.length}</p>` + dn.map(pgCard).join("");
+    }
+  }
+  else h += (mine && S.canWrite ? storyComposer() : "") + (posts.length ? posts.slice(0, S.profN || 20).map(x => `<article class="card feedcard">${postRow(x)}</article>`).join("") + (posts.length > (S.profN || 20) ? `<div class="feedmore" id="profmore">스토리를 더 불러오고 있어요</div>` : "") : `<div class="card empty"><strong>아직 스토리가 없어요</strong>${mine ? "데일리 퀘스트를 해내고 공유해 보세요." : ""}</div>`);
+  return h;
+}
+function faceBlock(face, making, color, state = {}){
+  if (!devCharacter) return `<div class="obstage" aria-label="캐릭터 미리보기">${face ? (state.avatarStyle === 'fullbody' ? fullbody(face, 150) : chibi(color, 1, face, 150)) : sprite(color, 1, 96)}</div>
+    <p class="facehint">나만의 색을 골라 기본 캐릭터로 시작해 보세요.</p>
+    <div class="facebtns"><button type="button" class="btn sec sm" data-act="faceupload" aria-describedby="photo-notice">사진 업로드</button><button type="button" class="btn sec sm" data-act="faceshot" aria-describedby="photo-notice">사진 촬영</button>${face ? `<button type="button" class="btn sec sm" data-act="facedel">기본 캐릭터로</button>` : ''}</div>
+    <p class="facehint" id="photo-notice">${photoNotice}<br>사진은 선택하거나 전송하지 않아요.</p>`;
+  return `<div class="obstage" aria-busy="${!!making}">${face ? (state.avatarStyle === 'fullbody' ? fullbody(face, 150) : chibi(color, 1, face, 150)) : sprite(color, 1, 96)}${making ? `<div class="obmaking" role="status"><i></i>AI 생성 서버에<br>요청하고 있어요…</div>` : ''}</div>
+    <p class="facehint">사진의 머리와 얼굴 특징을 참고해 전신 캐릭터를 만들어요. 닮은 정도는 다를 수 있어요.<br>승인된 메이플스토리풍의 매끈한 2D 스타일로, 머리는 전체 키의 55~60%, 몸통과 팔다리·신발은 작고 짧게 표현해요. 픽셀·디더링·계단 현상·3D·성인 비율은 사용하지 않아요.<br>참고 이미지는 스타일만 사용하며 인물·머리·후드티·의상을 복사하지 않아요. 사진 속 옷을 참고하고, 보이지 않으면 선택한 색의 티셔츠·긴 바지·운동화를 사용해요. 참고 이미지의 회색·어두운 의상을 강제하지 않아요.</p>
+    <p class="facehint">개발 모드 전용 · 생성 1장당 약 19크레딧 · 30초 간격 · 서버 세션당 최대 5회 시도.<br>얼굴과 원본의 정확한 보존은 확인하거나 보장할 수 없어요. <a href="https://www.genspark.ai/ai_image" target="_blank" rel="noopener noreferrer">AI 이미지 영역 편집기</a>에서 직접 확인하고 수정할 수 있어요.</p>
+    <label class="lab" for="character-dev-code">개발용 코드 (서버 시작 로그)</label><input type="password" id="character-dev-code" autocomplete="off" maxlength="128" placeholder="코드는 메모리에만 유지돼요" ${making ? 'disabled' : ''}>
+    <label class="toggle"><input type="checkbox" id="character-consent" ${state.consent ? 'checked' : ''} ${making ? 'disabled' : ''}>사진을 Genspark로 전송하고 약 19크레딧을 사용해 생성하는 데 동의해요.</label>
+    ${state.characterResultUrl ? `<p class="facehint"><a href="${esc(state.characterResultUrl)}" target="_blank" rel="noopener noreferrer">생성 이미지 열기 / 다운로드</a></p>` : ''}
+    <div class="facebtns"><button type="button" class="btn sm" data-act="faceupload" ${making ? 'disabled' : ''}>사진 업로드</button><button type="button" class="btn sec sm" data-act="faceshot" ${making ? 'disabled' : ''}>📸 사진 촬영</button>${face ? `<button type="button" class="btn sec sm" data-act="facedel" ${making ? 'disabled' : ''}>기본 캐릭터로</button>` : ''}</div>
+    ${state.characterError ? `<p class="facehint" role="alert">${esc(state.characterError)}</p>` : ''}`; }
+function takeFace(inputId, target, refresh){ if (!devCharacter){ toast(photoNotice); return; } const f = $(inputId); f.value = ''; const color = S.swatch;
+  f.onchange = async () => { if (!devCharacter) return; const file = f.files[0]; f.value = ''; if (!file) return;
+    const ok = await generateCharacter({client:characterClient, target, file, color, consent:target.consent === true, onStart:refresh, onChange:refresh});
+    toast(ok ? '캐릭터가 완성됐어요' : esc(target.characterError));
+  }; f.click(); }
+async function storeFace(face){ if (!face) return face === "" ? null : undefined; const k = "face-" + uid8(); await api.putMedia(k, face); S.media[k] = face; return k; }
+function loginScreen(){
+  return `<section class="card login-card" aria-labelledby="login-title">
+    <p class="login-brand">퀘스트</p><div class="login-avatar" aria-hidden="true">${sprite(COLORS[0], 1, 96)}</div>
+    <h1 id="login-title">작은 실천으로<br>시작하는 나의 모험</h1><p class="login-copy">나만의 캐릭터와 함께 하루의 퀘스트를 쌓아 보세요.</p>
+    <button type="button" class="btn big full" data-act="preview-login">로그인</button>
+    <p class="login-divider">처음 오셨나요?</p><button type="button" class="btn big full kakao-signup" data-act="preview-kakao">카카오톡으로 가입하기</button>
+    <p class="facehint login-note">개발 미리보기 · 실제 인증 미연결<br>두 버튼 모두 계정 생성 없이 캐릭터 만들기로 이동해요.</p></section>`;
+}
+function onboarding(){
+  return `<h1 class="hello">캐릭터 만들기</h1><p class="setup-copy">어떤 모험가로 시작할까요?</p>
+    <section class="card" aria-label="캐릭터 만들기"><form data-form="profile">
+      ${faceBlock(S.ob.face, S.ob.making, S.swatch, S.ob)}
+      <div class="field"><label class="lab" for="nick">닉네임</label><input type="text" id="nick" maxlength="20" value="${esc(S.drafts.nick||"")}" required></div>
+      <div class="field"><span class="lab">옷 색</span><div class="swatches">${COLORS.map(c => `<button type="button" data-act="swatch" data-c="${c}" aria-pressed="${S.swatch===c}" aria-label="캐릭터 색" style="background:${c}"></button>`).join("")}</div></div>
+      <button class="btn big full" type="submit" ${S.busy || S.ob.making ? "disabled":""}>모험 시작하기</button></form></section>`;
+}
+
+/* ================= activity ================= */
+function activityItems(){
+  if (!S.me) return [];
+  const out = [];
+  for (const p of Object.values(S.feed)){ if (p.author !== S.me) continue;
+    for (const [u,r] of Object.entries(p.reactions||{})) if (on(r) && u !== S.me) out.push({type:"like", who:u, at:r.at, p});
+    for (const [u,t] of Object.entries(p.joiners||{})) if (on(t) && u !== S.me) out.push({type:"join", who:u, at:t, p}); }
+  for (const c of Object.values(S.replies)){
+    const p = S.feed[c.postId]; if (!p) continue; const parent = c.parentId && S.replies[c.parentId];
+    if (c.author !== S.me && (p.author === S.me || (parent && parent.author === S.me))) out.push({type:"reply", who:c.author, text:c.text, at:c.createdAt, p, toMe:!!(parent && parent.author === S.me)});
+    if (c.author === S.me) for (const [u,t] of Object.entries(c.likes||{})) if (on(t) && u !== S.me) out.push({type:"rlike", who:u, text:c.text, at:t, p});
+  }
+  for (const f of Object.values(S.follows)) if (f.to === S.me && f.from !== S.me) out.push({type:"follow", who:f.from, at:f.at});
+  const N = getSet().notif, key = {like:"like", rlike:"like", reply:"reply", follow:"follow", join:"join"};
+  return out.filter(x => N[key[x.type]] !== false && !isBlocked(x.who)).sort((a,b) => b.at - a.at).slice(0, 120);
+}
+function actText(x){
+  const nm = `<b>${esc(nameOf(x.who))}</b>`;
+  return x.type === "like" ? `❤️ ${nm}님이 공감했어요` : x.type === "rlike" ? `❤️ ${nm}님이 내 답글에 공감했어요` : x.type === "reply" ? `💬 ${nm}님: ${esc(x.text)}` : x.type === "join" ? `🔥 ${nm}님이 내 데일리 퀘스트를 함께 시작했어요` : `👋 ${nm}님이 팔로우했어요`;
+}
+const snippet = p => p.text || (p.ref ? p.ref.label : "") || "사진";
+function viewActivity(){
+  const items = activityItems(), newN = items.filter(x => x.at > S.actSeenView).length;
+  let h = `<h2 class="hello">${newN ? `새 알림이<br><em>${newN}개</em> 있어요` : "새 알림을<br>모두 확인했어요"}</h2>`;
+  if (!items.length) return h + `<div class="card empty">기록을 공유하면 공감과 답글이 여기 쌓여요.</div>`;
+  const row = x => {
+    const nm = `<b style="font-weight:700;display:inline">${esc(nameOf(x.who))}</b>`; let title = "", sub = "", right = "";
+    if (x.type === "like"){ title = `${nm}님이 내 기록에 공감했어요`; sub = snippet(x.p); right = `<span style="color:var(--heart);display:flex;width:22px">${I.heartOn}</span>`; }
+    else if (x.type === "rlike"){ title = `${nm}님이 내 답글에 공감했어요`; sub = x.text; right = `<span style="color:var(--heart);display:flex;width:22px">${I.heartOn}</span>`; }
+    else if (x.type === "reply"){ title = x.toMe ? `${nm}님이 내 답글에 답했어요` : `${nm}님이 답글을 남겼어요`; sub = x.text; }
+    else if (x.type === "join"){ title = `${nm}님이 내 데일리 퀘스트를 함께 시작했어요`; sub = x.p.ref ? x.p.ref.label : ""; right = `<span style="font-size:22px">🔥</span>`; }
+    else { title = `${nm}님이 회원님을 팔로우해요`; sub = ago(x.at); right = isFollowing(S.me, x.who) || !S.canWrite ? "" : `<button class="btn soft sm" data-act="follow" data-u="${esc(x.who)}">맞팔로우</button>`; }
+    return `<div class="row ${x.at > S.actSeenView ? "new":""}" ${x.p?`data-act="open" data-p="${x.p.id}" role="button" tabindex="0"`:""}>${av(x.who, 42)}<span class="t"><b style="white-space:normal;font-weight:500">${title}</b><small>${esc(sub)}${x.type!=="follow"?` · ${ago(x.at)}`:""}</small></span>${right}</div>`;
+  };
+  const shown = items.slice(0, S.actN || 10), td = shown.filter(x => Date.now()-x.at < DAY), old = shown.filter(x => Date.now()-x.at >= DAY);
+  return h + (td.length ? `<section class="card tight"><div class="ch"><h2>오늘</h2></div>${td.map(row).join("")}</section>` : "") + (old.length ? `<section class="card tight"><div class="ch"><h2>이전 알림</h2></div>${old.map(row).join("")}</section>` : "")
+    + (items.length > shown.length ? `<button class="btn sec full" data-act="actmore">더 보기 <span class="num" style="margin-left:4px;color:var(--muted)">${items.length - shown.length}</span></button>` : "");
+}
+
+/* ================= pill, stories, media ================= */
+function pendingNew(){ return feedSorted().filter(p => p.createdAt > S.ackAt && p.author !== S.me); }
+function renderPill(){
+  const el = $("#pill");
+  if (S.view.name !== "feed" || S.mode === "loading"){ el.innerHTML = ""; return; }
+  const items = pendingNew();
+  if (items.length && scrollY < 120){ S.ackAt = Date.now(); el.innerHTML = ""; return; }
+  if (!items.length){ el.innerHTML = ""; return; }
+  const who = [...new Set(items.map(i => i.author))].slice(0,3);
+  el.innerHTML = `<button data-act="newpill">↑ <span class="stackav">${who.map(u => av(u, 20, false)).join("")}</span>새 스토리 ${items.length}개</button>`;
+}
+let scT = 0; window.addEventListener("scroll", () => { clearTimeout(scT); scT = setTimeout(() => { if (S.view.name === "feed") renderPill(); }, 120); }, {passive:true});
+let SV = null;
+function openStories(uid){ const users = storyUsers(), ui = users.findIndex(u => u.uid === uid); if (ui < 0) return; let ii = users[ui].items.findIndex(i => !seenStories.has(i.id)); if (ii < 0) ii = 0; SV = {users, ui, ii, elapsed:0, paused:false, raf:0}; svRender(); svStart(); }
+const svCur = () => SV.users[SV.ui].items[SV.ii];
+function svRender(){
+  if (!SV) return;
+  const u = SV.users[SV.ui], p = svCur(); seenStories.add(p.id); LS.set("seen", [...seenStories].slice(-500));
+  const imgs = p.imgs || 0, k = imgs ? p.id+"~0" : null, r = p.ref;
+  const head = !r ? "" : r.type === "quest" ? `🔥 ${r.label} ${(r.extra||{}).streak||0}일 연속` : r.type === "project_done" ? `🏆 ${r.label} 달성` : r.type === "diary" ? `${EMOI[(r.extra||{}).emo]||"📓"} 컨디션 ${(r.extra||{}).cond}%` : r.type === "mission" ? `✅ ${r.mission||""}` : (S.projects[r.id] ? goalLabel(S.projects[r.id]) : `🎯 ${r.label}`);
+  const lk = liked(p);
+  $("#overlay").innerHTML = `<div class="sv" role="dialog" aria-modal="true" aria-label="오늘의 기록"><div class="frame">
+    <div class="stage" style="background:${imgs ? "#000" : `linear-gradient(160deg, ${colorOf(u.uid)}, #111)`}">${imgs ? (S.media[k] ? `<img src="${S.media[k]}" alt="">` : `<span data-k="${k}"></span>`) : `<div class="tcard">${esc(head)}${head ? "\n\n" : ""}${esc(p.text||"")}</div>`}</div>
+    <span class="burst" aria-hidden="true">${I.burst}</span>
+    <div class="bars">${u.items.map((_,i) => `<i class="${i < SV.ii ? "full" : ""}"><b ${i===SV.ii?'id="svbar"':""}></b></i>`).join("")}</div>
+    <div class="sh"><span class="av" style="width:36px;height:36px">${fig(u.uid, 36)}</span><b>${esc(nameOf(u.uid))}</b><small>${ago(p.createdAt)}</small><button class="x" data-sv="close" aria-label="닫기">×</button></div>
+    <button class="tapL" data-sv="prev" aria-label="이전"></button><button class="tapR" data-sv="next" aria-label="다음"></button>
+    ${imgs && (p.text || head) ? `<div class="cap">${esc(head)}${head ? "\n" : ""}${esc(p.text||"")}${r && r.type === "mission" ? taskTimeTag(r) : ""}</div>` : `<div style="margin-top:auto">${r && r.type === "mission" ? taskTimeTag(r) : ""}</div>`}
+    <div class="foot">${canAct() && u.uid !== S.me ? `<input type="text" id="sv-reply" maxlength="300" placeholder="${esc(nameOf(u.uid))}님에게 답글 보내기" aria-label="답글"><button data-sv="heart" aria-label="공감">${lk ? "❤️" : "🤍"}</button>` : ""}</div>
+  </div></div>`;
+  if (k && !S.media[k]) loadMedia($("#overlay"));
+  const inp = $("#sv-reply");
+  if (inp){ inp.addEventListener("focus", () => SV && (SV.paused = true)); inp.addEventListener("blur", () => SV && (SV.paused = false));
+    inp.addEventListener("keydown", ev => { if (ev.key === "Enter" && inp.value.trim()){ const t = inp.value.trim(); inp.value = ""; inp.blur(); run(() => api.addReply(p.id, t, null)); toast("답글을 보냈어요"); } }); }
+}
+function svStart(){ if (!SV) return; cancelAnimationFrame(SV.raf); SV.elapsed = 0; let last = performance.now();
+  const tick = now => { if (!SV) return; if (!SV.paused) SV.elapsed += now - last; last = now; const b = document.getElementById("svbar"); if (b) b.style.width = Math.min(100, SV.elapsed/5000*100)+"%"; if (SV.elapsed >= 5000){ svStep(1); return; } SV.raf = requestAnimationFrame(tick); };
+  SV.raf = requestAnimationFrame(tick); }
+function svStep(d){ if (!SV) return; SV.ii += d;
+  if (SV.ii >= SV.users[SV.ui].items.length){ SV.ui++; SV.ii = 0; if (SV.ui >= SV.users.length){ svClose(); return; } }
+  if (SV.ii < 0){ SV.ui--; if (SV.ui < 0){ SV.ui = 0; SV.ii = 0; } else SV.ii = SV.users[SV.ui].items.length-1; }
+  svRender(); svStart(); }
+function svClose(){ if (SV) cancelAnimationFrame(SV.raf); SV = null; $("#overlay").innerHTML = ""; schedule(); }
+document.addEventListener("pointerdown", ev => { if (SV && ev.target.closest(".sv .stage, .sv .tapL, .sv .tapR")) SV.paused = true; });
+document.addEventListener("pointerup", () => { if (SV && document.activeElement?.id !== "sv-reply") SV.paused = false; });
+function loadMedia(root){
+  root.querySelectorAll("[data-k]").forEach(el => {
+    const k = el.dataset.k;
+    if (S.media[k]){ if (!el.querySelector("img")) el.innerHTML = `<img src="${S.media[k]}" alt="" draggable="false">`; return; }
+    if (S.mediaLoading.has(k) || !api) return; S.mediaLoading.add(k);
+    api.getMedia(k).then(src => { if (src){ S.media[k] = src; schedule(); if (SV) svRender(); } }).catch(() => {});
+  });
+}
+function shrinkImg(src, max, target){
+  return new Promise(res => { const img = new Image(); img.onload = () => { const c = document.createElement("canvas"); let m = max, q = .8, out = src;
+    for (let i = 0; i < 6; i++){ const k = Math.min(1, m/Math.max(img.naturalWidth, img.naturalHeight)); c.width = Math.round(img.naturalWidth*k); c.height = Math.round(img.naturalHeight*k);
+      const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height); out = c.toDataURL("image/jpeg", q); if (out.length < target) break; m *= .8; q = Math.max(.5, q-.08); }
+    res(out); }; img.onerror = () => res(src); img.src = src; });
+}
+function compress(file){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { const c = document.createElement("canvas"); let max = 1080, q = .76, out = "";
+      for (let i = 0; i < 7; i++){ const s = Math.min(1, max/Math.max(img.naturalWidth, img.naturalHeight)); c.width = Math.max(1,Math.round(img.naturalWidth*s)); c.height = Math.max(1,Math.round(img.naturalHeight*s));
+        const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height); out = c.toDataURL("image/jpeg", q); if (out.length < 170000) break; max *= .8; q = Math.max(.45, q-.07); }
+      URL.revokeObjectURL(url); res(out); };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("이 사진은 열 수 없어요. JPG나 PNG로 골라 주세요")); };
+    img.src = url;
+  });
+}
+let pickCb = null;
+function choosePhotos(multiple, cb){ const f = $("#fileIn"); f.multiple = multiple; f.value = ""; pickCb = cb; f.click(); }
+$("#fileIn").addEventListener("change", async e => { const files = [...e.target.files], cb = pickCb; pickCb = null; if (!files.length || !cb) return;
+  const out = []; for (const f of files){ try{ out.push(await compress(f)); }catch(err){ toast(esc(err.message)); } } if (out.length) cb(out); });
+
+/* ================= sheets ================= */
+function openSheet(c){ S.compose = c; renderSheet(); }
+function closeSheet(){ if (S.compose && (S.compose.type === "nttask" || S.compose.type === "tqpick" || S.compose.type === "ppick" || S.compose.type === "confirm") && (S.parentSheet || S.compose.type === "confirm")){ S.compose = S.parentSheet; S.parentSheet = null; } else { S.compose = null; S.parentSheet = null; } renderSheet(); }
+const D = k => esc(S.drafts[k]||"");
+function difficultySelector(c,kind,field='lv') {
+  const levels=kind==='quest'?HLV:TLV, selected=lvKey(c[field]||(kind==='quest'?'easy':'normal'));
+  return `<div class="field difficulty-selector" data-kind="${kind}"><span class="lab">난이도</span><div class="opts tri" role="group" aria-label="난이도">${Object.entries(levels).map(([k,l]) => `<button class="opt" data-act="cset" data-f="${field}" data-v="${k}" aria-pressed="${selected===k}"><span class="e">${l.e}</span><span class="t"><b>${l.n}</b><small>+${l.xp} XP · +${l.c} 코인</small></span></button>`).join('')}</div></div>`;
+}
+const RPTYPES = [["daily","매일"],["weekly","매주"],["biweekly","격주"],["every","N일마다"],["monthly","매월"],["monthn","N개월마다"],["runrest","하고 쉬기"]];
+const STEPLIM = {rweeks:[2,4], revery:[2,30], rmonths:[2,6], ron:[1,13], roff:[1,13]};
+const stepRow = (c, k, unit) => { const v = clampN(c[k] || STEPLIM[k][0], STEPLIM[k][0], STEPLIM[k][1]);
+  return `<button class="chip" data-act="rstep" data-k="${k}" data-v="-1" aria-label="${unit} 줄이기">−</button><span class="chip" aria-live="polite">${v}${unit}</span><button class="chip" data-act="rstep" data-k="${k}" data-v="1" aria-label="${unit} 늘리기">+</button>`; };
+function rdayPopup(c){
+  return `<div class="rdayscrim" data-act="rdayclose"><div class="rdaypop" role="dialog" aria-modal="true" aria-label="날짜 선택"><div class="rdhead"><b>날짜 선택</b><button class="link" data-act="rdayclose">닫기</button></div><div class="rdgrid">${Array.from({length:31}, (_, i) => i+1).map(d => `<button class="rdcell ${c.rday === d ? "on" : ""}" data-act="rday" data-v="${d}" aria-pressed="${c.rday === d}">${d}</button>`).join("")}</div></div></div>`;
+}
+function repeatField(c){
+  if (!c.days) c.days = [1,3,5];
+  if (!c.rpt) c.rpt = c.days.length === 7 ? "daily" : "weekly";
+  if (!c.ranchor) c.ranchor = today();
+  if (!c.rday) c.rday = 15;
+  const t = c.rpt, days = c.days;
+  let sub = "";
+  if (t === "weekly" || t === "biweekly"){
+    sub = `<div class="field"><span class="lab">요일</span><div class="chips">${[1,2,3,4,5,6,0].map(i => `<button class="chip" data-act="qday" data-v="${i}" aria-pressed="${days.includes(i)}">${WD[i]}</button>`).join("")}<button class="chip new" data-act="qday" data-v="all">매일</button></div></div>`;
+    if (t === "biweekly") sub = `<div class="field"><span class="lab">간격</span><div class="chips">${stepRow(c,"rweeks","주마다")}</div></div>` + sub;
+  } else if (t === "every"){
+    const ev = clampN(c.revery || 3, 2, 30), rest = ev - 1;
+    sub = `<div class="field"><span class="lab">간격</span><div class="chips">${stepRow(c,"revery","일마다")}</div><p class="hint">${ev}일마다 = 오늘 하고, ${rest}일 쉬고, 또 하기</p></div>`;
+  } else if (t === "monthly" || t === "monthn"){
+    sub = (t === "monthn" ? `<div class="field"><span class="lab">간격</span><div class="chips">${stepRow(c,"rmonths","개월마다")}</div></div>` : "") +
+      `<div class="field"><span class="lab">날짜</span><div class="chips"><button class="chip" data-act="rdayopen" aria-haspopup="dialog">📅 ${c.rday}일</button></div><p class="hint">고른 날이 없는 달(29~31일)은 그 달 마지막 날에 해요.</p></div>${c._rd ? rdayPopup(c) : ""}`;
+  } else if (t === "runrest"){
+    sub = `<div class="field"><span class="lab">하는 날 · 쉬는 날</span><div class="chips">${stepRow(c,"ron","일 하기")}${stepRow(c,"roff","일 쉬기")}</div></div>`;
+  }
+  return `<div class="field"><span class="lab">반복</span><div class="chips">${RPTYPES.map(([k,l]) => `<button class="chip" data-act="rpt" data-v="${k}" aria-pressed="${t===k}">${l}</button>`).join("")}</div></div>${sub}`;
+}
+function buildRepeat(c){
+  const t = c.rpt || "weekly";
+  const days = (c.days || []).slice().sort((a,b) => WDORD.indexOf(a) - WDORD.indexOf(b));
+  const anchor = c.ranchor || today();
+  if (t === "daily") return {type:"daily"};
+  if (t === "weekly") return {type:"weekly", days};
+  if (t === "biweekly") return {type:"biweekly", weeks:clampN(c.rweeks || 2, 2, 4), days, anchor};
+  if (t === "every") return {type:"every", every:clampN(c.revery || 3, 2, 30), anchor};
+  if (t === "monthly") return {type:"monthly", day:clampN(c.rday || 15, 1, 31)};
+  if (t === "monthn") return {type:"monthn", months:clampN(c.rmonths || 3, 2, 6), day:clampN(c.rday || 15, 1, 31), anchor};
+  return {type:"runrest", on:clampN(c.ron || 2, 1, 13), off:clampN(c.roff || 1, 1, 13), anchor};
+}
+const needsDays = t => t === "weekly" || t === "biweekly";
+function timeOnlyField(c){ return `<div class="field"><span class="lab">시간 <span class="hint">필수</span></span><div class="chips"><button class="chip" data-act="tmset" aria-pressed="${!!c.time}">🕒 <span class="tmval">${c.time ? tmLabel(c.time) : "시간"}</span></button></div>${c._tw ? timeWheel(c) : ""}</div>`; }
+function preserveSheetDrafts() {
+  document.querySelectorAll('.sheet input[id], .sheet textarea[id]').forEach(el => { if(!['checkbox','radio','file'].includes(el.type)) S.drafts[el.id]=el.value; });
+  const todayInput=$('#ms-today'); if(todayInput&&S.compose) S.compose.today=todayInput.checked;
+}
+function sheetWrap(title, desc, body){ const creation=/^(메인|서브) 퀘스트 (추가|만들기)$/.test(title),sub=title.startsWith('서브');$("#overlay").innerHTML = `<div class="scrim" data-act="sheet-bg"><div class="sheet" role="dialog" aria-modal="true"><h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}</div></div>`; initTW(); }
+function renderSheet(){ IXC = null;
+  const c = S.compose; if (!c){ $("#overlay").innerHTML = ""; return; }
+  if (c.type === 'day') return calendarDaySheet(c.date);
+  if (c.type === 'journal-detail'){
+    const d = S.mine[c.id];
+    if (!d || d.kind !== 'diary' || !isOwnPrivateEntry(d,S.me)) return sheetWrap('저널', '', '<p class="empty-row">저널을 찾을 수 없어요.</p>');
+    return sheetWrap('저널', '', `<div class="day-activities"><p>${esc(d.date)} · 컨디션 ${esc(d.cond ?? '-')}% · ${esc(d.emo || '')}</p><p class="journal-content">${esc(d.text || '내용이 없어요.')}</p><p class="hint">저장된 저널 보기 · 읽기 전용</p></div>`);
+  }
+  const quick = `<div class="quick two" role="group" aria-label="기록 종류">${[["post","📝","스토리"],["add","🏁","퀘스트"]].map(([k,e,l]) => `<button data-act="sheet" data-k="${k}" aria-pressed="${c.type===k}"><span>${e}</span>${l}</button>`).join("")}</div>`;
+  if (c.type === "add"){ const K = c.kind;
+    c.more = true;
+    let more = "";
+    if (c.more){
+      if (K === "once") more = `${difficultySelector(c,'mission')}
+        ${dueField(c)}
+        ${linkPick(c)}`;
+      else if (K === "sub"){ const gs = goalsOf(S.me).filter(g => g.status !== "done");
+        more = gs.length ? `${datePick(c, "end", "마감일")}${metricFields(c)}${parentPick(c)}${coverField(c)}${taskFields(c)}` : `<p class="empty-row" style="padding:4px 0 14px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p>`; }
+      else if (K === "daily"){ more = `${repeatField(c)}
+        ${timeOnlyField(c)}
+        ${difficultySelector(c,'quest','hlv')}`; }
+      else more = `${datePick(c, "end", "마감일", false, true)}${metricFields(c)}${coverField(c)}${taskFields(c)}`;
+    }
+    return sheetWrap(({daily:"데일리 퀘스트 추가", once:"태스크 추가", sub:"서브 퀘스트 추가", big:"메인 퀘스트 추가"})[K] || "퀘스트 추가", "", `
+    <div class="field"><input type="text" id="ad-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ad-name")}" aria-label="퀘스트 이름"></div>
+    ${more}
+    <button class="btn big full" data-act="submit-add" ${S.busy?"disabled":""}>추가</button>`); }
+  if (c.type === "hedit"){ const q = S.mine[c.id]; if (!q){ closeSheet(); return; } const st = streakOf(q), dn = !!(q.done||{})[today()];
+    return sheetWrap("데일리 퀘스트", "", `
+    <div class="field"><input type="text" id="he-name" maxlength="60" value="${D("he-name")}" aria-label="이름"></div>
+    <div class="hstats"><div><b class="num">🔥 ${st.cur}</b><span>연속</span></div><div><b class="num">${st.best}</b><span>최장</span></div><div><b class="num">${st.total}</b><span>총 완료</span></div></div>
+    ${repeatField(c)}
+    ${timeOnlyField(c)}
+    ${difficultySelector(c,'quest','hlv')}
+    <button class="btn big full" data-act="submit-hedit" ${S.busy?"disabled":""}>저장</button>
+    <div class="btnrow">${dn ? `<button class="btn soft" data-act="shareq" data-id="${q.id}">공유</button>` : ""}<button class="btn sec" data-act="htoggle">${q.active === false ? "다시 시작" : "쉬기"}</button><button class="btn sec" style="color:var(--warn)" data-act="hdel">${S.armed === "hd"+c.id ? "정말 삭제" : "삭제"}</button></div>`); }
+  if (c.type === "post") return postSheet(quick);
+  if (c.type === "mission") return sheetWrap("태스크 추가", "", `
+    <div class="field"><input type="text" id="ms-name" maxlength="80" placeholder="예: 기획서 초안 쓰기" value="${D("ms-name")}" aria-label="태스크"></div>
+    ${difficultySelector(c,'mission')}
+    <label class="toggle"><input type="checkbox" id="ms-today" ${c.today ? "checked" : ""}> ⭐ 오늘 하기</label>
+    ${goalChips(c)}
+    <button class="btn big full" data-act="submit-mission" ${S.busy?"disabled":""}>태스크 추가</button>`);
+  if (c.type === "quest") return sheetWrap("데일리 퀘스트 만들기", "", `
+    <div class="field"><input type="text" id="qs-name" maxlength="60" placeholder="예: 아침 스트레칭 10분" value="${D("qs-name")}" aria-label="데일리 퀘스트 이름"></div>
+    <div class="field"><span class="lab">요일</span><div class="chips">${[1,2,3,4,5,6,0].map(i => `<button class="chip" data-act="qday" data-v="${i}" aria-pressed="${c.days.includes(i)}">${WD[i]}</button>`).join("")}<button class="chip new" data-act="qday" data-v="all">매일</button></div></div>
+    ${difficultySelector(c,'quest')}
+    <button class="btn big full" data-act="submit-quest" ${S.busy?"disabled":""}>데일리 퀘스트 만들기</button>`);
+  if (c.type === "project") return sheetWrap("메인 퀘스트 만들기", "", `
+    <div class="field"><input type="text" id="pj-title" maxlength="80" placeholder="예: 12월 하프 마라톤 완주" value="${D("pj-title")}" aria-label="메인 퀘스트"></div>
+    ${datePick(c, "end", "마감일", false, true)}
+    ${metricFields(c)}
+    ${coverField(c)}
+    ${taskFields(c)}
+    <div class="field"><label class="lab" for="pj-text">첫 스토리 <span class="hint">선택 · 적으면 커뮤니티에 공유돼요</span></label><textarea id="pj-text" rows="2" maxlength="600">${D("pj-text")}</textarea></div>
+    <button class="btn big full" data-act="submit-project" ${S.busy?"disabled":""}>메인 퀘스트 만들기</button>`);
+  if (c.type === "sub"){ const gs = goalsOf(S.me).filter(g => g.status !== "done");
+    return sheetWrap("서브 퀘스트 만들기", "", (gs.length ? `
+    <div class="field"><input type="text" id="sp-title" maxlength="80" placeholder="예: 10km 기록 1시간 안으로" value="${D("sp-title")}" aria-label="서브 퀘스트"></div>
+    ${datePick(c, "end", "마감일")}
+    ${metricFields(c)}
+    ${parentPick(c)}
+    ${coverField(c)}
+    ${taskFields(c)}
+    <button class="btn big full" data-act="submit-sub" ${S.busy?"disabled":""}>서브 퀘스트 만들기</button>` : `<p class="empty-row" style="padding:8px 0 16px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p><button class="btn big full" data-act="sheet" data-k="project">메인 퀘스트 만들기</button>`)); }
+  if (c.type === "reward"){
+    return sheetWrap(c.id ? "보상 수정" : "보상 추가", "", `
+    <button class="rpick" data-act="rimg">${c.img ? `<img src="${c.img}" alt="보상 이미지">` : `<span>🎁</span>`}<em>${c.img ? "이미지 바꾸기" : "📷 이미지 추가"}</em></button>
+    ${c.img ? `<button class="link" style="margin:-6px 0 12px" data-act="rimgdel">이미지 빼기</button>` : ""}
+    <div class="field"><input type="text" id="rw-name" maxlength="40" placeholder="예: 좋아하는 카페 디저트" value="${D("rw-name")}" aria-label="보상 이름"></div>
+    <div class="field"><span class="lab">가격 · 5 이상, 5 단위</span><div class="numrow"><input type="number" min="5" step="5" id="rw-cost" placeholder="직접 정해 주세요" value="${esc(S.drafts['rw-cost'] ?? c.cost ?? '')}" aria-label="가격 직접 입력"><span>코인</span></div></div>
+    <div class="field"><label class="lab" for="rw-repeat">교환 방식</label><select id="rw-repeat"><option value="repeat" ${c.repeat!=='once'?'selected':''}>반복</option><option value="once" ${c.repeat==='once'?'selected':''}>1회</option></select></div><div class="two"><label>일일 횟수 제한 (선택)<input id="rw-daily" type="number" min="1" step="1" value="${esc(c.dailyLimit||'')}"></label><label>주간 횟수 제한 (선택)<input id="rw-weekly" type="number" min="1" step="1" value="${esc(c.weeklyLimit||'')}"></label></div>
+    <button class="btn big full" data-act="submit-reward">${c.id ? "저장" : "보상 등록"}</button>
+    ${c.id ? `<button class="btn sec full" style="margin-top:10px;color:var(--warn)" data-act="rdel">${S.armed === "rd"+c.id ? "한 번 더 누르면 삭제" : "삭제"}</button>` : ""}`); }
+  if (c.type === "profile"){ const p = prof(S.me), fc = c.face === undefined ? p.face : c.face;
+    return sheetWrap("프로필 편집", "", `
+    ${faceBlock(fc || "", c.making, S.swatch, {...c, avatarStyle:c.avatarStyle ?? p.avatarStyle})}
+    <div class="field"><label class="lab" for="ep-nick">닉네임</label><input type="text" id="ep-nick" maxlength="20" value="${esc(S.drafts["ep-nick"] ?? p.nick ?? "")}"></div>
+    <div class="field"><label class="lab" for="ep-bio">소개</label><textarea id="ep-bio" rows="2" maxlength="120" placeholder="예: 매일 1% 성장하는 직장인">${esc(S.drafts["ep-bio"] ?? p.bio ?? "")}</textarea></div>
+    <div class="field"><span class="lab">옷 색</span><div class="swatches">${COLORS.map(x => `<button type="button" data-act="swatch" data-c="${x}" aria-pressed="${S.swatch===x}" aria-label="캐릭터 색" style="background:${x}"></button>`).join("")}</div></div>
+    <button class="btn big full" data-act="submit-profile" ${c.making ? 'disabled' : ''}>저장하기</button>`); }
+  if (c.type === "reply") return replySheet();
+  if (c.type === "tedit"){ const m = S.mine[c.id]; if (!m){ closeSheet(); return; }
+    return sheetWrap("태스크", "", `
+    <div class="field"><input type="text" id="te-name" maxlength="80" value="${D("te-name")}" aria-label="이름"></div>
+    <div class="field"><label class="lab" for="te-note">메모</label><textarea id="te-note" rows="5" maxlength="2000" placeholder="자유롭게 적어 두세요">${D("te-note")}</textarea></div>
+    ${difficultySelector(c,'mission')}
+    ${dueField(c)}
+    ${linkPick(c)}
+    ${m.done && m.projectId && S.projects[m.projectId] ? `<button class="btn soft full" style="margin-bottom:10px" data-act="sharem" data-id="${m.id}">커뮤니티에 공유하기</button>` : ""}
+    <button class="btn big full" data-act="submit-tedit" ${S.busy?"disabled":""}>저장</button>
+    <button class="btn full sec" style="margin-top:10px;color:var(--warn)" data-act="tdel">${S.armed === "td"+c.id ? "한 번 더 누르면 삭제" : "삭제"}</button>`); }
+  if (c.type === "diary"){ const P = S.planner, dt = P.date || today(), d = S.mine["d-"+dt], x0 = pd(dt);
+    return sheetWrap(dt === today() ? "오늘의 저널" : `${x0.getMonth()+1}월 ${x0.getDate()}일 ${WD[x0.getDay()]}요일 저널`, "", diaryForm(d, P)); }
+  if (c.type === "pmenu"){ const p = S.feed[c.pid]; if (!p){ closeSheet(); return; } const mine = p.author === S.me, a = p.author, f = isFollowing(S.me, a);
+    const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-p="${p.id}" data-u="${esc(a)}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
+    return sheetWrap(mine ? "내 스토리" : esc(nameOf(a)) + "님의 스토리", "", `<div class="sheetlist mlist">${mine
+      ? item("editpost", "수정", "글과 수치 기록을 고쳐요") + item("ptoggle-reply", p.noReply ? "답글 기능 켜기" : "답글 기능 끄기", p.noReply ? "지금은 답글을 받을 수 없어요" : "") + item("ptoggle-likes", p.hideLikes ? "공감 수 보이기" : "공감 수 숨기기", p.hideLikes ? "다른 사람에게 공감 수가 안 보여요" : "") + item("delpost", S.armed === "dp"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", "", true)
+      : item("follow", f ? "팔로우 취소" : "팔로우", "") + item("phide", "이 스토리 숨기기", "커뮤니티에서 다시 보이지 않아요") + item("block", S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true)}</div>`); }
+  if (c.type === "nttask") return sheetWrap("태스크 추가", "", `
+    <div class="field"><input type="text" id="nt-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("nt-name")}" aria-label="태스크 이름"></div>
+    ${difficultySelector(c,'mission')}
+    ${dueField(c)}
+    <div class="btnrow"><button class="btn sec big" data-act="sheet-close">취소</button><button class="btn big" data-act="addtask">추가</button></div>`);
+  if (c.type === "taskadd") return sheetWrap("태스크 추가", "", `
+    <div class="field"><input type="text" id="ta-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ta-name")}" aria-label="태스크 이름"></div>
+    ${difficultySelector(c,'mission')}
+    ${dueField(c)}
+    ${linkPick(c)}
+    <button class="btn big full" data-act="submit-taskadd" ${S.busy?"disabled":""}>추가</button>`);
+  if (c.type === "flist"){ const fol = c.kind === "followers", ids = Object.values(S.follows).filter(f => fol ? f.to === c.uid : f.from === c.uid).sort((a,b) => (b.at||0) - (a.at||0)).map(f => fol ? f.from : f.to).filter(x => x !== c.uid);
+    return sheetWrap(fol ? `팔로워 ${ids.length}` : `팔로잉 ${ids.length}`, "", ids.length ? `<div class="fl-list">${ids.map(u => { const p = prof(u), me0 = u === S.me, f = isFollowing(S.me, u);
+      return `<div class="fl-row">${av(u, 44)}<button class="t" data-act="profile" data-u="${esc(u)}"><b>${esc(nameOf(u))}${me0 ? " (나)" : ""}</b><small>Lv.${statsOf(u).L}${p.bio ? " · " + esc(p.bio) : ""}</small></button>${!me0 && hasProfile() && S.canWrite ? `<button class="btn ${f ? "sec" : "soft"} sm" data-act="follow" data-u="${esc(u)}">${f ? "팔로잉" : "팔로우"}</button>` : ""}</div>`; }).join("")}</div>` : `<p class="empty-row">${fol ? "아직 팔로워가 없어요." : "아직 팔로잉하는 사람이 없어요."}</p>`); }
+  if (c.type === "confirm") return sheetWrap("", "", `<div class="cfbox"><h3>${c.t}</h3>${c.d ? `<p>${c.d}</p>` : ""}<div class="btnrow"><button class="btn sec big" data-act="cfno">취소</button><button class="btn big cfdel" data-act="cfok">${c.ok}</button></div></div>`);
+  if (c.type === "mlog"){ const pj = S.projects[c.pid]; if (!pj || !pj.metric){ closeSheet(); return; } const m = pj.metric, lv = lastVal(pj), u = esc(m.unit);
+    return sheetWrap(`수치 기록`, "", `<p class="mlog-t">${esc(pj.title)}</p>
+      <div class="field"><label class="lab" for="ml-val">오늘의 수치 <span class="hint">지난 기록 ${numFmt(lv)}${u} · 목표 ${numFmt(m.target)}${u}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ml-val" placeholder="${numFmt(lv)}" value="${D("ml-val")}"><span>${u}</span></div></div>
+      <label class="toggle"><input type="checkbox" id="ml-share" ${c.share ? "checked" : ""}> 커뮤니티에도 공유하기</label>
+      ${c.share ? `<div class="field"><textarea id="ml-text" rows="3" maxlength="1000" placeholder="한마디 남겨 보세요 (선택)">${D("ml-text")}</textarea></div>` : `<p class="hint" style="margin:-6px 0 14px">공유하지 않으면 나만 볼 수 있어요. 그래프와 진행도에는 똑같이 반영돼요.</p>`}
+      <button class="btn big full" data-act="submit-mlog" ${S.busy?"disabled":""}>기록하기</button>`); }
+  if (c.type === "umenu"){ const u = c.u, bl = isBlocked(u);
+    const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-u="${esc(u)}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
+    return sheetWrap(esc(nameOf(u)), "", `<div class="sheetlist mlist">${bl ? item("unblock", "차단 해제", "다시 스토리와 답글이 보여요") : item("block", "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true)}${item("ureport", "신고", "부적절한 프로필이나 활동을 알려 주세요", true)}</div>`); }
+  if (c.type === "logs") return sheetWrap("저널", "", `<div class="logsheet">${diaryList0() || `<p class="empty-row">아직 저널이 없어요.</p>`}</div>`);
+  if (c.type === "ptabhelp"){ const it = (k, t, body) => `<div class="helpitem ${S.profTab === k ? "on" : ""}"><b>${t}</b>${body}</div>`;
+    return sheetWrap("스토리 탭 안내", "", `<div class="helplist">
+      ${it("posts", "스토리", `<p>퀘스트를 하면서 남긴 기록을 다른 사람과 나누는 곳이에요. 사진과 수치 기록을 함께 올리고, 공감과 답글을 받을 수 있어요.</p>`)}
+      ${it("goals", "퀘스트", `<p>도전하고 있는 일을 네 가지로 나눠 관리해요.</p><ul><li><b style="display:inline;font-size:13px">메인 퀘스트</b> 이루고 싶은 큰 목표</li><li><b style="display:inline;font-size:13px">서브 퀘스트</b> 목표 달성을 위한 프로젝트</li><li><b style="display:inline;font-size:13px">데일리 퀘스트</b> 매일 반복하는 습관</li><li><b style="display:inline;font-size:13px">태스크</b> 목표 달성을 위한 할 일</li></ul>`)}
+      ${c.mine ? it("diary", "저널", `<p>하루를 돌아보며 쓰는 나만의 일기예요. 그날의 컨디션과 감정을 함께 남길 수 있어요. 다른 사람에게는 보이지 않고, 원할 때만 커뮤니티에 공유할 수 있어요.</p>`) : ""}
+    </div><button class="btn big full" data-act="sheet-close">확인</button>`); }
+  if (c.type === "ppick"){ const par = S.parentSheet || {}, gs = goalsOf(S.me).filter(g => g.status !== "done");
+    return sheetWrap("어떤 메인 퀘스트의 서브 퀘스트인가요?", "", `<div class="sheetlist mlist">${gs.map(g => `<button class="row mitem" data-act="ppset" data-v="${g.id}"><span class="t"><b>🎯 ${esc(g.title)}</b><small>메인 퀘스트${g.end ? " · " + dday(g.end) : ""}</small></span>${par.parentId === g.id ? `<span class="pick">✓</span>` : ""}</button>`).join("") || `<p class="empty-row">진행 중인 메인 퀘스트가 없어요.</p>`}</div>`); }
+  if (c.type === "tqpick"){ const par = S.parentSheet || {}, gs = goalsOf(S.me).filter(g => g.status !== "done"), orphan = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId));
+    const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="tqset" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "서브 퀘스트" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${par.projectId === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
+    const body = gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphan.map(x => it(x, true)).join("");
+    return sheetWrap("어떤 퀘스트의 태스크인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 퀘스트가 없어요.</p>`}</div>${par.projectId ? `<button class="btn sec full" data-act="tqset" data-v="">연결 안 함</button>` : ""}`); }
+  if (c.type === "qpick"){ const gs = goalsOf(S.me).filter(g => g.status !== "done"), orphanSubs = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId)), qs = mineOf("quest").filter(q => q.active !== false);
+    const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="inref" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "서브 퀘스트" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${S.inRef === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
+    const iq = q => `<button class="row mitem" data-act="inref" data-v="q:${q.id}"><span class="t"><b>🔥 ${esc(q.name)}</b><small>데일리 퀘스트 · ${streakOf(q).cur}일 연속</small></span>${S.inRef === "q:"+q.id ? `<span class="pick">✓</span>` : ""}</button>`;
+    const body = (gs.length || orphanSubs.length ? gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphanSubs.map(x => it(x, true)).join("") : "")
+;
+    return sheetWrap("어떤 퀘스트의 스토리인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 퀘스트가 없어요. 프로필의 퀘스트 탭에서 만들 수 있어요.</p>`}</div>${S.inRef ? `<button class="btn sec full" data-act="inref" data-v="">연결 안 함</button>` : ""}`); }
+  if (c.type === "bought") return sheetWrap('구매 내역','',purchaseHistory());
+  if (c.type === "buyconf"){ const r = S.mine[c.id]; if (!r){ closeSheet(); return; } const pr = priceOf(r), g = MY ? MY.gold : 0;
+    return sheetWrap("", "", `<div class="reward"><div class="big">🎁</div><h2 style="justify-content:center">'${esc(r.name)}'<br>구매할까요?</h2>
+      <div class="bconf"><div><span>보유 코인</span><b class="num">🪙 ${fmt(g)}</b></div><div><span>사용할 코인</span><b class="num minus">− ${fmt(pr)}</b></div><div class="tot"><span>남는 코인</span><b class="num">🪙 ${fmt(g - pr)}</b></div></div>
+      <div class="btnrow" style="margin-top:4px"><button class="btn sec big" data-act="sheet-close">취소</button><button class="btn big" data-act="buyok" ${S.busy?"disabled":""}>구매하기</button></div></div>`); }
+  if (c.type === "gmenu"){ const p = S.projects[c.pid]; if (!p){ closeSheet(); return; } const sp = isProj(p), kind = sp ? "서브 퀘스트" : "메인 퀘스트";
+    const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-p="${p.id}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
+    return sheetWrap(kind, "", `<div class="sheetlist mlist">${item("gedit", "수정", sp ? "이름 · 마감일 · 메인 퀘스트" : "이름 · 마감일 · 수치 기록")}${p.status !== "done" ? item("compose", "스토리 쓰기", "진행 과정을 커뮤니티에 공유해요") : ""}${item("pdel", S.armed === "px"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", sp ? "연결된 태스크도 함께 삭제돼요" : "서브 퀘스트와 태스크도 함께 삭제돼요", true)}</div>`); }
+  if (c.type === "gedit"){ const p = S.projects[c.pid]; if (!p){ closeSheet(); return; } const sp = isProj(p);
+    const gs = goalsOf(S.me).filter(g => g.status !== "done" || g.id === p.parentId);
+    return sheetWrap(sp ? "서브 퀘스트 수정" : "메인 퀘스트 수정", "", `
+    <div class="field"><label class="lab" for="ge-title">이름</label><input type="text" id="ge-title" maxlength="80" value="${D("ge-title")}"></div>
+    ${datePick(c, "end", "마감일", sp, !sp)}
+    ${metricFields(c)}
+    ${sp ? `<div class="field"><span class="lab">메인 퀘스트</span><div class="chips">${gs.map(g => `<button class="chip" data-act="cset" data-f="parentId" data-v="${g.id}" aria-pressed="${c.parentId===g.id}">🎯 ${esc(g.title)}</button>`).join("")}</div></div>` : ""}
+    ${coverField(c)}
+    <button class="btn big full" data-act="submit-gedit" ${S.busy?"disabled":""}>저장</button>
+    <button class="btn full sec" style="margin-top:10px;color:var(--warn)" data-act="pdel" data-p="${p.id}">${S.armed === "px"+p.id ? "한 번 더 누르면 삭제돼요" : sp ? "서브 퀘스트 삭제" : "메인 퀘스트 삭제"}</button>`); }
+  if (c.type === "postedit"){ const p = S.feed[c.pid]; if (!p){ closeSheet(); return; } const pj = p.ref && S.projects[p.ref.id];
+    return sheetWrap("스토리 수정", "", `
+    ${p.ref ? `<div style="margin-bottom:12px">${refHtml(p)}</div>` : ""}
+    ${typeof p.value === "number" && pj && pj.metric ? `<div class="field"><label class="lab" for="ep-val">수치 기록</label><div class="numrow"><input type="text" inputmode="decimal" id="ep-val" value="${D("ep-val")}"><span>${esc(pj.metric.unit)}</span></div></div>` : ""}
+    <div class="field"><textarea id="ep-text" rows="6" maxlength="1000" aria-label="내용">${D("ep-text")}</textarea></div>
+    ${p.imgs ? `<p class="hint" style="margin:-4px 0 14px">사진 ${p.imgs}장은 그대로 유지돼요.</p>` : ""}
+    <button class="btn big full" data-act="submit-postedit" ${S.busy?"disabled":""}>저장</button>`); }
+  if (c.type === "hset"){ const qs = mineOf("quest").sort((a,b) => (a.createdAt||0) - (b.createdAt||0)), act = qs.filter(q => q.active !== false), ps = qs.filter(q => q.active === false);
+    const r = q => { const st = streakOf(q), lv = HLV[lvKey(q.lv)]; return `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq" title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span><span class="t"><b>${esc(q.name)}</b><small>${repeatLabel(q)} · 🔥 ${st.cur}${streakUnit(q)} · 최장 ${st.best}${streakUnit(q)}</small></span>${I.chev}</button>`; };
+    return sheetWrap("데일리 퀘스트 설정", "", `
+    <div class="sheetlist">${act.length ? `<p class="lab" style="margin:0 20px 4px">진행 중 ${act.length}</p>${act.map(r).join("")}` : `<p class="empty-row">진행 중인 데일리 퀘스트가 없어요.</p>`}
+    ${ps.length ? `<p class="lab" style="margin:14px 20px 4px">쉬는 중 ${ps.length}</p>${ps.map(r).join("")}` : ""}</div>
+    <button class="btn big full" data-act="sheet" data-k="add" data-v="daily">+ 데일리 퀘스트 추가</button>`); }
+  if (c.type === "reward-got") return sheetWrap("", "", `<div class="reward"><div class="big">${c.emoji}</div><h2 style="justify-content:center">${c.title}</h2><p class="desc" style="margin:0">${c.desc}</p>
+    <div class="gain">${c.xp ? `<span>+${fmt(c.xp)} XP</span>` : ""}${c.g ? `<span>${c.g > 0 ? "+" : ""}${fmt(c.g)} 코인</span>` : ""}</div>
+    ${c.share ? `<button class="btn big full" data-act="share-after">커뮤니티에 공유하기</button><button class="link" style="margin-top:14px" data-act="sheet-close">다음에 할게요</button>` : `<button class="btn big full" data-act="sheet-close">확인</button>`}</div>`);
+}
+function goalChips(c){
+  return linkPick(c);
+}
+function parentPick(c){ const p = c.parentId && S.projects[c.parentId];
+  return `<div class="field"><span class="lab">메인 퀘스트</span><div class="dprow">${p ? `<button class="btn soft sm qpb" data-act="ppick">🎯 ${esc(p.title)}</button>` : `<button class="btn sec sm" data-act="ppick">🎯 퀘스트</button>`}</div></div>`; }
+function linkPick(c){ const p = c.projectId && S.projects[c.projectId];
+  return `<div class="field"><span class="lab">퀘스트 <span class="hint">선택</span></span><div class="dprow">${p ? `<button class="btn soft sm qpb" data-act="tqpick">${esc(goalLabel(p))}</button><button class="qx" data-act="tqclear" aria-label="퀘스트 연결 빼기">×</button>` : `<button class="btn sec sm" data-act="tqpick">🎯 퀘스트</button>`}</div></div>`; }
+function linkChips(sel, act, label, optional){
+  const gs = goalsOf(S.me).filter(g => g.status !== "done"); if (!gs.length) return "";
+  const chip = p => act === "cset" ? `<button class="chip" data-act="cset" data-f="projectId" data-v="${p.id}" aria-pressed="${sel===p.id}">${esc(goalLabel(p))}</button>` : `<button class="chip" data-act="cref" data-v="${p.id}" aria-pressed="${sel===p.id}">${esc(goalLabel(p))}</button>`;
+  return `<div class="field"><span class="lab">${label} ${optional ? '<span class="hint">메인 또는 서브 퀘스트 · 선택</span>' : ""}</span>${gs.map(g => `<div class="chips linkgrp">${chip(g)}${subsOf(g.id).filter(s => s.status !== "done").map(chip).join("")}</div>`).join("")}</div>`;
+}
+function taskFields(c){
+  const ts = c.tasks || [], lv = c.ntlv || "normal", d = c.ntdue || "", t = today(), tm = tomorrow(), other = d && d !== t && d !== tm;
+  return `<div class="field"><span class="lab">태스크 <span class="hint">선택 · ${ts.length}개</span></span>
+    ${ts.length ? `<div class="tlist">${ts.map((x,i) => `<div class="titem"><span title="${esc(tlv(x).n)}" aria-label="${esc(tlv(x).n)}">${tlv(x).e}</span><b>${esc(x.name)}</b>${x.due ? `<em class="tdue">${x.due === t ? "오늘" : x.due === tm ? "내일" : fmtD(x.due)}</em>` : ""}${taskTimeTag(x)}<button data-act="deltask" data-i="${i}" aria-label="빼기">×</button></div>`).join("")}</div>` : ""}
+    <button class="btn soft full" data-act="ntopen" style="margin-top:8px">+ 태스크 추가</button></div>`;
+}
+function metricFields(c){
+  const cu = c.unit === "__c", ul = cu ? esc(S.drafts["pj-unit"]||"") : esc(c.unit||"");
+  return `<div class="field"><span class="lab">수치로 기록 <span class="hint">선택 · 변화가 그래프로 보여요</span></span>
+    <div class="chips">${UNITS.map(u => `<button class="chip" data-act="cset" data-f="unit" data-v="${u}" aria-pressed="${c.unit===u}">${u}</button>`).join("")}<button class="chip" data-act="cset" data-f="unit" data-v="__c" aria-pressed="${cu}">직접 입력</button><button class="chip" data-act="cset" data-f="unit" data-v="" aria-pressed="${!c.unit}">안 함</button></div>
+    ${cu ? `<input type="text" id="pj-unit" maxlength="10" placeholder="단위 (예: 권, 시간, 걸음)" value="${D("pj-unit")}" style="margin-top:6px">` : ""}
+    ${c.unit ? `<div class="two" style="margin-top:6px"><div><span class="hint">지금</span><div class="numrow"><input type="text" inputmode="decimal" id="pj-ms" placeholder="0" value="${D("pj-ms")}"><span class="uval">${ul}</span></div></div><div><span class="hint">목표</span><div class="numrow"><input type="text" inputmode="decimal" id="pj-mt" placeholder="100" value="${D("pj-mt")}"><span class="uval">${ul}</span></div></div></div>` : ""}</div>`;
+}
+function lastVal(pj){ const l = valLatest(pj.id); return l ? l.value : pj.metric.start; }
+function postSheet(quick){
+  const c = S.compose;
+  const r = c.ref, pj = r && (r.type === "project" || r.type === "mission") && S.projects[r.id];
+  const refLabel = !r ? "" : r.type === "quest" ? `🔥 ${esc(r.label)} · ${(r.extra||{}).streak||0}일 연속` : r.type === "project_done" ? `🏆 ${esc(r.label)} ${r.sub ? "완료" : "달성"}` : r.type === "diary" ? `${EMOI[(r.extra||{}).emo]||"📓"} ${r.label && r.label !== "오늘의 기록" ? esc(r.label) : "오늘의 저널"}` : r.type === "mission" ? `✅ ${esc(r.mission||"")}` : "";
+  const lastV = pj && pj.metric ? lastVal(pj) : null;
+  sheetWrap(c.title || "스토리 쓰기", "", (c.fixed ? "" : quick) + `
+    ${refLabel ? `<div class="ref ${r.type==="quest"?"quest":r.type==="project_done"?"done":r.type==="diary"?"diary":""}" style="margin:0 0 16px"><span class="rt"><b>${refLabel}</b>${r.type === "mission" ? taskTimeTag(r) : ""}</span></div>` :
+      linkChips(r ? r.id : null, "cref", "연결", false)}
+    ${pj && pj.metric ? `<div class="field"><label class="lab" for="po-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lastV)}${esc(pj.metric.unit)} · 목표 ${numFmt(pj.metric.target)}${esc(pj.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="po-val" placeholder="${numFmt(lastV)}" value="${D("po-val")}"><span>${esc(pj.metric.unit)}</span></div></div>` : ""}
+    <div class="field"><textarea id="po-text" rows="4" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("po-text")}</textarea></div>
+    <div class="field"><span class="lab">사진 <span class="hint">최대 ${MAX_IMGS}장</span></span><div class="thumbs">${c.photos.map((src,i) => `<div><img src="${src}" alt="첨부 사진 ${i+1}"><button data-act="cunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}${c.photos.length < MAX_IMGS ? `<button class="addph" data-act="cphoto">+ 사진</button>` : ""}</div></div>
+    <button class="btn big full" data-act="submit-post" ${S.busy?"disabled":""}>공유하기</button>`);
+}
+function replySheet(){
+  const c = S.compose, p = S.feed[c.pid]; if (!p){ closeSheet(); return; }
+  const target = c.to && S.replies[c.to], who = target ? target.author : p.author;
+  const quote = target ? target.text : (p.text || (p.ref ? p.ref.label : ""));
+  sheetWrap("답글 남기기", "", `
+    <div class="ctx"><div class="rail">${av(who, 36, false)}<span class="ln"></span></div><div class="q"><b>${esc(nameOf(who))}</b>${esc(quote)}</div></div>
+    <div class="ctx"><div class="rail">${av(S.me, 36, false)}</div><div><b style="font-size:15px">${esc(nameOf(S.me))}</b><textarea id="rp-text" rows="3" maxlength="500" placeholder="답글">${D("rp-text")}</textarea></div></div>
+    <button class="btn big full" style="margin-top:12px" data-act="submit-reply" ${S.busy?"disabled":""}>게시하기</button>`);
+}
+function openCompose(extra = {}){
+  if (!S.canWrite) return; if (!hasProfile()){ go("today"); toast("먼저 캐릭터를 만들어 주세요"); return; }
+  openSheet({type:"post", ref:null, mood:null, photos:[], ...extra});
+}
+const rewardSheet = o => openSheet({type:"reward-got", ...o});
+
+/* ================= toast / level up ================= */
+let tt = 0;
+function toast(html){ const t = $("#toast"); t.innerHTML = html; t.classList.toggle("mid", !!($("#overlay").innerHTML || "").trim()); t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), 2200); }
+function levelUp(L){ toast(`Lv.${L} 달성! 성장 꾸미기 보상은 상점 보관함에서 확인해요.`); }
+function burstAt(el){ if (!el) return; const t = (el.parentElement && el.parentElement.querySelector(":scope > .burst")) || el.querySelector(".burst"); if (!t) return; t.classList.remove("go"); void t.offsetWidth; t.classList.add("go"); }
+
+/* ================= navigation ================= */
+function go(name){ location.hash = "#"+name; }
+const viewKey = () => S.view.name + (S.view.uid ? ":"+S.view.uid : "") + (S.view.pid ? ":"+S.view.pid : "");
+function push(view, hash){ S.scrolls[viewKey()] = scrollY; S.view = view; if (location.hash !== hash) location.hash = hash; schedule(); scrollTo(0,0); }
+const openPost = pid => push({name:"post", pid}, "#post");
+const openGoal = pid => { if (S.view.name === "project" && S.view.pid !== pid){ (S.vstack = S.vstack || []).push({...S.view}); } push({name:"project", pid}, "#goal"); };
+const openProfile = uid => { S.profTab = "posts"; S.profN = 20; push({name:"profile", uid}, uid === S.me ? "#me" : "#profile"); };
+function route(){
+  const h = location.hash, prevKey = viewKey(), prev = S.view.name; S.scrolls[prevKey] = scrollY; if (h !== "#goal") S.vstack = [];
+  if (h === "#activity"){ if (prev !== "activity"){ S.actN = 10; S.actSeenView = actSeen; actSeen = Date.now(); LS.set("actSeen", actSeen); } S.view = {name:"activity"}; }
+
+  else if (h === "#today" || h === "#grow") S.view = {name:"today"};
+  else if (h === "#shop") S.view = {name:"shop"};
+  else if (h === "#cal"){ if (prev !== "cal" && S.calKeep){ S.calKeep = false; S.view = {name:"cal"}; } else if (prev !== "cal"){ S.tlTop = S.wgTop = null; S.yCenter = true; if (S.cal){ S.cal.mode = "day"; S.cal.date = today(); } } S.view = {name:"cal"}; }
+  else if (h === "#settings") S.view = {name:"settings"};
+  else if (h === "#me"){ if (prev !== "profile") S.profN = 20; S.view = {name:"profile", uid:S.me}; }
+  else if (h === "#dash") S.view = {name:"dash"};
+  else if ((h === "#post" && prev === "post") || (h === "#goal" && prev === "project") || (h === "#profile" && prev === "profile")) {}
+  else S.view = !h || h === "#" ? {name:"dash"} : {name:"feed"};
+  schedule(); const k = viewKey(); if (k !== prevKey) requestAnimationFrame(() => requestAnimationFrame(() => scrollTo(0, S.scrolls[k] || 0)));
+}
+window.addEventListener("hashchange", route);
+
+/* ================= actions ================= */
+function arm(key){ S.armed = key; schedule(); setTimeout(() => { if (S.armed === key){ S.armed = null; schedule(); } }, 3500); }
+async function run(fn, after){
+  if (S.busy) return; S.busy = true;
+   try{ const result=await fn(); if (after) after(result); }
+  catch(err){ const c = err && err.code;
+    if (c === "invalid_argument" && S.mode === "live"){ S.canWrite = false; toast("이 화면에서는 저장할 권한이 없어요"); }
+    else if (c === "quota_exceeded") toast("저장 공간이 가득 찼어요"); else toast(esc(err.message || "저장하지 못했어요. 다시 시도해 주세요")); }
+  finally{ S.busy = false; schedule(); if (S.compose && ["post","mission","quest","project"].includes(S.compose.type)) renderSheet(); }
+}
+const habitSnap = q => ({type:"quest", id:q.id, label:q.name, extra:{streak:streakOf(q).cur, lv:lvKey(q.lv), days:q.days, purpose:q.purpose||""}});
+function pendingTasks(c){ const ts = [...(c.tasks||[])], left = (($("#nt-name")||{}).value||"").trim(); if (left && c.type !== "nttask") ts.push({name:left, lv:"normal", due:""}); return ts; }
+async function saveTasks(ts, pid){ let i = 0; for (const t of ts) await api.putMine(uid8()+(i++), {kind:"mission", name:t.name, lv:t.lv, due:t.due || "", time:t.time || "", period:"", today:false, projectId:pid, done:false, createdAt:Date.now()+i}); }
+function reDiary(){ if (S.compose && S.compose.type === "diary") renderSheet(); else schedule(); }
+function syncProgress(pid){ const p = S.projects[pid]; if (!p || p.owner !== S.me) return; const pr = goalProgress(p), cur = p.progress || {};
+  if (cur.done !== pr.done || cur.total !== pr.total) api.putProject(pid, {...p, progress:pr}).catch(() => {});
+  if (p.parentId) setTimeout(() => syncProgress(p.parentId), 50); }
+let tapT = null, tapKey = null;
+/* ---- drag-to-scroll (mouse) for horizontal card strips ---- */
+(() => { let g = null, x0 = 0, l0 = 0, moved = false;
+  document.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse" || e.button) return; const el = e.target.closest(".wd-ggrid"); if (!el || el.scrollWidth <= el.clientWidth || e.target.closest("button:not([data-act=project]):not(.wd-addcard),input")) return; g = el; x0 = e.clientX; l0 = el.scrollLeft; moved = false; });
+  document.addEventListener("pointermove", e => { if (!g || document.body.classList.contains("reo-lock")) return; const dx = e.clientX - x0; if (!moved && Math.abs(dx) < 6) return; if (!moved){ moved = true; g.classList.add("dragscroll"); } g.scrollLeft = l0 - dx; });
+  const up = () => { if (!g) return; if (moved){ S._reoJust = Date.now(); const el = g; setTimeout(() => el.classList.remove("dragscroll"), 0); } g = null; };
+  document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up);
+})();
+/* ---- long-press reorder for main quest cards ---- */
+(() => {
+  let t = null, st = null, drag = null, sx = 0, sy = 0;
+  const end = save => { clearTimeout(t); t = null; st = null; if (!drag) return; const {el, box, gh} = drag; drag = null;
+    if (gh) gh.remove(); el.classList.remove("reo-on"); box.classList.remove("reo-box"); document.body.classList.remove("reo-lock");
+    S._reoJust = Date.now(); hintDone("reo"); if (!save) { schedule(); return; }
+    const ids = [...box.querySelectorAll(":scope > [data-reo]")].map(x => x.dataset.reo);
+    const rest = goalsOf(S.me).filter(g => g.status !== "done" && !ids.includes(g.id)).sort(gOrder).map(g => g.id);
+    const all = (box.closest(".wd-goals") ? [...ids, ...rest] : ids), ch = [];
+    all.forEach((id, i) => { const p = S.projects[id]; if (p && p.order !== i){ p.order = i; ch.push(p); } });
+    schedule(); if (ch.length) Promise.all(ch.map(p => api.putProject(p.id, {...p}))).then(() => toast("순서를 바꿨어요")).catch(() => toast("순서를 저장하지 못했어요"));
+  };
+  document.addEventListener("pointerdown", e => { if (e.button > 0 || !S.canWrite) return; const el = e.target.closest("[data-reo]"); if (!el || e.target.closest("button:not([data-act=project]),input,textarea,.tfold,.qrow")) return;
+    sx = e.clientX; sy = e.clientY; st = el;
+    t = setTimeout(() => { t = null; if (!st) return; const box = st.parentNode, r = st.getBoundingClientRect(), gh = st.cloneNode(true);
+      gh.removeAttribute("data-reo"); gh.classList.add("reo-ghost"); { const oc = st.querySelector(".qcover"), gc = gh.querySelector(".qcover"); if (oc && gc) Object.assign(gc.style, {height:oc.getBoundingClientRect().height + "px", flex:"none", aspectRatio:"auto"}); } Object.assign(gh.style, {width:r.width + "px", height:r.height + "px", left:r.left + "px", top:r.top + "px"}); document.body.appendChild(gh);
+      drag = {el:st, box, gh, ox:sx - r.left, oy:sy - r.top}; st.classList.add("reo-on"); box.classList.add("reo-box"); document.body.classList.add("reo-lock"); if (navigator.vibrate) try{ navigator.vibrate(15); }catch(x){} }, 450); }, true);
+  document.addEventListener("pointermove", e => {
+    if (t && (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8)){ clearTimeout(t); t = null; st = null; return; }
+    if (!drag) return; e.preventDefault();
+    const {el, box, gh} = drag; if (gh){ gh.style.left = (e.clientX - drag.ox) + "px"; gh.style.top = (e.clientY - drag.oy) + "px"; } el.style.pointerEvents = "none"; const over = document.elementFromPoint(e.clientX, e.clientY); el.style.pointerEvents = "";
+    const tg = over && over.closest("[data-reo]"); if (!tg || tg === el || tg.parentNode !== box) { autoScroll(box, e); return; }
+    const r = tg.getBoundingClientRect(), hor = getComputedStyle(box).display === "flex" && getComputedStyle(box).flexDirection.startsWith("row");
+    const after = hor ? e.clientX > r.left + r.width/2 : e.clientY > r.top + r.height/2;
+    box.insertBefore(el, after ? tg.nextSibling : tg); autoScroll(box, e); }, {passive:false});
+  const autoScroll = (box, e) => { const r = box.getBoundingClientRect(); if (box.scrollWidth > box.clientWidth){ if (e.clientX < r.left + 40) box.scrollLeft -= 12; else if (e.clientX > r.right - 40) box.scrollLeft += 12; }
+    if (e.clientY < 60) scrollBy(0, -12); else if (e.clientY > innerHeight - 90) scrollBy(0, 12); };
+  document.addEventListener("touchmove", e => { if (drag) e.preventDefault(); }, {passive:false});
+  document.addEventListener("pointerup", () => end(true), true);
+  document.addEventListener("pointercancel", () => end(!!drag), true);
+  document.addEventListener("contextmenu", e => { if (e.target.closest("[data-reo]")) e.preventDefault(); });
+  document.addEventListener("click", e => { if (S._reoJust && Date.now() - S._reoJust < 400){ e.stopPropagation(); e.preventDefault(); S._reoJust = 0; } }, true);
+})();
+document.addEventListener("click", e => {
+  const svb = e.target.closest("[data-sv]");
+  if (svb && SV){ const a = svb.dataset.sv, p = svCur();
+    if (a === "close") svClose(); else if (a === "next") svStep(1); else if (a === "prev") svStep(-1);
+    else if (a === "heart"){ const was = liked(p); run(() => api.like(p.id, !was)); if (!was) burstAt($(".sv .frame")); svb.textContent = was ? "🤍" : "❤️"; }
+    return; }
+  const dt = e.target.closest("[data-dt]");
+  if (dt && !e.target.closest("button")){
+    const key = dt.dataset.dt;
+    if (tapT && tapKey === key){ clearTimeout(tapT); tapT = null; const p = S.feed[key];
+      if (canAct() && p && p.author !== S.me){ if (!liked(p)) run(() => api.like(key, true)); burstAt(dt); } return; }
+    tapKey = key; const openKey = dt.dataset.open; tapT = setTimeout(() => { tapT = null; if (openKey) openPost(openKey); }, 280); return;
+  }
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const a = b.dataset.act, pid = b.dataset.p, u = b.dataset.u, id = b.dataset.id, c = S.compose;
+  const CONF = {pdel:1, tdel:1, hdel:1, delpost:1, rdel:1, block:1, bdel:1, qdel:1, ldel:1, rolldel:1};
+  if (CONF[a] && !b.dataset.confirmed){ e.stopPropagation();
+    const sp = a === "pdel" && isProj(S.projects[pid]);
+    const key = {pdel:"px"+pid, tdel:"td"+(c && c.id), hdel:"hd"+(c && c.id), delpost:"dp"+pid, rdel:"rd"+(c && c.id), block:"bl"+u, bdel:"bd"+id, qdel:"qd"+id, ldel:"ld"+id, rolldel:"rolldel"}[a];
+    const msg = {pdel:sp ? ["서브 퀘스트를 삭제할까요?", "연결된 태스크도 함께 삭제돼요."] : ["메인 퀘스트를 삭제할까요?", "아래 서브 퀘스트와 연결된 태스크도 함께 삭제돼요."], tdel:["태스크를 삭제할까요?", ""], hdel:["데일리 퀘스트를 삭제할까요?", "지금까지 쌓은 연속 기록도 함께 사라져요."], qdel:["데일리 퀘스트를 삭제할까요?", "지금까지 쌓은 연속 기록도 함께 사라져요."], delpost:["스토리를 삭제할까요?", "공감과 답글도 함께 삭제돼요."], rdel:["보상을 삭제할까요?", ""], block:["이 사람을 차단할까요?", "이 사람의 스토리와 답글이 모두 안 보여요."], bdel:["구매 기록을 지울까요?", "쓴 코인은 돌아오지 않아요."], rolldel:[`지난 태스크 ${mineOf("mission").filter(m => !m.done && m.origDue && m.origDue < today() && m.due === today()).length}개를 삭제할까요?`, "오늘로 넘어온 태스크만 삭제돼요. 되돌릴 수 없어요."], ldel:["저널을 삭제할까요?", diaryPost(id) ? "커뮤니티에 공유한 스토리도 함께 삭제돼요." : ""]}[a];
+    S.pend = {key, data:{...b.dataset}}; S.parentSheet = c || null; S.compose = {type:"confirm", t:msg[0], d:msg[1], ok:a === "block" ? "차단" : a === "bdel" ? "지우기" : "삭제"}; renderSheet(); return; }
+  switch (a){
+    case "shop-tab": S.shopTab=b.dataset.v; break;
+    case "wishlist": {const r=S.mine[id];if(r)run(()=>api.putMine(id,{...r,wishlist:!r.wishlist}));return;}
+    case "style-buy": if(!confirm('꾸미기를 구매할까요? 구매 후 10분 이내, 상품당 한 번만 취소할 수 있어요.'))return;run(()=>api.buyStyle(id),()=>toast('꾸미기를 구매했어요. 보관함에서 적용하세요.'));return;
+    case "style-equip": run(()=>api.equip(id),()=>toast('꾸미기 적용을 바꿨어요'));return;
+    case "milestone-pick": run(()=>api.chooseMilestone(+b.dataset.v,id),()=>toast('성장 보상을 선택했어요'));return;
+    case "purchase-use": if(!confirm('사용 완료로 처리하면 환불할 수 없어요. 사용했나요?'))return;run(()=>api.purchaseAction(id,'use'),()=>{toast('사용 완료로 기록했어요');if(S.compose)renderSheet();});return;
+    case "purchase-cancel": if(!confirm('구매를 취소하고 실제 사용 코인을 돌려받을까요?'))return;run(()=>api.purchaseAction(id,'cancel'),()=>{toast('취소·환불했어요');if(S.compose)renderSheet();});return;
+    case "purchase-hide": if(!confirm('기록만 숨깁니다. 환불되지 않아요.'))return;run(()=>api.purchaseAction(id,'hide'),()=>{toast('기록을 숨겼어요');if(S.compose)renderSheet();});return;
+    case "preview-login":
+    case "preview-kakao": entryScreen = 'character'; S.compose = null; $('#overlay').innerHTML = ''; schedule(); scrollTo(0,0); toast(a === 'preview-kakao' ? '실제 카카오 가입은 연결되지 않았어요. 캐릭터 만들기를 미리 볼 수 있어요.' : '인증 없이 캐릭터 만들기로 이동했어요.'); return;
+    case "cfok": { const P = S.pend; S.pend = null; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); if (!P) return; S.armed = P.key;
+      const fb = document.createElement("button"); fb.hidden = true; Object.assign(fb.dataset, P.data, {confirmed:"1"}); document.body.appendChild(fb); fb.click(); fb.remove(); return; }
+    case "cfno": closeSheet(); return;
+    case "back": if (S.vstack && S.vstack.length){ S.view = S.vstack.pop(); schedule(); scrollTo(0,0); return; } history.length > 1 ? history.back() : go("today"); return;
+    case "go": go(b.dataset.v); return;
+    case "inphoto": choosePhotos(true, list => { S.inPhotos = (S.inPhotos || []).concat(list).slice(0, MAX_IMGS); schedule(); }); return;
+    case "inunphoto": S.inPhotos.splice(+b.dataset.i, 1); break;
+    case "inref": S.inRef = b.dataset.v || null; if (S.compose && S.compose.type === "qpick") closeSheet(); break;
+    case "qpick": openSheet({type:"qpick"}); return;
+    case "tqpick": { ["ta-name","te-name","te-note","ad-name","tm-in"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); S.parentSheet = c; openSheet({type:"tqpick"}); return; }
+    case "ppick": { ["ad-name","sp-title","pj-ms","pj-mt","pj-unit"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); S.parentSheet = c; openSheet({type:"ppick"}); return; }
+    case "ppset": { const par = S.parentSheet; if (par) par.parentId = b.dataset.v; closeSheet(); return; }
+    case "tqset": { const par = S.parentSheet; if (par) par.projectId = b.dataset.v || null; closeSheet(); return; }
+    case "tqclear": c.projectId = null; renderSheet(); return;
+    case "inpost": { const text = ($("#ps-text").value||"").trim(), ph = S.inPhotos || []; let value;
+      const vEl = $("#ps-val"); if (vEl && vEl.value.trim()){ value = parseNum(vEl.value); if (value == null){ toast("숫자만 넣어 주세요"); return; } }
+      if (!text && !ph.length && value === undefined){ toast("내용을 적어 주세요"); $("#ps-text").focus(); return; }
+      const qq = S.inRef && S.inRef.startsWith("q:") && S.mine[S.inRef.slice(2)], g = !qq && S.inRef && S.projects[S.inRef], post = {ref:qq ? habitSnap(qq) : g ? {type:"project", id:g.id, label:g.title} : null, text, mood:null};
+      if (value !== undefined && g) post.value = value;
+      run(() => api.addPost(post, ph), () => { delete S.drafts["ps-text"]; delete S.drafts["ps-val"]; S.inPhotos = []; S.inRef = null; toast("스토리를 공유했어요"); }); return; }
+    case "bought": openSheet({type:"bought"}); return;
+    case "dstory": S.profTab = "posts"; if (!u){ go("me"); return; } render(); { const w = $(".segwrap"); if (w) scrollTo({top:Math.max(0, w.getBoundingClientRect().top + scrollY - 70), behavior:"smooth"}); } return;
+    case "flist": openSheet({type:"flist", kind:b.dataset.v, uid:u || S.me}); return;
+    case "wdlogs": openSheet({type:"logs"}); return;
+    case "wdsi": S.wdSi = (S.wdSi || 0) + +b.dataset.v; schedule(); return;
+    case "wdgs": { const g = $(".wd-goals .wd-ggrid"); if (g) g.scrollBy({left:+b.dataset.v * ((g.firstElementChild || {}).offsetWidth + 16 || 316), behavior:"smooth"}); return; }
+    case "wdgi": S.wdGi = (S.wdGi || 0) + +b.dataset.v; schedule(); return;
+    case "navtog": S.navMini = !S.navMini; LS.set("navMini", S.navMini); renderNav(); return;
+    case "cgi": S.calGi = (S.calGi || 0) + (+b.dataset.v); render(); return;
+    case "cvpick": { const sv = () => document.querySelectorAll(".sheet input[id], .sheet textarea[id]").forEach(el => { if (el.type !== "checkbox") S.drafts[el.id] = el.value; }); sv();
+      choosePhotos(false, async list => { if (!S.compose) return; S.compose.cover = await shrinkImg(list[0], 1000, 170000); renderSheet(); }); return; }
+    case "cvdel": { document.querySelectorAll(".sheet input[id], .sheet textarea[id]").forEach(el => { if (el.type !== "checkbox") S.drafts[el.id] = el.value; }); c.cover = ""; renderSheet(); return; }
+    case "gcover": { e.stopPropagation(); const gp = S.projects[b.dataset.p]; if (!gp || gp.owner !== S.me) return;
+      choosePhotos(false, async list => { const d = await shrinkImg(list[0], 1000, 170000), k = "cv-" + uid8(), doc = {...gp, cover:k}; delete doc.id;
+        run(async () => { await api.putMedia(k, d); await api.putProject(gp.id, doc); }, () => toast("대표 사진을 바꿨어요")); }); return; }
+    case "ptabhelp": openSheet({type:"ptabhelp", mine:!!b.dataset.v}); return;
+    case "bdel": { const bid = b.dataset.id, bd = S.mine[bid]; if (!bd) return; if (S.armed !== "bd"+bid){ arm("bd"+bid); renderSheet(); return; } S.armed = null;
+      run(() => api.putMine(bid, {...bd, hidden:true}), () => { toast("구매 기록을 지웠어요"); renderSheet(); }); return; }
+    case "pqtab": S.pqTab = b.dataset.t; break;
+    case "qtab": S.qTab = b.dataset.t; LS.set("qTab", S.qTab); scrollTo(0,0); break;
+    case "cmode": S.cal.mode = b.dataset.v; S.tlTop = S.wgTop = null; S.yCenter = true; break;
+    case "cstep": { const C = S.cal, n = +b.dataset.v, d = pd(C.date);
+      if (C.mode === "day") C.date = addD(C.date, n); else if (C.mode === "week") C.date = addD(C.date, 7*n);
+      else if (C.mode === "month"){ d.setDate(1); d.setMonth(d.getMonth()+n); C.date = dk(d.getTime()); } else { d.setFullYear(d.getFullYear()+n); C.date = dk(d.getTime()); } break; }
+    case "ctoday": S.cal.date = today(); S.tlTop = S.wgTop = null; S.yCenter = true; break;
+    case "cpick": S.cal.date = b.dataset.v; if (b.dataset.m) S.cal.mode = b.dataset.m; S.tlTop = S.wgTop = null; break;
+    case "cdate":
+    case "calday": if (activityDate(b.dataset.v) === b.dataset.v) openSheet({type:'day',date:b.dataset.v}); return;
+    case "journal-view": { const d = S.mine[id]; if (d?.kind === 'diary' && isOwnPrivateEntry(d,S.me)) openSheet({type:'journal-detail',id}); return; }
+    case "day-post": if (S.feed[pid]?.author === S.me){ closeSheet(); openPost(pid); } return;
+    case "day-project": if (S.projects[pid]?.owner === S.me){ closeSheet(); openGoal(pid); } return;
+    case "day-schedule": if (activityDate(b.dataset.v) === b.dataset.v){ closeSheet(); S.cal.date = b.dataset.v; S.cal.mode = 'day'; S.tlTop = S.wgTop = null; } break;
+    case "dopen": S.openDiary = S.openDiary === id ? null : id; if (S.compose && S.compose.type === "logs") renderSheet(); break;
+    case "theme": LS.set("theme", b.dataset.v); applyTheme(); break;
+    case "setn": { const st = getSet(); st.notif[b.dataset.k] = !st.notif[b.dataset.k]; run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
+    case "setpriv": { const pr = !prof(S.me).private; run(() => api.saveProfile({private:pr}), () => toast(pr ? "🔒 로컬 비공개 표시를 켰어요 (서버 접근 제어 없음)" : "로컬 비공개 표시를 껐어요 (서버 접근 제어 없음)")); return; }
+    case "block": { if (S.armed !== "bl"+u){ arm("bl"+u); if (S.compose) renderSheet(); return; } S.armed = null; const st = getSet(); if (S.compose && (S.compose.type === "pmenu" || S.compose.type === "umenu")) closeSheet();
+      run(async () => { await api.putMine("settings", {kind:"settings", ...st, blocked:[...new Set([...st.blocked, u])]}); if (isFollowing(S.me, u)) await api.follow(u, false); }, () => toast(`${esc(nameOf(u))}님을 차단했어요`)); return; }
+    case "umenu": openSheet({type:"umenu", u}); return;
+    case "ureport": closeSheet(); toast("신고가 접수됐어요. 검토 후 조치할게요"); return;
+    case "unblock": { if (S.compose && S.compose.type === "umenu") closeSheet(); const st = getSet(); run(() => api.putMine("settings", {kind:"settings", ...st, blocked:st.blocked.filter(x => x !== u)}), () => toast("차단을 해제했어요")); return; }
+    case "unhide": { const st = getSet(); st.hidden.splice(+b.dataset.i, 1); run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
+    case "tfold": { const l = LS.get("tfold", []), k = b.dataset.k; LS.set("tfold", l.includes(k) ? l.filter(x => x !== k) : [...l, k]); break; }
+    case "toggle": { const m = {habits:"openHabits", later:"openLater", done:"openDone", ach:"openAch", blk:"openBlk", subdone:"openSubDone", buys:"openBuys", tdone:"openTDone"}[b.dataset.k]; S[m] = !S[m]; break; }
+    case "compose": if (pid && S.projects[pid]) openCompose({ref:{type:"project", id:pid, label:S.projects[pid].title}, fixed:true}); else openCompose(); return;
+    case "sheet": { if (!S.canWrite) return; if (!hasProfile() && b.dataset.k !== "profile"){ toast("먼저 캐릭터를 만들어 주세요"); return; }
+      const k = b.dataset.k; if (k === "post") return openCompose();
+      if (k === "profile") S.swatch = prof(S.me).color || S.swatch;
+       if (k === "reward"){delete S.drafts["rw-name"];delete S.drafts['rw-cost'];}
+      if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:false}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
+       const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : "", period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null, tasks:[]}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:'',repeat:'repeat'}, profile:{}}[k] || {};
+      openSheet({type:k, ...base}); return; }
+    case "sheet-bg": if (e.target === b) closeSheet(); return;
+    case "sheet-close": closeSheet(); return;
+    case "cset": { const f = b.dataset.f, toggle = f === "mood" || f === "projectId" || f === "parentId";
+      if (["hlv","lv","alv","tlv","ntlv"].includes(f)){ preserveSheetDrafts(); c[f==='alv'||f==='tlv'?'lv':f] = lvKey(b.dataset.v); renderSheet(); return; } c[f] = toggle && c[f] === b.dataset.v ? null : (b.dataset.v || null); if (f === "cost") c.cost = +b.dataset.v; renderSheet(); return; }
+    case "cref": c.ref = b.dataset.v && !(c.ref && c.ref.id === b.dataset.v) ? {type:"project", id:b.dataset.v, label:S.projects[b.dataset.v].title} : null; renderSheet(); return;
+    case "qday": { if (!c.days) c.days = []; preserveSheetDrafts();
+      if (b.dataset.v === "all") c.days = [0,1,2,3,4,5,6]; else { const i = +b.dataset.v; c.days = c.days.includes(i) ? c.days.filter(x => x !== i) : [...c.days, i]; }
+      renderSheet(); return; }
+    case "rpt": { preserveSheetDrafts(); const was = c.rpt; c.rpt = b.dataset.v;
+      if (needsDays(c.rpt) && (c.days||[]).length >= 7) c.days = [];
+      if (needsDays(c.rpt) && !(c.days||[]).length && needsDays(was)) c.days = [1,3,5];
+      if (!c.ranchor) c.ranchor = today(); renderSheet(); return; }
+    case "rstep": { preserveSheetDrafts(); const k = b.dataset.k, lim = STEPLIM[k], d = +b.dataset.v;
+      c[k] = Math.min(lim[1], Math.max(lim[0], clampN(c[k] || lim[0], lim[0], lim[1]) + d)); renderSheet(); return; }
+    case "rdayopen": { preserveSheetDrafts(); c._rd = true; renderSheet(); return; }
+    case "rdayclose": { if (b.classList.contains("rdaypop") || e.target.closest("[data-act='rday']")) return; c._rd = false; renderSheet(); return; }
+    case "rday": { preserveSheetDrafts(); c.rday = +b.dataset.v; c._rd = false; renderSheet(); return; }
+    case "cphoto": choosePhotos(true, list => { if (!S.compose || S.compose.type !== "post") return; S.compose.photos = S.compose.photos.concat(list).slice(0, MAX_IMGS); renderSheet(); }); return;
+    case "cunphoto": c.photos.splice(+b.dataset.i, 1); renderSheet(); return;
+    case "swatch": S.swatch = b.dataset.c; if (c && c.type === "profile") renderSheet(); else schedule(); return;
+    case "ftab": S.feedTab = b.dataset.t; break;
+    case "ptab": S.profTab = b.dataset.t; break;
+    case "story": openStories(u); return;
+    case "newpill": S.ackAt = Date.now(); $("#pill").innerHTML = ""; scrollTo({top:0, behavior:"smooth"}); return;
+    case "open": e.stopPropagation(); openPost(pid); return;
+    case "project": e.stopPropagation(); openGoal(pid); return;
+    case "profile": e.stopPropagation(); if (S.compose && S.compose.type === "flist") closeSheet(); openProfile(u); return;
+    case "follow": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } { const f = !isFollowing(S.me, u); if (S.compose && S.compose.type === "pmenu") closeSheet(); run(() => api.follow(u, f), () => { if (S.compose && S.compose.type === "flist") renderSheet(); }); toast(f ? `${esc(nameOf(u))}님을 팔로우했어요` : "팔로우를 취소했어요"); } return;
+    case "like": { const p = S.feed[pid]; if (!p || !canAct() || p.author === S.me) return; const was = liked(p); run(() => api.like(pid, !was)); if (!was) burstAt(b.closest(".body").querySelector("[data-dt]")); return; }
+    case "rlike": { const r = S.replies[b.dataset.c]; if (!r) return; run(() => api.likeReply(r.id, !on((r.likes||{})[S.me]))); return; }
+    case "reply": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"reply", pid, cid:b.dataset.c || null, to:b.dataset.to || b.dataset.c || null}); setTimeout(() => { const t = $("#rp-text"); t && t.focus(); }, 60); return;
+    case "nudge": { if (!canAct()) return; b.closest(".nudge").remove(); const p = S.feed[pid]; run(() => api.addReply(pid, b.dataset.t, null), () => toast(`${esc(nameOf(p.author))}님에게 응원을 보냈어요`)); return; }
+    case "join": { const p = S.feed[pid]; if (!p || !canAct()) return; const x = p.ref.extra || {}; if (dupQ(p.ref.label)){ toast(DUPMSG); return; }
+      const q = {kind:"quest", name:p.ref.label, purpose:x.purpose || `${nameOf(p.author)}님과 함께`, days:x.days && x.days.length ? x.days : [0,1,2,3,4,5,6], lv:lvKey(x.lv), active:true, done:{}, createdAt:Date.now(), from:{author:p.author, postId:p.id}};
+      run(async () => { await api.putMine(uid8(), q); await api.join(pid); }, () => toast(`🔥 '${esc(p.ref.label)}'을 내 데일리 퀘스트에 추가했어요`)); return; }
+    case "delpost": e.stopPropagation(); if (S.armed === "dp"+pid){ S.armed = null; const inPost = S.view.name === "post"; run(() => api.delPost(pid), () => { closeSheet(); toast("스토리를 삭제했어요"); if (inPost) history.back(); }); } else { arm("dp"+pid); if (S.compose) renderSheet(); } return;
+    case "dpopen": c._dp = c._dp === b.dataset.k ? null : b.dataset.k; c._dpm = null; if (c._dp) c._tw = false; renderSheet(); return;
+    case "dpnav": { const base = new Date((c._dpm || (c[c._dp] || today()).slice(0,8) + "01")+"T00:00"); base.setMonth(base.getMonth() + +b.dataset.v); c._dpm = dk(base.getTime()).slice(0,8) + "01"; renderSheet(); return; }
+    case "dppick": ["ta-name","te-name","te-note","ad-name","nt-name"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); c[b.dataset.k] = b.dataset.v; if (b.dataset.k === "due"){ c.period = ""; if (!c.time) c.time = "09:00"; c._tw = true; } c._dp = null; c._dpm = null; renderSheet(); return;
+    case "dpclear": c[b.dataset.k] = ""; c._dp = null; renderSheet(); return;
+    case "taskadd": { delete S.drafts["tm-in"]; if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"taskadd", lv:"normal", due:b.dataset.d || "", time:b.dataset.tm || "", period:"", projectId:pid || null}); setTimeout(() => { const x = $("#ta-name"); x && x.focus(); }, 50); return; }
+    case "submit-taskadd": { if (!readTime(c)) return; const name = ($("#ta-name").value||"").trim(); if (!name){ toast("태스크 이름을 적어 주세요"); $("#ta-name").focus(); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } const pj = c.projectId || null;
+      run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", due:c.due||"", time:c.due ? (c.time||"") : "", period:"", today:false, projectId:pj, done:false, createdAt:Date.now()}), () => { delete S.drafts["ta-name"]; closeSheet(); toast("✅ 태스크를 추가했어요"); if (pj) syncProgress(pj); }); return; }
+    case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
+    case "gedit": { const p = S.projects[pid]; if (!p) return; S.drafts["ge-title"] = p.title;
+      const m = p.metric, cu = m && !UNITS.includes(m.unit); if (m){ S.drafts["pj-ms"] = String(m.start); S.drafts["pj-mt"] = String(m.target); if (cu) S.drafts["pj-unit"] = m.unit; } else { ["pj-ms","pj-mt","pj-unit"].forEach(k => delete S.drafts[k]); }
+      openSheet({type:"gedit", pid, cover:p.cover || "", end:p.end || "", parentId:p.parentId || null, unit:m ? (cu ? "__c" : m.unit) : null}); return; }
+    case "submit-gedit": { const p = S.projects[c.pid], title = ($("#ge-title").value||"").trim(); if (!title){ toast("이름을 적어 주세요"); return; }
+      if (!isProj(p) && !c.end){ toast("마감일을 골라 주세요"); return; }
+      const doc = {...p, title, end:c.end || ""}; delete doc.id;
+      if (isProj(p)){ if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; } doc.parentId = c.parentId; }
+      if (c.unit){ const s0 = parseNum(($("#pj-ms")||{}).value), t0 = parseNum(($("#pj-mt")||{}).value); if (s0 == null || t0 == null || s0 === t0){ toast("시작 숫자와 목표 숫자를 넣어 주세요"); return; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return; } doc.metric = {unit, start:s0, target:t0}; }
+      else doc.metric = null;
+      const oldPar = p.parentId;
+      run(async () => { doc.cover = await saveCover(c); await api.putProject(c.pid, doc); }, () => { ["ge-title","ge-end","pj-ms","pj-mt","pj-unit"].forEach(k => delete S.drafts[k]); closeSheet(); toast("수정했어요"); if (oldPar && oldPar !== doc.parentId){ syncProgress(oldPar); syncProgress(doc.parentId); } }); return; }
+    case "pmenu": e.stopPropagation(); openSheet({type:"pmenu", pid}); return;
+    case "ptoggle-reply": { const p = S.feed[pid]; run(() => api.editPost(pid, {noReply:!p.noReply}), () => { closeSheet(); toast(p.noReply ? "답글 기능을 켰어요" : "답글 기능을 껐어요"); }); return; }
+    case "ptoggle-likes": { const p = S.feed[pid]; run(() => api.editPost(pid, {hideLikes:!p.hideLikes}), () => { closeSheet(); toast(p.hideLikes ? "공감 수를 다시 보여줘요" : "공감 수를 숨겼어요"); }); return; }
+    case "phide": { const st = getSet(); run(() => api.putMine("settings", {kind:"settings", ...st, hidePosts:[...st.hidePosts, pid].slice(-500)}), () => { closeSheet(); toast("스토리를 숨겼어요"); if (S.view.name === "post") history.back(); }); return; }
+    case "editpost": { e.stopPropagation(); const p = S.feed[pid]; if (!p) return; S.drafts["ep-text"] = p.text || ""; if (typeof p.value === "number") S.drafts["ep-val"] = String(p.value); else delete S.drafts["ep-val"]; openSheet({type:"postedit", pid}); return; }
+    case "submit-postedit": { const p = S.feed[c.pid]; if (!p) return closeSheet(); const text = ($("#ep-text").value||"").trim(), patch = {text}, vEl = $("#ep-val");
+      if (vEl){ const v = vEl.value.trim(); if (v){ const n = parseNum(v); if (n == null){ toast("숫자만 넣어 주세요"); return; } patch.value = n; } }
+      if (!text && !(p.imgs) && patch.value === undefined && !p.ref){ toast("내용을 넣어 주세요"); return; }
+      patch.editedAt = Date.now();
+      run(() => api.editPost(c.pid, patch), () => { delete S.drafts["ep-text"]; delete S.drafts["ep-val"]; closeSheet(); toast("스토리를 수정했어요"); }); return; }
+    case "qcheck": { const q = S.mine[id]; if (!q || !S.canWrite) return; const done = {...(q.done||{})}, k = today(), was = !!done[k];
+      if(was&&!confirm('완료를 취소하면 실제 지급 보상이 회수됩니다. 부족한 코인은 정산 조정 잔액으로 남고 다음 수입으로 상계돼요. 계속할까요?'))return;
+      if (was) delete done[k]; else done[k] = Date.now();
+      run(() => api.putMine(id, {...q, done}),r=>{S.quietXp=true;if(!was)S.pop={id,xp:r.xp,c:r.coins,at:Date.now()};toast(`실제 반영 ${r.xp} XP · ${r.coins} 코인`);}); return; }
+    case "shareq": { const q = S.mine[id]; if (!q) return; openCompose({ref:habitSnap(q), fixed:true, title:`🔥 ${esc(q.name)}<br>${streakOf(q).cur}일째 해냈어요`}); return; }
+    case "mcheck": { const m = S.mine[id]; if (!m || !S.canWrite) return; const nd = !m.done;
+      if(!nd&&!confirm('완료를 취소하면 실제 지급 보상이 회수됩니다. 부족한 코인은 정산 조정 잔액으로 남고 다음 수입으로 상계돼요. 계속할까요?'))return;
+      run(() => api.putMine(id, {...m, done:nd, doneAt:nd ? Date.now() : null}), r => {S.quietXp=true;if(nd)S.pop={id,xp:r.xp,c:r.coins,at:Date.now()};toast(`실제 반영 ${r.xp} XP · ${r.coins} 코인`);if (m.projectId) syncProgress(m.projectId); }); return; }
+    case "sharem": { const m = S.mine[id], pj = m && S.projects[m.projectId]; if (!pj) return; openCompose({ref:{type:"mission", id:pj.id, label:pj.title, mission:m.name}, fixed:true, title:"✅ 태스크 완료"}); return; }
+    case "mtoday": { const m = S.mine[id]; if (!m) return; run(() => api.putMine(id, {...m, today:!isToday(m)})); return; }
+    case "qtoggle": { const q = S.mine[id]; run(() => api.putMine(id, {...q, active:q.active === false})); return; }
+    case "buy": { const r = S.mine[id], pr = priceOf(r); if ((MY ? MY.gold : 0) < pr) return;
+      openSheet({type:"buyconf", id}); return; }
+    case "buyok": { const r = S.mine[c.id]; if (!r) return closeSheet(); const pr = priceOf(r); if ((MY ? MY.gold : 0) < pr){ closeSheet(); toast("코인이 부족해요"); return; }
+      run(() => api.redeem(r.id), () => rewardSheet({emoji:"🎁", title:`'${esc(r.name)}' 교환 완료!`, desc:"사용 예정으로 기록했어요.", g:-pr})); return; }
+    case "emocustom": S.planner.custom = true; reDiary(); setTimeout(() => { const x = $("#pl-emo"); x && x.focus(); }, 0); return;
+    case "emoadd": { const v = (($("#pl-emo")||{}).value||"").trim(); if (!v){ toast("감정을 적어 주세요"); return; } S.planner.extra = [...new Set([...(S.planner.extra||[]), v])]; S.planner.emo = v; S.planner.custom = false; delete S.drafts["pl-emo"]; reDiary(); return; }
+    case "hset": openSheet({type:"hset"}); return;
+    case "pemo": S.planner.emo = S.planner.emo === b.dataset.v ? null : b.dataset.v; reDiary(); return;
+    case "pedit": { const d = S.mine["d-"+today()]; S.planner = {...S.planner, edit:true, cond:d ? d.cond : 70, emo:d ? d.emo : null, share:d ? !!diaryPost("d-"+today()) : S.planner.share}; S.drafts["pl-text"] = d ? d.text : ""; break; }
+    case "psave": { if (!S.canWrite) return; const P = S.planner, text = (dq("#pl-text").value||"").trim(), cond = +dq("#pl-cond").value, share = !!(dq("#pl-share") && dq("#pl-share").checked);
+      if (!P.emo){ toast("감정을 골라 주세요"); return; }
+      const dt = P.date || today(), key = "d-"+dt, existed = !!S.mine[key], from = P.from, old = S.mine[key] || {};
+      const post = existed ? diaryPost(key) : null, x1 = pd(dt), label = dt === today() ? "오늘의 저널" : `${x1.getMonth()+1}월 ${x1.getDate()}일의 저널`;
+      run(async () => { await api.putMine(key, {...old, kind:"diary", date:dt, cond, emo:P.emo, text, at:old.at || Date.now()});
+        if (share && !post) await api.addPost({ref:{type:"diary", id:key, label, extra:{cond, emo:P.emo}}, text, mood:null}, []);
+        else if (share && post) await api.editPost(post.id, {text, ref:{...post.ref, extra:{cond, emo:P.emo}}});
+        else if (!share && post) await api.delPost(post.id); },
+        () => { S.planner = {cond:70, emo:null, share:false}; delete S.drafts["pl-text"]; if (S.compose && S.compose.type === "diary") closeSheet(); const cl=S.economy.claims[JSON.stringify(['journal',dt])];if(!existed)toast(`저널 저장 · 지급 ${cl?.xp||0} XP / ${cl?.coins||0} 코인`);else toast('저널을 수정했어요'); if (from === "logs") openSheet({type:"logs"}); }); return; }
+    case "dedit": { e.stopPropagation(); const d = S.mine[id]; if (!d) return; const from = S.compose && S.compose.type === "logs" ? "logs" : null;
+      S.planner = {cond:d.cond ?? 70, emo:d.emo || null, share:!!diaryPost(id), date:d.date, edit:true, from}; S.drafts["pl-text"] = d.text || ""; openSheet({type:"diary"}); return; }
+    case "ldel": { if (S.armed !== "ld"+id){ arm("ld"+id); return; } S.armed = null; const post = diaryPost(id), from = S.planner.from;
+      run(async () => { await api.delMine(id); if (post) await api.delPost(post.id); }, () => { S.planner = {cond:70, emo:null, share:false}; delete S.drafts["pl-text"]; if (S.compose) closeSheet(); toast("저널을 삭제했어요"); if (from === "logs") openSheet({type:"logs"}); }); return; }
+    case "pdone": { const p = S.projects[pid], sp = isProj(p), RW = sp ? PROJ : GOAL; if (S.armed !== "pd"+pid){ arm("pd"+pid); return; } S.armed = null;
+      run(() => api.putProject(pid, {...p, status:"done", doneAt:Date.now(), progress:goalProgress(p)}), r => { if (sp) syncProgress(p.parentId); rewardSheet({emoji:"🏆", title:sp ? "서브 퀘스트 완료!" : "메인 퀘스트 달성!", desc:esc(p.title)+(r.xp?'':' · 지급 조건 미달 또는 이미 지급 판정됨'), xp:r.xp, g:r.coins, share:{ref:{type:"project_done", id:pid, label:p.title, sub:sp}, title:sp ? "🔗 서브 퀘스트<br>완료!" : "🏆 메인 퀘스트<br>달성!"}}); }); return; }
+    case "pdel": if (S.armed === "px"+pid){ S.armed = null; const sp = isProj(S.projects[pid]); run(async () => { const ids = [pid, ...subsOf(pid).map(x => x.id)]; for (const m of mineOf("mission").filter(m => ids.includes(m.projectId))) await api.delMine(m.id); for (const x of subsOf(pid)) await api.delProject(x.id); await api.delProject(pid); }, () => { closeSheet(); toast(sp ? "서브 퀘스트를 삭제했어요" : "메인 퀘스트를 삭제했어요"); history.back(); }); } else { arm("px"+pid); if (S.compose) renderSheet(); } return;
+    case "submit-sub": { const title = ($("#sp-title").value||"").trim(); if (!title){ toast("서브 퀘스트 이름을 적어 주세요"); return; } if (!c.end){ toast("마감일을 골라 주세요"); return; } if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; }
+      const mt = readMetric(c); if (mt === false) return; const pidN = uid8(), parent = c.parentId;
+      const tasks = pendingTasks(c);
+      run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, parentId:parent, title, start:today(), end:c.end||"", status:"active", metric:mt, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
+        () => { ["sp-title","sp-end","nt-name"].forEach(k => delete S.drafts[k]); syncProgress(pidN); closeSheet(); toast("🔗 서브 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
+    case "alv": case "hlv": case "tlv": case "ntlv": preserveSheetDrafts(); c[a==='alv'||a==='tlv'?'lv':a] = lvKey(b.dataset.v); renderSheet(); return;
+    case "ntdue": c.ntdue = c.ntdue === b.dataset.v ? "" : b.dataset.v; renderSheet(); return;
+    case "ntopen": preserveSheetDrafts(); S.parentSheet = c; delete S.drafts["nt-name"]; openSheet({type:"nttask", lv:"normal", due:"", period:""}); setTimeout(() => { const x = $("#nt-name"); x && x.focus(); }, 50); return;
+    case "addtask": { const el = $("#nt-name"), name = (el.value||"").trim(); if (!name){ el.focus(); toast("태스크 이름을 적어 주세요"); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } const par = S.parentSheet; if (!par){ closeSheet(); return; } par.tasks = [...(par.tasks||[]), {name, lv:c.lv || "normal", due:c.due || "", time:c.time || ""}]; delete S.drafts["nt-name"]; closeSheet(); return; }
+    case "deltask": c.tasks.splice(+b.dataset.i, 1); renderSheet(); return;
+    case "cyclelv": { const t = c.tasks[+b.dataset.i], ks = Object.keys(TLV); t.lv = ks[(ks.indexOf(t.lv)+1) % ks.length]; renderSheet(); return; }
+    case "amore": c.more = true; renderSheet(); return;
+    case "mlog": e.stopPropagation(); delete S.drafts["ml-val"]; delete S.drafts["ml-text"]; openSheet({type:"mlog", pid, share:false}); setTimeout(() => { const x = $("#ml-val"); x && x.focus(); }, 50); return;
+    case "submit-mlog": { const pj = S.projects[c.pid]; if (!pj) return; const v = parseNum(($("#ml-val")||{}).value); if (v == null){ toast("숫자를 넣어 주세요"); return; }
+      if (c.share){ const text = (($("#ml-text")||{}).value||"").trim(); run(() => api.addPost({ref:{type:"project", id:pj.id, label:pj.title}, text, mood:null, value:v}, []), () => { delete S.drafts["ml-val"]; delete S.drafts["ml-text"]; closeSheet(); toast("기록하고 커뮤니티에 공유했어요"); }); return; }
+      const key = "ml-" + pj.id, old = S.mine[key] || {kind:"mlog", projectId:pj.id, logs:[]}; const doc = {kind:"mlog", projectId:pj.id, logs:[...(old.logs||[]), {v, at:Date.now()}]};
+      run(() => api.putMine(key, doc), () => { delete S.drafts["ml-val"]; closeSheet(); toast(`📈 ${numFmt(v)}${esc(pj.metric.unit)} 기록했어요`); }); return; }
+    case "hintx": hintDone(b.dataset.k); return;
+    case "rolldis": LS.set("rolldis", today()); break;
+    case "rolldel": { if (S.armed !== "rolldel") return; S.armed = null; const t0 = today(), ls = mineOf("mission").filter(m => !m.done && m.origDue && m.origDue < t0 && m.due === t0), pjs = new Set(ls.map(m => m.projectId).filter(Boolean));
+      run(async () => { for (const m of ls) await api.delMine(m.id); }, () => { toast(`지난 태스크 ${ls.length}개를 삭제했어요`); pjs.forEach(syncProgress); }); return; }
+    case "cvfold": { const l = LS.get("cvfold", []), i = l.indexOf(pid); if (i >= 0) l.splice(i, 1); else l.push(pid); LS.set("cvfold", l); break; }
+    case "gtmore": { const cur = S.gtN && S.gtN.pid === pid ? S.gtN.n : 10; S.gtN = {pid, n:cur + 10}; break; }
+    case "gdone": S.gDone = S.gDone === pid ? null : pid; break;
+    case "actmore": S.actN = (S.actN || 10) + 10; break;
+    case "jfold": { const k = b.dataset.k; if (!S.jOpen) S.jOpen = new Set(); S.jOpen.has(k) ? S.jOpen.delete(k) : S.jOpen.add(k); if (S.compose && S.compose.type === "logs"){ renderSheet(); return; } break; }
+    case "tmnone": c.time = ""; c._tw = false; renderSheet(); return;
+    case "tmset": { ["ta-name","te-name","te-note","ad-name","nt-name"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); if (!c.time) c.time = "09:00"; c._tw = !c._tw; if (c._tw) c._dp = null; renderSheet(); return; }
+    case "tmdone": c._tw = false; renderSheet(); return;
+    case "cdue1": { ["ta-name","te-name","te-note","ad-name","nt-name"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); const v = b.dataset.v; c.due = v; c.period = ""; if (!c.time) c.time = "09:00"; c._tw = true; c._dp = null; renderSheet(); return; }
+    case "cdue": { const [p0, v0] = b.dataset.v.split(":"); c.period = p0 === "day" ? "" : p0; c.due = v0; renderSheet(); return; }
+    case "shareday": openCompose({fixed:true, title:"🎉 오늘 퀘스트<br>모두 완료!"}); return;
+    case "suggest": { const n = b.dataset.v, lv = (SUGGEST.find(x => x[0] === n)||[])[1] || "easy"; if (dupQ(n)){ toast(DUPMSG); return; } b.disabled = true;
+      run(() => api.putMine(uid8(), {kind:"quest", name:n, days:[0,1,2,3,4,5,6], lv, active:true, done:{}, createdAt:Date.now()}), () => toast(`🔥 '${esc(n)}' 추가`)); return; }
+    case "hedit": { e.stopPropagation(); const q = S.mine[id]; if (!q || !S.canWrite) return; S.drafts["he-name"] = q.name; const r = qRepeat(q);
+    openSheet({type:"hedit", id, days:((r.days||q.days||[])).slice(), hlv:lvKey(q.lv), time:q.time||"09:00", rpt:r.type,
+      rweeks:r.weeks||2, revery:r.every||3, rday:r.day||15, rmonths:r.months||3, ron:r.on||2, roff:r.off||1,
+      ranchor:r.anchor || activityDate(q.createdAt) || today()}); return; }
+    case "submit-hedit": { const q = S.mine[c.id], name = ($("#he-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (dupQ(name, c.id)){ toast(DUPMSG); return; } if (!c.days.length){ toast("요일을 골라 주세요"); return; }
+      const rp2 = buildRepeat(c); if (needsDays(rp2.type) && !rp2.days.length){ toast("요일을 골라 주세요"); return; }
+      if (!c.time){ toast("시간을 골라 주세요"); return; } run(() => api.putMine(c.id, {...q, name, time:c.time, repeat:rp2, days:rp2.days||[], lv:c.hlv}), () => { closeSheet(); toast("저장했어요"); }); return; }
+    case "htoggle": { const q = S.mine[c.id]; run(() => api.putMine(c.id, {...q, active:q.active === false}), () => { closeSheet(); toast(q.active === false ? "다시 시작했어요" : "쉬는 중으로 옮겼어요"); }); return; }
+    case "hcheckd": { e.stopPropagation(); const q = S.mine[id]; if (!q) return; const d = b.dataset.d; if (d !== today()){ toast("지난 날짜의 완료는 바꿀 수 없어요"); return; } const dn = {...(q.done||{})}; if (dn[d]) delete dn[d]; else dn[d] = Date.now(); run(() => api.putMine(id, {...q, done:dn}), () => { toast(dn[d] ? "완료했어요" : "완료를 취소했어요"); }); return; }
+    case "hdel": { const hid = c.id; if (S.armed !== "hd"+hid){ arm("hd"+hid); renderSheet(); return; } S.armed = null; run(() => api.delMine(hid), () => { closeSheet(); toast("데일리 퀘스트를 삭제했어요"); }); return; }
+    case "submit-add": { if (!readTime(c)) return; const name = ($("#ad-name").value||"").trim(); if (!name){ toast("무엇을 할지 적어 주세요"); $("#ad-name").focus(); return; }
+      const K = c.kind, done0 = () => { ["ad-name","ad-end","pj-ms","pj-mt","pj-unit","nt-name"].forEach(k => delete S.drafts[k]); closeSheet(); };
+      if (K === "once" && !c.due){ toast("날짜를 골라 주세요"); return; } if (K === "once" && !c.time){ toast("시간을 골라 주세요"); return; }
+      if (K === "once"){ const pj = c.projectId || null; run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", due:c.due||"", time:c.due ? (c.time||"") : "", period:c.due ? (c.period||"") : "", today:false, projectId:pj, done:false, createdAt:Date.now()}), () => { done0(); toast("✅ 태스크를 추가했어요"); if (pj) syncProgress(pj); }); return; }
+      if (K === "daily"){ const rp = buildRepeat(c); if (needsDays(rp.type) && !rp.days.length){ toast("요일을 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } if (dupQ(name)){ toast(DUPMSG); return; } run(() => api.putMine(uid8(), {kind:"quest", name, time:c.time, repeat:rp, days:rp.days||[], lv:c.hlv||"easy", active:true, done:{}, createdAt:Date.now()}), () => { done0(); toast("🔥 데일리 퀘스트를 만들었어요"); }); return; }
+      if (K === "sub"){ if (!c.end){ toast("마감일을 골라 주세요"); return; } if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; } const mt = readMetric(c); if (mt === false) return; const tasks = pendingTasks(c), pidN = uid8(), par = c.parentId, end = c.end || "";
+        run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, parentId:par, title:name, start:today(), end, status:"active", metric:mt, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
+          () => { done0(); syncProgress(par); toast("🔗 서브 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
+      if (!c.end){ toast("마감일을 골라 주세요"); return; }
+      let metric = null; if (c.unit){ const s0 = parseNum(($("#pj-ms")||{}).value), t0 = parseNum(($("#pj-mt")||{}).value); if (s0 == null || t0 == null || s0 === t0){ toast("지금 숫자와 목표 숫자를 넣어 주세요"); return; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return; } metric = {unit, start:s0, target:t0}; }
+      const tasks = c.more ? pendingTasks(c) : [], pidN = uid8(), end = c.end || "";
+      run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, title:name, start:today(), end, status:"active", metric, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
+        () => { done0(); toast("🎯 메인 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
+    case "tedit": { e.stopPropagation(); delete S.drafts["tm-in"]; const m = S.mine[id]; if (!m || !S.canWrite) return; S.drafts["te-name"] = m.name; S.drafts["te-note"] = m.note || ""; openSheet({type:"tedit", id, time:m.time || "", lv:m.lv || "normal", due:m.period ? m.due : dueOf(m), period:m.period || "", projectId:m.projectId || null}); return; }
+    case "submit-tedit": { if (!readTime(c)) return; const m = S.mine[c.id], name = ($("#te-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; }
+      const old = m.projectId, nm = {...m, name, note:($("#te-note").value||"").trim(), lv:c.lv, projectId:c.projectId || null, due:c.due || "", time:c.due ? (c.time||"") : "", period:c.due ? (c.period||"") : "", today:false};
+      run(() => api.putMine(c.id, nm), () => { closeSheet(); toast("저장했어요"); if (old) syncProgress(old); if (nm.projectId && nm.projectId !== old) syncProgress(nm.projectId); }); return; }
+    case "tdel": { const tid = c.id; if (S.armed !== "td"+tid){ arm("td"+tid); renderSheet(); return; } S.armed = null; const pj = S.mine[tid].projectId;
+      run(() => api.delMine(tid), () => { closeSheet(); toast("태스크를 삭제했어요"); if (pj) syncProgress(pj); }); return; }
+    case "qdel": if (S.armed !== "qd"+id){ arm("qd"+id); return; } S.armed = null; run(() => api.delMine(id), () => toast("데일리 퀘스트를 삭제했어요")); return;
+    case "share-after": { const sh = c.share; closeSheet(); openCompose({ref:sh.ref, fixed:true, title:sh.title}); return; }
+    case "submit-mission": { const name = ($("#ms-name").value||"").trim(); if (!name){ toast("태스크를 적어 주세요"); return; }
+      const pjId = c.projectId || null;
+      run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", today:$("#ms-today").checked, projectId:pjId, done:false, createdAt:Date.now()}), () => { delete S.drafts["ms-name"]; closeSheet(); toast("태스크를 추가했어요"); if (pjId) syncProgress(pjId); }); return; }
+    case "submit-quest": { const name = ($("#qs-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (dupQ(name)){ toast(DUPMSG); return; } if (!c.days.length){ toast("요일을 골라 주세요"); return; }
+      const rp3 = buildRepeat(c); if (needsDays(rp3.type) && !rp3.days.length){ toast("요일을 골라 주세요"); return; }
+      run(() => api.putMine(uid8(), {kind:"quest", name, time:c.time||"09:00", repeat:rp3, days:rp3.days||[], lv:c.lv||"easy", active:true, done:{}, createdAt:Date.now()}), () => { ["qs-name","qs-purpose"].forEach(k => delete S.drafts[k]); closeSheet(); toast("🔥 데일리 퀘스트를 만들었어요"); }); return; }
+    case "submit-project": { const title = ($("#pj-title").value||"").trim(); if (!title){ toast("메인 퀘스트를 적어 주세요"); return; }
+      if (!c.end){ toast("마감일을 골라 주세요"); return; }
+      let metric = null; if (c.unit){ const s0 = parseNum($("#pj-ms").value), t0 = parseNum($("#pj-mt").value); if (s0 == null || t0 == null || s0 === t0){ toast("지금 숫자와 목표 숫자를 넣어 주세요"); return; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return; } metric = {unit, start:s0, target:t0}; }
+      const text = ($("#pj-text").value||"").trim(), pidN = uid8();
+      const tasks = pendingTasks(c);
+      const doc = {owner:S.me, title, start:today(), end:c.end||"", status:"active", metric, progress:{done:0,total:tasks.length}, createdAt:Date.now()};
+      run(async () => { doc.cover = await saveCover(c); await api.putProject(pidN, doc); await saveTasks(tasks, pidN); if (text) await api.addPost({ref:{type:"project", id:pidN, label:title}, text, mood:"설레요"}, []); },
+        () => { ["pj-title","pj-text","pj-end","pj-ms","pj-mt","pj-unit","nt-name"].forEach(k => delete S.drafts[k]); closeSheet(); toast("🎯 메인 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
+    case "submit-reward": { const name = ($("#rw-name").value||"").trim(); if (!name){ toast("보상 이름을 적어 주세요"); return; }
+      const cost=Number(($('#rw-cost')||{}).value);if(!Number.isSafeInteger(cost)||cost<5||cost%5){toast('가격은 5 이상, 5 단위 정수로 입력해 주세요.');return;}const id0=c.id||uid8(),old=c.id?S.mine[c.id]:null;
+      const dailyLimit=$('#rw-daily')?.value?Number($('#rw-daily').value):null,weeklyLimit=$('#rw-weekly')?.value?Number($('#rw-weekly').value):null;
+      const doc = {...(old || {}), kind:"reward", name, cost, repeat:$('#rw-repeat')?.value||'repeat',dailyLimit,weeklyLimit,img:c.img || null, createdAt:(old && old.createdAt) || Date.now()}; delete doc.id; delete doc.tier;
+      run(() => api.putMine(id0, doc), () => { delete S.drafts["rw-name"]; closeSheet(); toast(c.id ? "보상을 수정했어요" : "🎁 보상을 등록했어요"); }); return; }
+    case "redit": { const r = S.mine[id]; if (!r) return; S.drafts["rw-name"] = r.name;delete S.drafts['rw-cost'];openSheet({type:"reward", id, cost:priceOf(r),repeat:r.repeat||'repeat',dailyLimit:r.dailyLimit,weeklyLimit:r.weeklyLimit,img:r.img || null}); return; }
+    case "rimg": choosePhotos(false, async list => { if (!S.compose || S.compose.type !== "reward") return; S.compose.img = await shrinkImg(list[0], 640, 90000); renderSheet(); }); return;
+    case "rimgdel": c.img = null; renderSheet(); return;
+    case "rdel": { const rid = c.id; if (S.armed !== "rd"+rid){ arm("rd"+rid); renderSheet(); return; } S.armed = null; run(() => api.delMine(rid), () => { closeSheet(); toast("보상을 삭제했어요"); }); return; }
+    case "submit-post": { const text = ($("#po-text").value||"").trim(); let value;
+      const vEl = $("#po-val"); if (vEl && vEl.value.trim()){ value = parseNum(vEl.value); if (value == null){ toast("숫자만 넣어 주세요"); return; } }
+      if (!text && !c.photos.length && value === undefined && !c.ref){ toast("글이나 사진을 넣어 주세요"); return; }
+      const post = {ref:c.ref||null, text, mood:c.mood||null}; if (value !== undefined) post.value = value;
+      run(() => api.addPost(post, c.photos), () => { ["po-text","po-val"].forEach(k => delete S.drafts[k]); closeSheet(); toast("커뮤니티에 공유했어요"); if (S.view.name !== "project") go("feed"); }); return; }
+    case "submit-reply": { const text = ($("#rp-text").value||"").trim(); if (!text){ toast("답글을 적어 주세요"); return; }
+      run(() => api.addReply(c.pid, text, c.cid), () => { delete S.drafts["rp-text"]; const p0 = c.pid; closeSheet(); toast("답글을 남겼어요"); if (!(S.view.name === "post" && S.view.pid === p0)) openPost(p0); }); return; }
+    case "faceupload":
+    case "faceshot": { const inSheet = c && c.type === "profile", tgt = inSheet ? c : S.ob, re = () => inSheet ? (S.compose === tgt && renderSheet()) : schedule();
+      if (!devCharacter){ toast(photoNotice); return; }
+      if (tgt.making) return;
+      const devCode = $("#character-dev-code")?.value;
+      if (devCode?.trim()) characterClient.setDevCode(devCode);
+      if ($("#character-dev-code")) $("#character-dev-code").value = '';
+      tgt.consent = !!$("#character-consent")?.checked;
+      if (!tgt.consent){ tgt.characterError = '사진 전송에 먼저 동의해 주세요.'; re(); return; }
+      if (!inSheet){ const n = $("#nick"); if (n) S.drafts.nick = n.value; } else { ["ep-nick","ep-bio"].forEach(k => { const el = $("#"+k); if (el) S.drafts[k] = el.value; }); }
+      takeFace(b.dataset.act === 'faceupload' ? '#characterUploadIn' : '#characterCameraIn', tgt, re); return; }
+    case "facedel": { const inSheet = c && c.type === "profile", tgt = inSheet ? c : S.ob; if (tgt.making) return; tgt.avatarStyle = null; tgt.characterError = ''; if (inSheet){ ["ep-nick","ep-bio"].forEach(k => { const el = $("#"+k); if (el) S.drafts[k] = el.value; }); c.face = ""; renderSheet(); } else { const n = $("#nick"); if (n) S.drafts.nick = n.value; S.ob.face = ""; schedule(); } return; }
+    case "submit-profile": { if (c.making) return; const nick = ($("#ep-nick").value||"").trim(); if (!nick){ toast("닉네임을 적어 주세요"); return; }
+      run(async () => { const fk = await storeFace(c.face); await api.saveProfile({nick, bio:($("#ep-bio").value||"").trim(), color:S.swatch, ...(fk !== undefined ? {face:fk, avatarStyle:c.avatarStyle || null} : {})}); }, () => { delete S.drafts["ep-nick"]; delete S.drafts["ep-bio"]; closeSheet(); toast("프로필을 저장했어요"); }); return; }
+    default: return;
+  }
+  schedule();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target.id === "ta-name" && !e.isComposing){ e.preventDefault(); const bt = document.querySelector('[data-act="submit-taskadd"]'); bt && bt.click(); return; }
+  if (e.key === "Enter" && e.target.id === "nt-name" && !e.isComposing){ e.preventDefault(); const bt = document.querySelector('[data-act="addtask"]'); bt && bt.click(); return; }
+  if (e.key === "Escape"){ if (SV) svClose(); else if (S.compose) closeSheet(); }
+  if (SV && document.activeElement?.id !== "sv-reply"){ if (e.key === "ArrowRight") svStep(1); if (e.key === "ArrowLeft") svStep(-1); }
+  if ((e.key === "Enter" || e.key === " ") && e.target.getAttribute && e.target.getAttribute("role") === "button"){ e.preventDefault(); e.target.click(); }
+});
+document.addEventListener("scroll", e => { const t = e.target; if (t && t.classList && t.classList.contains("wd-ggrid") && t.closest(".wd-goals")) S.wdGs = t.scrollLeft; }, true);
+document.addEventListener("input", e => {
+  if (e.target.id === 'character-dev-code') { if (devCharacter) characterClient.setDevCode(e.target.value); return; }
+  if (['alv','hlv','tlv','ntlv'].includes(e.target.id) && S.compose) { preserveSheetDrafts(); S.compose[e.target.id==='hlv'?'hlv':e.target.id==='ntlv'?'ntlv':'lv']=lvKey(e.target.value); renderSheet(); return; }
+  if (e.target.id) S.drafts[e.target.id] = e.target.value;
+  if (e.target.id === "pj-unit") document.querySelectorAll(".uval").forEach(x => x.textContent = e.target.value);
+  if (e.target.id === "pl-cond"){ S.planner.cond = +e.target.value; e.target.style.setProperty("--p", e.target.value + "%"); const v = e.target.parentNode.querySelector("#pl-cond-v"); if (v) v.textContent = e.target.value + "%"; }
+});
+document.addEventListener("change", e => { if (e.target.id === "ml-share" && S.compose && S.compose.type === "mlog"){ const v = ($("#ml-val")||{}).value; if (v != null) S.drafts["ml-val"] = v; S.compose.share = e.target.checked; renderSheet(); return; } if (e.target.id === "pl-share") S.planner.share = e.target.checked;
+  if (e.target.id === 'character-consent') (S.compose && S.compose.type === 'profile' ? S.compose : S.ob).consent = e.target.checked;
+  if (e.target.id === "tm-in" && S.compose){ const v = parseTime(e.target.value); if (v !== null){ S.compose.time = v; S.drafts["tm-in"] = v ? tmLabel(v) : ""; e.target.value = S.drafts["tm-in"]; } }
+ });
+document.addEventListener("submit", e => {
+  e.preventDefault(); if (!S.canWrite) return; const f = e.target;
+  if (f.dataset.form === "profile"){ if (entryScreen === 'login' || S.ob.making) return; const nick = $("#nick").value.trim(); if (!nick) return;
+    run(async () => { const fk = await storeFace(S.ob.face); await api.saveProfile({nick, color:S.swatch, bio:"", face:fk || null, avatarStyle:S.ob.avatarStyle || null}); }, () => { entryScreen = null; delete S.drafts.nick; S.ob = {face:"", making:false}; go('dash'); toast("모험을 시작했어요!"); }); }
+  else if (f.dataset.form === "hide"){ const w = ($("#set-hide").value||"").trim(); if (!w) return; const st = getSet();
+    run(() => api.putMine("settings", {kind:"settings", ...st, hidden:[...new Set([...st.hidden, w])]}), () => { delete S.drafts["set-hide"]; }); }
+  else if (f.dataset.form === "quicktask"){ const name = ($("#qm-name").value||"").trim(); if (!name) return;
+    run(() => api.putMine(uid8(), {kind:"mission", name, today:true, projectId:null, done:false, createdAt:Date.now()}), () => { delete S.drafts["qm-name"]; }); }
+  else if (f.dataset.form === "goaltask"){ const pid = f.dataset.p, name = ($("#pm-"+pid).value||"").trim(); if (!name) return;
+    run(() => api.putMine(uid8(), {kind:"mission", name, today:false, projectId:pid, done:false, createdAt:Date.now()}), () => { delete S.drafts["pm-"+pid]; syncProgress(pid); }); }
+});
+setInterval(schedule, 60000);
+
+/* ================= injected local runtime ================= */
+// Explicit seam: storage owns persistence; this module owns UI state only.
+S.mode = "local"; S.me = storage.identity; S.canWrite = true;
+const saved = storage.load();
+const initial = saved || seed || storage.empty();
+if (!saved) storage.save(initial);
+storage.hydrate(S, initial);
+if(!S.economy)storage.commit(S,next=>migrateEconomy(next,Date.now(),S.me));
+if (!entryScreen && !hasProfile()) entryScreen = 'login';
+api = runtime.createAPI({state:S, storage, id:uid8, now:Date.now, color:COLORS[0]});
+MY = computeMine(); S.lastXp = MY.xp; S.lastLv = MY.L;
+applyTheme(); route(); schedule();
+return {state:S, api, snapshot:() => storage.capture(S)};
+}

@@ -1,0 +1,34 @@
+import {parseBackup} from './storage.js';
+/** Explicit file actions only. Uses the SAME storage instance as the UI runtime. */
+export function installBackups({document, storage, getState, confirm, alert, reload, URL, Blob}) {
+  async function handle(event) {
+    const b = event.target.closest('[data-act="bkexp"],[data-act="bkimp"],[data-act="bkreset"]');
+    if (!b) return;
+    try {
+      if (b.dataset.act === 'bkexp') {
+        const raw = storage.export(getState());
+        const a = document.createElement('a');
+        const href = URL.createObjectURL(new Blob([raw], {type:'application/json'}));
+        a.href = href; a.download = 'quest-backup-'+new Date().toISOString().slice(0,10)+'.json';
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(href), 3000);
+      } else if (b.dataset.act === 'bkimp') {
+        const input = document.createElement('input'); input.type = 'file'; input.accept = '.json,application/json';
+        input.onchange = async () => {
+          try {
+            const f = input.files[0]; if (!f) return;
+            if (f.size > 20 * 1024 * 1024) throw new Error('백업 파일은 20MB 이하여야 합니다.');
+            const text = await f.text();
+            // Validate BEFORE prompting/replacing; never load quest:v1 automatically.
+            parseBackup(text);
+            if (!confirm('현재 '+storage.mode+' 작업 공간을 이 백업으로 교체할까요? 기존 기록은 덮어씁니다.')) return;
+            storage.import(text); reload();
+          } catch (error) { alert('백업 가져오기 실패: '+error.message); }
+        }; input.click();
+      } else if (confirm('현재 '+storage.mode+' 작업 공간만 초기화할까요? 되돌릴 수 없습니다.')) {
+        storage.reset(); reload();
+      }
+    } catch (error) { alert('백업 작업 실패: '+error.message); }
+  }
+  document.addEventListener('click', handle, true);
+  return () => document.removeEventListener('click', handle, true);
+}
