@@ -1099,3 +1099,18 @@ test('rewards tab keeps per-reward purchase history with use and refund actions'
   assert.match(h.nodes.get('app').innerHTML,/구매·사용 기록/);
   assert.deepEqual(h.snapshot(),before);
 });
+test('month view: daily quests show past completions, today with a checkbox, and only the next occurrence once today is done',async()=>{
+  const base = await profileUI(), saved = base.snapshot(), DAYMS = 86400000, kd = t => new Date(t+9*3600000).toISOString().slice(0,10);
+  const T = kd(Date.now()), Y = kd(Date.now()-DAYMS), TM = kd(Date.now()+DAYMS), old = Date.now()-30*DAYMS;
+  saved.mine.qa = {id:'qa',kind:'quest',name:'안 한 데일리',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{[Y]:Date.now()-DAYMS},createdAt:old};
+  saved.mine.qb = {id:'qb',kind:'quest',name:'한 데일리',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{[T]:Date.now()},createdAt:old};
+  const h = await profileUI(saved); h.route('cal'); h.click('cpick',{v:T.slice(0,8)+'01',m:'month'});
+  const html = h.nodes.get('app').innerHTML, cells = id => [...html.matchAll(new RegExp(`data-act="hcheckd" data-id="${id}" data-d="([^"]+)"`,'g'))].map(m => m[1]);
+  const inMonth = d => d.slice(0,7) === T.slice(0,7);
+  assert.deepEqual(cells('qa'),[Y,T].filter(inMonth),'not done today: past record + today only');
+  assert.deepEqual(cells('qb'),[T,TM].filter(inMonth),'done today: today + next occurrence');
+  assert.match(html,new RegExp(`data-id="qa" data-d="${T}"  aria-pressed="false"`));
+  if (inMonth(Y)) assert.match(html,new RegExp(`data-id="qa" data-d="${Y}" disabled aria-pressed="true"`));
+  h.click('hcheckd',{id:'qa',d:T}); await h.settle();
+  const after = h.nodes.get('app').innerHTML; assert.ok([...after.matchAll(/data-id="qa" data-d="([^"]+)"/g)].map(m => m[1]).includes(TM) || !inMonth(TM),'completing today adds the next one');
+});

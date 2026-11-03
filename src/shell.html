@@ -767,6 +767,9 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .mcell i.done{background:var(--fill);color:var(--muted);text-decoration:line-through}
 .mcell i.late{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
 .mcell i.more{background:none;color:var(--muted)}
+.mcell i.hab{background:color-mix(in srgb,var(--xp) 14%,var(--card));color:color-mix(in srgb,var(--xp) 70%,var(--ink))}
+.mcell i.hab.done{background:var(--fill);color:var(--muted);text-decoration:line-through}
+.mcell i.hab .mchk:disabled{cursor:default}
 .wgrid{height:346px;overflow:auto;overscroll-behavior:contain;background:var(--card);border-radius:20px;position:relative}
 .wg{display:grid;grid-template-columns:52px repeat(7,calc((min(100vw - 32px, 540px) - 52px)/3));position:relative;width:max-content}
 .wgc{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 55%,transparent);min-height:38px;min-width:0}

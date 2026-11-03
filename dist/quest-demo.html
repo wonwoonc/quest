@@ -767,6 +767,9 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .mcell i.done{background:var(--fill);color:var(--muted);text-decoration:line-through}
 .mcell i.late{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
 .mcell i.more{background:none;color:var(--muted)}
+.mcell i.hab{background:color-mix(in srgb,var(--xp) 14%,var(--card));color:color-mix(in srgb,var(--xp) 70%,var(--ink))}
+.mcell i.hab.done{background:var(--fill);color:var(--muted);text-decoration:line-through}
+.mcell i.hab .mchk:disabled{cursor:default}
 .wgrid{height:346px;overflow:auto;overscroll-behavior:contain;background:var(--card);border-radius:20px;position:relative}
 .wg{display:grid;grid-template-columns:52px repeat(7,calc((min(100vw - 32px, 540px) - 52px)/3));position:relative;width:max-content}
 .wgc{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 55%,transparent);min-height:38px;min-width:0}
@@ -2406,10 +2409,17 @@ function viewCal(){
     const activities = dayActivityIndex();
     h += `<p class="hint">지난 날짜는 기록 보기 · 오늘부터는 일정 보기</p>`;
     h += `<section class="card mgrid mtask"><div class="wk">${["월","화","수","목","금","토","일"].map(w => `<span>${w}</span>`).join("")}</div><div class="days">`;
-    for (let i = 0; i < 42; i++){ const d = addD(start, i), x = pd(d); if (i >= 35 && x.getMonth() !== mo) break; const l = byTime(by[d] || []); const hq = habitsOn(d);
+    // Daily quests: past = completed records, today = scheduled, future = only the NEXT occurrence,
+    // and only once today's is done (or not scheduled today). After midnight it rolls forward by itself.
+    const actQ = mineOf("quest").filter(q => q.active !== false), occ = (q, d) => occursOn(qRepeat(q), d) && activityDate(q.createdAt || 0) <= d;
+    const nextOf = new Map(actQ.map(q => { let d = addD(t, 1); for (let k = 0; k < 400 && !occ(q, d); k++) d = addD(d, 1); return [q.id, occ(q, d) ? d : ""]; }));
+    const monthHabits = d => d < t ? mineOf("quest").filter(q => (q.done || {})[d]).map(q => ({...q, doneHabit:true}))
+      : d === t ? habitsOn(t)
+      : actQ.filter(q => nextOf.get(q.id) === d && (!occ(q, t) || !!(q.done || {})[t])).map(q => ({...q, doneHabit:false}));
+    for (let i = 0; i < 42; i++){ const d = addD(start, i), x = pd(d); if (i >= 35 && x.getMonth() !== mo) break; const l = byTime(by[d] || []); const hq = habitsOn(d), mh = monthHabits(d);
       const acts = selectDayActivities(activities,d), dailyIds = new Set(acts.daily.map(x => x.id));
       const count = acts.count + hq.filter(q => q.doneHabit && !dailyIds.has(q.id)).length;
-      h += `<div class="mcell ${x.getMonth() !== mo ? "out" : ""} ${d === t ? "is-today" : ""}" data-act="cdate" data-v="${d}"><button class="mn" data-act="cdate" data-v="${d}" aria-label="${d} 날짜 눌러 ${d < t ? "기록" : "일정"} 보기${count ? ` · 기록·완료 ${count}개` : ''}">${x.getDate()}${count ? `<small class="activity-count">${count}</small>` : ''}</button>${hq.slice(0,1).map(q => `<i class="hab ${q.doneHabit ? "done" : ""}"><span class="mtx"><span>${esc(q.name)}</span></span></i>`).join("")}${l.slice(0,3).map(m => `<i class="${m.done ? "done" : !m.done && d < t ? "late" : ""}"><button class="mchk ${m.done ? "on" : ""}" data-act="mcheck" data-id="${esc(m.id)}" aria-pressed="${!!m.done}" aria-label="${esc(m.name)} 완료">${I.check}</button><span class="mtx"><span>${esc(m.name)}</span></span></i>`).join("")}${l.length > 3 ? `<i class="more">+${l.length - 3}</i>` : ""}</div>`; }
+      h += `<div class="mcell ${x.getMonth() !== mo ? "out" : ""} ${d === t ? "is-today" : ""}" data-act="cdate" data-v="${d}"><button class="mn" data-act="cdate" data-v="${d}" aria-label="${d} 날짜 눌러 ${d < t ? "기록" : "일정"} 보기${count ? ` · 기록·완료 ${count}개` : ''}">${x.getDate()}${count ? `<small class="activity-count">${count}</small>` : ''}</button>${mh.map(q => `<i class="hab ${q.doneHabit ? "done" : ""}"><button class="mchk ${q.doneHabit ? "on" : ""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${d}" ${d === t ? "" : "disabled"} aria-pressed="${q.doneHabit}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="mtx"><span>${esc(q.name)}</span></span></i>`).join("")}${l.slice(0,3).map(m => `<i class="${m.done ? "done" : !m.done && d < t ? "late" : ""}"><button class="mchk ${m.done ? "on" : ""}" data-act="mcheck" data-id="${esc(m.id)}" aria-pressed="${!!m.done}" aria-label="${esc(m.name)} 완료">${I.check}</button><span class="mtx"><span>${esc(m.name)}</span></span></i>`).join("")}${l.length > 3 ? `<i class="more">+${l.length - 3}</i>` : ""}</div>`; }
     h += `</div></section>`;
   } else {
     const y = D0.getFullYear();
