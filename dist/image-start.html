@@ -2965,6 +2965,8 @@ function preserveSheetDrafts() {
   const todayInput=$('#ms-today'); if(todayInput&&S.compose) S.compose.today=todayInput.checked;
 }
 function sheetWrap(title, desc, body){ const creation=/^(메인|서브) 퀘스트 (추가|만들기)$/.test(title),sub=title.startsWith('서브');$("#overlay").innerHTML = `<div class="scrim" data-act="sheet-bg"><div class="sheet" role="dialog" aria-modal="true"><h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}</div></div>`; initTW(); }
+const RW_PRICES = [100, 300, 500, 1000, 3000];
+const rwCustom = c => c.cost !== "" && c.cost != null && !RW_PRICES.includes(+c.cost);
 function renderSheet(){ IXC = null;
   const c = S.compose; if (!c){ $("#overlay").innerHTML = ""; return; }
   if (c.type === 'day') return calendarDaySheet(c.date);
@@ -3035,8 +3037,8 @@ function renderSheet(){ IXC = null;
     <button class="rpick" data-act="rimg">${c.img ? `<img src="${c.img}" alt="보상 이미지">` : `<span>🎁</span>`}<em>${c.img ? "이미지 바꾸기" : "📷 이미지 추가"}</em></button>
     ${c.img ? `<button class="link" style="margin:-6px 0 12px" data-act="rimgdel">이미지 빼기</button>` : ""}
     <div class="field"><input type="text" id="rw-name" maxlength="40" placeholder="예: 좋아하는 카페 디저트" value="${D("rw-name")}" aria-label="보상 이름"></div>
-    <div class="field"><span class="lab">가격 · 5 이상, 5 단위</span><div class="numrow"><input type="number" min="5" step="5" id="rw-cost" placeholder="직접 정해 주세요" value="${esc(S.drafts['rw-cost'] ?? c.cost ?? '')}" aria-label="가격 직접 입력"><span>코인</span></div></div>
-    <div class="field"><label class="lab" for="rw-repeat">교환 방식</label><select id="rw-repeat"><option value="repeat" ${c.repeat!=='once'?'selected':''}>반복</option><option value="once" ${c.repeat==='once'?'selected':''}>1회</option></select></div><div class="two"><label>일일 횟수 제한 (선택)<input id="rw-daily" type="number" min="1" step="1" value="${esc(c.dailyLimit||'')}"></label><label>주간 횟수 제한 (선택)<input id="rw-weekly" type="number" min="1" step="1" value="${esc(c.weeklyLimit||'')}"></label></div>
+    <div class="field"><span class="lab">가격</span><div class="chips">${RW_PRICES.map(v => `<button class="chip" data-act="cset" data-f="cost" data-v="${v}" aria-pressed="${!rwCustom(c) && +c.cost === v}">🪙 ${fmt(v)}</button>`).join("")}</div>
+      <div class="numrow" style="margin-top:6px"><input type="text" inputmode="numeric" id="rw-cost" placeholder="직접 입력 (5 단위)" value="${rwCustom(c) ? esc(c.cost) : ""}" aria-label="가격 직접 입력"><span>코인</span></div></div>
     <button class="btn big full" data-act="submit-reward">${c.id ? "저장" : "보상 등록"}</button>
     ${c.id ? `<button class="btn sec full" style="margin-top:10px;color:var(--warn)" data-act="rdel">${S.armed === "rd"+c.id ? "한 번 더 누르면 삭제" : "삭제"}</button>` : ""}`); }
   if (c.type === "profile"){ const p = prof(S.me), fc = c.face === undefined ? p.face : c.face;
@@ -3387,7 +3389,7 @@ document.addEventListener("click", e => {
       if (k === "profile") S.swatch = prof(S.me).color || S.swatch;
        if (k === "reward"){delete S.drafts["rw-name"];delete S.drafts['rw-cost'];}
       if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:false}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
-       const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : "", period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null, tasks:[]}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:'',repeat:'repeat'}, profile:{}}[k] || {};
+       const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : "", period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null, tasks:[]}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:300}, profile:{}}[k] || {};
       openSheet({type:k, ...base}); return; }
     case "sheet-bg": if (e.target === b) closeSheet(); return;
     case "sheet-close": closeSheet(); return;
@@ -3572,11 +3574,11 @@ document.addEventListener("click", e => {
       run(async () => { doc.cover = await saveCover(c); await api.putProject(pidN, doc); await saveTasks(tasks, pidN); if (text) await api.addPost({ref:{type:"project", id:pidN, label:title}, text, mood:"설레요"}, []); },
         () => { ["pj-title","pj-text","pj-end","pj-ms","pj-mt","pj-unit","nt-name"].forEach(k => delete S.drafts[k]); closeSheet(); toast("🎯 메인 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
     case "submit-reward": { const name = ($("#rw-name").value||"").trim(); if (!name){ toast("보상 이름을 적어 주세요"); return; }
-      const cost=Number(($('#rw-cost')||{}).value);if(!Number.isSafeInteger(cost)||cost<5||cost%5){toast('가격은 5 이상, 5 단위 정수로 입력해 주세요.');return;}const id0=c.id||uid8(),old=c.id?S.mine[c.id]:null;
-      const dailyLimit=$('#rw-daily')?.value?Number($('#rw-daily').value):null,weeklyLimit=$('#rw-weekly')?.value?Number($('#rw-weekly').value):null;
-      const doc = {...(old || {}), kind:"reward", name, cost, repeat:$('#rw-repeat')?.value||'repeat',dailyLimit,weeklyLimit,img:c.img || null, createdAt:(old && old.createdAt) || Date.now()}; delete doc.id; delete doc.tier;
+      const typed = String(($('#rw-cost')||{}).value || '').replace(/,/g,'').trim(), cost = typed ? Number(typed) : Number(c.cost);
+      if(!Number.isSafeInteger(cost)||cost<5||cost%5){toast(typed || c.cost !== '' ? '가격은 5 이상, 5 단위 정수로 입력해 주세요.' : '가격을 골라 주세요');return;}const id0=c.id||uid8(),old=c.id?S.mine[c.id]:null;
+      const doc = {...(old || {}), kind:"reward", name, cost, repeat:(old && old.repeat) || 'repeat', img:c.img || null, createdAt:(old && old.createdAt) || Date.now()}; delete doc.id; delete doc.tier;
       run(() => api.putMine(id0, doc), () => { delete S.drafts["rw-name"]; closeSheet(); toast(c.id ? "보상을 수정했어요" : "🎁 보상을 등록했어요"); }); return; }
-    case "redit": { const r = S.mine[id]; if (!r) return; S.drafts["rw-name"] = r.name;delete S.drafts['rw-cost'];openSheet({type:"reward", id, cost:priceOf(r),repeat:r.repeat||'repeat',dailyLimit:r.dailyLimit,weeklyLimit:r.weeklyLimit,img:r.img || null}); return; }
+    case "redit": { const r = S.mine[id]; if (!r) return; S.drafts["rw-name"] = r.name; openSheet({type:"reward", id, cost:priceOf(r), img:r.img || null}); return; }
     case "rimg": choosePhotos(false, async list => { if (!S.compose || S.compose.type !== "reward") return; S.compose.img = await shrinkImg(list[0], 640, 90000); renderSheet(); }); return;
     case "rimgdel": c.img = null; renderSheet(); return;
     case "rdel": { const rid = c.id; if (S.armed !== "rd"+rid){ arm("rd"+rid); renderSheet(); return; } S.armed = null; run(() => api.delMine(rid), () => { closeSheet(); toast("보상을 삭제했어요"); }); return; }
@@ -3617,6 +3619,7 @@ document.addEventListener("input", e => {
   if (e.target.id === 'character-dev-code') { if (devCharacter) characterClient.setDevCode(e.target.value); return; }
   if (['alv','hlv','tlv','ntlv'].includes(e.target.id) && S.compose) { preserveSheetDrafts(); S.compose[e.target.id==='hlv'?'hlv':e.target.id==='ntlv'?'ntlv':'lv']=lvKey(e.target.value); renderSheet(); return; }
   if (e.target.id) S.drafts[e.target.id] = e.target.value;
+  if (e.target.id === "rw-cost" && S.compose && S.compose.type === "reward"){ const v = e.target.value.replace(/,/g,"").trim(); S.compose.cost = v; document.querySelectorAll('#overlay [data-f="cost"]').forEach(x => x.setAttribute("aria-pressed", String(!v && false))); }
   if (e.target.id === "pj-unit") document.querySelectorAll(".uval").forEach(x => x.textContent = e.target.value);
   if (e.target.id === "pl-cond"){ S.planner.cond = +e.target.value; e.target.style.setProperty("--p", e.target.value + "%"); const v = e.target.parentNode.querySelector("#pl-cond-v"); if (v) v.textContent = e.target.value + "%"; }
 });

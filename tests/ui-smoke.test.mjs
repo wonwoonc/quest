@@ -755,13 +755,13 @@ test('economy shop tabs and reward form omit guidance while price constraints st
   assert.match(h.nodes.get('app').innerHTML,/꾸미기|보관함/);assert.doesNotMatch(h.nodes.get('app').innerHTML,/buyrest|휴식권 구매/);
   for(const tab of ['personal','inventory','history','decorate']){h.click('shop-tab',{v:tab});assert.ok(h.nodes.get('app').innerHTML.length);assert.doesNotMatch(h.nodes.get('app').innerHTML,removedEconomyGuidance);}
   h.click('sheet',{k:'reward'});let markup=h.nodes.get('overlay').innerHTML;
-  assert.match(markup,/id="rw-cost"[^>]*value=""/);assert.match(markup,/min="5" step="5"/);assert.doesNotMatch(markup,/data-f="cost"/);
-  assert.match(markup,/가격 · 5 이상, 5 단위/);assert.doesNotMatch(markup,removedEconomyGuidance);
+  assert.match(markup,/id="rw-cost"[^>]*value=""/);for(const v of [100,300,500,1000,3000])assert.match(markup,new RegExp(`data-f="cost" data-v="${v}"`));
+  assert.match(markup,/data-v="300" aria-pressed="true"/,'300 is the default preset');assert.doesNotMatch(markup,/rw-repeat|rw-daily|rw-weekly/);assert.doesNotMatch(markup,removedEconomyGuidance);
   const costField=markup.slice(markup.indexOf('<span class="lab">가격'),markup.indexOf('<span class="lab">가격')+500);
   assert.doesNotMatch(costField,/<p class="hint"/);
   h.nodes.set('rw-name',{value:'직접 정한 보상'});
   const before=h.snapshot();
-  for(const value of ['','0','-5','4','7','7.5','NaN']){
+  for(const value of ['0','-5','4','7','7.5','NaN']){
     h.nodes.set('rw-cost',{value});h.click('submit-reward');await h.settle();
     assert.deepEqual(h.snapshot(),before,`invalid price ${value} never writes`);
     assert.match(h.nodes.get('toast').innerHTML,/가격은 5 이상, 5 단위/);
@@ -770,9 +770,11 @@ test('economy shop tabs and reward form omit guidance while price constraints st
   const r=Object.values(h.snapshot().mine).find(x=>x.kind==='reward');assert.equal(r.cost,65);
   h.route('shop');h.click('shop-tab',{v:'personal'});h.click('wishlist',{id:r.id});await h.settle();assert.equal(h.snapshot().mine[r.id].wishlist,true);
   h.click('redit',{id:r.id});markup=h.nodes.get('overlay').innerHTML;
-  assert.doesNotMatch(markup,removedEconomyGuidance);assert.match(markup,/min="5" step="5"/);
-  assert.match(markup,/value="65"/);h.nodes.set('rw-cost',{value:'5'});h.click('submit-reward');await h.settle();
+  assert.doesNotMatch(markup,removedEconomyGuidance);assert.match(markup,/id="rw-cost"[^>]*value="65"/,'custom price shows in the custom field');
+  h.nodes.set('rw-cost',{value:'5'});h.click('submit-reward');await h.settle();
   assert.equal(h.snapshot().mine[r.id].cost,5,'minimum valid price still saves');
+  h.click('redit',{id:r.id});h.click('cset',{f:'cost',v:'1000'});h.nodes.set('rw-cost',{value:''});h.click('submit-reward');await h.settle();
+  assert.equal(h.snapshot().mine[r.id].cost,1000,'preset chip saves when no custom price is typed');
 });
 test('all activity creation/edit choices contain five tiers and retain legacy tier keys',async()=>{
   const h=await linkedUI();
