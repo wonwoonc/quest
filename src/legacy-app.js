@@ -645,7 +645,9 @@ function viewToday(){
     h += `<div class="starter"><b>이런 데일리 퀘스트로 시작해 보세요</b><div class="chips">${SUGGEST.map(([n]) => `<button class="chip" data-act="suggest" data-v="${esc(n)}">+ ${esc(n)}</button>`).join("")}</div></div>`;
   } else if (!total) h += `<p class="empty-row">오늘 할 데일리 퀘스트가 없어요.</p>`;
   h += todo.map(row).join("");
-  h += done.map(row).join("") + `<button class="tadd-pill" data-act="sheet" data-k="add" data-v="daily">+ 퀘스트 추가</button></section>`;
+  const paused = mineOf("quest").filter(q => q.active === false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+  const pausedRow = q => `<div class="row qrow paused" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><span class="pdot" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="5" width="3.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="3.5" height="14" rx="1.2"/></svg></span><span class="t"><b>${esc(q.name)}</b><small>눌러서 다시 시작</small></span></div>`;
+  h += done.map(row).join("") + (paused.length ? `<p class="grp">쉬는 중 <span class="num">${paused.length}</span></p>` + paused.map(pausedRow).join("") : "") + `<button class="tadd-pill" data-act="sheet" data-k="add" data-v="daily">+ 퀘스트 추가</button></section>`;
   return h;
 }
 function goalRow(p, nested = false){
