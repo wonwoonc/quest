@@ -768,7 +768,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .mcell i.late{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
 .mcell i.more{background:none;color:var(--muted)}
 .wgrid{height:346px;overflow:auto;overscroll-behavior:contain;background:var(--card);border-radius:20px;position:relative}
-.wg{display:grid;grid-template-columns:52px repeat(7,calc((min(100vw,540px) - 32px - 52px)/3));position:relative;width:max-content}
+.wg{display:grid;grid-template-columns:52px repeat(7,calc((min(100vw - 32px, 540px) - 52px)/3));position:relative;width:max-content}
 .wgc{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 55%,transparent);min-height:38px;min-width:0}
 .wgc.corner,.wgc.head{position:sticky;top:0;z-index:2;background:var(--card);min-height:0}
 .wgc.corner{left:0;z-index:3;border-left:0}
@@ -1195,15 +1195,12 @@ a.goldchip{text-decoration:none}
   #app{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:20px;align-items:start}
   #app > *{grid-column:1/-1;min-width:0}
   #app[data-v="feed"] > .feedcard,#app[data-v="profile"] > .feedcard,#app > .card.mq:not(.calmq),#app > .pgc{grid-column:auto}
-  #app[data-v="post"],#app[data-v="project"],#app[data-v="settings"],#app[data-v="activity"]{display:flex;flex-direction:column;align-items:stretch;max-width:860px;margin:0 auto}
+  #app[data-v="post"],#app[data-v="project"],#app[data-v="settings"],#app[data-v="activity"],#app[data-v="calday"]{display:flex;flex-direction:column;align-items:stretch;max-width:860px;margin:0 auto}
   #app[data-v="profile"] > .seg,#app[data-v="profile"] > .segwrap{max-width:none}
   #app[data-v="shop"] > .seg,#app[data-v="cal"] > .seg{max-width:none}
   #app[data-v="shop"] .rgrid{grid-template-columns:repeat(3,1fr);gap:14px}
-  #app[data-v="cal"] .tlscroll{height:296px}
-  #app[data-v="cal"] .wg{grid-template-columns:52px repeat(7,calc((min(100vw,600px) - 32px - 52px)/3));width:max-content}
-  #app[data-v="cal"] .mcell{min-height:78px}
-  #app[data-v="cal"] .ygrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  #app[data-v="feed"],#app[data-v="profile"],#app[data-v="shop"],#app[data-v="cal"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:600px;margin:0 auto}
+  #app[data-v="feed"],#app[data-v="profile"],#app[data-v="shop"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:600px;margin:0 auto}
+  #app[data-v="cal"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:1192px;margin:0 auto}
   #app > .seg,#app > .segwrap{max-width:620px}
   .thead .qcover{aspect-ratio:16/6}
   .replybar{left:244px;bottom:0;padding-left:40px;padding-right:40px}
@@ -1211,6 +1208,7 @@ a.goldchip{text-decoration:none}
   .rgrid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
   .tlscroll{height:min(62vh,680px)}
   .wg{grid-template-columns:56px repeat(7,minmax(120px,1fr));width:100%}
+  .wgrid{height:min(62vh,680px)}
   .mcell{min-height:112px}
   .ygrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 

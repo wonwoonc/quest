@@ -768,7 +768,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .mcell i.late{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
 .mcell i.more{background:none;color:var(--muted)}
 .wgrid{height:346px;overflow:auto;overscroll-behavior:contain;background:var(--card);border-radius:20px;position:relative}
-.wg{display:grid;grid-template-columns:52px repeat(7,calc((min(100vw,540px) - 32px - 52px)/3));position:relative;width:max-content}
+.wg{display:grid;grid-template-columns:52px repeat(7,calc((min(100vw - 32px, 540px) - 52px)/3));position:relative;width:max-content}
 .wgc{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 55%,transparent);min-height:38px;min-width:0}
 .wgc.corner,.wgc.head{position:sticky;top:0;z-index:2;background:var(--card);min-height:0}
 .wgc.corner{left:0;z-index:3;border-left:0}
@@ -1195,15 +1195,12 @@ a.goldchip{text-decoration:none}
   #app{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:20px;align-items:start}
   #app > *{grid-column:1/-1;min-width:0}
   #app[data-v="feed"] > .feedcard,#app[data-v="profile"] > .feedcard,#app > .card.mq:not(.calmq),#app > .pgc{grid-column:auto}
-  #app[data-v="post"],#app[data-v="project"],#app[data-v="settings"],#app[data-v="activity"]{display:flex;flex-direction:column;align-items:stretch;max-width:860px;margin:0 auto}
+  #app[data-v="post"],#app[data-v="project"],#app[data-v="settings"],#app[data-v="activity"],#app[data-v="calday"]{display:flex;flex-direction:column;align-items:stretch;max-width:860px;margin:0 auto}
   #app[data-v="profile"] > .seg,#app[data-v="profile"] > .segwrap{max-width:none}
   #app[data-v="shop"] > .seg,#app[data-v="cal"] > .seg{max-width:none}
   #app[data-v="shop"] .rgrid{grid-template-columns:repeat(3,1fr);gap:14px}
-  #app[data-v="cal"] .tlscroll{height:296px}
-  #app[data-v="cal"] .wg{grid-template-columns:52px repeat(7,calc((min(100vw,600px) - 32px - 52px)/3));width:max-content}
-  #app[data-v="cal"] .mcell{min-height:78px}
-  #app[data-v="cal"] .ygrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  #app[data-v="feed"],#app[data-v="profile"],#app[data-v="shop"],#app[data-v="cal"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:600px;margin:0 auto}
+  #app[data-v="feed"],#app[data-v="profile"],#app[data-v="shop"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:600px;margin:0 auto}
+  #app[data-v="cal"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:1192px;margin:0 auto}
   #app > .seg,#app > .segwrap{max-width:620px}
   .thead .qcover{aspect-ratio:16/6}
   .replybar{left:244px;bottom:0;padding-left:40px;padding-right:40px}
@@ -1211,6 +1208,7 @@ a.goldchip{text-decoration:none}
   .rgrid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
   .tlscroll{height:min(62vh,680px)}
   .wg{grid-template-columns:56px repeat(7,minmax(120px,1fr));width:100%}
+  .wgrid{height:min(62vh,680px)}
   .mcell{min-height:112px}
   .ygrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 
@@ -2074,7 +2072,7 @@ function render(){ IXC = null;
   if (S.liveWin){ const wu = v === "profile" && S.view.uid !== S.me ? S.view.uid : null, wp = v === "post" ? S.view.pid : null; queueMicrotask(() => S.liveWin.watch(wu, wp)); }
   rollOver();
    const dash = v === "dash" && hasProfile();
-  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, shop:viewShop, cal:viewCal, dash:viewFeed}[v] || viewToday)());
+  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, shop:viewShop, cal:viewCal, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
   { const gg = dash && $(".wd-goals .wd-ggrid"); if (gg && S.wdGs) gg.scrollLeft = S.wdGs; }
   $("#app").dataset.v = S.me && !hasProfile() && S.canWrite ? "profile" : dash ? "dash" : v; $("#app").dataset.pt = v === "profile" || v === "today" ? (S.profTab || "") : "";
   renderReplyBar(); renderPill();
@@ -2128,8 +2126,8 @@ function bannerHtml(){ return "";
 }
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
-  const v = S.view.name, sub = v === "post" || v === "project" || v === "activity" || v === "settings" || (v === "profile" && S.view.uid !== S.me);
-  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", shop:"상점", cal:"캘린더", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
+  const v = S.view.name, sub = v === "post" || v === "calday" || v === "project" || v === "activity" || v === "settings" || (v === "profile" && S.view.uid !== S.me);
+  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", shop:"상점", cal:"캘린더", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
   const n = activityItems().filter(x => x.at > actSeen).length;
   $("#topbar").innerHTML = `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : ""}<h1>${title}</h1>
     ${S.me && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
@@ -2335,7 +2333,7 @@ const dayActivityIndex = () => buildDayActivityIndex({mine:S.mine, feed:S.feed, 
 const habitsOn = d => { const t0 = pd(d).getTime(); return mineOf("quest").filter(q => q.active !== false && isSched(q, t0) && (q.createdAt||0) <= t0 + 86399999).map(q => ({...q, doneHabit:!!(q.done||{})[d]})); };
 function calHabitChip(q, d){ const done = q.doneHabit, canEdit = d === today();
   return `<div class="wti wck habit ${done?"done":""}" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><button class="wchk ${done?"on":""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit?"":"disabled"} aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(q.name)}</span></div></div>`; }
-function calendarDaySheet(date){
+function calendarDaySheet(date, asPage = false){
   const index = dayActivityIndex(), day = selectDayActivities(index, date);
   const row = (entry, act, key, label, text = '') => `<button class="row" data-act="${act}" data-${key}="${esc(entry.id)}"><span class="t"><b>${esc(label)}</b>${text ? `<small>${esc(text)}</small>` : ''}</span>${I.chev}</button>`;
   const section = (title, entries, render) => `<section class="day-section"><h3>${title} <span class="num">${entries.length}</span></h3>${entries.length ? entries.map(render).join('') : '<p class="empty-row">기록이 없어요.</p>'}</section>`;
@@ -2352,8 +2350,11 @@ function calendarDaySheet(date){
   body += `<button class="btn sec full" data-act="day-schedule" data-v="${esc(date)}">일별 일정 보기·추가</button>`;
   const unknown = [...index.unknown.tasks, ...index.unknown.main, ...index.unknown.sub];
   if (unknown.length) body += `<details class="day-unknown"><summary>날짜 미확인 · 전체 과거 완료 ${unknown.length}개</summary><p class="hint">완료 시각이 없어 이 날의 기록·완료 개수에 포함하지 않았어요.</p>${unknown.map(x => `<p>${esc(x.name || x.title)} · 날짜 미확인</p>`).join('')}</details>`;
+  if (asPage) return body+'</div>';
   return sheetWrap(`${esc(fmtD(date))} 기록`, '', body+'</div>');
 }
+function viewCalDay(){ const date = S.view.date; if (!date || activityDate(date) !== date) return viewCal();
+  const html = calendarDaySheet(date, true); return `<section class="card calday">${html}</section>`; }
 function viewCal(){
   if (!hasProfile()) return viewToday();
   const C = S.cal || (S.cal = {mode:"day", date:today()}), mode = C.mode, date = C.date, by = tasksByDate(), t = today();
@@ -2392,7 +2393,7 @@ function viewCal(){
     const hbByDay = Object.fromEntries(days.map(d => [d, habitsOn(d)]));
     const chip = m => m._ghost ? `<div class="wti wck ghost" data-act="tedit" data-id="${m.id}" role="button" tabindex="0" title="오늘로 넘어간 태스크"><span class="gdot">↷</span><div class="wtx"><span>${esc(m.name)}</span></div></div>` : `<div class="wti wck ${m.done ? "done" : ""}" data-act="tedit" data-id="${m.id}" role="button" tabindex="0"><button class="wchk ${m.done ? "on" : ""}" data-act="mcheck" data-id="${m.id}" aria-pressed="${!!m.done}" aria-label="${esc(m.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(m.name)}</span></div></div>`;
     h += `<div class="wgrid" id="wgscroll" data-d="${s0}" data-first="${first}"><div class="wg">`;
-    h += `<div class="wgc corner"></div>` + days.map(d => { const x = pd(d); return `<button class="wgc head ${d === t ? "is-today" : ""}" data-act="cpick" data-v="${d}" data-m="day"><b>${WD[x.getDay()]}</b><span class="num">${x.getMonth()+1}/${x.getDate()}</span></button>`; }).join("");
+    h += `<div class="wgc corner"></div>` + days.map(d => { const x = pd(d); return `<button class="wgc head ${d === t ? "is-today" : ""}" data-act="cdate" data-v="${d}"><b>${WD[x.getDay()]}</b><span class="num">${x.getMonth()+1}/${x.getDate()}</span></button>`; }).join("");
     if (anyAllday) h += `<div class="wgc tlab">종일</div>` + days.map(d => `<div class="wgc cell allday ${d === t ? "is-today" : ""}">${byTime((by[d] || []).filter(m => !m.time)).map(chip).join("")}${hbByDay[d].filter(q => !q.time).map(q => calHabitChip(q, d)).join("")}</div>`).join("");
     for (let hr = 1; hr <= 24; hr++){
       h += `<div class="wgc tlab num ${days.includes(t) && nowH === hr ? "now" : ""}" data-h="${hr}">${hl(hr)}</div>` + days.map(d => { const items = byTime((by[d] || []).filter(m => m.time && hourOf(m) === hr)); const hq = hbByDay[d].filter(q => q.time && (+q.time.slice(0,2) || 24) === hr);
@@ -2402,12 +2403,12 @@ function viewCal(){
   } else if (mode === "month"){
     const first = new Date(D0.getFullYear(), D0.getMonth(), 1), start = monStart(dk(first.getTime())), mo = D0.getMonth();
     const activities = dayActivityIndex();
-    h += `<p class="hint">날짜 눌러 기록 보기</p>`;
+    h += `<p class="hint">지난 날짜는 기록 보기 · 오늘부터는 일정 보기</p>`;
     h += `<section class="card mgrid mtask"><div class="wk">${["월","화","수","목","금","토","일"].map(w => `<span>${w}</span>`).join("")}</div><div class="days">`;
     for (let i = 0; i < 42; i++){ const d = addD(start, i), x = pd(d); if (i >= 35 && x.getMonth() !== mo) break; const l = byTime(by[d] || []); const hq = habitsOn(d);
       const acts = selectDayActivities(activities,d), dailyIds = new Set(acts.daily.map(x => x.id));
       const count = acts.count + hq.filter(q => q.doneHabit && !dailyIds.has(q.id)).length;
-      h += `<div class="mcell ${x.getMonth() !== mo ? "out" : ""} ${d === t ? "is-today" : ""}" data-act="cdate" data-v="${d}"><button class="mn" data-act="cdate" data-v="${d}" aria-label="${d} 날짜 눌러 기록 보기${count ? ` · 기록·완료 ${count}개` : ''}">${x.getDate()}${count ? `<small class="activity-count">${count}</small>` : ''}</button>${hq.slice(0,1).map(q => `<i class="hab ${q.doneHabit ? "done" : ""}"><span class="mtx"><span>${esc(q.name)}</span></span></i>`).join("")}${l.slice(0,3).map(m => `<i class="${m.done ? "done" : !m.done && d < t ? "late" : ""}"><button class="mchk ${m.done ? "on" : ""}" data-act="mcheck" data-id="${esc(m.id)}" aria-pressed="${!!m.done}" aria-label="${esc(m.name)} 완료">${I.check}</button><span class="mtx"><span>${esc(m.name)}</span></span></i>`).join("")}${l.length > 3 ? `<i class="more">+${l.length - 3}</i>` : ""}</div>`; }
+      h += `<div class="mcell ${x.getMonth() !== mo ? "out" : ""} ${d === t ? "is-today" : ""}" data-act="cdate" data-v="${d}"><button class="mn" data-act="cdate" data-v="${d}" aria-label="${d} 날짜 눌러 ${d < t ? "기록" : "일정"} 보기${count ? ` · 기록·완료 ${count}개` : ''}">${x.getDate()}${count ? `<small class="activity-count">${count}</small>` : ''}</button>${hq.slice(0,1).map(q => `<i class="hab ${q.doneHabit ? "done" : ""}"><span class="mtx"><span>${esc(q.name)}</span></span></i>`).join("")}${l.slice(0,3).map(m => `<i class="${m.done ? "done" : !m.done && d < t ? "late" : ""}"><button class="mchk ${m.done ? "on" : ""}" data-act="mcheck" data-id="${esc(m.id)}" aria-pressed="${!!m.done}" aria-label="${esc(m.name)} 완료">${I.check}</button><span class="mtx"><span>${esc(m.name)}</span></span></i>`).join("")}${l.length > 3 ? `<i class="more">+${l.length - 3}</i>` : ""}</div>`; }
     h += `</div></section>`;
   } else {
     const y = D0.getFullYear();
@@ -3223,6 +3224,7 @@ function route(){
   else if (h === "#settings") S.view = {name:"settings"};
   else if (h === "#me"){ if (prev !== "profile") S.profN = 20; S.view = {name:"profile", uid:S.me}; }
   else if (h === "#dash") S.view = {name:"dash"};
+  else if (h === "#calday"){ if (prev !== "calday") S.view = {name:"cal"}; }
   else if ((h === "#post" && prev === "post") || (h === "#goal" && prev === "project") || (h === "#profile" && prev === "profile")) {}
   else S.view = !h || h === "#" ? {name:"dash"} : {name:"feed"};
   schedule(); const k = viewKey(); if (k !== prevKey) requestAnimationFrame(() => requestAnimationFrame(() => scrollTo(0, S.scrolls[k] || 0)));
@@ -3366,11 +3368,13 @@ document.addEventListener("click", e => {
     case "ctoday": S.cal.date = today(); S.tlTop = S.wgTop = null; S.yCenter = true; break;
     case "cpick": S.cal.date = b.dataset.v; if (b.dataset.m) S.cal.mode = b.dataset.m; S.tlTop = S.wgTop = null; break;
     case "cdate":
-    case "calday": if (activityDate(b.dataset.v) === b.dataset.v) openSheet({type:'day',date:b.dataset.v}); return;
+    case "calday": { const v = b.dataset.v; if (activityDate(v) !== v) return;
+      if (v < today()){ S.calKeep = true; push({name:"calday", date:v}, "#calday"); return; }
+      S.cal.mode = "day"; S.cal.date = v; S.tlTop = S.wgTop = null; scrollTo(0,0); break; }
     case "journal-view": { const d = S.mine[id]; if (d?.kind === 'diary' && isOwnPrivateEntry(d,S.me)) openSheet({type:'journal-detail',id}); return; }
     case "day-post": if (S.feed[pid]?.author === S.me){ closeSheet(); openPost(pid); } return;
     case "day-project": if (S.projects[pid]?.owner === S.me){ closeSheet(); openGoal(pid); } return;
-    case "day-schedule": if (activityDate(b.dataset.v) === b.dataset.v){ closeSheet(); S.cal.date = b.dataset.v; S.cal.mode = 'day'; S.tlTop = S.wgTop = null; } break;
+    case "day-schedule": if (activityDate(b.dataset.v) === b.dataset.v){ closeSheet(); S.cal = S.cal || {}; S.cal.date = b.dataset.v; S.cal.mode = 'day'; S.tlTop = S.wgTop = null; if (S.view.name === "calday"){ S.calKeep = true; go("cal"); return; } } break;
     case "dopen": S.openDiary = S.openDiary === id ? null : id; if (S.compose && S.compose.type === "logs") renderSheet(); break;
     case "theme": LS.set("theme", b.dataset.v); applyTheme(); break;
     case "setn": { const st = getSet(); st.notif[b.dataset.k] = !st.notif[b.dataset.k]; run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
