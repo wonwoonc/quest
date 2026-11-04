@@ -833,10 +833,10 @@ const tOrd = (a,b) => (dueOf(a) || "9") < (dueOf(b) || "9") ? -1 : (dueOf(a) || 
 const nextOf = g => { const ids = famIds(g); return mineOf("mission").filter(m => !m.done && ids.includes(m.projectId)).sort(tOrd)[0] || null; };
 function viewPlan(){
   const gs = goalsOf(S.me).filter(g => g.status !== "done"), act = gs.filter(g => !isPlanned(g)).sort(gOrder), later = gs.filter(isPlanned).sort(gOrder), Q = QM();
-  let h = `<button class="btn big full pladd" data-act="pl-new">+ 퀘스트 생성</button>`;
-  if (act.length) h += `<div class="subhead"><h2>진행 중 <span class="num">${act.length}</span></h2></div><div class="subgrid">${act.map(subCard).join("")}</div>`;
+  let h = `<button class="btn big full pladd" data-act="sheet" data-k="add" data-v="big">+ 퀘스트 생성</button>`;
+  if (act.length) h += `<div class="subhead"><h2>진행 중 <span class="num">${act.length}</span></h2></div><div class="plgrid">${act.map(pgCard).join("")}</div>`;
   else h += `<div class="card empty"><strong>진행 중인 메인 퀘스트가 없어요</strong>목표를 세우고 서브 퀘스트 또는 태스크로 나눠 보세요.</div>`;
-  if (later.length) h += `<div class="subhead"><h2>나중에 시작 <span class="num">${later.length}</span></h2></div><div class="subgrid">${later.map(subCard).join("")}</div>`;
+  if (later.length) h += `<div class="subhead"><h2>나중에 시작 <span class="num">${later.length}</span></h2></div><div class="plgrid">${later.map(pgCard).join("")}</div>`;
   return h;
 }
 /* guided main quest → sub quests → first task → daily quest, in the app's own sheet */
