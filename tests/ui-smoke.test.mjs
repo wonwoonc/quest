@@ -1198,12 +1198,13 @@ test('main quest page shows sub quests as cards with progress and next task',asy
   assert.match(html,/class="card pgc[^"]*" data-act="project" data-p="s1"[\s\S]*?기초 체력/);
   assert.match(html,/data-p="s2"[\s\S]*?시작 전/);assert.match(html,/subadd/);assert.doesNotMatch(html,/<em>다음<\/em>/);
 });
-test('nav › 퀘스트: 메인 / 서브 / 데일리 tabs each show their own list and create button',async()=>{
+test('nav › 퀘스트: 전체 / 메인 / 서브 / 데일리 tabs each show their own list and create button',async()=>{
   const base=await profileUI(),saved=base.snapshot();
   saved.projects={m1:{id:'m1',owner:'me',title:'메인 A',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'서브 B',end:'2099-12-31',status:'active'}};
   saved.mine.qa={id:'qa',kind:'quest',name:'데일리 C',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:true,done:{},createdAt:1};
   const h=await profileUI(saved);h.route('qmanage');let html=h.nodes.get('app').innerHTML;
-  assert.match(html,/메인 A/);assert.doesNotMatch(html,/데일리 C/);
+  assert.match(html,/data-act="pl-tab" data-v="all" aria-pressed="true"/);assert.match(html,/메인 A[\s\S]*서브 B[\s\S]*데일리 C/);
+  h.click('pl-tab',{v:'main'});html=h.nodes.get('app').innerHTML;assert.match(html,/메인 A/);assert.doesNotMatch(html,/데일리 C/);
   h.click('pl-tab',{v:'sub'});html=h.nodes.get('app').innerHTML;assert.match(html,/서브 B/);assert.match(html,/data-v="sub">\+ 생성/);assert.doesNotMatch(html,/데일리 C/);
   h.click('pl-tab',{v:'daily'});html=h.nodes.get('app').innerHTML;assert.match(html,/데일리 C/);assert.match(html,/data-v="daily">\+ 생성/);assert.doesNotMatch(html,/메인 A/);
 });

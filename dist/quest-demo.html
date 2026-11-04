@@ -2583,18 +2583,21 @@ function viewPlan(){
   const gs = goalsOf(S.me).filter(g => g.status !== "done"), act = gs.filter(g => !isPlanned(g)).sort(gOrder), later = gs.filter(isPlanned).sort(gOrder), Q = QM();
   const addBig = `<button class="card subc subadd pladdc" data-act="sheet" data-k="add" data-v="big"><span class="wd-plus">+</span><b>메인 퀘스트 생성</b></button>`;
   const head = (t, n, kind) => `<div class="subhead"><h2>${t} <span class="num">${n}</span></h2><button class="tadd-pill plnew" data-act="sheet" data-k="add" data-v="${kind}">+ 생성</button></div>`;
-  const tab = Q.ptab || "main", subs = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId && p.status !== "done" && S.projects[p.parentId] && S.projects[p.parentId].status !== "done").sort((a,b) => isPlanned(a) - isPlanned(b) || ((a.end || "9") < (b.end || "9") ? -1 : (a.end || "9") > (b.end || "9") ? 1 : 0));
+  const tab = Q.ptab || "all", subs = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId && p.status !== "done" && S.projects[p.parentId] && S.projects[p.parentId].status !== "done").sort((a,b) => isPlanned(a) - isPlanned(b) || ((a.end || "9") < (b.end || "9") ? -1 : (a.end || "9") > (b.end || "9") ? 1 : 0));
   const qs = mineOf("quest").filter(q => q.active !== false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
-  let h = `<div class="seg pltabs" role="group" aria-label="퀘스트 종류">${[["main","메인",act.length + later.length],["sub","서브",subs.length],["daily","데일리",qs.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
-  if (tab === "main"){
+  let h = `<div class="seg pltabs" role="group" aria-label="퀘스트 종류">${[["all","전체",act.length + later.length + subs.length + qs.length],["main","메인",act.length + later.length],["sub","서브",subs.length],["daily","데일리",qs.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
+  const T = t => tab === "all" || tab === t;
+  if (T("main")){
     h += head("메인 퀘스트", act.length, "big") + `<div class="plgrid">${act.map(plCard).join("") || addBig}</div>`;
     if (later.length) h += `<div class="subhead"><h2>나중에 시작 <span class="num">${later.length}</span></h2></div><div class="plgrid">${later.map(plCard).join("")}</div>`;
-  } else if (tab === "sub"){
+  }
+  if (T("sub")){
     h += head("서브 퀘스트", subs.length, "sub") + (subs.length ? `<div class="plgrid">${subs.map(plCard).join("")}</div>` : `<div class="card empty">${gs.length ? "메인 퀘스트를 작은 관문으로 나눠 서브 퀘스트를 만들어 보세요." : "서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요."}</div>`);
-  } else {
+  }
+  if (T("daily")){
     h += head("데일리 퀘스트", qs.length, "daily") + `<section class="card tight qlist">${qs.map(q => { const st = streakOf(q), lv = HLV[lvKey(q.lv)]; return `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq" title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span><span class="t"><b>${esc(q.name)}</b><small>${[repeatLabel(q), q.time ? tmLabel(q.time) : ""].filter(Boolean).join(" · ")}</small></span><span class="streak num">🔥 ${st.cur}</span></button>`; }).join("") || `<p class="empty-row">매일 꾸준히 할 습관을 데일리 퀘스트로 만들어 보세요.</p>`}</section>`;
-    const ar = mineOf("quest").filter(q => q.active === false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
-    h += `<div class="subhead"><h2>보관 <span class="num">${ar.length}</span></h2></div><section class="card tight qlist plarch">${ar.map(q => { const st = streakOf(q); return `<div class="row"><span class="t tap" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><b>${esc(q.name)}</b><small>${[repeatLabel(q), `총 ${st.total}회`].join(" · ")}</small></span><button class="btn sec xs" data-act="unarch" data-id="${q.id}">보관 해제</button></div>`; }).join("") || `<p class="empty-row">보관한 데일리 퀘스트가 없어요. 잠시 쉬고 싶은 데일리 퀘스트는 수정 창에서 보관할 수 있어요.</p>`}</section>`;
+    const ar = tab === "all" ? [] : mineOf("quest").filter(q => q.active === false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+    if (tab !== "all") h += `<div class="subhead"><h2>보관 <span class="num">${ar.length}</span></h2></div><section class="card tight qlist plarch">${ar.map(q => { const st = streakOf(q); return `<div class="row"><span class="t tap" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><b>${esc(q.name)}</b><small>${[repeatLabel(q), `총 ${st.total}회`].join(" · ")}</small></span><button class="btn sec xs" data-act="unarch" data-id="${q.id}">보관 해제</button></div>`; }).join("") || `<p class="empty-row">보관한 데일리 퀘스트가 없어요. 잠시 쉬고 싶은 데일리 퀘스트는 수정 창에서 보관할 수 있어요.</p>`}</section>`;
   }
   return h;
 }
