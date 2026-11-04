@@ -1166,7 +1166,7 @@ test('nav › 퀘스트: plan sheet creates main, sub, a timed first task and a 
   h.click('dppick',{k:'end',v:'2099-12-31'});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/어떤 서브 퀘스트/);
   h.nodes.set('pw-s0',{value:'기초 체력'});h.nodes.set('pw-s1',{value:''});h.click('pw-go',{v:'1'});
   assert.match(h.nodes.get('overlay').innerHTML,/data-act="tmset"/,'same time picker as the dashboard');
-  h.nodes.set('pw-act',{value:'러닝화 사기'});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/첫 태스크는/,'time is required');
+  h.nodes.set('pw-act',{value:'러닝화 사기'});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/어떤 태스크부터/,'time is required');
   h.click('cdue1',{v:T});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/데일리 퀘스트가 있나요/);
   h.nodes.set('pw-hab',{value:'매일 달리기'});h.click('tmset');h.click('pw-go',{v:'1'});await h.settle();
   const s=h.snapshot(),g=Object.values(s.projects).find(p=>p.title==='마라톤'),subs=Object.values(s.projects).filter(p=>p.parentId===g.id);
@@ -1174,7 +1174,7 @@ test('nav › 퀘스트: plan sheet creates main, sub, a timed first task and a 
   const t=Object.values(s.mine).find(m=>m.name==='러닝화 사기');assert.equal(t.projectId,subs[0].id);assert.equal(t.due,T);assert.equal(t.time,'09:00');
   assert.ok(Object.values(s.mine).find(m=>m.kind==='quest'&&m.name==='매일 달리기'&&m.time==='09:00'));
   assert.doesNotMatch(h.nodes.get('app').innerHTML,/지금 할 태스크/);assert.match(h.nodes.get('app').innerHTML,/러닝화 사기/);
-  h.click('mcheck',{id:t.id});await h.settle();assert.match(h.nodes.get('app').innerHTML,/data-act="taskadd" data-p="[^"]+"[^>]*>[\s\S]*?다음 태스크 정하기/);
+  h.click('mcheck',{id:t.id});await h.settle();assert.match(h.nodes.get('app').innerHTML,/class="card subc[^"]*" data-act="project" data-p="[^"]+"[\s\S]*?마라톤[\s\S]*?다음 태스크 없음/);
 });
 test('stats: single life-area chip on main/daily feeds numeric area XP; sub tasks inherit; undo removes it',async()=>{
   const base=await profileUI(),saved=base.snapshot(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);

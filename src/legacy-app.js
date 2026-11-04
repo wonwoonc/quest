@@ -697,10 +697,10 @@ function viewToday(){
   return h;
 }
 function subCard(x){
-  const pr = goalProgress(x), done = x.status === "done", pct = pr.total ? Math.round(pr.done / pr.total * 100) : (done ? 100 : 0), nx = done ? null : mineOf("mission").filter(m => !m.done && m.projectId === x.id).sort(tOrd)[0];
+  const pr = goalProgress(x), done = x.status === "done", pct = pr.total ? Math.round(pr.done / pr.total * 100) : (done ? 100 : 0), nx = done ? null : x.parentId ? mineOf("mission").filter(m => !m.done && m.projectId === x.id).sort(tOrd)[0] : nextOf(x), subs = x.parentId ? [] : subsOf(x.id);
   const chip = done ? `<span class="st done">✓ 완료</span>` : isPlanned(x) ? `<span class="st plan">시작 전</span>` : `<span class="st">진행 중</span>`;
   return `<button class="card subc ${done ? "ok" : ""}" data-act="project" data-p="${x.id}"><span class="subtop">${chip}${x.end && !done ? `<span class="st dd">${dday(x.end)}</span>` : ""}<b class="subpct num">${pct}%</b></span>
-    <b class="subt">${esc(x.title)}</b><span class="bar green"><i style="width:${pct}%"></i></span><small class="subm">태스크 ${pr.done}/${pr.total}${x.metric ? ` · 📈 ${esc(x.metric.unit)}` : ""}</small>
+    <b class="subt">${esc(x.title)}</b><span class="bar green"><i style="width:${pct}%"></i></span><small class="subm">${subs.length ? `서브 ${subs.filter(y => y.status === "done").length}/${subs.length} · ` : ""}태스크 ${pr.done}/${pr.total}${x.metric ? ` · 📈 ${esc(x.metric.unit)}` : ""}</small>
     ${done ? "" : `<span class="subnx">${nx ? `<em>다음</em>${esc(nx.name)}` : `<em class="w">다음 태스크 없음</em>`}</span>`}</button>`;
 }
 function goalRow(p, nested = false){
@@ -833,26 +833,24 @@ const tOrd = (a,b) => (dueOf(a) || "9") < (dueOf(b) || "9") ? -1 : (dueOf(a) || 
 const nextOf = g => { const ids = famIds(g); return mineOf("mission").filter(m => !m.done && ids.includes(m.projectId)).sort(tOrd)[0] || null; };
 function viewPlan(){
   const gs = goalsOf(S.me).filter(g => g.status !== "done"), act = gs.filter(g => !isPlanned(g)).sort(gOrder), later = gs.filter(isPlanned).sort(gOrder), Q = QM();
-  let h = "";
-  h += `<section class="card tight qlist"><div class="ch"><h2>🎯 메인 퀘스트</h2></div>
-    ${act.map(g => { const nx = nextOf(g); return `<div class="plg">${goalRow(g)}${nx ? (() => { S._bare = true; try{ return taskRow(nx, false, true); } finally { S._bare = false; } })()
-      : `<button class="row nested plset" data-act="taskadd" data-p="${g.id}"><span class="ic sq warn">!</span><span class="t"><b>다음 태스크 정하기</b><small>지금 바로 할 수 있는 작은 행동 하나</small></span>${I.chev}</button>`}</div>`; }).join("") || `<p class="empty-row">진행 중인 메인 퀘스트가 없어요.<br>목표를 세우고 서브 퀘스트 또는 태스크로 나눠 보세요.</p>`}
-    ${later.length ? `<button class="tfold pllater" data-act="pl-later" aria-expanded="${!!Q.laterOpen}"><span>나중에 시작 <em class="num">${later.length}</em></span><span class="chev2 ${Q.laterOpen ? "open" : ""}">${I.chev}</span></button>${Q.laterOpen ? later.map(g => goalRow(g)).join("") : ""}` : ""}
-    <button class="tadd-pill" data-act="pl-new">+ 퀘스트 생성</button></section>`;
+  let h = `<button class="btn big full pladd" data-act="pl-new">+ 퀘스트 생성</button>`;
+  if (act.length) h += `<div class="subhead"><h2>진행 중 <span class="num">${act.length}</span></h2></div><div class="subgrid">${act.map(subCard).join("")}</div>`;
+  else h += `<div class="card empty"><strong>진행 중인 메인 퀘스트가 없어요</strong>목표를 세우고 서브 퀘스트 또는 태스크로 나눠 보세요.</div>`;
+  if (later.length) h += `<div class="subhead"><h2>나중에 시작 <span class="num">${later.length}</span></h2></div><div class="subgrid">${later.map(subCard).join("")}</div>`;
   return h;
 }
 /* guided main quest → sub quests → first task → daily quest, in the app's own sheet */
-const PW_STEPS = ["메인 퀘스트", "서브 퀘스트", "첫 태스크", "데일리 퀘스트"];
+const PW_STEPS = ["메인 퀘스트", "서브 퀘스트", "태스크", "데일리 퀘스트"];
 function planSheet(c){
   const st = c.step, dots = `<div class="pwdots">${PW_STEPS.map((l,i) => `<span class="${i === st ? "on" : i < st ? "ok" : ""}"><i>${i < st ? "✓" : i + 1}</i>${l}</span>`).join("")}</div>`;
   let body = "";
   if (st === 0) body = `<p class="pwq">어떤 메인 퀘스트에 도전할까요?</p><div class="field"><input type="text" id="pw-name" maxlength="60" placeholder="예: 하프 마라톤 완주하기" value="${D("pw-name")}" aria-label="메인 퀘스트 이름"></div>${(() => { const dp = c._dp; c._dp = null; try{ return datePick(c, "end", "마감일", false, true); } finally { c._dp = dp; } })()}${areaField(c)}
     ${c._dp === "end" ? `<div class="dppop" data-act="dpopen" data-k="end"><div class="dppop-in" data-act="dpstay" role="dialog" aria-label="마감일 선택"><b class="dppop-t">마감일 선택</b>${miniCal(c, "end")}</div></div>` : ""}`;
-  else if (st === 1) body = `<p class="pwq">어떤 서브 퀘스트로 나눌까요?</p><p class="hint pwh">큰 퀘스트를 2~4개 관문으로 나누면 끝까지 가기 쉬워요. 없으면 건너뛰어도 돼요.</p>
+  else if (st === 1) body = `<p class="pwq">어떤 서브 퀘스트로 나눌까요?</p>
     ${c.steps.map((x,i) => `<div class="pwstep"><span class="ic sq ok">🔗</span><input type="text" id="pw-s${i}" maxlength="60" placeholder="서브 퀘스트 ${i+1}" value="${esc(x)}" aria-label="서브 퀘스트 ${i+1}"><button class="iconbtn" data-act="pw-sdel" data-v="${i}" aria-label="서브 퀘스트 ${i+1} 지우기">${I.close}</button></div>`).join("")}
     ${c.steps.length < 6 ? `<button class="tadd-pill pwadd" data-act="pw-sadd">+ 서브 퀘스트 생성</button>` : ""}`;
   else if (st === 2){ const steps = c.steps.filter(x => x.trim());
-    body = `<p class="pwq">지금 바로 할 첫 태스크는 무엇인가요?</p><p class="hint pwh">30분 안에 끝낼 수 있을 만큼 작게 정하면 바로 시작하기 쉬워요.</p><div class="field"><input type="text" id="pw-act" maxlength="80" placeholder="예: 러닝화 사러 가기" value="${D("pw-act")}" aria-label="첫 태스크"></div>${difficultySelector(c,'mission')}${dueField(c)}
+    body = `<p class="pwq">어떤 태스크부터 할까요?</p><div class="field"><input type="text" id="pw-act" maxlength="80" placeholder="예: 러닝화 사러 가기" value="${D("pw-act")}" aria-label="태스크"></div>${difficultySelector(c,'mission')}${dueField(c)}
       ${steps.length ? `<div class="field"><span class="lab">어느 서브 퀘스트의 태스크인가요?</span><div class="chips">${steps.map((x,i) => `<button class="chip" data-act="cset" data-f="link" data-v="${i}" aria-pressed="${String(c.link ?? 0) === String(i)}">🔗 ${esc(x)}</button>`).join("")}</div></div>` : ""}`; }
   else body = `<p class="pwq">매일 할 데일리 퀘스트가 있나요?</p><p class="hint pwh">꾸준히 쌓아야 하는 습관이 있으면 데일리 퀘스트로 만들어 드려요. 없으면 건너뛰어도 돼요.</p><div class="field"><input type="text" id="pw-hab" maxlength="80" placeholder="예: 30분 달리기" value="${D("pw-hab")}" aria-label="데일리 퀘스트 이름"></div>${timeOnlyField(c)}`;
   const skip = st === 1 || st === 3;
@@ -866,7 +864,7 @@ function pwGo(c, v){
   if (back){ if (st === 3) fromDaily(); c.step = Math.max(0, st - 1); renderSheet(); return; }
   if (st === 0){ if (!pv("pw-name").trim()){ toast("메인 퀘스트 이름을 적어 주세요"); return; } if (!c.end){ toast("마감일을 골라 주세요"); return; } }
   if (st === 1 && v === "skip") c.steps = [];
-  if (st === 2){ if (!pv("pw-act").trim()){ toast("첫 태스크를 적어 주세요"); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } }
+  if (st === 2){ if (!pv("pw-act").trim()){ toast("태스크를 적어 주세요"); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } }
   if (st < 3){ c.step++; if (c.step === 1 && !c.steps.length) c.steps = ["", ""]; if (c.step === 3) toDaily(); c._dp = null; renderSheet(); return; }
   const skipH = v === "skip", hab = skipH ? "" : pv("pw-hab").trim(), htime = c.time, atime = c.atime;
   if (hab && !htime){ toast("데일리 퀘스트 시간을 골라 주세요"); return; } if (hab && dupQ(hab)){ toast(DUPMSG); return; }
@@ -877,7 +875,7 @@ function pwGo(c, v){
     for (let i = 0; i < steps.length; i++) await api.putProject(sids[i], {cover:null, owner:S.me, parentId:gid, title:steps[i], start:today(), end, status:"active", metric:null, progress:{done:0,total:sids[i] === link ? 1 : 0}, createdAt:now + i + 1});
     await api.putMine(uid8(), {kind:"mission", name:act, lv:c.lv || "normal", due:c.due, time:atime, period:"", today:false, projectId:link, done:false, createdAt:now});
     if (hab) await api.putMine(uid8(), {kind:"quest", name:hab, time:htime, repeat:{type:"daily"}, days:[], lv:"easy", area:c.area||[], active:true, done:{}, createdAt:now});
-  }, () => { ["pw-name","pw-act","pw-hab"].forEach(k => delete S.drafts[k]); c.steps.forEach((_, i) => delete S.drafts["pw-s"+i]); closeSheet(); syncProgress(link); if (link !== gid) syncProgress(gid); toast("🎯 메인 퀘스트를 시작했어요! 첫 태스크부터 해치워 볼까요?"); });
+  }, () => { ["pw-name","pw-act","pw-hab"].forEach(k => delete S.drafts[k]); c.steps.forEach((_, i) => delete S.drafts["pw-s"+i]); closeSheet(); syncProgress(link); if (link !== gid) syncProgress(gid); toast("🎯 메인 퀘스트를 시작했어요!"); });
 }
 function viewTidy(){
   const Q = QM(), sel = new Set(Q.sel), tab = Q.tab, q = (Q.q || "").trim().toLowerCase(), t = today();
