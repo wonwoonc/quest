@@ -834,10 +834,12 @@ const nextOf = g => { const ids = famIds(g); return mineOf("mission").filter(m =
 const plCard = g => pgCard(g).replace(/<div class="pgsubs">[\s\S]*?<\/div>\s*<\/section>$/, "</section>");
 function viewPlan(){
   const gs = goalsOf(S.me).filter(g => g.status !== "done"), act = gs.filter(g => !isPlanned(g)).sort(gOrder), later = gs.filter(isPlanned).sort(gOrder), Q = QM();
-  let h = `<button class="btn big full pladd" data-act="sheet" data-k="add" data-v="big">+ 퀘스트 생성</button>`;
-  if (act.length) h += `<div class="subhead"><h2>진행 중 <span class="num">${act.length}</span></h2></div><div class="plgrid">${act.map(plCard).join("")}</div>`;
-  else h += `<div class="card empty"><strong>진행 중인 메인 퀘스트가 없어요</strong>목표를 세우고 서브 퀘스트 또는 태스크로 나눠 보세요.</div>`;
+  const addBig = `<button class="card subc subadd pladdc" data-act="sheet" data-k="add" data-v="big"><span class="wd-plus">+</span><b>메인 퀘스트 생성</b></button>`;
+  const head = (t, n, kind) => `<div class="subhead"><h2>${t} <span class="num">${n}</span></h2><button class="tadd-pill plnew" data-act="sheet" data-k="add" data-v="${kind}">+ 생성</button></div>`;
+  let h = head("메인 퀘스트", act.length, "big") + `<div class="plgrid">${act.map(plCard).join("") || addBig}</div>`;
   if (later.length) h += `<div class="subhead"><h2>나중에 시작 <span class="num">${later.length}</span></h2></div><div class="plgrid">${later.map(plCard).join("")}</div>`;
+  const qs = mineOf("quest").filter(q => q.active !== false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+  h += head("데일리 퀘스트", qs.length, "daily") + `<section class="card tight qlist">${qs.map(q => { const st = streakOf(q), lv = HLV[lvKey(q.lv)]; return `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq" title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span><span class="t"><b>${esc(q.name)}</b><small>${[repeatLabel(q), q.time ? tmLabel(q.time) : ""].filter(Boolean).join(" · ")}</small></span><span class="streak num">🔥 ${st.cur}</span></button>`; }).join("") || `<p class="empty-row">매일 꾸준히 할 습관을 데일리 퀘스트로 만들어 보세요.</p>`}</section>`;
   return h;
 }
 /* guided main quest → sub quests → first task → daily quest, in the app's own sheet */
