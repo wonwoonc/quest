@@ -1150,7 +1150,7 @@ function viewGoal(){
   </section>`;
   if (!sp && (subs.length || mine)){ const addable = mine && p.status !== "done";
     h += `<div class="subhead"><h2>서브 퀘스트 <span class="num">${subs.filter(x => x.status === "done").length}/${subs.length}</span></h2></div>
-    <div class="subgrid">${subs.map(subCard).join("")}${addable ? `<button class="card subc subadd" data-act="sheet" data-k="sub" data-p="${p.id}"><span class="wd-plus">+</span><b>서브 퀘스트 생성</b>${subs.length ? "" : `<small>메인 퀘스트를 작은 관문으로 나눠 보세요</small>`}</button>` : ""}</div>`; }
+    <div class="plgrid">${subs.map(x => plCard(x).replace(/<span class="parlab">[\s\S]*?<\/span>/, "")).join("")}${addable ? `<button class="card subc subadd pladdc" data-act="sheet" data-k="sub" data-p="${p.id}"><span class="wd-plus">+</span><b>서브 퀘스트 생성</b>${subs.length ? "" : `<small>메인 퀘스트를 작은 관문으로 나눠 보세요</small>`}</button>` : ""}</div>`; }
   if (mine){
     const ms = mineOf("mission").filter(m => m.projectId === p.id).sort((x,y) => x.done - y.done);
     const subT = sp ? [] : subs.map(x => ({x, l:mineOf("mission").filter(m => m.projectId === x.id).sort((a,b) => a.done - b.done)})).filter(o => o.l.length);

@@ -569,6 +569,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .stsum{margin:0 0 8px;font-size:13px;color:var(--muted)}.stsum b{color:var(--ink)}
 .wdp-cv[data-act="statsheet"]{cursor:pointer}
 .pladd{margin-bottom:4px}
+.pladdc{min-height:260px}
 .plgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
 @media (max-width:520px){.plgrid{grid-template-columns:1fr}}
 .subhead{display:flex;align-items:center;justify-content:space-between;margin:6px 4px -4px}.subhead h2{font-size:18px;font-weight:800;margin:0}.subhead h2 .num{color:var(--accent);font-size:15px;margin-left:4px}
@@ -2890,7 +2891,7 @@ function viewGoal(){
   </section>`;
   if (!sp && (subs.length || mine)){ const addable = mine && p.status !== "done";
     h += `<div class="subhead"><h2>서브 퀘스트 <span class="num">${subs.filter(x => x.status === "done").length}/${subs.length}</span></h2></div>
-    <div class="subgrid">${subs.map(subCard).join("")}${addable ? `<button class="card subc subadd" data-act="sheet" data-k="sub" data-p="${p.id}"><span class="wd-plus">+</span><b>서브 퀘스트 생성</b>${subs.length ? "" : `<small>메인 퀘스트를 작은 관문으로 나눠 보세요</small>`}</button>` : ""}</div>`; }
+    <div class="plgrid">${subs.map(x => plCard(x).replace(/<span class="parlab">[\s\S]*?<\/span>/, "")).join("")}${addable ? `<button class="card subc subadd pladdc" data-act="sheet" data-k="sub" data-p="${p.id}"><span class="wd-plus">+</span><b>서브 퀘스트 생성</b>${subs.length ? "" : `<small>메인 퀘스트를 작은 관문으로 나눠 보세요</small>`}</button>` : ""}</div>`; }
   if (mine){
     const ms = mineOf("mission").filter(m => m.projectId === p.id).sort((x,y) => x.done - y.done);
     const subT = sp ? [] : subs.map(x => ({x, l:mineOf("mission").filter(m => m.projectId === x.id).sort((a,b) => a.done - b.done)})).filter(o => o.l.length);
