@@ -379,7 +379,7 @@ for (const kind of ['once','sub','big','daily']) {
     h.click('sheet',{k:'add',v:kind,p:'main'});
     const html = h.nodes.get('overlay').innerHTML;
     noKindSwitch(html);
-    const titles = {once:'태스크 추가',sub:'서브 퀘스트 추가',big:'메인 퀘스트 추가',daily:'데일리 퀘스트 추가'};
+    const titles = {once:'태스크 추가',sub:'서브 퀘스트 생성',big:'메인 퀘스트 생성',daily:'데일리 퀘스트 생성'};
     assert.ok(html.includes(titles[kind]));
     if (kind === 'once') {
       assert.match(html,/data-act="tqpick"/);
@@ -388,7 +388,7 @@ for (const kind of ['once','sub','big','daily']) {
     } else if (kind === 'sub') {
       assert.match(html,/data-act="ppick"/);
       h.click('ppick'); assert.match(h.nodes.get('overlay').innerHTML,/data-act="ppset" data-v="main"/);
-      h.click('ppset',{v:'main'}); assert.match(h.nodes.get('overlay').innerHTML,/서브 퀘스트 추가/);
+      h.click('ppset',{v:'main'}); assert.match(h.nodes.get('overlay').innerHTML,/서브 퀘스트 생성/);
     } else if (kind === 'big') deadlineRequired(h);
     else assert.match(html,/data-act="rpt"/);
   });
@@ -1185,7 +1185,7 @@ test('stats: single life-area chip on main/daily feeds numeric area XP; sub task
   h.click('gedit',{p:'m1'});assert.match(h.nodes.get('overlay').innerHTML,/data-act="aset" data-v="health"/);h.click('aset',{v:'health'});h.nodes.set('ge-title',{value:'마라톤'});h.click('submit-gedit');await h.settle();
   assert.deepEqual(h.snapshot().projects.m1.area,['health']);
   h.click('hedit',{id:'qa'});h.click('aset',{v:'growth'});h.click('aset',{v:'money'});h.click('aset',{v:'career'});h.nodes.set('he-name',{value:'독서'});h.click('submit-hedit');await h.settle();
-  assert.deepEqual(h.snapshot().mine.qa.area,['career'],'single area');
+  assert.deepEqual(h.snapshot().mine.qa.area,['growth','money'],'at most two areas');
   h.route('dash');assert.doesNotMatch(h.nodes.get('app').innerHTML,/class="statcard"/);assert.match(h.nodes.get('app').innerHTML,/data-act="statsheet"/);h.click('statsheet');assert.match(h.nodes.get('overlay').innerHTML,/능력치[\s\S]*체력<\/b><small>건강<\/small><\/span><b class="stl num">0<\/b><\/div>/);
   h.click('sheet-close');h.click('mcheck',{id:'t1'});await h.settle();h.click('statsheet');assert.match(h.nodes.get('overlay').innerHTML,/체력<\/b><small>건강<\/small><\/span><b class="stl num">3<\/b><\/div>/);
   h.click('sheet-close');h.click('mcheck',{id:'t1'});h.click('cfok');await h.settle();h.click('statsheet');assert.match(h.nodes.get('overlay').innerHTML,/체력<\/b><small>건강<\/small><\/span><b class="stl num">0<\/b><\/div>/);

@@ -593,7 +593,7 @@ function subTab(){
       <small>태스크 ${pr.done}/${pr.total}</small></button>
       <button class="tfold" data-act="tfold" data-k="${g.id}" aria-expanded="${!shut}"><span>태스크 ${ts.length ? `<em class="num">${left ? `${left}개 남음` : "모두 완료"}</em>` : ""}</span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : ts.map(m => { S._bare = true; try{ return taskRow(m, false); } finally { S._bare = false; } }).join("") + `<button class="morebtn add" data-act="taskadd" data-p="${g.id}">+ 태스크 추가</button>`}</section>`;
   }
-  h += `<button class="btn soft full" data-act="sheet" data-k="add" data-v="sub">+ 서브 퀘스트 추가</button>`;
+  h += `<button class="btn soft full" data-act="sheet" data-k="add" data-v="sub">+ 서브 퀘스트 생성</button>`;
   if (dn.length) h += `<section class="card tight"><button class="row" data-act="toggle" data-k="subdone"><span class="t"><b>✓ 완료한 서브 퀘스트 ${dn.length}개</b></span><span class="chev2 ${S.openSubDone?"open":""}">${I.chev}</span></button>${S.openSubDone ? dn.map(g => goalRow(g)).join("") : ""}</section>`;
   return h;
 }
@@ -658,13 +658,13 @@ function mainTab(){
     const mv = g.metric ? `📈 ${numFmt(latest ? latest.value : g.metric.start)} → ${numFmt(g.metric.target)}${esc(g.metric.unit)}` : "";
     const cvF = (LS.get("cvfold", [])).includes(g.id), up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`;
     h += `<section class="card tight mq qlist" data-reo="${g.id}">${cvF ? `<button class="cvopen" data-act="cvfold" data-p="${g.id}">표지 펴기 <span style="display:inline-flex;transform:rotate(180deg)">${up}</span></button>` : `<div class="cvwrap">${coverHtml(g, {badge:false})}<button class="cvtog" data-act="cvfold" data-p="${g.id}" aria-label="표지 접기">${up}</button></div>`}<div class="mqh mqh2" data-act="project" data-p="${g.id}" role="button" tabindex="0">${qHead(g)}</div>
-      ${(() => { const all = subsOf(g.id); const sk = "s:" + g.id, shut = tFold(sk); return `<div class="mqsubs"><button class="tfold" data-act="tfold" data-k="${sk}" aria-expanded="${!shut}"><span>서브 퀘스트 <em class="num">${all.filter(x => x.status === "done").length}/${all.length}</em></span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : all.map(x => goalRow(x, true)).join("") + `<button class="tadd-pill" data-act="sheet" data-k="sub" data-p="${g.id}">+ 서브 퀘스트 추가</button>`}</div>`; })()}
+      ${(() => { const all = subsOf(g.id); const sk = "s:" + g.id, shut = tFold(sk); return `<div class="mqsubs"><button class="tfold" data-act="tfold" data-k="${sk}" aria-expanded="${!shut}"><span>서브 퀘스트 <em class="num">${all.filter(x => x.status === "done").length}/${all.length}</em></span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : all.map(x => goalRow(x, true)).join("") + `<button class="tadd-pill" data-act="sheet" data-k="sub" data-p="${g.id}">+ 서브 퀘스트 생성</button>`}</div>`; })()}
       ${(() => { const ts = [g.id, ...links.map(x => x.id)].flatMap(id => subsFor(id)).sort((a,b) => a.done - b.done || isToday(b) - isToday(a) || (a.createdAt||0) - (b.createdAt||0)), shut = tFold(g.id), left = ts.filter(m => !m.done).length;
         return `<button class="tfold" data-act="tfold" data-k="${g.id}" aria-expanded="${!shut}"><span>태스크 ${ts.length ? `<em class="num">${left ? `${left}개 남음` : "모두 완료"}</em>` : ""}</span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : ts.map(m => { S._bare = true; try{ return taskRow(m, false); } finally { S._bare = false; } }).join("") + `<button class="tadd-pill" data-act="taskadd" data-p="${g.id}">+ 태스크 추가</button>`}`; })()}</section>`;
   }
   const loose = mineOf("mission").filter(m => (!m.projectId || !S.projects[m.projectId]) && vis(m)).sort((a,b) => a.done - b.done || isToday(b) - isToday(a));
   // 개별 태스크 카드는 메인 탭에서 표시하지 않음
-  h += `<button class="btn soft full" data-act="sheet" data-k="add" data-v="big">+ 메인 퀘스트 추가</button>`;
+  h += `<button class="btn soft full" data-act="sheet" data-k="add" data-v="big">+ 메인 퀘스트 생성</button>`;
   if (ach.length) h += `<section class="card tight"><button class="row" data-act="toggle" data-k="ach"><span class="t"><b>🏆 업적 ${ach.length}개</b></span><span class="chev2 ${S.openAch?"open":""}">${I.chev}</span></button>${S.openAch ? ach.map(g => goalRow(g)).join("") : ""}</section>`;
   return h;
 }
@@ -693,7 +693,7 @@ function viewToday(){
   } else if (!total) h += `<p class="empty-row">오늘 할 데일리 퀘스트가 없어요.</p>`;
   h += todo.map(row).join("");
   const archived = mineOf("quest").filter(q => q.active === false).length;
-  h += done.map(row).join("") + `<div class="qfoot2"><button class="tadd-pill" data-act="sheet" data-k="add" data-v="daily">+ 퀘스트 추가</button><button class="archbtn" data-act="archive" aria-label="보관한 데일리 퀘스트 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4"/></svg>보관${archived ? ` <em class="num">${archived}</em>` : ""}</button></div></section>`;
+  h += done.map(row).join("") + `<div class="qfoot2"><button class="tadd-pill" data-act="sheet" data-k="add" data-v="daily">+ 퀘스트 생성</button><button class="archbtn" data-act="archive" aria-label="보관한 데일리 퀘스트 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4"/></svg>보관${archived ? ` <em class="num">${archived}</em>` : ""}</button></div></section>`;
   return h;
 }
 function subCard(x){
@@ -850,7 +850,7 @@ function planSheet(c){
     ${c._dp === "end" ? `<div class="dppop" data-act="dpopen" data-k="end"><div class="dppop-in" data-act="dpstay" role="dialog" aria-label="마감일 선택"><b class="dppop-t">마감일 선택</b>${miniCal(c, "end")}</div></div>` : ""}`;
   else if (st === 1) body = `<p class="pwq">어떤 서브 퀘스트로 나눌까요?</p><p class="hint pwh">큰 퀘스트를 2~4개 관문으로 나누면 끝까지 가기 쉬워요. 없으면 건너뛰어도 돼요.</p>
     ${c.steps.map((x,i) => `<div class="pwstep"><span class="ic sq ok">🔗</span><input type="text" id="pw-s${i}" maxlength="60" placeholder="서브 퀘스트 ${i+1}" value="${esc(x)}" aria-label="서브 퀘스트 ${i+1}"><button class="iconbtn" data-act="pw-sdel" data-v="${i}" aria-label="서브 퀘스트 ${i+1} 지우기">${I.close}</button></div>`).join("")}
-    ${c.steps.length < 6 ? `<button class="tadd-pill pwadd" data-act="pw-sadd">+ 서브 퀘스트 추가</button>` : ""}`;
+    ${c.steps.length < 6 ? `<button class="tadd-pill pwadd" data-act="pw-sadd">+ 서브 퀘스트 생성</button>` : ""}`;
   else if (st === 2){ const steps = c.steps.filter(x => x.trim());
     body = `<p class="pwq">지금 바로 할 첫 태스크는 무엇인가요?</p><p class="hint pwh">30분 안에 끝낼 수 있을 만큼 작게 정하면 바로 시작하기 쉬워요.</p><div class="field"><input type="text" id="pw-act" maxlength="80" placeholder="예: 러닝화 사러 가기" value="${D("pw-act")}" aria-label="첫 태스크"></div>${difficultySelector(c,'mission')}${dueField(c)}
       ${steps.length ? `<div class="field"><span class="lab">어느 서브 퀘스트의 태스크인가요?</span><div class="chips">${steps.map((x,i) => `<button class="chip" data-act="cset" data-f="link" data-v="${i}" aria-pressed="${String(c.link ?? 0) === String(i)}">🔗 ${esc(x)}</button>`).join("")}</div></div>` : ""}`; }
@@ -1151,7 +1151,7 @@ function viewGoal(){
   </section>`;
   if (!sp && (subs.length || mine)){ const addable = mine && p.status !== "done";
     h += `<div class="subhead"><h2>서브 퀘스트 <span class="num">${subs.filter(x => x.status === "done").length}/${subs.length}</span></h2></div>
-    <div class="subgrid">${subs.map(subCard).join("")}${addable ? `<button class="card subc subadd" data-act="sheet" data-k="sub" data-p="${p.id}"><span class="wd-plus">+</span><b>서브 퀘스트 추가</b>${subs.length ? "" : `<small>메인 퀘스트를 작은 관문으로 나눠 보세요</small>`}</button>` : ""}</div>`; }
+    <div class="subgrid">${subs.map(subCard).join("")}${addable ? `<button class="card subc subadd" data-act="sheet" data-k="sub" data-p="${p.id}"><span class="wd-plus">+</span><b>서브 퀘스트 생성</b>${subs.length ? "" : `<small>메인 퀘스트를 작은 관문으로 나눠 보세요</small>`}</button>` : ""}</div>`; }
   if (mine){
     const ms = mineOf("mission").filter(m => m.projectId === p.id).sort((x,y) => x.done - y.done);
     const subT = sp ? [] : subs.map(x => ({x, l:mineOf("mission").filter(m => m.projectId === x.id).sort((a,b) => a.done - b.done)})).filter(o => o.l.length);
@@ -1246,7 +1246,7 @@ function viewWebDash(){
   const strip = (list, key, act, nm, n, kind, empty) => { n = Math.max(list.length, 1); const off = 0;
     const nav = WEB.matches && list.length > 2 ? `<button class="wd-rnav" data-act="wdgs" data-v="-1" aria-label="이전 ${nm}">${I.back}</button><button class="wd-rnav fwd" data-act="wdgs" data-v="1" aria-label="다음 ${nm}">${I.back}</button>` : "";
     return `${nav ? `<div class="wd-ovnav">${nav}</div>` : ""}
-      ${(() => { const k = Math.min(n, list.length), addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 추가"><span class="wd-plus">+</span><b>${nm} 추가</b>${list.length ? "" : `<small>${empty}</small>`}</button>`;
+      ${(() => { const k = Math.min(n, list.length), addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 생성"><span class="wd-plus">+</span><b>${nm} 생성</b>${list.length ? "" : `<small>${empty}</small>`}</button>`;
         return `<div class="wd-ggrid hs">${list.slice(off, off + n).map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 태스크 [^<]*<\/span>/, "").replace(/<span>🔗 서브 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(<span class="bar green big">[\s\S]*?<\/span>)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; return `<div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">태스크 ${pr.done}/${pr.total}</span></div>` + wdMetric(x); }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
   const subs = Object.values(S.projects).filter(p => p.owner === uid && p.parentId && p.status !== "done" && S.projects[p.parentId]).sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : 1);
   const goals = (gs.length >= 2 ? hintBar("reo", "카드를 길게 눌러 끌면 순서를 바꿀 수 있어요") : "") + `${strip(gs, "wdGi", "wdgi", "메인 퀘스트", 2, "big", "이루고 싶은 큰 목표를 세워 보세요")}
@@ -1492,7 +1492,7 @@ function preserveSheetDrafts() {
   document.querySelectorAll('.sheet input[id], .sheet textarea[id]').forEach(el => { if(!['checkbox','radio','file'].includes(el.type)) S.drafts[el.id]=el.value; });
   const todayInput=$('#ms-today'); if(todayInput&&S.compose) S.compose.today=todayInput.checked;
 }
-function sheetWrap(title, desc, body){ const creation=/^서브 퀘스트 (추가|만들기)$/.test(title),sub=title.startsWith('서브');$("#overlay").innerHTML = `<div class="scrim" data-act="sheet-bg"><div class="sheet" role="dialog" aria-modal="true"><h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}</div></div>`; initTW(); }
+function sheetWrap(title, desc, body){ const creation=/^서브 퀘스트 (추가|생성|만들기)$/.test(title),sub=title.startsWith('서브');$("#overlay").innerHTML = `<div class="scrim" data-act="sheet-bg"><div class="sheet" role="dialog" aria-modal="true"><h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}</div></div>`; initTW(); }
 const RW_PRICES = [100, 300, 500, 1000, 3000];
 const rwCustom = c => c.cost !== "" && c.cost != null && !RW_PRICES.includes(+c.cost);
 function renderSheet(){ IXC = null;
@@ -1519,7 +1519,7 @@ function renderSheet(){ IXC = null;
         ${areaField(c)}`; }
       else more = `${datePick(c, "end", "마감일", false, true)}${statusField(c)}${areaField(c)}${metricFields(c)}${coverField(c)}${taskFields(c)}`;
     }
-    return sheetWrap(({daily:"데일리 퀘스트 추가", once:"태스크 추가", sub:"서브 퀘스트 추가", big:"메인 퀘스트 추가"})[K] || "퀘스트 추가", "", `
+    return sheetWrap(({daily:"데일리 퀘스트 생성", once:"태스크 추가", sub:"서브 퀘스트 생성", big:"메인 퀘스트 생성"})[K] || "퀘스트 생성", "", `
     <div class="field"><input type="text" id="ad-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ad-name")}" aria-label="퀘스트 이름"></div>
     ${more}
     <button class="btn big full" data-act="submit-add" ${S.busy?"disabled":""}>추가</button>`); }
@@ -1675,7 +1675,7 @@ function renderSheet(){ IXC = null;
     return sheetWrap("데일리 퀘스트 설정", "", `
     <div class="sheetlist">${act.length ? `<p class="lab" style="margin:0 20px 4px">진행 중 ${act.length}</p>${act.map(r).join("")}` : `<p class="empty-row">진행 중인 데일리 퀘스트가 없어요.</p>`}
     ${ps.length ? `<p class="lab" style="margin:14px 20px 4px">보관 ${ps.length}</p>${ps.map(r).join("")}` : ""}</div>
-    <button class="btn big full" data-act="sheet" data-k="add" data-v="daily">+ 데일리 퀘스트 추가</button>`); }
+    <button class="btn big full" data-act="sheet" data-k="add" data-v="daily">+ 데일리 퀘스트 생성</button>`); }
   if (c.type === "reward-got") return sheetWrap("", "", `<div class="reward"><div class="big">${c.emoji}</div><h2 style="justify-content:center">${c.title}</h2><p class="desc" style="margin:0">${c.desc}</p>
     <div class="gain">${c.xp ? `<span>+${fmt(c.xp)} XP</span>` : ""}${c.g ? `<span>${c.g > 0 ? "+" : ""}${fmt(c.g)} 코인</span>` : ""}</div>
     ${c.share ? `<button class="btn big full" data-act="share-after">커뮤니티에 공유하기</button><button class="link" style="margin-top:14px" data-act="sheet-close">다음에 할게요</button>` : `<button class="btn big full" data-act="sheet-close">확인</button>`}</div>`);
@@ -1980,7 +1980,7 @@ document.addEventListener("click", e => {
     case "pl-mode": QM().mode = b.dataset.v; QM().sel = []; break;
     case "pl-later": QM().laterOpen = !QM().laterOpen; break;
     case "pl-new": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } ["pw-name","pw-act","pw-hab"].forEach(k => delete S.drafts[k]); openSheet({type:"plan", step:0, steps:[], due:today(), time:"", lv:"normal"}); return;
-    case "aset": { preserveSheetDrafts(); const v = b.dataset.v; c.area = (c.area || []).includes(v) ? [] : [v]; renderSheet(); return; }
+    case "aset": { preserveSheetDrafts(); const a = (c.area || []).slice(), v = b.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else { if (a.length >= 2){ toast("영역은 2개까지 고를 수 있어요"); return; } a.push(v); } c.area = a; renderSheet(); return; }
     case "statsheet": openSheet({type:"stats"}); return;
     case "pw-go": pwGo(c, b.dataset.v); return;
     case "pw-sadd": pwRead(c); c.steps.push(""); renderSheet(); return;
