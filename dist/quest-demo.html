@@ -1882,7 +1882,7 @@ function miniCal(c, key){
     <div class="dpgrid wk">${["월","화","수","목","금","토","일"].map(w => `<span>${w}</span>`).join("")}</div><div class="dpgrid">${cells}</div></div>`;
 }
 const datePick = (c, key, label, optional, required = false) => { const v = c[key] || "";
-  return `<div class="field"><span class="lab">${label}${required ? ' <span class="hint">필수</span>' : optional ? ' <span class="hint">선택</span>' : ""}</span><div class="dprow"><button class="dpbtn ${v ? "" : "empty"}" data-act="dpopen" data-k="${key}">📅 ${v ? fmtD(v) : "날짜 선택"}</button>${v && !required ? `<button class="link" data-act="dpclear" data-k="${key}">지우기</button>` : ""}</div>${c._dp === key ? miniCal(c, key) : ""}</div>`; };
+  return `<div class="field"><span class="lab">${label}${required ? ' <span class="hint">필수</span>' : optional ? ' <span class="hint">선택</span>' : ""}</span><div class="dprow"><button class="dpbtn ${v ? "" : "empty"}" data-act="dpopen" data-k="${key}">📅 ${v ? fmtD(v) : "날짜 선택"}</button>${v && !required ? `<button class="link" data-act="dpclear" data-k="${key}">지우기</button>` : ""}</div>${c._dp === key ? (key === "end" ? `<div class="dppop" data-act="dpopen" data-k="end"><div class="dppop-in" data-act="dpstay" role="dialog" aria-label="${label} 선택"><b class="dppop-t">${label} 선택</b>${miniCal(c, key)}</div></div>` : miniCal(c, key)) : ""}</div>`; };
 const priceOf = r => r.cost || OLD_TIER[r.tier] || 150;
 const isProj = p => !!(p && p.parentId);
 const goalsOf = uid => Object.values(S.projects).filter(p => p.owner === uid && !p.parentId);
@@ -2618,8 +2618,7 @@ const PW_STEPS = ["메인 퀘스트", "서브 퀘스트", "태스크", "데일�
 function planSheet(c){
   const st = c.step, dots = `<div class="pwdots">${PW_STEPS.map((l,i) => `<span class="${i === st ? "on" : i < st ? "ok" : ""}"><i>${i < st ? "✓" : i + 1}</i>${l}</span>`).join("")}</div>`;
   let body = "";
-  if (st === 0) body = `<p class="pwq">어떤 메인 퀘스트에 도전할까요?</p><div class="field"><input type="text" id="pw-name" maxlength="60" placeholder="예: 하프 마라톤 완주하기" value="${D("pw-name")}" aria-label="메인 퀘스트 이름"></div>${(() => { const dp = c._dp; c._dp = null; try{ return datePick(c, "end", "마감일", false, true); } finally { c._dp = dp; } })()}${areaField(c)}
-    ${c._dp === "end" ? `<div class="dppop" data-act="dpopen" data-k="end"><div class="dppop-in" data-act="dpstay" role="dialog" aria-label="마감일 선택"><b class="dppop-t">마감일 선택</b>${miniCal(c, "end")}</div></div>` : ""}`;
+  if (st === 0) body = `<p class="pwq">어떤 메인 퀘스트에 도전할까요?</p><div class="field"><input type="text" id="pw-name" maxlength="60" placeholder="예: 하프 마라톤 완주하기" value="${D("pw-name")}" aria-label="메인 퀘스트 이름"></div>${datePick(c, "end", "마감일", false, true)}${areaField(c)}`;
   else if (st === 1) body = `<p class="pwq">어떤 서브 퀘스트로 나눌까요?</p>
     ${c.steps.map((x,i) => `<div class="pwstep"><span class="ic sq ok">🔗</span><input type="text" id="pw-s${i}" maxlength="60" placeholder="서브 퀘스트 ${i+1}" value="${esc(x)}" aria-label="서브 퀘스트 ${i+1}"><button class="iconbtn" data-act="pw-sdel" data-v="${i}" aria-label="서브 퀘스트 ${i+1} 지우기">${I.close}</button></div>`).join("")}
     ${c.steps.length < 6 ? `<button class="tadd-pill pwadd" data-act="pw-sadd">+ 서브 퀘스트 생성</button>` : ""}`;
