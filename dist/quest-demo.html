@@ -2816,7 +2816,7 @@ function nowStep(g, html){ if (g.parentId) return html; const cur = subsOf(g.id)
   if (!cur) return html;
   return html.slice(0, i0) + `<button class="pgnow" data-act="project" data-p="${cur.id}"><span class="lb">지금 단계</span><b>${esc(cur.title)}</b>${cur.end ? `<em>${dday(cur.end)}</em>` : ""}</button>` + html.slice(i0); }
 function viewWebDash(){
-  const uid = S.me, gs = goalsOf(uid).filter(g => g.status !== "done").sort(gOrder);
+  const uid = S.me, gs = goalsOf(uid).filter(g => g.status !== "done" && !isPlanned(g)).sort(gOrder);
   const head = (t, side = "") => `<div class="wd-gh"><h2>${t}</h2>${side}</div>`;
   const save = S.qTab; S.qTab = "daily"; let d = viewToday(); S.qTab = save;
   d = d.replace(/<button class="iconbtn gear wd-cgear"[^>]*>[\s\S]*?<\/button>/, "");
