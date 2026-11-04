@@ -564,6 +564,10 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .pwdots i{font-style:normal;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--seg);font-size:12px}
 .pwdots .on{color:var(--accent)}.pwdots .on i{background:var(--accent);color:#fff}
 .pwdots .ok i{background:var(--accent-soft);color:var(--accent)}
+.dppop{position:fixed;inset:0;z-index:80;background:rgb(0 0 0 / .35);display:grid;place-items:center;padding:16px}
+.dppop-in{background:var(--card);border-radius:20px;padding:16px;width:min(100%,360px);box-shadow:0 12px 40px rgb(0 0 0 / .25)}
+.dppop-t{display:block;font-size:16px;font-weight:800;margin:0 4px 8px}
+.dppop-in .dpcal{margin:0}
 .pwq{font-size:18px;font-weight:800;margin:0 0 10px}
 .pwh{margin:-4px 0 14px!important}
 .pwstep{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;margin:0 0 10px}.pwstep input{flex:1;min-width:0}.pwstep .ic{flex:none}.pwstep .iconbtn{flex:none;color:var(--muted)}
@@ -2505,7 +2509,8 @@ const PW_STEPS = ["메인 퀘스트", "서브 퀘스트", "첫 태스크", "데�
 function planSheet(c){
   const st = c.step, dots = `<div class="pwdots">${PW_STEPS.map((l,i) => `<span class="${i === st ? "on" : i < st ? "ok" : ""}"><i>${i < st ? "✓" : i + 1}</i>${l}</span>`).join("")}</div>`;
   let body = "";
-  if (st === 0) body = `<p class="pwq">어떤 메인 퀘스트에 도전할까요?</p><div class="field"><input type="text" id="pw-name" maxlength="60" placeholder="예: 하프 마라톤 완주하기" value="${D("pw-name")}" aria-label="메인 퀘스트 이름"></div>${datePick(c, "end", "마감일", false, true)}`;
+  if (st === 0) body = `<p class="pwq">어떤 메인 퀘스트에 도전할까요?</p><div class="field"><input type="text" id="pw-name" maxlength="60" placeholder="예: 하프 마라톤 완주하기" value="${D("pw-name")}" aria-label="메인 퀘스트 이름"></div>${(() => { const dp = c._dp; c._dp = null; try{ return datePick(c, "end", "마감일", false, true); } finally { c._dp = dp; } })()}
+    ${c._dp === "end" ? `<div class="dppop" data-act="dpopen" data-k="end"><div class="dppop-in" data-act="dpstay" role="dialog" aria-label="마감일 선택"><b class="dppop-t">마감일 선택</b>${miniCal(c, "end")}</div></div>` : ""}`;
   else if (st === 1) body = `<p class="pwq">어떤 서브 퀘스트로 나눌까요?</p><p class="hint pwh">큰 퀘스트를 2~4개 관문으로 나누면 끝까지 가기 쉬워요. 없으면 건너뛰어도 돼요.</p>
     ${c.steps.map((x,i) => `<div class="pwstep"><span class="ic sq ok">🔗</span><input type="text" id="pw-s${i}" maxlength="60" placeholder="서브 퀘스트 ${i+1}" value="${esc(x)}" aria-label="서브 퀘스트 ${i+1}"><button class="iconbtn" data-act="pw-sdel" data-v="${i}" aria-label="서브 퀘스트 ${i+1} 지우기">${I.close}</button></div>`).join("")}
     ${c.steps.length < 6 ? `<button class="tadd-pill pwadd" data-act="pw-sadd">+ 서브 퀘스트 추가</button>` : ""}`;
