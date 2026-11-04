@@ -1207,7 +1207,7 @@ function pgCard(g){
   return `<section class="card pgc ${done ? "done" : ""}" data-act="project" data-p="${g.id}" role="button" tabindex="0">
     ${coverHtml(g, {badge:false})}
     <div class="pgtop">${done ? `<span class="st done">🏆 ${g.doneAt ? `${new Date(g.doneAt).getMonth()+1}/${new Date(g.doneAt).getDate()} 달성` : "달성"}</span>` : `${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}`}<b class="pct num">${pct}%</b></div>
-    ${g.parentId && S.projects[g.parentId] ? `<span class="parlab">🎯 ${esc(S.projects[g.parentId].title)}</span>` : ""}<h3>${esc(g.title)}</h3>
+    <h3>${esc(g.title)}${g.parentId && S.projects[g.parentId] ? `<span class="parlab">🎯 ${esc(S.projects[g.parentId].title)}</span>` : ""}</h3>
     <span class="bar green big"><i style="width:${pct}%"></i></span>
     <div class="pgmeta">${meta.map(x => `<span>${x}</span>`).join("")}</div>
     ${subs.length ? `<div class="pgsubs">${subs.map(x => { const p2 = goalProgress(x); return `<button class="pgsub ${x.status === "done" ? "ok" : ""}" data-act="project" data-p="${x.id}"><span>${x.status === "done" ? "✓" : "🔗"}</span>${esc(x.title)}${p2.total && x.status !== "done" ? ` <em class="num">${p2.done}/${p2.total}</em>` : ""}</button>`; }).join("")}</div>` : ""}

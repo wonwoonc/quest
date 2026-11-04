@@ -675,7 +675,8 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .mqh .parlab{font-size:12px;font-weight:600;color:var(--muted)}
 .seg.sm2{margin-top:-4px}
 .seg.sm2 button{padding:7px 0;font-size:14px}
-.pgc .parlab{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:-6px}
+.pgc h3{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.pgc .parlab{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--sub);background:var(--seg);border-radius:99px;padding:3px 8px;letter-spacing:0}.pgc .parlab svg{width:12px;height:12px}
 .row .streak{flex:none;font-size:15px;font-weight:800;color:var(--fire,#F0642B)}
 .cname{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .editp.fbtn{font-size:13.5px;padding:6px 14px;border-radius:10px}
@@ -2954,7 +2955,7 @@ function pgCard(g){
   return `<section class="card pgc ${done ? "done" : ""}" data-act="project" data-p="${g.id}" role="button" tabindex="0">
     ${coverHtml(g, {badge:false})}
     <div class="pgtop">${done ? `<span class="st done">🏆 ${g.doneAt ? `${new Date(g.doneAt).getMonth()+1}/${new Date(g.doneAt).getDate()} 달성` : "달성"}</span>` : `${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}`}<b class="pct num">${pct}%</b></div>
-    ${g.parentId && S.projects[g.parentId] ? `<span class="parlab">🎯 ${esc(S.projects[g.parentId].title)}</span>` : ""}<h3>${esc(g.title)}</h3>
+    <h3>${esc(g.title)}${g.parentId && S.projects[g.parentId] ? `<span class="parlab">🎯 ${esc(S.projects[g.parentId].title)}</span>` : ""}</h3>
     <span class="bar green big"><i style="width:${pct}%"></i></span>
     <div class="pgmeta">${meta.map(x => `<span>${x}</span>`).join("")}</div>
     ${subs.length ? `<div class="pgsubs">${subs.map(x => { const p2 = goalProgress(x); return `<button class="pgsub ${x.status === "done" ? "ok" : ""}" data-act="project" data-p="${x.id}"><span>${x.status === "done" ? "✓" : "🔗"}</span>${esc(x.title)}${p2.total && x.status !== "done" ? ` <em class="num">${p2.done}/${p2.total}</em>` : ""}</button>`; }).join("")}</div>` : ""}
