@@ -1151,7 +1151,7 @@ test('nav › 퀘스트: bulk status change, archive, task move and confirmed de
   saved.mine.qa={id:'qa',kind:'quest',name:'관리 데일리',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{},createdAt:1};
   saved.mine.t1={id:'t1',kind:'mission',name:'관리 태스크',due:'2099-01-01',time:'10:00',projectId:'s1',lv:'normal',done:false,createdAt:1};
   const h=await profileUI(saved);assert.match(h.nodes.get('nav').innerHTML,/href="#qmanage"[^>]*>[\s\S]*?<span>퀘스트<\/span>/);
-  h.route('qmanage');assert.match(h.nodes.get('topbar').innerHTML,/퀘스트/);assert.match(h.nodes.get('app').innerHTML,/새 목표 세우기/);h.click('pl-mode',{v:'tidy'});assert.match(h.nodes.get('app').innerHTML,/메인 하나/);
+  h.route('qmanage');assert.match(h.nodes.get('topbar').innerHTML,/퀘스트/);assert.match(h.nodes.get('app').innerHTML,/메인 퀘스트 만들기/);h.click('pl-mode',{v:'tidy'});assert.match(h.nodes.get('app').innerHTML,/메인 하나/);
   h.click('qm-sel',{id:'m1'});h.click('qm-sel',{id:'m2'});assert.match(h.nodes.get('app').innerHTML,/<b>2<\/b>개 선택/);
   h.click('qm-do',{v:'planned'});await h.settle();assert.equal(h.snapshot().projects.m1.status,'planned');assert.equal(h.snapshot().projects.m2.status,'planned');
   h.click('qm-tab',{v:'daily'});h.click('qm-sel',{id:'qa'});h.click('qm-do',{v:'arch'});await h.settle();assert.equal(h.snapshot().mine.qa.active,false);
@@ -1159,17 +1159,20 @@ test('nav › 퀘스트: bulk status change, archive, task move and confirmed de
   h.click('qm-tab',{v:'goal'});h.click('qm-sel',{id:'m1'});h.click('qm-do',{v:'del'});assert.ok(h.snapshot().projects.m1,'delete waits for confirmation');
   h.click('cfok');await h.settle();const after=h.snapshot();assert.equal(after.projects.m1,undefined);assert.equal(after.projects.s1,undefined);assert.equal(after.mine.t1,undefined);assert.ok(after.projects.m2);
 });
-test('nav › 퀘스트: plan wizard creates goal, steps, a timed first action and a habit; goal without next action is flagged',async()=>{
-  const h=await profileUI(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);h.route('qmanage');
-  h.click('pl-new');h.click('wz-go',{v:'1'});assert.equal(h.snapshot().projects&&Object.values(h.snapshot().projects).filter(p=>p.title==='마라톤').length,0);
-  h.nodes.set('wz-name',{value:'마라톤'});h.nodes.set('wz-end',{value:'2099-12-31'});h.click('wz-go',{v:'1'});assert.match(h.nodes.get('app').innerHTML,/어떤 단계로/);
-  h.nodes.set('wz-s0',{value:'기초 체력'});h.nodes.set('wz-s1',{value:''});h.click('wz-go',{v:'1'});
-  h.nodes.set('wz-act',{value:'러닝화 사기'});h.click('wz-go',{v:'1'});assert.match(h.nodes.get('app').innerHTML,/첫 행동/,'time is required');
-  h.nodes.set('wz-time',{value:'19:00'});h.click('wz-go',{v:'1'});h.nodes.set('wz-hab',{value:'매일 달리기'});h.nodes.set('wz-htime',{value:'07:00'});h.click('wz-go',{v:'1'});await h.settle();
-  const s=h.snapshot(),g=Object.values(s.projects).find(p=>p.title==='마라톤'),sub=Object.values(s.projects).find(p=>p.parentId===g.id);
-  assert.equal(g.status,'active');assert.equal(sub.title,'기초 체력');assert.equal(Object.values(s.projects).filter(p=>p.parentId===g.id).length,1);
-  const t=Object.values(s.mine).find(m=>m.name==='러닝화 사기');assert.equal(t.projectId,sub.id);assert.equal(t.due,T);assert.equal(t.time,'19:00');
-  assert.ok(Object.values(s.mine).find(m=>m.kind==='quest'&&m.name==='매일 달리기'));
-  const html=h.nodes.get('app').innerHTML;assert.match(html,/지금 바로 할 일[\s\S]*러닝화 사기/);
-  h.click('mcheck',{id:t.id});await h.settle();assert.match(h.nodes.get('app').innerHTML,/다음 할 일이 없어요[\s\S]*data-act="taskadd" data-p="/);
+test('nav › 퀘스트: plan sheet creates main, sub, a timed first task and a daily; quest without next task is flagged',async()=>{
+  const h=await profileUI(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);h.route('qmanage');assert.match(h.nodes.get('app').innerHTML,/메인 퀘스트 만들기/);
+  h.click('pl-new');assert.match(h.nodes.get('overlay').innerHTML,/메인 퀘스트 설계[\s\S]*data-act="dpopen" data-k="end"/);
+  h.nodes.set('pw-name',{value:'마라톤'});h.click('pw-go',{v:'1'});assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/어떤 서브 퀘스트/,'deadline required');
+  h.click('dppick',{k:'end',v:'2099-12-31'});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/어떤 서브 퀘스트/);
+  h.nodes.set('pw-s0',{value:'기초 체력'});h.nodes.set('pw-s1',{value:''});h.click('pw-go',{v:'1'});
+  assert.match(h.nodes.get('overlay').innerHTML,/data-act="tmset"/,'same time picker as the dashboard');
+  h.nodes.set('pw-act',{value:'러닝화 사기'});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/첫 태스크는/,'time is required');
+  h.click('cdue1',{v:T});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/데일리 퀘스트가 있나요/);
+  h.nodes.set('pw-hab',{value:'매일 달리기'});h.click('tmset');h.click('pw-go',{v:'1'});await h.settle();
+  const s=h.snapshot(),g=Object.values(s.projects).find(p=>p.title==='마라톤'),subs=Object.values(s.projects).filter(p=>p.parentId===g.id);
+  assert.equal(g.status,'active');assert.equal(subs.length,1);assert.equal(subs[0].title,'기초 체력');
+  const t=Object.values(s.mine).find(m=>m.name==='러닝화 사기');assert.equal(t.projectId,subs[0].id);assert.equal(t.due,T);assert.equal(t.time,'09:00');
+  assert.ok(Object.values(s.mine).find(m=>m.kind==='quest'&&m.name==='매일 달리기'&&m.time==='09:00'));
+  assert.match(h.nodes.get('app').innerHTML,/지금 할 태스크[\s\S]*러닝화 사기/);
+  h.click('mcheck',{id:t.id});await h.settle();assert.match(h.nodes.get('app').innerHTML,/data-act="taskadd" data-p="[^"]+"[^>]*>[\s\S]*?다음 태스크 정하기/);
 });

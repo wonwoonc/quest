@@ -60,10 +60,10 @@ test('preview is uncapped regardless of historical claims, without mutating or c
   assert.equal(activityRewardPreview(s,'quest','normal',at).rested,true);
 });
 
-test('all eight UI selectors delegate to one explicit kind-aware helper',async()=>{
+test('all nine UI selectors delegate to one explicit kind-aware helper',async()=>{
   const source=await readFile(new URL('../src/legacy-app.js',import.meta.url),'utf8');
   assert.doesNotMatch(source,/\bLABELS\b|\blvRow\b|d:meta.n/);
-  assert.equal((source.match(/\$\{difficultySelector\(c,/g)||[]).length,8);
+  assert.equal((source.match(/\$\{difficultySelector\(c,/g)||[]).length,9);
   assert.doesNotMatch(source,/difficulty-(?:detail|guide|payout)|activityRewardPreview/);
   const css=await readFile(new URL('../src/shell.html',import.meta.url),'utf8');
   assert.doesNotMatch(css,/difficulty-(?:detail|guide|payout)/);
