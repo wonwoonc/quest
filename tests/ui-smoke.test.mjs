@@ -1167,3 +1167,8 @@ test('main / sub quest page shows selected 속성 tags; sub without its own show
   h.click('project',{p:'s1'});html=h.nodes.get('app').innerHTML;assert.match(html,/class="tag atag inh"[\s\S]*?건강/);
   h.click('project',{p:'s2'});html=h.nodes.get('app').innerHTML;assert.match(html,/class="tag atag "[\s\S]*?재정/);assert.doesNotMatch(html.slice(0,html.indexOf('rw')),/건강/);
 });
+test('uploaded profile photo renders as the profile picture, not a chibi face overlay',async()=>{
+  const base=await profileUI(),saved=base.snapshot();saved.profiles.me={...saved.profiles.me,face:'data:image/png;base64,AAAA',avatarStyle:'photo'};
+  const h=await profileUI(saved);h.route('dash');const html=h.nodes.get('app').innerHTML;
+  assert.match(html,/class="avatar-photo"[^>]*><img src="data:image\/png;base64,AAAA" alt="프로필 사진"/);assert.doesNotMatch(html,/class="cface"/);
+});

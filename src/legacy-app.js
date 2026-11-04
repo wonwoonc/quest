@@ -351,7 +351,9 @@ function chibi(color, L, face, size){ const src = face && (face.startsWith("data
 const faceOf = uid => prof(uid).face || "";
 function fullbody(image, size){ const src = image && (image.startsWith('data:') ? image : S.media[image]);
   return `<span class="avatar-fullbody" style="width:${size}px;height:${size}px"${src ? '' : ` data-k="${esc(image)}"`}>${src ? `<img src="${esc(src)}" alt="전신 캐릭터" draggable="false">` : ''}</span>`; }
-const fig = (uid, size, inner) => faceOf(uid) ? (prof(uid).avatarStyle === 'fullbody' ? fullbody(faceOf(uid), size) : chibi(colorOf(uid), statsOf(uid).L, faceOf(uid), size)) : spriteImg(colorOf(uid), statsOf(uid).L, inner || Math.round(size*.64));
+function photoAv(image, size){ const src = image && (image.startsWith('data:') ? image : S.media[image]);
+  return `<span class="avatar-photo" style="width:${size}px;height:${size}px"${src ? '' : ` data-k="${esc(image)}"`}>${src ? `<img src="${esc(src)}" alt="프로필 사진" draggable="false">` : ''}</span>`; }
+const fig = (uid, size, inner) => faceOf(uid) ? (prof(uid).avatarStyle === 'photo' ? photoAv(faceOf(uid), size) : prof(uid).avatarStyle === 'fullbody' ? fullbody(faceOf(uid), size) : chibi(colorOf(uid), statsOf(uid).L, faceOf(uid), size)) : spriteImg(colorOf(uid), statsOf(uid).L, inner || Math.round(size*.64));
 const av = (uid, size, act = true) => `<${act?`button data-act="profile" data-u="${esc(uid)}" aria-label="${esc(nameOf(uid))} 프로필"`:"span"} class="av ${uid===S.me?'eco-avatar':''}" style="width:${size}px;height:${size}px">${fig(uid, size)}</${act?"button":"span"}>`;
 const liked = p => on((p.reactions||{})[S.me]);
 const likeN = p => Object.values(p.reactions||{}).filter(on).length;
@@ -1314,10 +1316,10 @@ function viewProfile(){
   return h;
 }
 function faceBlock(face, making, color, state = {}){
-  if (!devCharacter) return `<div class="obstage" aria-label="캐릭터 미리보기">${face ? (state.avatarStyle === 'fullbody' ? fullbody(face, 150) : chibi(color, 1, face, 150)) : sprite(color, 1, 96)}</div>
-    <p class="facehint">나만의 색을 고르거나, 사진을 올려 캐릭터 얼굴로 써 보세요.</p>
+  if (!devCharacter) return `<div class="obstage" aria-label="캐릭터 미리보기">${face ? (state.avatarStyle === 'photo' ? photoAv(face, 150) : state.avatarStyle === 'fullbody' ? fullbody(face, 150) : chibi(color, 1, face, 150)) : sprite(color, 1, 96)}</div>
+    <p class="facehint">나만의 색을 고르거나, 사진을 올려 프로필 사진으로 써 보세요.</p>
     <div class="facebtns"><button type="button" class="btn sec sm" data-act="faceupload">사진 업로드</button>${face ? `<button type="button" class="btn sec sm" data-act="facedel">기본 캐릭터로</button>` : ''}</div>`;
-  return `<div class="obstage" aria-busy="${!!making}">${face ? (state.avatarStyle === 'fullbody' ? fullbody(face, 150) : chibi(color, 1, face, 150)) : sprite(color, 1, 96)}${making ? `<div class="obmaking" role="status"><i></i>AI 생성 서버에<br>요청하고 있어요…</div>` : ''}</div>
+  return `<div class="obstage" aria-busy="${!!making}">${face ? (state.avatarStyle === 'photo' ? photoAv(face, 150) : state.avatarStyle === 'fullbody' ? fullbody(face, 150) : chibi(color, 1, face, 150)) : sprite(color, 1, 96)}${making ? `<div class="obmaking" role="status"><i></i>AI 생성 서버에<br>요청하고 있어요…</div>` : ''}</div>
     <p class="facehint">사진의 머리와 얼굴 특징을 참고해 전신 캐릭터를 만들어요. 닮은 정도는 다를 수 있어요.<br>승인된 메이플스토리풍의 매끈한 2D 스타일로, 머리는 전체 키의 55~60%, 몸통과 팔다리·신발은 작고 짧게 표현해요. 픽셀·디더링·계단 현상·3D·성인 비율은 사용하지 않아요.<br>참고 이미지는 스타일만 사용하며 인물·머리·후드티·의상을 복사하지 않아요. 사진 속 옷을 참고하고, 보이지 않으면 선택한 색의 티셔츠·긴 바지·운동화를 사용해요. 참고 이미지의 회색·어두운 의상을 강제하지 않아요.</p>
     <p class="facehint">개발 모드 전용 · 생성 1장당 약 19크레딧 · 30초 간격 · 서버 세션당 최대 5회 시도.<br>얼굴과 원본의 정확한 보존은 확인하거나 보장할 수 없어요. <a href="https://www.genspark.ai/ai_image" target="_blank" rel="noopener noreferrer">AI 이미지 영역 편집기</a>에서 직접 확인하고 수정할 수 있어요.</p>
     <label class="lab" for="character-dev-code">개발용 코드 (서버 시작 로그)</label><input type="password" id="character-dev-code" autocomplete="off" maxlength="128" placeholder="코드는 메모리에만 유지돼요" ${making ? 'disabled' : ''}>
@@ -2178,7 +2180,7 @@ document.addEventListener("click", e => {
       run(() => api.addReply(c.pid, text, c.cid), () => { delete S.drafts["rp-text"]; const p0 = c.pid; closeSheet(); toast("답글을 남겼어요"); if (!(S.view.name === "post" && S.view.pid === p0)) openPost(p0); }); return; }
     case "faceupload": { const inSheet = c && c.type === "profile", tgt = inSheet ? c : S.ob;
       if (!inSheet){ const n = $("#nick"); if (n) S.drafts.nick = n.value; } else { ["ep-nick","ep-bio"].forEach(k => { const el = $("#"+k); if (el) S.drafts[k] = el.value; }); }
-      choosePhotos(false, async list => { if (!list || !list[0]) return; tgt.face = await shrinkImg(list[0], 400, 60000); tgt.avatarStyle = null; tgt.characterError = ""; if (inSheet){ if (S.compose === tgt) renderSheet(); } else schedule(); }); return; }
+      choosePhotos(false, async list => { if (!list || !list[0]) return; tgt.face = await shrinkImg(list[0], 800, 160000); tgt.avatarStyle = "photo"; tgt.characterError = ""; if (inSheet){ if (S.compose === tgt) renderSheet(); } else schedule(); }); return; }
     case "faceshot": return;
     case "faceshot-removed": { const inSheet = c && c.type === "profile", tgt = inSheet ? c : S.ob, re = () => inSheet ? (S.compose === tgt && renderSheet()) : schedule();
       if (!devCharacter){ toast(photoNotice); return; }
