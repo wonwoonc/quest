@@ -563,6 +563,7 @@ function diaryCard(){
   return `<section class="card diaryc"><div class="ch"><h2>오늘의 저널</h2>${d ? "" : `<span class="side">+${DIARY.xp} XP · +${DIARY.c} 코인</span>`}</div>${diaryForm(d, P)}</section>`;
 }
 const SUGGEST = [["물 2리터 마시기","easy"],["스트레칭 10분","easy"],["10분 독서","normal"],["자기 전 하루 정리","easy"]];
+const mOpen = id => (LS.get("mopen", [])).includes(id);
 const tFold = id => (LS.get("tfold", [])).includes(id);
 function taskTab(o = {}){
   const k = today(), ms = mineOf("mission"), sortT = l => l.sort((a,b) => (dueOf(a)||"9") < (dueOf(b)||"9") ? -1 : (dueOf(a)||"9") > (dueOf(b)||"9") ? 1 : (a.time||"99") < (b.time||"99") ? -1 : 1);
@@ -656,11 +657,11 @@ function mainTab(){
     const pr = goalProgress(g), pct = pr.total ? pr.done/pr.total*100 : 0, links = subsOf(g.id).filter(x => x.status !== "done");
     const latest = valLatest(g.id);
     const mv = g.metric ? `📈 ${numFmt(latest ? latest.value : g.metric.start)} → ${numFmt(g.metric.target)}${esc(g.metric.unit)}` : "";
-    const cvF = (LS.get("cvfold", [])).includes(g.id), up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`;
+    const cvF = !(LS.get("cvopen", [])).includes(g.id), up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`;
     h += `<section class="card tight mq qlist" data-reo="${g.id}">${cvF ? `<button class="cvopen" data-act="cvfold" data-p="${g.id}">표지 펴기 <span style="display:inline-flex;transform:rotate(180deg)">${up}</span></button>` : `<div class="cvwrap">${coverHtml(g, {badge:false})}<button class="cvtog" data-act="cvfold" data-p="${g.id}" aria-label="표지 접기">${up}</button></div>`}<div class="mqh mqh2" data-act="project" data-p="${g.id}" role="button" tabindex="0">${qHead(g)}</div>
-      ${(() => { const all = subsOf(g.id); const sk = "s:" + g.id, shut = tFold(sk); return `<div class="mqsubs"><button class="tfold" data-act="tfold" data-k="${sk}" aria-expanded="${!shut}"><span>서브 퀘스트 <em class="num">${all.filter(x => x.status === "done").length}/${all.length}</em></span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : all.map(x => goalRow(x, true)).join("") + `<button class="tadd-pill" data-act="sheet" data-k="sub" data-p="${g.id}">+ 서브 퀘스트 생성</button>`}</div>`; })()}
-      ${(() => { const ts = [g.id, ...links.map(x => x.id)].flatMap(id => subsFor(id)).sort((a,b) => a.done - b.done || isToday(b) - isToday(a) || (a.createdAt||0) - (b.createdAt||0)), shut = tFold(g.id), left = ts.filter(m => !m.done).length;
-        return `<button class="tfold" data-act="tfold" data-k="${g.id}" aria-expanded="${!shut}"><span>태스크 ${ts.length ? `<em class="num">${left ? `${left}개 남음` : "모두 완료"}</em>` : ""}</span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : ts.map(m => { S._bare = true; try{ return taskRow(m, false); } finally { S._bare = false; } }).join("") + `<button class="tadd-pill" data-act="taskadd" data-p="${g.id}">+ 태스크 추가</button>`}`; })()}</section>`;
+      ${(() => { const all = subsOf(g.id); const sk = "s:" + g.id, shut = !mOpen(sk); return `<div class="mqsubs"><button class="tfold" data-act="mfold" data-k="${sk}" aria-expanded="${!shut}"><span>서브 퀘스트 <em class="num">${all.filter(x => x.status === "done").length}/${all.length}</em></span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : all.map(x => goalRow(x, true)).join("") + `<button class="tadd-pill" data-act="sheet" data-k="sub" data-p="${g.id}">+ 서브 퀘스트 생성</button>`}</div>`; })()}
+      ${(() => { const ts = [g.id, ...links.map(x => x.id)].flatMap(id => subsFor(id)).sort((a,b) => a.done - b.done || isToday(b) - isToday(a) || (a.createdAt||0) - (b.createdAt||0)), shut = !mOpen(g.id), left = ts.filter(m => !m.done).length;
+        return `<button class="tfold" data-act="mfold" data-k="${g.id}" aria-expanded="${!shut}"><span>태스크 ${ts.length ? `<em class="num">${left ? `${left}개 남음` : "모두 완료"}</em>` : ""}</span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : ts.map(m => { S._bare = true; try{ return taskRow(m, false); } finally { S._bare = false; } }).join("") + `<button class="tadd-pill" data-act="taskadd" data-p="${g.id}">+ 태스크 추가</button>`}`; })()}</section>`;
   }
   const loose = mineOf("mission").filter(m => (!m.projectId || !S.projects[m.projectId]) && vis(m)).sort((a,b) => a.done - b.done || isToday(b) - isToday(a));
   // 개별 태스크 카드는 메인 탭에서 표시하지 않음
@@ -2098,7 +2099,8 @@ document.addEventListener("click", e => {
     case "rolldis": LS.set("rolldis", today()); break;
     case "rolldel": { if (S.armed !== "rolldel") return; S.armed = null; const t0 = today(), ls = mineOf("mission").filter(m => !m.done && m.origDue && m.origDue < t0 && m.due === t0), pjs = new Set(ls.map(m => m.projectId).filter(Boolean));
       run(async () => { for (const m of ls) await api.delMine(m.id); }, () => { toast(`지난 태스크 ${ls.length}개를 삭제했어요`); pjs.forEach(syncProgress); }); return; }
-    case "cvfold": { const l = LS.get("cvfold", []), i = l.indexOf(pid); if (i >= 0) l.splice(i, 1); else l.push(pid); LS.set("cvfold", l); break; }
+    case "cvfold": { const l = LS.get("cvopen", []), i = l.indexOf(pid); if (i >= 0) l.splice(i, 1); else l.push(pid); LS.set("cvopen", l); break; }
+    case "mfold": { const l = LS.get("mopen", []), k = b.dataset.k; LS.set("mopen", l.includes(k) ? l.filter(x => x !== k) : [...l, k]); break; }
     case "gtmore": { const cur = S.gtN && S.gtN.pid === pid ? S.gtN.n : 10; S.gtN = {pid, n:cur + 10}; break; }
     case "gdone": S.gDone = S.gDone === pid ? null : pid; break;
     case "actmore": S.actN = (S.actN || 10) + 10; break;

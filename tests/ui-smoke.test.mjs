@@ -420,6 +420,7 @@ for (const page of ['today','today-main','dash','me','me-main','cal','main-detai
       h.route(page.split('-')[0]);
       if (page.startsWith('me')) h.click('ptab',{t:'goals'});
       if (page.startsWith('today') || page.startsWith('me')) h.click('qtab',{t:page.endsWith('-main') ? 'main' : 'task'});
+      if (page.endsWith('-main') && !h.nodes.get('app').innerHTML.includes('data-act="tedit" data-id="ts"')) h.click('mfold',{k:'main'});
     };
     const before = h.snapshot();
     for (const [id,label] of page === 'sub-detail' ? [['ts','24:05']] : [['tm','9:00'],['ts','24:05']]) {
@@ -1214,4 +1215,10 @@ test('nav › 퀘스트 › 데일리: archived dailies listed under 보관 and 
   const h=await profileUI(saved);h.route('qmanage');h.click('pl-tab',{v:'daily'});
   assert.match(h.nodes.get('app').innerHTML,/보관 <span class="num">1[\s\S]*쉬는 습관[\s\S]*data-act="unarch" data-id="qz"/);
   h.click('unarch',{id:'qz'});await h.settle();assert.equal(h.snapshot().mine.qz.active,true);
+});
+test('story › 퀘스트 › 메인: covers and sub/task toggles start folded and open on tap',async()=>{
+  const h=await linkedUI();h.route('me');h.click('ptab',{t:'goals'});h.click('qtab',{t:'main'});let html=h.nodes.get('app').innerHTML;
+  assert.match(html,/data-act="cvfold" data-p="main">표지 펴기/);assert.match(html,/data-act="mfold" data-k="main" aria-expanded="false"/);assert.match(html,/data-act="mfold" data-k="s:main" aria-expanded="false"/);
+  h.click('mfold',{k:'main'});h.click('cvfold',{p:'main'});html=h.nodes.get('app').innerHTML;
+  assert.match(html,/data-act="mfold" data-k="main" aria-expanded="true"/);assert.match(html,/aria-label="표지 접기"/);
 });
