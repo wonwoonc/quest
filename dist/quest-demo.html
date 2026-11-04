@@ -566,7 +566,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .dppop-in{background:var(--card);border-radius:20px;padding:16px;width:min(100%,360px);box-shadow:0 12px 40px rgb(0 0 0 / .25)}
 .dppop-t{display:block;font-size:16px;font-weight:800;margin:0 4px 8px}
 .dppop-in .dpcal{margin:0}
-.stsum{margin:0 0 4px;font-size:13px;color:var(--muted);text-align:center}.stsum b{color:var(--ink)}
+.stsum{margin:0 0 8px;font-size:13px;color:var(--muted)}.stsum b{color:var(--ink)}
 .wdp-cv[data-act="statsheet"]{cursor:pointer}
 .subhead{display:flex;align-items:center;justify-content:space-between;margin:6px 4px -4px}.subhead h2{font-size:18px;font-weight:800;margin:0}.subhead h2 .num{color:var(--accent);font-size:15px;margin-left:4px}
 .subhead .btnlink{font-weight:700;color:var(--accent);border:0;background:none;font-size:14px}
@@ -584,10 +584,11 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .subnx em{font-style:normal;font-weight:800;color:var(--accent);margin-right:5px}.subnx em.w{color:#c2410c;margin:0}
 .subadd{align-items:center;justify-content:center;border:1.5px dashed var(--sbt);background:none;box-shadow:none;color:var(--muted)}
 .subadd b{font-size:14px}.subadd small{font-size:12px;text-align:center}
-.statcard .radar{display:block;width:100%;max-width:230px;margin:4px auto 6px;overflow:visible}
+.stbody{display:flex;align-items:center;gap:6px}
+.statcard .radar{display:block;flex:1;min-width:0;max-width:210px;margin:0 0 0 auto;overflow:visible}
 .strows{display:flex;flex-direction:column;gap:8px}
 .achip{display:inline-flex;align-items:center;gap:5px}.achip .aic{width:16px;height:16px}
-.sheet:has(.statcard){max-width:340px!important;margin-left:auto;margin-right:auto}
+.sheet:has(.statcard){max-width:420px!important;margin-left:auto;margin-right:auto}
 .strows{display:grid!important;grid-template-columns:22px auto auto;column-gap:8px;row-gap:10px;align-items:center;width:max-content;margin:0}.strows .strow{display:contents}
 .strow{display:grid;grid-template-columns:22px auto auto;justify-content:start;align-items:center;gap:8px;font-size:14px}
 .strow .ste{display:flex;color:var(--accent)}.strow .ste svg{width:19px;height:19px}
@@ -2376,7 +2377,7 @@ function statCard(){
   const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><span class="stn"><b>${n}</b><small>${AREAS[i][3]}</small></span><b class="stl num">${fmt(vals[i])}</b></div>`).join("");
   const top = Math.max(...vals), low = Math.min(...vals), best = AREAS[vals.indexOf(top)], weak = AREAS[vals.indexOf(low)];
   return `<section class="statcard">${top > 0 ? `<p class="stsum">강점 <b>${best[1]}</b> · 보완 <b>${weak[1]}</b></p>` : ""}
-    ${radarSvg(vals)}<div class="strows">${rows}</div>
+    <div class="stbody"><div class="strows">${rows}</div>${radarSvg(vals)}</div>
 </section>`;
 }
 const gOrder = (a,b) => ((a.order ?? 1e9) - (b.order ?? 1e9)) || (isPlanned(a) - isPlanned(b)) || ((a.end||"9") < (b.end||"9") ? -1 : (a.end||"9") > (b.end||"9") ? 1 : 0);

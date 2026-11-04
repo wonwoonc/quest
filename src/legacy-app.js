@@ -640,7 +640,7 @@ function statCard(){
   const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><span class="stn"><b>${n}</b><small>${AREAS[i][3]}</small></span><b class="stl num">${fmt(vals[i])}</b></div>`).join("");
   const top = Math.max(...vals), low = Math.min(...vals), best = AREAS[vals.indexOf(top)], weak = AREAS[vals.indexOf(low)];
   return `<section class="statcard">${top > 0 ? `<p class="stsum">강점 <b>${best[1]}</b> · 보완 <b>${weak[1]}</b></p>` : ""}
-    ${radarSvg(vals)}<div class="strows">${rows}</div>
+    <div class="stbody"><div class="strows">${rows}</div>${radarSvg(vals)}</div>
 </section>`;
 }
 const gOrder = (a,b) => ((a.order ?? 1e9) - (b.order ?? 1e9)) || (isPlanned(a) - isPlanned(b)) || ((a.end||"9") < (b.end||"9") ? -1 : (a.end||"9") > (b.end||"9") ? 1 : 0);
