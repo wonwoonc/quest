@@ -630,12 +630,12 @@ function radarSvg(lv, size = 200){
   const axes = AREAS.map((_, i) => `<line x1="${cx}" y1="${cy}" x2="${pt(i,1).split(",")[0]}" y2="${pt(i,1).split(",")[1]}" stroke="var(--line)" stroke-width="1"/>`).join("");
   const shape = `<polygon points="${AREAS.map((_, i) => pt(i, Math.max(0.04, lv[i] / mx))).join(" ")}" fill="color-mix(in srgb,var(--accent) 28%,transparent)" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>`;
   const dots = AREAS.map((_, i) => { const [x,y] = pt(i, Math.max(0.04, lv[i] / mx)).split(","); return `<circle cx="${x}" cy="${y}" r="3" fill="var(--accent)"/>`; }).join("");
-  const labels = AREAS.map(([k,n0], i) => { const [x,y] = pt(i, 1.28).split(","); return `<text x="${x}" y="${(+y + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--sub)">${n0} ${lv[i]}</text>`; }).join("");
+  const labels = AREAS.map(([k,n0], i) => { const [x,y] = pt(i, 1.28).split(","); return `<text x="${x}" y="${(+y + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--sub)">${n0}</text>`; }).join("");
   return `<svg class="radar" viewBox="0 0 ${size} ${size}" role="img" aria-label="능력치 ${AREAS.map(([k,n0], i) => `${n0} ${lv[i]}`).join(", ")}">${rings}${axes}${shape}${dots}${labels}</svg>`;
 }
 function statCard(){
   const xp = areaXp(), vals = AREAS.map(([k]) => Math.floor(xp[k])), mx = Math.max(1, ...vals), tagged = Object.values(S.projects).some(p => p.owner === S.me && areasOf(p).length) || mineOf("quest").some(q => areasOf(q).length);
-  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><span class="stn"><b>${n}</b><small>${AREAS[i][3]}</small></span><span class="stb"><i style="width:${(vals[i] / mx * 100).toFixed(0)}%"></i></span><b class="stl num">${fmt(vals[i])}</b></div>`).join("");
+  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><span class="stn"><b>${n}</b><small>${AREAS[i][3]}</small></span><span class="stb"><i style="width:${(vals[i] / mx * 100).toFixed(0)}%"></i></span></div>`).join("");
   const top = Math.max(...vals), low = Math.min(...vals), best = AREAS[vals.indexOf(top)], weak = AREAS[vals.indexOf(low)];
   return `<section class="statcard">${top > 0 ? `<p class="stsum">강점 <b>${best[1]}</b> · 보완 <b>${weak[1]}</b></p>` : ""}
     ${radarSvg(vals)}<div class="strows">${rows}</div>

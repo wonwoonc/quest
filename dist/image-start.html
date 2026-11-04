@@ -587,7 +587,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .statcard .radar{display:block;width:100%;max-width:230px;margin:4px auto 6px;overflow:visible}
 .strows{display:flex;flex-direction:column;gap:8px}
 .achip{display:inline-flex;align-items:center;gap:5px}.achip .aic{width:16px;height:16px}
-.strow{display:grid;grid-template-columns:22px 96px 1fr auto;align-items:center;gap:8px;font-size:14px}
+.strow{display:grid;grid-template-columns:22px 96px 1fr;align-items:center;gap:8px;font-size:14px}
 .strow .ste{display:flex;color:var(--accent)}.strow .ste svg{width:19px;height:19px}
 .strow .stn{display:flex;align-items:baseline;gap:4px;white-space:nowrap}.strow .stn b{font-weight:800}.strow .stn small{font-size:11px;color:var(--muted)}
 .strow .stb{height:6px;border-radius:3px;background:var(--track);overflow:hidden}.strow .stb i{display:block;height:100%;background:var(--accent);border-radius:3px}
@@ -2363,12 +2363,12 @@ function radarSvg(lv, size = 200){
   const axes = AREAS.map((_, i) => `<line x1="${cx}" y1="${cy}" x2="${pt(i,1).split(",")[0]}" y2="${pt(i,1).split(",")[1]}" stroke="var(--line)" stroke-width="1"/>`).join("");
   const shape = `<polygon points="${AREAS.map((_, i) => pt(i, Math.max(0.04, lv[i] / mx))).join(" ")}" fill="color-mix(in srgb,var(--accent) 28%,transparent)" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>`;
   const dots = AREAS.map((_, i) => { const [x,y] = pt(i, Math.max(0.04, lv[i] / mx)).split(","); return `<circle cx="${x}" cy="${y}" r="3" fill="var(--accent)"/>`; }).join("");
-  const labels = AREAS.map(([k,n0], i) => { const [x,y] = pt(i, 1.28).split(","); return `<text x="${x}" y="${(+y + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--sub)">${n0} ${lv[i]}</text>`; }).join("");
+  const labels = AREAS.map(([k,n0], i) => { const [x,y] = pt(i, 1.28).split(","); return `<text x="${x}" y="${(+y + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--sub)">${n0}</text>`; }).join("");
   return `<svg class="radar" viewBox="0 0 ${size} ${size}" role="img" aria-label="능력치 ${AREAS.map(([k,n0], i) => `${n0} ${lv[i]}`).join(", ")}">${rings}${axes}${shape}${dots}${labels}</svg>`;
 }
 function statCard(){
   const xp = areaXp(), vals = AREAS.map(([k]) => Math.floor(xp[k])), mx = Math.max(1, ...vals), tagged = Object.values(S.projects).some(p => p.owner === S.me && areasOf(p).length) || mineOf("quest").some(q => areasOf(q).length);
-  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><span class="stn"><b>${n}</b><small>${AREAS[i][3]}</small></span><span class="stb"><i style="width:${(vals[i] / mx * 100).toFixed(0)}%"></i></span><b class="stl num">${fmt(vals[i])}</b></div>`).join("");
+  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><span class="stn"><b>${n}</b><small>${AREAS[i][3]}</small></span><span class="stb"><i style="width:${(vals[i] / mx * 100).toFixed(0)}%"></i></span></div>`).join("");
   const top = Math.max(...vals), low = Math.min(...vals), best = AREAS[vals.indexOf(top)], weak = AREAS[vals.indexOf(low)];
   return `<section class="statcard">${top > 0 ? `<p class="stsum">강점 <b>${best[1]}</b> · 보완 <b>${weak[1]}</b></p>` : ""}
     ${radarSvg(vals)}<div class="strows">${rows}</div>
