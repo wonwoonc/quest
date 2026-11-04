@@ -836,12 +836,17 @@ function viewPlan(){
   const gs = goalsOf(S.me).filter(g => g.status !== "done"), act = gs.filter(g => !isPlanned(g)).sort(gOrder), later = gs.filter(isPlanned).sort(gOrder), Q = QM();
   const addBig = `<button class="card subc subadd pladdc" data-act="sheet" data-k="add" data-v="big"><span class="wd-plus">+</span><b>메인 퀘스트 생성</b></button>`;
   const head = (t, n, kind) => `<div class="subhead"><h2>${t} <span class="num">${n}</span></h2><button class="tadd-pill plnew" data-act="sheet" data-k="add" data-v="${kind}">+ 생성</button></div>`;
-  let h = head("메인 퀘스트", act.length, "big") + `<div class="plgrid">${act.map(plCard).join("") || addBig}</div>`;
-  if (later.length) h += `<div class="subhead"><h2>나중에 시작 <span class="num">${later.length}</span></h2></div><div class="plgrid">${later.map(plCard).join("")}</div>`;
-  const subs = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId && p.status !== "done" && S.projects[p.parentId] && S.projects[p.parentId].status !== "done").sort((a,b) => isPlanned(a) - isPlanned(b) || ((a.end || "9") < (b.end || "9") ? -1 : (a.end || "9") > (b.end || "9") ? 1 : 0));
-  h += head("서브 퀘스트", subs.length, "sub") + (subs.length ? `<div class="plgrid">${subs.map(plCard).join("")}</div>` : `<div class="card empty">${gs.length ? "메인 퀘스트를 작은 관문으로 나눠 서브 퀘스트를 만들어 보세요." : "서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요."}</div>`);
+  const tab = Q.ptab || "main", subs = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId && p.status !== "done" && S.projects[p.parentId] && S.projects[p.parentId].status !== "done").sort((a,b) => isPlanned(a) - isPlanned(b) || ((a.end || "9") < (b.end || "9") ? -1 : (a.end || "9") > (b.end || "9") ? 1 : 0));
   const qs = mineOf("quest").filter(q => q.active !== false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
-  h += head("데일리 퀘스트", qs.length, "daily") + `<section class="card tight qlist">${qs.map(q => { const st = streakOf(q), lv = HLV[lvKey(q.lv)]; return `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq" title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span><span class="t"><b>${esc(q.name)}</b><small>${[repeatLabel(q), q.time ? tmLabel(q.time) : ""].filter(Boolean).join(" · ")}</small></span><span class="streak num">🔥 ${st.cur}</span></button>`; }).join("") || `<p class="empty-row">매일 꾸준히 할 습관을 데일리 퀘스트로 만들어 보세요.</p>`}</section>`;
+  let h = `<div class="seg pltabs" role="group" aria-label="퀘스트 종류">${[["main","메인",act.length + later.length],["sub","서브",subs.length],["daily","데일리",qs.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
+  if (tab === "main"){
+    h += head("메인 퀘스트", act.length, "big") + `<div class="plgrid">${act.map(plCard).join("") || addBig}</div>`;
+    if (later.length) h += `<div class="subhead"><h2>나중에 시작 <span class="num">${later.length}</span></h2></div><div class="plgrid">${later.map(plCard).join("")}</div>`;
+  } else if (tab === "sub"){
+    h += head("서브 퀘스트", subs.length, "sub") + (subs.length ? `<div class="plgrid">${subs.map(plCard).join("")}</div>` : `<div class="card empty">${gs.length ? "메인 퀘스트를 작은 관문으로 나눠 서브 퀘스트를 만들어 보세요." : "서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요."}</div>`);
+  } else {
+    h += head("데일리 퀘스트", qs.length, "daily") + `<section class="card tight qlist">${qs.map(q => { const st = streakOf(q), lv = HLV[lvKey(q.lv)]; return `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq" title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span><span class="t"><b>${esc(q.name)}</b><small>${[repeatLabel(q), q.time ? tmLabel(q.time) : ""].filter(Boolean).join(" · ")}</small></span><span class="streak num">🔥 ${st.cur}</span></button>`; }).join("") || `<p class="empty-row">매일 꾸준히 할 습관을 데일리 퀘스트로 만들어 보세요.</p>`}</section>`;
+  }
   return h;
 }
 /* guided main quest → sub quests → first task → daily quest, in the app's own sheet */
@@ -1981,6 +1986,7 @@ document.addEventListener("click", e => {
       run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", due:c.due||"", time:c.due ? (c.time||"") : "", period:"", today:false, projectId:pj, done:false, createdAt:Date.now()}), () => { delete S.drafts["ta-name"]; closeSheet(); toast("✅ 태스크를 추가했어요"); if (pj) syncProgress(pj); }); return; }
     case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
     case "pl-mode": QM().mode = b.dataset.v; QM().sel = []; break;
+    case "pl-tab": QM().ptab = b.dataset.v; break;
     case "pl-later": QM().laterOpen = !QM().laterOpen; break;
     case "pl-new": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } ["pw-name","pw-act","pw-hab"].forEach(k => delete S.drafts[k]); openSheet({type:"plan", step:0, steps:[], due:today(), time:"", lv:"normal"}); return;
     case "aset": { preserveSheetDrafts(); const a = (c.area || []).slice(), v = b.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else { if (a.length >= 2){ toast("속성은 2개까지 고를 수 있어요"); return; } a.push(v); } c.area = a; renderSheet(); return; }
