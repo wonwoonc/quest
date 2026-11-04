@@ -3704,7 +3704,7 @@ document.addEventListener("click", e => {
       if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:false}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
        const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : "", period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null, tasks:[]}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:300}, profile:{}}[k] || {};
       openSheet({type:k, ...base}); return; }
-    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c.type === "add" || c.type === "plan"))) closeSheet(); return;
+    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || ["add","plan","taskadd","diary"].includes(c.type)))) closeSheet(); return;
     case "sheet-close": closeSheet(); return;
     case "cset": { const f = b.dataset.f, toggle = f === "mood" || f === "projectId" || f === "parentId";
       if (["hlv","lv","alv","tlv","ntlv"].includes(f)){ preserveSheetDrafts(); c[f==='alv'||f==='tlv'?'lv':f] = lvKey(b.dataset.v); renderSheet(); return; } c[f] = toggle && c[f] === b.dataset.v ? null : (b.dataset.v || null); if (f === "cost") c.cost = +b.dataset.v; renderSheet(); return; }
