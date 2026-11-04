@@ -578,10 +578,9 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .stpf .av .avatar-photo{border-radius:0;width:100%!important;height:100%!important}
 .stpi h2{margin:0;font-size:20px;font-weight:800}.stpi p{margin:2px 0 8px;font-size:13px;color:var(--muted)}
 .stbio{grid-column:1 / -1;margin:0}
-.sttiles{grid-column:1 / -1;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sttiles{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .sttiles div{background:var(--seg);border-radius:14px;padding:10px 8px;display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center}
 .sttiles small{font-size:11px;color:var(--muted);font-weight:700}.sttiles b{font-size:15px;font-weight:800;white-space:nowrap}
-@media (max-width:420px){.sttiles{grid-template-columns:1fr 1fr}}
 .stcard2 .ch{margin-bottom:10px}
 @media (min-width:700px){.stcard2 .stbody{justify-content:center;gap:72px}.stcard2 .radar{margin:0!important}}
 .stsum{margin:0 0 8px;font-size:13px;color:var(--muted)}.stsum b{color:var(--ink)}
@@ -615,8 +614,8 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .subadd{align-items:center;justify-content:center;border:1.5px dashed var(--sbt);background:none;box-shadow:none;color:var(--muted)}
 .subadd b{font-size:14px}.subadd small{font-size:12px;text-align:center}
 .stbody{display:flex;align-items:center;gap:6px}
-@media (max-width:520px){.statcard .radar{margin-right:-8px}.statcard .radar text{font-size:16px}.stbody{gap:0}}
-.statcard .radar{display:block;flex:1;min-width:0;max-width:215px;margin:0 0 0 auto;overflow:visible}
+@media (max-width:520px){.statcard .radar text{font-size:15px}.stbody{gap:4px}}
+.statcard .radar{display:block;flex:1;min-width:0;max-width:250px;margin:0 0 0 auto;overflow:visible}
 .strows{display:flex;flex-direction:column;gap:8px}
 .achip{display:inline-flex;align-items:center;gap:5px}.achip .aic{width:16px;height:16px}
 .sheet:has(.statcard){max-width:430px!important;margin-left:auto;margin-right:auto}
@@ -2403,12 +2402,12 @@ function radarSvg(lv, size = 200){
   const shape = `<polygon points="${AREAS.map((_, i) => pt(i, Math.max(0.04, lv[i] / mx))).join(" ")}" fill="color-mix(in srgb,var(--accent) 28%,transparent)" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>`;
   const dots = AREAS.map((_, i) => { const [x,y] = pt(i, Math.max(0.04, lv[i] / mx)).split(","); return `<circle cx="${x}" cy="${y}" r="3" fill="var(--accent)"/>`; }).join("");
   const labels = AREAS.map(([k,n0], i) => { const [x,y] = pt(i, 1.28).split(","); return `<text x="${x}" y="${(+y + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--sub)">${n0}</text>`; }).join("");
-  return `<svg class="radar" viewBox="0 0 ${size} ${size}" role="img" aria-label="능력치 ${AREAS.map(([k,n0], i) => `${n0} ${lv[i]}`).join(", ")}">${rings}${axes}${shape}${dots}${labels}</svg>`;
+  return `<svg class="radar" viewBox="-26 -4 ${size + 52} ${size + 8}" role="img" aria-label="능력치 ${AREAS.map(([k,n0], i) => `${n0} ${lv[i]}`).join(", ")}">${rings}${axes}${shape}${dots}${labels}</svg>`;
 }
 function viewStats(){
   if (!hasProfile()) return viewToday();
   const s = statsOf(S.me), p = prof(S.me);
-  const tiles = [["레벨", `Lv.${s.L}`], ["총 경험치", `${fmt(s.xp)} XP`], ["보유 코인", `🪙 ${fmt(s.gold)}`], ["최장 연속", `🔥 ${s.best}일`]];
+  const tiles = [["레벨", `Lv.${s.L}`], ["총 경험치", `${fmt(s.xp)} XP`], ["보유 코인", `🪙 ${fmt(s.gold)}`]];
   return `<section class="card stprof"><div class="stpf">${av(S.me, 76, false)}</div><div class="stpi"><h2>${esc(nameOf(S.me))}</h2><p>Lv.${s.L} ${rankOf(s.L)} ${esc(equippedTitle())}</p>
       <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
       <div class="barmeta lft"><span class="num">${s.need === 0 ? "MAX" : `Lv.${s.L + 1}까지 ${fmt(s.cur)} / ${fmt(s.need)} XP`}</span></div></div>

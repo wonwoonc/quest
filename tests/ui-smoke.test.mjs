@@ -1175,5 +1175,5 @@ test('uploaded profile photo renders as the profile picture, not a chibi face ov
 test('profile card opens the 능력치 page with level, XP, coins and stats; profile edit has no color picker',async()=>{
   const h=await profileUI();h.route('dash');h.click('sheet',{k:'profile'});assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/data-act="swatch"|옷 색/);h.click('sheet-close');
   h.route('stats');const html=h.nodes.get('app').innerHTML;assert.match(h.nodes.get('topbar').innerHTML,/능력치/);
-  assert.match(html,/총 경험치[\s\S]*보유 코인[\s\S]*최장 연속[\s\S]*class="statcard"/);
+  assert.match(html,/총 경험치[\s\S]*보유 코인[\s\S]*class="statcard"/);assert.doesNotMatch(html,/최장 연속/);
 });

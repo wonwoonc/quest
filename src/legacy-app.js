@@ -637,12 +637,12 @@ function radarSvg(lv, size = 200){
   const shape = `<polygon points="${AREAS.map((_, i) => pt(i, Math.max(0.04, lv[i] / mx))).join(" ")}" fill="color-mix(in srgb,var(--accent) 28%,transparent)" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>`;
   const dots = AREAS.map((_, i) => { const [x,y] = pt(i, Math.max(0.04, lv[i] / mx)).split(","); return `<circle cx="${x}" cy="${y}" r="3" fill="var(--accent)"/>`; }).join("");
   const labels = AREAS.map(([k,n0], i) => { const [x,y] = pt(i, 1.28).split(","); return `<text x="${x}" y="${(+y + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--sub)">${n0}</text>`; }).join("");
-  return `<svg class="radar" viewBox="0 0 ${size} ${size}" role="img" aria-label="능력치 ${AREAS.map(([k,n0], i) => `${n0} ${lv[i]}`).join(", ")}">${rings}${axes}${shape}${dots}${labels}</svg>`;
+  return `<svg class="radar" viewBox="-26 -4 ${size + 52} ${size + 8}" role="img" aria-label="능력치 ${AREAS.map(([k,n0], i) => `${n0} ${lv[i]}`).join(", ")}">${rings}${axes}${shape}${dots}${labels}</svg>`;
 }
 function viewStats(){
   if (!hasProfile()) return viewToday();
   const s = statsOf(S.me), p = prof(S.me);
-  const tiles = [["레벨", `Lv.${s.L}`], ["총 경험치", `${fmt(s.xp)} XP`], ["보유 코인", `🪙 ${fmt(s.gold)}`], ["최장 연속", `🔥 ${s.best}일`]];
+  const tiles = [["레벨", `Lv.${s.L}`], ["총 경험치", `${fmt(s.xp)} XP`], ["보유 코인", `🪙 ${fmt(s.gold)}`]];
   return `<section class="card stprof"><div class="stpf">${av(S.me, 76, false)}</div><div class="stpi"><h2>${esc(nameOf(S.me))}</h2><p>Lv.${s.L} ${rankOf(s.L)} ${esc(equippedTitle())}</p>
       <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
       <div class="barmeta lft"><span class="num">${s.need === 0 ? "MAX" : `Lv.${s.L + 1}까지 ${fmt(s.cur)} / ${fmt(s.need)} XP`}</span></div></div>
