@@ -69,80 +69,8 @@ test('onboarding uses the actual profile/story CSS wrapper on dashboard and prof
     assert.doesNotMatch(h.nodes.get('app').innerHTML,/새벽러너|id="nick"[^>]*placeholder=/);
   }
   assert.match(html,/#app\[data-v="feed"\],#app\[data-v="profile"\][^{]+\{[^}]*max-width:600px;margin:0 auto/);
-  assert.match(html,/id="characterUploadIn" accept="image\/\*" hidden/);
-  assert.match(html,/id="characterCameraIn" accept="image\/\*" capture="user" hidden/);
+  assert.doesNotMatch(html,/<input[^>]*id="character(Upload|Camera)In"|capture="user"/);
   assert.doesNotMatch(html,/cartoonFace|saturate\(1\.35\)|setTimeout\(r, 1800\)|원본 사진은 저장하지/);
-});
-test('upload/camera consent, picker cancellation and unavailable service preserve avatar',async () => {
-  const h = await profileUI(undefined,'?devCharacter=1'); h.click('sheet',{k:'profile'});
-  h.nodes.set('ep-nick',{value:'원래 닉네임'}); h.nodes.set('ep-bio',{value:'소개'});
-  let calls = 0;
-  h.context.fetch = async () => { calls++; return {ok:true,json:async()=>({version:1,configured:false})}; };
-  for (const [act,id] of [['faceupload','characterUploadIn'],['faceshot','characterCameraIn']]) {
-    const input = h.nodes.get(id); let opened = 0; input.click = () => opened++;
-    h.nodes.set('character-consent',{checked:false}); h.click(act);
-    assert.equal(opened,0); assert.match(h.nodes.get('overlay').innerHTML,/먼저 동의/);
-    h.nodes.get('character-consent').checked = true; h.click(act); assert.equal(opened,1);
-    input.files = []; await input.onchange(); assert.equal(calls,act === 'faceupload' ? 0 : 1);
-    input.files = [new Blob(['photo'],{type:'image/png'})];
-    const before = h.snapshot(); await input.onchange(); await h.settle();
-    assert.deepEqual(h.snapshot(),before);
-    const markup = h.nodes.get('overlay').innerHTML;
-    assert.match(markup,/서비스가 연결되지/); assert.match(markup,/aria-busy="false"/);
-    assert.doesNotMatch(markup,/data-act="faceupload" disabled|class="obmaking"/);
-  }
-  assert.equal(calls,2);
-});
-test('mock contract success persists fullbody image, renders without sprite-face overlay and survives edits/reload',async () => {
-  const h = await profileUI(undefined,'?devCharacter=1'); h.click('sheet',{k:'profile'});
-  const image = 'data:image/png;base64,aW1hZ2U='; // Contract fixture, not an AI-generated image.
-  h.context.fetch = async (_url, options) => ({ok:true,json:async()=> options.method === 'GET' ? {version:1,configured:true} : {version:1,avatarStyle:'fullbody',image}});
-  h.nodes.set('character-consent',{checked:true});
-  const input = h.nodes.get('characterUploadIn'); input.click = () => {};
-  h.click('faceupload'); input.files = [new Blob(['photo'],{type:'image/png'})]; await input.onchange(); await h.settle();
-  assert.match(h.nodes.get('overlay').innerHTML,/class="avatar-fullbody"/);
-  assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/class="chibi"|class="cface"/);
-  h.nodes.set('ep-nick',{value:'전신 프로필'}); h.nodes.set('ep-bio',{value:'소개'});
-  h.click('submit-profile'); await h.settle();
-  const saved = h.snapshot(); assert.equal(saved.profiles.me.avatarStyle,'fullbody');
-  assert.equal(saved.media[saved.profiles.me.face],image);
-  h.route('me'); assert.match(h.nodes.get('app').innerHTML,/class="avatar-fullbody"/);
-  assert.doesNotMatch(h.nodes.get('app').innerHTML,/class="cface"/);
-  const reloaded = await profileUI(saved); reloaded.route('me'); await reloaded.settle();
-  assert.match(reloaded.nodes.get('app').innerHTML,/class="avatar-fullbody"/);
-  reloaded.click('sheet',{k:'profile'}); reloaded.nodes.set('ep-nick',{value:'닉네임만 변경'}); reloaded.nodes.set('ep-bio',{value:''});
-  reloaded.click('submit-profile'); await reloaded.settle();
-  assert.equal(reloaded.snapshot().profiles.me.avatarStyle,'fullbody');
-  assert.equal(reloaded.snapshot().profiles.me.face,saved.profiles.me.face);
-  reloaded.click('sheet',{k:'profile'}); reloaded.click('facedel');
-  reloaded.click('submit-profile'); await reloaded.settle();
-  assert.equal(reloaded.snapshot().profiles.me.face,null); assert.equal(reloaded.snapshot().profiles.me.avatarStyle,null);
-});
-test('dev code consent UI sends code header without persisting it and surfaces result link',async () => {
-  const h = await profileUI(undefined,'?devCharacter=1'); h.click('sheet',{k:'profile'});
-  const code = 'only-in-memory-code'; const resultUrl = 'https://www.genspark.ai/api/files/s/ui_mock';
-  const markup = h.nodes.get('overlay').innerHTML;
-  assert.match(markup,/약 19크레딧/); assert.match(markup,/정확한 보존/); assert.match(markup,/https:\/\/www.genspark.ai\/ai_image/);
-  h.nodes.set('character-dev-code',{value:code}); h.nodes.set('character-consent',{checked:true});
-  for (const fn of h.events.input || []) fn({target:{id:'character-dev-code',value:code}});
-  let posts = 0;
-  h.context.fetch = async (url,opts) => {
-    assert.equal(url,'/api/characters');
-    if(opts.method === 'GET') return {ok:true,json:async()=>({version:1,configured:true,requiresCode:true})};
-    posts++; assert.equal(opts.headers['X-Quest-Dev-Code'],code);
-    return {ok:true,json:async()=>({version:1,avatarStyle:'fullbody',image:'data:image/png;base64,aW1hZ2U=',resultUrl})};
-  };
-  const input = h.nodes.get('characterUploadIn'); input.click = () => {};
-  for(let i=0;i<2;i++) {
-    h.click('faceupload'); assert.equal(h.nodes.get('character-dev-code').value,'');
-    input.files = [new Blob(['photo'],{type:'image/png'})]; await input.onchange(); await h.settle();
-    assert.match(h.nodes.get('overlay').innerHTML,/api\/files\/s\/ui_mock/);
-  }
-  assert.equal(posts,2);
-  h.nodes.set('ep-nick',{value:'dev profile'}); h.nodes.set('ep-bio',{value:''}); h.click('submit-profile'); await h.settle();
-  assert.ok(!JSON.stringify([...h.data]).includes(code));
-  const source = await readFile(root+'/src/legacy-app.js','utf8');
-  assert.match(source,/if \(e.target.id === 'character-dev-code'\) \{ if \(devCharacter\) characterClient.setDevCode\(e.target.value\); return; \}/);
 });
 test('legacy face media keeps old overlay without fullbody marker',async () => {
   const base = await profileUI(), snapshot = base.snapshot();
@@ -196,11 +124,7 @@ for (const action of ['preview-login','preview-kakao']) {
     assert.match(creation,/<h1 class="hello">캐릭터 만들기<\/h1>/);
     assert.match(creation,/id="nick"/); assert.match(creation,/모험 시작하기/);
     assert.doesNotMatch(creation,/개발용 코드|character-consent|크레딧|서버 시작/);
-    for (const act of ['faceupload','faceshot']) {
-      let opened = 0; h.nodes.get(act === 'faceupload' ? 'characterUploadIn' : 'characterCameraIn').click = () => opened++;
-      h.nodes.set('character-consent',{checked:true}); h.nodes.set('character-dev-code',{value:'injected'});
-      h.click(act); assert.equal(opened,0); assert.match(h.nodes.get('toast').innerHTML,/사진 기반 생성은 개발 테스트에서만 이용할 수 있어요/);
-    }
+    assert.doesNotMatch(creation,/data-act="faceupload"|data-act="faceshot"|사진 촬영|사진 업로드/);
     assert.equal(calls,0); assert.deepEqual(h.snapshot(),before);
     h.click('swatch',{c:'#EB6E93'});
     h.nodes.set('nick',{value:'일반 모험가'});
@@ -221,14 +145,13 @@ test('screen=login resets only UI, keeps all saved profile/progress; login still
   h.click('preview-login'); assert.match(h.nodes.get('app').innerHTML,/data-form="profile"/);
   assert.deepEqual(h.snapshot(),saved);
 });
-test('explicit dev character route shows protected controls; other flag values do not',async () => {
+test('photo-based character creation is removed for every devCharacter flag value',async () => {
   for (const flag of ['1','0','true','']) {
     const h = harness(undefined,'?screen=character&devCharacter='+flag), html = await readFile(root+'/dist/quest.html','utf8');
     vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],h.context); h.flush();
     const markup = h.nodes.get('app').innerHTML;
     assert.match(markup,/캐릭터 만들기/);
-    if (flag === '1') { assert.match(markup,/character-dev-code/); assert.match(markup,/character-consent/); }
-    else assert.doesNotMatch(markup,/character-dev-code|character-consent|크레딧/);
+    assert.doesNotMatch(markup,/character-dev-code|character-consent|크레딧|data-act="faceshot"|data-act="faceupload"/);
   }
 });
 test('login preview always lands on login with isolated persistent storage; image-start goes directly to creation',async () => {

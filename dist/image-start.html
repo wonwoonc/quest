@@ -1358,8 +1358,6 @@ html[data-eco-frame="leaf"] .wdp-fig{filter:drop-shadow(0 0 4px #458c6a)}html[da
 <div id="overlay"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="fileIn" accept="image/*" hidden>
-<input type="file" id="characterUploadIn" accept="image/*" hidden>
-<input type="file" id="characterCameraIn" accept="image/*" capture="user" hidden>
 
 <style>.local-mode{font-size:12px;color:var(--muted);text-align:center;padding:6px 0;margin-block:0}</style>
 <script>
@@ -1754,7 +1752,7 @@ const {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, econom
 const {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} = __require("day-activities.js");
 function startLegacyApp({runtime, storage, seed = null}) {
 const entryParams = new URLSearchParams(location.search || '');
-const devCharacter = entryParams.get('devCharacter') === '1';
+const devCharacter = false; // photo-based character generation removed
 const characterClient = createCharacterClient({enabled:devCharacter});
 const photoNotice = '사진 기반 생성은 개발 테스트에서만 이용할 수 있어요';
 // UI routes only. These flags are not an authentication/session boundary.
@@ -3067,8 +3065,7 @@ function viewProfile(){
 function faceBlock(face, making, color, state = {}){
   if (!devCharacter) return `<div class="obstage" aria-label="캐릭터 미리보기">${face ? (state.avatarStyle === 'fullbody' ? fullbody(face, 150) : chibi(color, 1, face, 150)) : sprite(color, 1, 96)}</div>
     <p class="facehint">나만의 색을 골라 기본 캐릭터로 시작해 보세요.</p>
-    <div class="facebtns"><button type="button" class="btn sec sm" data-act="faceupload" aria-describedby="photo-notice">사진 업로드</button><button type="button" class="btn sec sm" data-act="faceshot" aria-describedby="photo-notice">사진 촬영</button>${face ? `<button type="button" class="btn sec sm" data-act="facedel">기본 캐릭터로</button>` : ''}</div>
-    <p class="facehint" id="photo-notice">${photoNotice}<br>사진은 선택하거나 전송하지 않아요.</p>`;
+    ${face ? `<div class="facebtns"><button type="button" class="btn sec sm" data-act="facedel">기본 캐릭터로</button></div>` : ''}`;
   return `<div class="obstage" aria-busy="${!!making}">${face ? (state.avatarStyle === 'fullbody' ? fullbody(face, 150) : chibi(color, 1, face, 150)) : sprite(color, 1, 96)}${making ? `<div class="obmaking" role="status"><i></i>AI 생성 서버에<br>요청하고 있어요…</div>` : ''}</div>
     <p class="facehint">사진의 머리와 얼굴 특징을 참고해 전신 캐릭터를 만들어요. 닮은 정도는 다를 수 있어요.<br>승인된 메이플스토리풍의 매끈한 2D 스타일로, 머리는 전체 키의 55~60%, 몸통과 팔다리·신발은 작고 짧게 표현해요. 픽셀·디더링·계단 현상·3D·성인 비율은 사용하지 않아요.<br>참고 이미지는 스타일만 사용하며 인물·머리·후드티·의상을 복사하지 않아요. 사진 속 옷을 참고하고, 보이지 않으면 선택한 색의 티셔츠·긴 바지·운동화를 사용해요. 참고 이미지의 회색·어두운 의상을 강제하지 않아요.</p>
     <p class="facehint">개발 모드 전용 · 생성 1장당 약 19크레딧 · 30초 간격 · 서버 세션당 최대 5회 시도.<br>얼굴과 원본의 정확한 보존은 확인하거나 보장할 수 없어요. <a href="https://www.genspark.ai/ai_image" target="_blank" rel="noopener noreferrer">AI 이미지 영역 편집기</a>에서 직접 확인하고 수정할 수 있어요.</p>
@@ -3929,7 +3926,8 @@ document.addEventListener("click", e => {
     case "submit-reply": { const text = ($("#rp-text").value||"").trim(); if (!text){ toast("답글을 적어 주세요"); return; }
       run(() => api.addReply(c.pid, text, c.cid), () => { delete S.drafts["rp-text"]; const p0 = c.pid; closeSheet(); toast("답글을 남겼어요"); if (!(S.view.name === "post" && S.view.pid === p0)) openPost(p0); }); return; }
     case "faceupload":
-    case "faceshot": { const inSheet = c && c.type === "profile", tgt = inSheet ? c : S.ob, re = () => inSheet ? (S.compose === tgt && renderSheet()) : schedule();
+    case "faceshot": return;
+    case "faceshot-removed": { const inSheet = c && c.type === "profile", tgt = inSheet ? c : S.ob, re = () => inSheet ? (S.compose === tgt && renderSheet()) : schedule();
       if (!devCharacter){ toast(photoNotice); return; }
       if (tgt.making) return;
       const devCode = $("#character-dev-code")?.value;
