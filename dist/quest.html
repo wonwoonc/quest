@@ -3256,7 +3256,7 @@ function renderSheet(){ IXC = null;
         ${timeOnlyField(c)}
         ${difficultySelector(c,'quest','hlv')}
         ${areaField(c)}`; }
-      else more = `${datePick(c, "end", "마감일", false, true)}${statusField(c)}${areaField(c)}${metricFields(c)}${coverField(c)}${taskFields(c)}`;
+      else more = `${datePick(c, "end", "마감일", false, true)}${statusField(c)}${areaField(c)}${metricFields(c)}${coverField(c)}`;
     }
     return sheetWrap(({daily:"데일리 퀘스트 생성", once:"태스크 추가", sub:"서브 퀘스트 생성", big:"메인 퀘스트 생성"})[K] || "퀘스트 생성", "", `
     <div class="field"><input type="text" id="ad-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ad-name")}" aria-label="퀘스트 이름"></div>
@@ -3848,7 +3848,7 @@ document.addEventListener("click", e => {
           () => { done0(); syncProgress(par); toast("🔗 서브 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
       if (!c.end){ toast("마감일을 골라 주세요"); return; }
       let metric = null; if (c.unit){ const s0 = parseNum(($("#pj-ms")||{}).value), t0 = parseNum(($("#pj-mt")||{}).value); if (s0 == null || t0 == null || s0 === t0){ toast("지금 숫자와 목표 숫자를 넣어 주세요"); return; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return; } metric = {unit, start:s0, target:t0}; }
-      const tasks = c.more ? pendingTasks(c) : [], pidN = uid8(), end = c.end || "";
+      const tasks = [], pidN = uid8(), end = c.end || "";
       run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, title:name, start:today(), end, status:c.pstat === "planned" ? "planned" : "active", area:c.area||[], metric, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
         () => { done0(); toast("🎯 메인 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
     case "tedit": { e.stopPropagation(); delete S.drafts["tm-in"]; const m = S.mine[id]; if (!m || !S.canWrite) return; S.drafts["te-name"] = m.name; S.drafts["te-note"] = m.note || ""; openSheet({type:"tedit", id, time:m.time || "", lv:m.lv || "normal", due:m.period ? m.due : dueOf(m), period:m.period || "", projectId:m.projectId || null}); return; }
