@@ -1151,7 +1151,7 @@ test('nav › 퀘스트: bulk status change, archive, task move and confirmed de
   saved.mine.qa={id:'qa',kind:'quest',name:'관리 데일리',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{},createdAt:1};
   saved.mine.t1={id:'t1',kind:'mission',name:'관리 태스크',due:'2099-01-01',time:'10:00',projectId:'s1',lv:'normal',done:false,createdAt:1};
   const h=await profileUI(saved);assert.match(h.nodes.get('nav').innerHTML,/href="#qmanage"[^>]*>[\s\S]*?<span>퀘스트<\/span>/);
-  h.route('qmanage');assert.match(h.nodes.get('topbar').innerHTML,/퀘스트/);assert.match(h.nodes.get('app').innerHTML,/data-act="pl-tab" data-v="sub"[\s\S]*data-k="add" data-v="big">\+ 생성/);h.click('pl-mode',{v:'tidy'});assert.match(h.nodes.get('app').innerHTML,/메인 하나/);
+  h.route('qmanage');assert.match(h.nodes.get('topbar').innerHTML,/퀘스트/);assert.match(h.nodes.get('app').innerHTML,/data-act="pl-tab" data-v="sub"[\s\S]*data-k="add" data-v="big"><span class="wd-plus">\+<\/span><b>메인 퀘스트 생성/);h.click('pl-mode',{v:'tidy'});assert.match(h.nodes.get('app').innerHTML,/메인 하나/);
   h.click('qm-sel',{id:'m1'});h.click('qm-sel',{id:'m2'});assert.match(h.nodes.get('app').innerHTML,/<b>2<\/b>개 선택/);
   h.click('qm-do',{v:'planned'});await h.settle();assert.equal(h.snapshot().projects.m1.status,'planned');assert.equal(h.snapshot().projects.m2.status,'planned');
   h.click('qm-tab',{v:'daily'});h.click('qm-sel',{id:'qa'});h.click('qm-do',{v:'arch'});await h.settle();assert.equal(h.snapshot().mine.qa.active,false);
@@ -1160,7 +1160,7 @@ test('nav › 퀘스트: bulk status change, archive, task move and confirmed de
   h.click('cfok');await h.settle();const after=h.snapshot();assert.equal(after.projects.m1,undefined);assert.equal(after.projects.s1,undefined);assert.equal(after.mine.t1,undefined);assert.ok(after.projects.m2);
 });
 test('nav › 퀘스트: plan sheet creates main, sub, a timed first task and a daily; quest without next task is flagged',async()=>{
-  const h=await profileUI(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);h.route('qmanage');assert.match(h.nodes.get('app').innerHTML,/data-act="pl-tab" data-v="sub"[\s\S]*data-k="add" data-v="big">\+ 생성/);
+  const h=await profileUI(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);h.route('qmanage');assert.match(h.nodes.get('app').innerHTML,/data-act="pl-tab" data-v="sub"[\s\S]*data-k="add" data-v="big"><span class="wd-plus">\+<\/span><b>메인 퀘스트 생성/);
   h.click('pl-new');assert.match(h.nodes.get('overlay').innerHTML,/메인 퀘스트 설계[\s\S]*data-act="dpopen" data-k="end"/);
   h.nodes.set('pw-name',{value:'마라톤'});h.click('pw-go',{v:'1'});assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/어떤 서브 퀘스트/,'deadline required');
   h.click('dppick',{k:'end',v:'2099-12-31'});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/어떤 서브 퀘스트/);
@@ -1205,8 +1205,8 @@ test('nav › 퀘스트: 전체 / 메인 / 서브 / 데일리 tabs each show the
   const h=await profileUI(saved);h.route('qmanage');let html=h.nodes.get('app').innerHTML;
   assert.match(html,/data-act="pl-tab" data-v="all" aria-pressed="true"/);assert.match(html,/메인 A[\s\S]*서브 B[\s\S]*데일리 C/);
   h.click('pl-tab',{v:'main'});html=h.nodes.get('app').innerHTML;assert.match(html,/메인 A/);assert.doesNotMatch(html,/데일리 C/);
-  h.click('pl-tab',{v:'sub'});html=h.nodes.get('app').innerHTML;assert.match(html,/서브 B/);assert.match(html,/data-v="sub">\+ 생성/);assert.doesNotMatch(html,/데일리 C/);
-  h.click('pl-tab',{v:'daily'});html=h.nodes.get('app').innerHTML;assert.match(html,/데일리 C/);assert.match(html,/data-v="daily">\+ 생성/);assert.doesNotMatch(html,/메인 A/);
+  h.click('pl-tab',{v:'sub'});html=h.nodes.get('app').innerHTML;assert.match(html,/서브 B/);assert.match(html,/data-v="sub"><span class="wd-plus">/);assert.doesNotMatch(html,/데일리 C/);
+  h.click('pl-tab',{v:'daily'});html=h.nodes.get('app').innerHTML;assert.match(html,/데일리 C/);assert.match(html,/data-v="daily"><span class="wd-plus">/);assert.doesNotMatch(html,/메인 A/);
 });
 test('nav › 퀘스트 › 데일리: archived dailies listed under 보관 and can be restored',async()=>{
   const base=await profileUI(),saved=base.snapshot();

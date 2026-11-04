@@ -573,7 +573,8 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .dqc .qcph .dqi{width:44px;height:44px;color:#fff;opacity:.92}
 .pltabs .num{font-size:12px;margin-left:2px;opacity:.7}
 .pladdc{min-height:260px}
-@media (max-width:520px){.pladdc{min-height:96px}}
+.pladdc.dqadd{min-height:130px}
+@media (max-width:520px){.pladdc,.pladdc.dqadd{min-height:96px}}
 .subhead .plnew{margin:0;padding:6px 12px}
 #app[data-v="qmanage"] .subhead{margin-top:10px}
 .plgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
@@ -2581,10 +2582,8 @@ const tOrd = (a,b) => (dueOf(a) || "9") < (dueOf(b) || "9") ? -1 : (dueOf(a) || 
 const nextOf = g => { const ids = famIds(g); return mineOf("mission").filter(m => !m.done && ids.includes(m.projectId)).sort(tOrd)[0] || null; };
 function dailyCard(q){
   const st = streakOf(q), lv = HLV[lvKey(q.lv)], t = today(), dn = !!(q.done || {})[t], sch = isSched(q, Date.now());
-  let h0 = 7; for (const ch of q.id + q.name) h0 = (h0 * 131 + ch.charCodeAt(0) * 17) % 360;
   const chip = dn ? `<span class="st">✓ 오늘 완료</span>` : sch ? `<span class="st plan">오늘 할 일</span>` : `<span class="st plan">오늘 쉬는 날</span>`;
   return `<section class="card pgc dqc" data-act="hedit" data-id="${q.id}" role="button" tabindex="0">
-    <div class="qcover"><div class="qcph" style="background:linear-gradient(135deg,hsl(${h0} 55% 70%),hsl(${(h0+40)%360} 45% 45%))"><svg class="dqi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2.5l3 3-3 3"/><path d="M4 11v-1.5a4 4 0 0 1 4-4h12"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 13v1.5a4 4 0 0 1-4 4H4"/></svg></div></div>
     <div class="pgtop">${chip}${q.time ? `<span class="st dd">${tmLabel(q.time)}</span>` : ""}<b class="pct num">🔥 ${st.cur}${streakUnit(q)}</b></div>
     <h3>${esc(q.name)}</h3>
     <div class="pgmeta"><span>${lv.e} ${esc(lv.n)}</span><span>${repeatLabel(q)}</span><span>최장 ${st.best}${streakUnit(q)} · 총 ${st.total}회</span></div>
@@ -2593,21 +2592,21 @@ function dailyCard(q){
 const plCard = g => pgCard(g).replace(/<div class="pgsubs">[\s\S]*?<\/div>\s*<\/section>$/, "</section>");
 function viewPlan(){
   const gs = goalsOf(S.me).filter(g => g.status !== "done"), act = gs.filter(g => !isPlanned(g)).sort(gOrder), later = gs.filter(isPlanned).sort(gOrder), Q = QM();
-  const addBig = `<button class="card subc subadd pladdc" data-act="sheet" data-k="add" data-v="big"><span class="wd-plus">+</span><b>메인 퀘스트 생성</b></button>`;
-  const head = (t, n, kind) => `<div class="subhead"><h2>${t} <span class="num">${n}</span></h2><button class="tadd-pill plnew" data-act="sheet" data-k="add" data-v="${kind}">+ 생성</button></div>`;
+  const addC = (kind, label, cls = "") => `<button class="card subc subadd pladdc ${cls}" data-act="sheet" data-k="add" data-v="${kind}"><span class="wd-plus">+</span><b>${label}</b></button>`;
+  const head = (t, n) => `<div class="subhead"><h2>${t} <span class="num">${n}</span></h2></div>`;
   const tab = Q.ptab || "all", subs = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId && p.status !== "done" && S.projects[p.parentId] && S.projects[p.parentId].status !== "done").sort((a,b) => isPlanned(a) - isPlanned(b) || ((a.end || "9") < (b.end || "9") ? -1 : (a.end || "9") > (b.end || "9") ? 1 : 0));
   const qs = mineOf("quest").filter(q => q.active !== false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
   let h = `<div class="seg pltabs" role="group" aria-label="퀘스트 종류">${[["all","전체",act.length + later.length + subs.length + qs.length],["main","메인",act.length + later.length],["sub","서브",subs.length],["daily","데일리",qs.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
   const T = t => tab === "all" || tab === t;
   if (T("main")){
-    h += head("메인 퀘스트", act.length, "big") + `<div class="plgrid">${act.map(plCard).join("") || addBig}</div>`;
+    h += head("메인 퀘스트", act.length) + `<div class="plgrid">${act.map(plCard).join("")}${addC("big", "메인 퀘스트 생성")}</div>`;
     if (later.length) h += `<div class="subhead"><h2>나중에 시작 <span class="num">${later.length}</span></h2></div><div class="plgrid">${later.map(plCard).join("")}</div>`;
   }
   if (T("sub")){
-    h += head("서브 퀘스트", subs.length, "sub") + (subs.length ? `<div class="plgrid">${subs.map(plCard).join("")}</div>` : `<div class="card empty">${gs.length ? "메인 퀘스트를 작은 관문으로 나눠 서브 퀘스트를 만들어 보세요." : "서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요."}</div>`);
+    h += head("서브 퀘스트", subs.length) + `<div class="plgrid">${subs.map(plCard).join("")}${addC("sub", "서브 퀘스트 생성")}</div>`;
   }
   if (T("daily")){
-    h += head("데일리 퀘스트", qs.length, "daily") + (qs.length ? `<div class="plgrid">${qs.map(dailyCard).join("")}</div>` : `<div class="card empty">매일 꾸준히 할 습관을 데일리 퀘스트로 만들어 보세요.</div>`);
+    h += head("데일리 퀘스트", qs.length) + `<div class="plgrid">${qs.map(dailyCard).join("")}${addC("daily", "데일리 퀘스트 생성", "dqadd")}</div>`;
     const ar = tab === "all" ? [] : mineOf("quest").filter(q => q.active === false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
     if (tab !== "all") h += `<div class="subhead"><h2>보관 <span class="num">${ar.length}</span></h2></div><section class="card tight qlist plarch">${ar.map(q => { const st = streakOf(q); return `<div class="row"><span class="t tap" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><b>${esc(q.name)}</b><small>${[repeatLabel(q), `총 ${st.total}회`].join(" · ")}</small></span><button class="btn sec xs" data-act="unarch" data-id="${q.id}">보관 해제</button></div>`; }).join("") || `<p class="empty-row">보관한 데일리 퀘스트가 없어요. 잠시 쉬고 싶은 데일리 퀘스트는 수정 창에서 보관할 수 있어요.</p>`}</section>`;
   }
