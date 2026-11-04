@@ -549,6 +549,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .pgtop{display:flex;align-items:center;gap:6px}
 .pgtop .st{font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:3px 8px}
 .pgtop .st.dd{color:var(--sub);background:var(--fill)}
+.pgtop .st.plan{color:var(--muted);background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)}
 .pgtop .st.done{color:var(--xp);background:var(--xp-soft)}
 .pgtop .pct{margin-left:auto;font-size:20px;font-weight:800;color:var(--accent)}
 .pgc.done .pct{color:var(--xp)}
@@ -2264,7 +2265,11 @@ function subTab(){
   if (dn.length) h += `<section class="card tight"><button class="row" data-act="toggle" data-k="subdone"><span class="t"><b>✓ 완료한 서브 퀘스트 ${dn.length}개</b></span><span class="chev2 ${S.openSubDone?"open":""}">${I.chev}</span></button>${S.openSubDone ? dn.map(g => goalRow(g)).join("") : ""}</section>`;
   return h;
 }
-const gOrder = (a,b) => ((a.order ?? 1e9) - (b.order ?? 1e9)) || ((a.end||"9") < (b.end||"9") ? -1 : (a.end||"9") > (b.end||"9") ? 1 : 0);
+const isPlanned = p => !!p && p.status === "planned";
+const stChip = g => isPlanned(g) ? `<span class="st plan">시작 전</span>` : `<span class="st">진행 중</span>`;
+function statusField(c){ const v = c.pstat === "planned" ? "planned" : "active";
+  return `<div class="field"><span class="lab">상태</span><div class="chips">${[["active","진행 중"],["planned","시작 전"]].map(([k,l]) => `<button class="chip" data-act="cset" data-f="pstat" data-v="${k}" aria-pressed="${v === k}">${l}</button>`).join("")}</div></div>`; }
+const gOrder = (a,b) => ((a.order ?? 1e9) - (b.order ?? 1e9)) || (isPlanned(a) - isPlanned(b)) || ((a.end||"9") < (b.end||"9") ? -1 : (a.end||"9") > (b.end||"9") ? 1 : 0);
 function mainTab(){
   const all = goalsOf(S.me), act = all.filter(p => p.status !== "done").sort(gOrder), ach = all.filter(p => p.status === "done");
   const k = today(), vis = m => !m.done || (m.doneAt && dk(m.doneAt) === k);
@@ -2320,7 +2325,7 @@ function viewToday(){
 function goalRow(p, nested = false){
   const pr = goalProgress(p), pct = pr.total ? pr.done/pr.total*100 : (p.status === "done" ? 100 : 0), sp = isProj(p);
   const subs = sp ? [] : subsOf(p.id), info = [];
-  if (p.status === "done") info.push(sp ? "완료" : "달성 완료"); else if (pr.total) info.push(`태스크 ${pr.done}/${pr.total}`); else info.push("진행 중");
+  if (p.status === "done") info.push(sp ? "완료" : "달성 완료"); else if (isPlanned(p)) info.push("시작 전"); else if (pr.total) info.push(`태스크 ${pr.done}/${pr.total}`); else info.push("진행 중");
   if (subs.length) info.push(`서브 ${subs.filter(x => x.status === "done").length}/${subs.length}`);
   if (sp && !nested && S.projects[p.parentId]) info.push("🎯 " + esc(S.projects[p.parentId].title));
   if (p.metric) info.push(`📈 ${esc(p.metric.unit)}`);
@@ -2629,7 +2634,7 @@ function viewGoal(){
       ${hasProfile() && a !== S.me && S.canWrite ? `<button class="btn ${isFollowing(S.me,a)?"sec":"soft"} sm" data-act="follow" data-u="${esc(a)}">${isFollowing(S.me,a)?"팔로잉":"팔로우"}</button>` : ""}${mine ? `<button class="pmenu" data-act="gmenu" data-p="${p.id}" aria-label="${kind} 메뉴">${I.menu}</button>` : ""}</div>
     ${par ? `<button class="parentlink" data-act="project" data-p="${par.id}">🎯 ${esc(par.title)} ${I.chev}</button>` : ""}
     <h2>${sp ? "🔗 " : ""}${esc(p.title)}</h2>
-    <div class="tags">${p.end && p.status !== "done" ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${p.end ? `<span class="tag">${fmtD(p.end)}까지</span>` : ""}<span class="tag rw">최대 ${RW.xp} XP · ${RW.c} 코인</span></div>
+    <div class="tags">${p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${p.end ? `<span class="tag">${fmtD(p.end)}까지</span>` : ""}<span class="tag rw">최대 ${RW.xp} XP · ${RW.c} 코인</span></div>
     ${pr.total ? `<div class="prog"><div class="bar green"><i style="width:${pr.done/pr.total*100}%"></i></div><span class="num">태스크 ${pr.done}/${pr.total}</span></div>` : ""}
     ${latest ? metricFor(latest) : p.metric ? `<p class="hint" style="margin:12px 0 0">📈 ${numFmt(p.metric.start)}${esc(p.metric.unit)} → 목표 ${numFmt(p.metric.target)}${esc(p.metric.unit)}</p>` : ""}
     ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요</div>` : ""}
@@ -2666,7 +2671,7 @@ async function saveCover(c){ const v = c.cover; if (!v) return null; if (v.start
 function wdMetric(g){ const m = g.metric; if (!m) return `<div class="wdm none"><div class="wdm-t"><span class="wdm-l">📈</span><b>수치 기록 없음</b></div><span class="bar"><i style="width:0%"></i></span><div class="wdm-s">수정에서 수치로 기록을 켜면 진행도가 보여요</div></div>`; const cur = lastVal(g), mp = m.target !== m.start ? Math.round(Math.max(0, Math.min(100, (cur - m.start)/(m.target - m.start)*100))) : 0, u = esc(m.unit);
   return `<div class="wdm"><div class="wdm-t"><span class="wdm-l">${I.trend || "📈"}</span><b class="num">${numFmt(cur)}${u}</b><small class="num">/ ${numFmt(m.target)}${u}</small></div><span class="bar"><i style="width:${mp}%"></i></span><div class="wdm-s num">시작 ${numFmt(m.start)}${u} · 남은 ${numFmt(Math.abs(Math.round((m.target - cur)*10)/10))}${u}</div></div>`; }
 function qHead(g){ const pr = goalProgress(g), m = g.metric, cur = m ? lastVal(g) : null, mp = m && m.target !== m.start ? Math.max(0, Math.min(100, (cur - m.start)/(m.target - m.start)*100)) : null, tp = pr.total ? Math.round(pr.done/pr.total*100) : 0, pct = Math.round(mp != null ? mp : tp);
-  return `<div class="pgtop"><span class="st">진행 중</span>${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}<b class="pct num">${pct}%</b></div><h3 class="qh3">${esc(g.title)}</h3><div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">태스크 ${pr.done}/${pr.total}</span></div>${wdMetric(g)}`; }
+  return `<div class="pgtop">${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}<b class="pct num">${pct}%</b></div><h3 class="qh3">${esc(g.title)}</h3><div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">태스크 ${pr.done}/${pr.total}</span></div>${wdMetric(g)}`; }
 function pgCard(g){
   const pr = goalProgress(g), done = g.status === "done", subs = subsOf(g.id);
   const latest = valLatest(g.id);
@@ -2679,7 +2684,7 @@ function pgCard(g){
   if (m) meta.push(`📈 ${numFmt(cur)} → ${numFmt(m.target)}${esc(m.unit)}`);
   return `<section class="card pgc ${done ? "done" : ""}" data-act="project" data-p="${g.id}" role="button" tabindex="0">
     ${coverHtml(g, {badge:false})}
-    <div class="pgtop">${done ? `<span class="st done">🏆 ${g.doneAt ? `${new Date(g.doneAt).getMonth()+1}/${new Date(g.doneAt).getDate()} 달성` : "달성"}</span>` : `<span class="st">진행 중</span>${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}`}<b class="pct num">${pct}%</b></div>
+    <div class="pgtop">${done ? `<span class="st done">🏆 ${g.doneAt ? `${new Date(g.doneAt).getMonth()+1}/${new Date(g.doneAt).getDate()} 달성` : "달성"}</span>` : `${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}`}<b class="pct num">${pct}%</b></div>
     ${g.parentId && S.projects[g.parentId] ? `<span class="parlab">🎯 ${esc(S.projects[g.parentId].title)}</span>` : ""}<h3>${esc(g.title)}</h3>
     <span class="bar green big"><i style="width:${pct}%"></i></span>
     <div class="pgmeta">${meta.map(x => `<span>${x}</span>`).join("")}</div>
@@ -2998,11 +3003,11 @@ function renderSheet(){ IXC = null;
         ${dueField(c)}
         ${linkPick(c)}`;
       else if (K === "sub"){ const gs = goalsOf(S.me).filter(g => g.status !== "done");
-        more = gs.length ? `${datePick(c, "end", "마감일")}${metricFields(c)}${parentPick(c)}${coverField(c)}${taskFields(c)}` : `<p class="empty-row" style="padding:4px 0 14px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p>`; }
+        more = gs.length ? `${datePick(c, "end", "마감일")}${statusField(c)}${metricFields(c)}${parentPick(c)}${coverField(c)}${taskFields(c)}` : `<p class="empty-row" style="padding:4px 0 14px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p>`; }
       else if (K === "daily"){ more = `${repeatField(c)}
         ${timeOnlyField(c)}
         ${difficultySelector(c,'quest','hlv')}`; }
-      else more = `${datePick(c, "end", "마감일", false, true)}${metricFields(c)}${coverField(c)}${taskFields(c)}`;
+      else more = `${datePick(c, "end", "마감일", false, true)}${statusField(c)}${metricFields(c)}${coverField(c)}${taskFields(c)}`;
     }
     return sheetWrap(({daily:"데일리 퀘스트 추가", once:"태스크 추가", sub:"서브 퀘스트 추가", big:"메인 퀘스트 추가"})[K] || "퀘스트 추가", "", `
     <div class="field"><input type="text" id="ad-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ad-name")}" aria-label="퀘스트 이름"></div>
@@ -3130,12 +3135,13 @@ function renderSheet(){ IXC = null;
       <div class="btnrow" style="margin-top:4px"><button class="btn sec big" data-act="sheet-close">취소</button><button class="btn big" data-act="buyok" ${S.busy?"disabled":""}>구매하기</button></div></div>`); }
   if (c.type === "gmenu"){ const p = S.projects[c.pid]; if (!p){ closeSheet(); return; } const sp = isProj(p), kind = sp ? "서브 퀘스트" : "메인 퀘스트";
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-p="${p.id}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
-    return sheetWrap(kind, "", `<div class="sheetlist mlist">${item("gedit", "수정", sp ? "이름 · 마감일 · 메인 퀘스트" : "이름 · 마감일 · 수치 기록")}${p.status !== "done" ? item("compose", "스토리 쓰기", "진행 과정을 커뮤니티에 공유해요") : ""}${item("pdel", S.armed === "px"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", sp ? "연결된 태스크도 함께 삭제돼요" : "서브 퀘스트와 태스크도 함께 삭제돼요", true)}</div>`); }
+    return sheetWrap(kind, "", `<div class="sheetlist mlist">${item("gedit", "수정", sp ? "이름 · 마감일 · 메인 퀘스트" : "이름 · 마감일 · 수치 기록")}${p.status !== "done" ? item("pstat", isPlanned(p) ? "진행 시작하기" : "시작 전으로 바꾸기", isPlanned(p) ? "진행 중으로 바꿔요" : "아직 시작하지 않은 퀘스트로 표시해요") : ""}${p.status !== "done" ? item("compose", "스토리 쓰기", "진행 과정을 커뮤니티에 공유해요") : ""}${item("pdel", S.armed === "px"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", sp ? "연결된 태스크도 함께 삭제돼요" : "서브 퀘스트와 태스크도 함께 삭제돼요", true)}</div>`); }
   if (c.type === "gedit"){ const p = S.projects[c.pid]; if (!p){ closeSheet(); return; } const sp = isProj(p);
     const gs = goalsOf(S.me).filter(g => g.status !== "done" || g.id === p.parentId);
     return sheetWrap(sp ? "서브 퀘스트 수정" : "메인 퀘스트 수정", "", `
     <div class="field"><label class="lab" for="ge-title">이름</label><input type="text" id="ge-title" maxlength="80" value="${D("ge-title")}"></div>
     ${datePick(c, "end", "마감일", sp, !sp)}
+    ${p.status !== "done" ? statusField(c) : ""}
     ${metricFields(c)}
     ${sp ? `<div class="field"><span class="lab">메인 퀘스트</span><div class="chips">${gs.map(g => `<button class="chip" data-act="cset" data-f="parentId" data-v="${g.id}" aria-pressed="${c.parentId===g.id}">🎯 ${esc(g.title)}</button>`).join("")}</div></div>` : ""}
     ${coverField(c)}
@@ -3456,15 +3462,18 @@ document.addEventListener("click", e => {
     case "submit-taskadd": { if (!readTime(c)) return; const name = ($("#ta-name").value||"").trim(); if (!name){ toast("태스크 이름을 적어 주세요"); $("#ta-name").focus(); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } const pj = c.projectId || null;
       run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", due:c.due||"", time:c.due ? (c.time||"") : "", period:"", today:false, projectId:pj, done:false, createdAt:Date.now()}), () => { delete S.drafts["ta-name"]; closeSheet(); toast("✅ 태스크를 추가했어요"); if (pj) syncProgress(pj); }); return; }
     case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
+    case "pstat": { const p = S.projects[pid]; if (!p || p.status === "done") return; const toPlan = !isPlanned(p), doc = {...p, status:toPlan ? "planned" : "active", ...(toPlan ? {} : {start:today()})}; delete doc.id;
+      run(() => api.putProject(pid, doc), () => { closeSheet(); toast(toPlan ? "시작 전으로 바꿨어요" : "▶ 진행을 시작했어요"); }); return; }
     case "gedit": { const p = S.projects[pid]; if (!p) return; S.drafts["ge-title"] = p.title;
       const m = p.metric, cu = m && !UNITS.includes(m.unit); if (m){ S.drafts["pj-ms"] = String(m.start); S.drafts["pj-mt"] = String(m.target); if (cu) S.drafts["pj-unit"] = m.unit; } else { ["pj-ms","pj-mt","pj-unit"].forEach(k => delete S.drafts[k]); }
-      openSheet({type:"gedit", pid, cover:p.cover || "", end:p.end || "", parentId:p.parentId || null, unit:m ? (cu ? "__c" : m.unit) : null}); return; }
+      openSheet({type:"gedit", pid, cover:p.cover || "", end:p.end || "", parentId:p.parentId || null, unit:m ? (cu ? "__c" : m.unit) : null, pstat:p.status === "planned" ? "planned" : "active"}); return; }
     case "submit-gedit": { const p = S.projects[c.pid], title = ($("#ge-title").value||"").trim(); if (!title){ toast("이름을 적어 주세요"); return; }
       if (!isProj(p) && !c.end){ toast("마감일을 골라 주세요"); return; }
       const doc = {...p, title, end:c.end || ""}; delete doc.id;
       if (isProj(p)){ if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; } doc.parentId = c.parentId; }
       if (c.unit){ const s0 = parseNum(($("#pj-ms")||{}).value), t0 = parseNum(($("#pj-mt")||{}).value); if (s0 == null || t0 == null || s0 === t0){ toast("시작 숫자와 목표 숫자를 넣어 주세요"); return; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return; } doc.metric = {unit, start:s0, target:t0}; }
       else doc.metric = null;
+      if (p.status !== "done"){ const ns = c.pstat === "planned" ? "planned" : "active"; if (ns === "active" && p.status === "planned") doc.start = today(); doc.status = ns; }
       const oldPar = p.parentId;
       run(async () => { doc.cover = await saveCover(c); await api.putProject(c.pid, doc); }, () => { ["ge-title","ge-end","pj-ms","pj-mt","pj-unit"].forEach(k => delete S.drafts[k]); closeSheet(); toast("수정했어요"); if (oldPar && oldPar !== doc.parentId){ syncProgress(oldPar); syncProgress(doc.parentId); } }); return; }
     case "pmenu": e.stopPropagation(); openSheet({type:"pmenu", pid}); return;
@@ -3518,7 +3527,7 @@ document.addEventListener("click", e => {
     case "submit-sub": { const title = ($("#sp-title").value||"").trim(); if (!title){ toast("서브 퀘스트 이름을 적어 주세요"); return; } if (!c.end){ toast("마감일을 골라 주세요"); return; } if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; }
       const mt = readMetric(c); if (mt === false) return; const pidN = uid8(), parent = c.parentId;
       const tasks = pendingTasks(c);
-      run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, parentId:parent, title, start:today(), end:c.end||"", status:"active", metric:mt, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
+      run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, parentId:parent, title, start:today(), end:c.end||"", status:c.pstat === "planned" ? "planned" : "active", metric:mt, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
         () => { ["sp-title","sp-end","nt-name"].forEach(k => delete S.drafts[k]); syncProgress(pidN); closeSheet(); toast("🔗 서브 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
     case "alv": case "hlv": case "tlv": case "ntlv": preserveSheetDrafts(); c[a==='alv'||a==='tlv'?'lv':a] = lvKey(b.dataset.v); renderSheet(); return;
     case "ntdue": c.ntdue = c.ntdue === b.dataset.v ? "" : b.dataset.v; renderSheet(); return;
@@ -3565,12 +3574,12 @@ document.addEventListener("click", e => {
       if (K === "once"){ const pj = c.projectId || null; run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", due:c.due||"", time:c.due ? (c.time||"") : "", period:c.due ? (c.period||"") : "", today:false, projectId:pj, done:false, createdAt:Date.now()}), () => { done0(); toast("✅ 태스크를 추가했어요"); if (pj) syncProgress(pj); }); return; }
       if (K === "daily"){ const rp = buildRepeat(c); if (needsDays(rp.type) && !rp.days.length){ toast("요일을 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } if (dupQ(name)){ toast(DUPMSG); return; } run(() => api.putMine(uid8(), {kind:"quest", name, time:c.time, repeat:rp, days:rp.days||[], lv:c.hlv||"easy", active:true, done:{}, createdAt:Date.now()}), () => { done0(); toast("🔥 데일리 퀘스트를 만들었어요"); }); return; }
       if (K === "sub"){ if (!c.end){ toast("마감일을 골라 주세요"); return; } if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; } const mt = readMetric(c); if (mt === false) return; const tasks = pendingTasks(c), pidN = uid8(), par = c.parentId, end = c.end || "";
-        run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, parentId:par, title:name, start:today(), end, status:"active", metric:mt, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
+        run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, parentId:par, title:name, start:today(), end, status:c.pstat === "planned" ? "planned" : "active", metric:mt, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
           () => { done0(); syncProgress(par); toast("🔗 서브 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
       if (!c.end){ toast("마감일을 골라 주세요"); return; }
       let metric = null; if (c.unit){ const s0 = parseNum(($("#pj-ms")||{}).value), t0 = parseNum(($("#pj-mt")||{}).value); if (s0 == null || t0 == null || s0 === t0){ toast("지금 숫자와 목표 숫자를 넣어 주세요"); return; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return; } metric = {unit, start:s0, target:t0}; }
       const tasks = c.more ? pendingTasks(c) : [], pidN = uid8(), end = c.end || "";
-      run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, title:name, start:today(), end, status:"active", metric, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
+      run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, title:name, start:today(), end, status:c.pstat === "planned" ? "planned" : "active", metric, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
         () => { done0(); toast("🎯 메인 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
     case "tedit": { e.stopPropagation(); delete S.drafts["tm-in"]; const m = S.mine[id]; if (!m || !S.canWrite) return; S.drafts["te-name"] = m.name; S.drafts["te-note"] = m.note || ""; openSheet({type:"tedit", id, time:m.time || "", lv:m.lv || "normal", due:m.period ? m.due : dueOf(m), period:m.period || "", projectId:m.projectId || null}); return; }
     case "submit-tedit": { if (!readTime(c)) return; const m = S.mine[c.id], name = ($("#te-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; }
@@ -3591,7 +3600,7 @@ document.addEventListener("click", e => {
       let metric = null; if (c.unit){ const s0 = parseNum($("#pj-ms").value), t0 = parseNum($("#pj-mt").value); if (s0 == null || t0 == null || s0 === t0){ toast("지금 숫자와 목표 숫자를 넣어 주세요"); return; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return; } metric = {unit, start:s0, target:t0}; }
       const text = ($("#pj-text").value||"").trim(), pidN = uid8();
       const tasks = pendingTasks(c);
-      const doc = {owner:S.me, title, start:today(), end:c.end||"", status:"active", metric, progress:{done:0,total:tasks.length}, createdAt:Date.now()};
+      const doc = {owner:S.me, title, start:today(), end:c.end||"", status:c.pstat === "planned" ? "planned" : "active", metric, progress:{done:0,total:tasks.length}, createdAt:Date.now()};
       run(async () => { doc.cover = await saveCover(c); await api.putProject(pidN, doc); await saveTasks(tasks, pidN); if (text) await api.addPost({ref:{type:"project", id:pidN, label:title}, text, mood:"설레요"}, []); },
         () => { ["pj-title","pj-text","pj-end","pj-ms","pj-mt","pj-unit","nt-name"].forEach(k => delete S.drafts[k]); closeSheet(); toast("🎯 메인 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
     case "submit-reward": { const name = ($("#rw-name").value||"").trim(); if (!name){ toast("보상 이름을 적어 주세요"); return; }

@@ -1133,3 +1133,15 @@ test('daily quest undo uses the in-app confirm sheet (browser confirm is never c
   h.click('qcheck',{id:q.id});await h.settle();assert.match(h.nodes.get('overlay').innerHTML,/data-act="cfok"/);
   h.click('cfok');await h.settle();assert.equal(Object.keys(h.snapshot().mine[q.id].done||{}).length,k-1);
 });
+test('main and sub quests can be created as planned (시작 전) and toggled to in progress',async()=>{
+  const h=await profileUI();
+  h.click('sheet',{k:'add',v:'big'});assert.match(h.nodes.get('overlay').innerHTML,/data-f="pstat" data-v="planned"/);
+  h.nodes.set('ad-name',{value:'시작 전 메인'});h.click('dppick',{k:'end',v:'2099-12-31'});h.click('cset',{f:'pstat',v:'planned'});
+  h.click('submit-add');await h.settle();
+  const main=Object.values(h.snapshot().projects).find(p=>p.title==='시작 전 메인');assert.equal(main.status,'planned');
+  h.route('dash');assert.match(h.nodes.get('app').innerHTML,/class="st plan">시작 전/);
+  h.click('gmenu',{p:main.id});assert.match(h.nodes.get('overlay').innerHTML,/진행 시작하기/);
+  h.click('pstat',{p:main.id});await h.settle();assert.equal(h.snapshot().projects[main.id].status,'active');
+  h.click('gedit',{p:main.id});h.click('cset',{f:'pstat',v:'planned'});h.nodes.set('ge-title',{value:'시작 전 메인'});h.click('submit-gedit');await h.settle();
+  assert.equal(h.snapshot().projects[main.id].status,'planned');
+});
