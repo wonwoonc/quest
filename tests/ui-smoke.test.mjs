@@ -1207,3 +1207,10 @@ test('nav › 퀘스트: 메인 / 서브 / 데일리 tabs each show their own li
   h.click('pl-tab',{v:'sub'});html=h.nodes.get('app').innerHTML;assert.match(html,/서브 B/);assert.match(html,/data-v="sub">\+ 생성/);assert.doesNotMatch(html,/데일리 C/);
   h.click('pl-tab',{v:'daily'});html=h.nodes.get('app').innerHTML;assert.match(html,/데일리 C/);assert.match(html,/data-v="daily">\+ 생성/);assert.doesNotMatch(html,/메인 A/);
 });
+test('nav › 퀘스트 › 데일리: archived dailies listed under 보관 and can be restored',async()=>{
+  const base=await profileUI(),saved=base.snapshot();
+  saved.mine.qz={id:'qz',kind:'quest',name:'쉬는 습관',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:false,done:{},createdAt:1};
+  const h=await profileUI(saved);h.route('qmanage');h.click('pl-tab',{v:'daily'});
+  assert.match(h.nodes.get('app').innerHTML,/보관 <span class="num">1[\s\S]*쉬는 습관[\s\S]*data-act="unarch" data-id="qz"/);
+  h.click('unarch',{id:'qz'});await h.settle();assert.equal(h.snapshot().mine.qz.active,true);
+});

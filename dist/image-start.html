@@ -569,6 +569,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .stsum{margin:0 0 8px;font-size:13px;color:var(--muted)}.stsum b{color:var(--ink)}
 .wdp-cv[data-act="statsheet"]{cursor:pointer}
 .pladd{margin-bottom:4px}
+.plarch .t b{color:var(--sub)}
 .pltabs .num{font-size:12px;margin-left:2px;opacity:.7}
 .pladdc{min-height:260px}
 @media (max-width:520px){.pladdc{min-height:96px}}
@@ -2591,6 +2592,8 @@ function viewPlan(){
     h += head("서브 퀘스트", subs.length, "sub") + (subs.length ? `<div class="plgrid">${subs.map(plCard).join("")}</div>` : `<div class="card empty">${gs.length ? "메인 퀘스트를 작은 관문으로 나눠 서브 퀘스트를 만들어 보세요." : "서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요."}</div>`);
   } else {
     h += head("데일리 퀘스트", qs.length, "daily") + `<section class="card tight qlist">${qs.map(q => { const st = streakOf(q), lv = HLV[lvKey(q.lv)]; return `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq" title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span><span class="t"><b>${esc(q.name)}</b><small>${[repeatLabel(q), q.time ? tmLabel(q.time) : ""].filter(Boolean).join(" · ")}</small></span><span class="streak num">🔥 ${st.cur}</span></button>`; }).join("") || `<p class="empty-row">매일 꾸준히 할 습관을 데일리 퀘스트로 만들어 보세요.</p>`}</section>`;
+    const ar = mineOf("quest").filter(q => q.active === false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+    h += `<div class="subhead"><h2>보관 <span class="num">${ar.length}</span></h2></div><section class="card tight qlist plarch">${ar.map(q => { const st = streakOf(q); return `<div class="row"><span class="t tap" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><b>${esc(q.name)}</b><small>${[repeatLabel(q), `총 ${st.total}회`].join(" · ")}</small></span><button class="btn sec xs" data-act="unarch" data-id="${q.id}">보관 해제</button></div>`; }).join("") || `<p class="empty-row">보관한 데일리 퀘스트가 없어요. 잠시 쉬고 싶은 데일리 퀘스트는 수정 창에서 보관할 수 있어요.</p>`}</section>`;
   }
   return h;
 }
