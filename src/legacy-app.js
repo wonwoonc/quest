@@ -619,12 +619,14 @@ function areaXp(){
     if (c.kind === "habit") a = areasOf(S.mine[k[1]]);
     else if (c.kind === "task"){ const pr = (c.projects || []).filter(id => S.projects[id]), r = pr.length ? rootId(pr[pr.length - 1]) : rootId((S.mine[k[1]] || {}).projectId); a = areasOf(r && S.projects[r]); }
     else if (c.kind === "mainDone" || c.kind === "subDone"){ const r = rootId(k[1]); a = areasOf(r && S.projects[r]); }
-    a.forEach(x => out[x] += xp / a.length);
+    /* stat points, deliberately much smaller than XP: daily 1–3, task 1–5, sub quest 5, main quest 15 */
+    const pt = c.kind === "habit" ? Math.ceil(xp / 10) : c.kind === "task" ? Math.max(1, Math.round(xp / 10)) : c.kind === "subDone" ? 5 : 15;
+    a.forEach(x => out[x] += pt / a.length);
   }
   return out;
 }
 function radarSvg(lv, size = 200){
-  const n = AREAS.length, cx = size/2, cy = size/2 + 4, R = size/2 - 34, mx = Math.max(100, ...lv), ang = i => -Math.PI/2 + i * 2*Math.PI/n;
+  const n = AREAS.length, cx = size/2, cy = size/2 + 4, R = size/2 - 34, mx = Math.max(10, ...lv), ang = i => -Math.PI/2 + i * 2*Math.PI/n;
   const pt = (i, f) => [cx + Math.cos(ang(i)) * R * f, cy + Math.sin(ang(i)) * R * f].map(v => v.toFixed(1)).join(",");
   const rings = [0.25, 0.5, 0.75, 1].map(f => `<polygon points="${AREAS.map((_, i) => pt(i, f)).join(" ")}" fill="none" stroke="var(--line)" stroke-width="1"/>`).join("");
   const axes = AREAS.map((_, i) => `<line x1="${cx}" y1="${cy}" x2="${pt(i,1).split(",")[0]}" y2="${pt(i,1).split(",")[1]}" stroke="var(--line)" stroke-width="1"/>`).join("");
@@ -635,7 +637,7 @@ function radarSvg(lv, size = 200){
 }
 function statCard(){
   const xp = areaXp(), vals = AREAS.map(([k]) => Math.floor(xp[k])), mx = Math.max(1, ...vals), tagged = Object.values(S.projects).some(p => p.owner === S.me && areasOf(p).length) || mineOf("quest").some(q => areasOf(q).length);
-  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><span class="stn"><b>${n}</b><small>${AREAS[i][3]}</small></span><span class="stb"><i style="width:${(vals[i] / mx * 100).toFixed(0)}%"></i></span></div>`).join("");
+  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><span class="stn"><b>${n}</b><small>${AREAS[i][3]}</small></span><b class="stl num">${fmt(vals[i])}</b></div>`).join("");
   const top = Math.max(...vals), low = Math.min(...vals), best = AREAS[vals.indexOf(top)], weak = AREAS[vals.indexOf(low)];
   return `<section class="statcard">${top > 0 ? `<p class="stsum">강점 <b>${best[1]}</b> · 보완 <b>${weak[1]}</b></p>` : ""}
     ${radarSvg(vals)}<div class="strows">${rows}</div>

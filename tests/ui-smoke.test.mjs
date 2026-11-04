@@ -1186,9 +1186,9 @@ test('stats: single life-area chip on main/daily feeds numeric area XP; sub task
   assert.deepEqual(h.snapshot().projects.m1.area,['health']);
   h.click('hedit',{id:'qa'});h.click('aset',{v:'growth'});h.click('aset',{v:'money'});h.click('aset',{v:'career'});h.nodes.set('he-name',{value:'독서'});h.click('submit-hedit');await h.settle();
   assert.deepEqual(h.snapshot().mine.qa.area,['career'],'single area');
-  h.route('dash');assert.doesNotMatch(h.nodes.get('app').innerHTML,/class="statcard"/);assert.match(h.nodes.get('app').innerHTML,/data-act="statsheet"/);h.click('statsheet');assert.match(h.nodes.get('overlay').innerHTML,/능력치[\s\S]*체력<\/b><small>건강<\/small><\/span><span class="stb"><i style="width:0%"><\/i><\/span><\/div>/);
-  h.click('sheet-close');h.click('mcheck',{id:'t1'});await h.settle();h.click('statsheet');assert.match(h.nodes.get('overlay').innerHTML,/체력<\/b><small>건강<\/small><\/span><span class="stb"><i style="width:100%"><\/i><\/span><\/div>/);
-  h.click('sheet-close');h.click('mcheck',{id:'t1'});h.click('cfok');await h.settle();h.click('statsheet');assert.match(h.nodes.get('overlay').innerHTML,/체력<\/b><small>건강<\/small><\/span><span class="stb"><i style="width:0%"><\/i><\/span><\/div>/);
+  h.route('dash');assert.doesNotMatch(h.nodes.get('app').innerHTML,/class="statcard"/);assert.match(h.nodes.get('app').innerHTML,/data-act="statsheet"/);h.click('statsheet');assert.match(h.nodes.get('overlay').innerHTML,/능력치[\s\S]*체력<\/b><small>건강<\/small><\/span><b class="stl num">0<\/b><\/div>/);
+  h.click('sheet-close');h.click('mcheck',{id:'t1'});await h.settle();h.click('statsheet');assert.match(h.nodes.get('overlay').innerHTML,/체력<\/b><small>건강<\/small><\/span><b class="stl num">3<\/b><\/div>/);
+  h.click('sheet-close');h.click('mcheck',{id:'t1'});h.click('cfok');await h.settle();h.click('statsheet');assert.match(h.nodes.get('overlay').innerHTML,/체력<\/b><small>건강<\/small><\/span><b class="stl num">0<\/b><\/div>/);
 });
 test('main quest page shows sub quests as cards with progress and next task',async()=>{
   const base=await profileUI(),saved=base.snapshot();
