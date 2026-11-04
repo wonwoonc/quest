@@ -410,7 +410,7 @@ function render(){ IXC = null;
   if (S.liveWin){ const wu = v === "profile" && S.view.uid !== S.me ? S.view.uid : null, wp = v === "post" ? S.view.pid : null; queueMicrotask(() => S.liveWin.watch(wu, wp)); }
   rollOver();
    const dash = v === "dash" && hasProfile();
-  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, shop:viewShop, cal:viewCal, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
+  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, stats:viewStats, shop:viewShop, cal:viewCal, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
   { const gg = dash && $(".wd-goals .wd-ggrid"); if (gg && S.wdGs) gg.scrollLeft = S.wdGs; }
   $("#app").dataset.v = S.me && !hasProfile() && S.canWrite ? "profile" : dash ? "dash" : v; $("#app").dataset.pt = v === "profile" || v === "today" ? (S.profTab || "") : "";
   renderReplyBar(); renderPill();
@@ -464,8 +464,8 @@ function bannerHtml(){ return "";
 }
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
-  const v = S.view.name, sub = v === "post" || v === "calday" || v === "project" || v === "activity" || v === "settings" || (v === "profile" && S.view.uid !== S.me);
-  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", shop:"상점", cal:"캘린더", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
+  const v = S.view.name, sub = v === "post" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || (v === "profile" && S.view.uid !== S.me);
+  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", stats:"능력치", shop:"상점", cal:"캘린더", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
   const n = activityItems().filter(x => x.at > actSeen).length;
   $("#topbar").innerHTML = `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : ""}<h1>${title}</h1>
     ${S.me && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
@@ -638,6 +638,17 @@ function radarSvg(lv, size = 200){
   const dots = AREAS.map((_, i) => { const [x,y] = pt(i, Math.max(0.04, lv[i] / mx)).split(","); return `<circle cx="${x}" cy="${y}" r="3" fill="var(--accent)"/>`; }).join("");
   const labels = AREAS.map(([k,n0], i) => { const [x,y] = pt(i, 1.28).split(","); return `<text x="${x}" y="${(+y + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--sub)">${n0}</text>`; }).join("");
   return `<svg class="radar" viewBox="0 0 ${size} ${size}" role="img" aria-label="능력치 ${AREAS.map(([k,n0], i) => `${n0} ${lv[i]}`).join(", ")}">${rings}${axes}${shape}${dots}${labels}</svg>`;
+}
+function viewStats(){
+  if (!hasProfile()) return viewToday();
+  const s = statsOf(S.me), p = prof(S.me);
+  const tiles = [["레벨", `Lv.${s.L}`], ["총 경험치", `${fmt(s.xp)} XP`], ["보유 코인", `🪙 ${fmt(s.gold)}`], ["최장 연속", `🔥 ${s.best}일`]];
+  return `<section class="card stprof"><div class="stpf">${av(S.me, 76, false)}</div><div class="stpi"><h2>${esc(nameOf(S.me))}</h2><p>Lv.${s.L} ${rankOf(s.L)} ${esc(equippedTitle())}</p>
+      <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
+      <div class="barmeta lft"><span class="num">${s.need === 0 ? "MAX" : `Lv.${s.L + 1}까지 ${fmt(s.cur)} / ${fmt(s.need)} XP`}</span></div></div>
+    ${p.bio ? `<p class="bio stbio">${esc(p.bio)}</p>` : ""}
+    <div class="sttiles">${tiles.map(([l, v]) => `<div><small>${l}</small><b class="num">${v}</b></div>`).join("")}</div></section>
+    <section class="card stcard2"><div class="ch"><h2>능력치</h2></div>${statCard()}</section>`;
 }
 function statCard(){
   const xp = areaXp(), vals = AREAS.map(([k]) => Math.floor(xp[k])), mx = Math.max(1, ...vals), tagged = Object.values(S.projects).some(p => p.owner === S.me && areasOf(p).length) || mineOf("quest").some(q => areasOf(q).length);
@@ -1317,7 +1328,7 @@ function viewProfile(){
 }
 function faceBlock(face, making, color, state = {}){
   if (!devCharacter) return `<div class="obstage" aria-label="캐릭터 미리보기">${face ? (state.avatarStyle === 'photo' ? photoAv(face, 150) : state.avatarStyle === 'fullbody' ? fullbody(face, 150) : chibi(color, 1, face, 150)) : sprite(color, 1, 96)}</div>
-    <p class="facehint">나만의 색을 고르거나, 사진을 올려 프로필 사진으로 써 보세요.</p>
+    <p class="facehint">사진을 올리면 프로필 사진으로 쓸 수 있어요.</p>
     <div class="facebtns"><button type="button" class="btn sec sm" data-act="faceupload">사진 업로드</button>${face ? `<button type="button" class="btn sec sm" data-act="facedel">기본 캐릭터로</button>` : ''}</div>`;
   return `<div class="obstage" aria-busy="${!!making}">${face ? (state.avatarStyle === 'photo' ? photoAv(face, 150) : state.avatarStyle === 'fullbody' ? fullbody(face, 150) : chibi(color, 1, face, 150)) : sprite(color, 1, 96)}${making ? `<div class="obmaking" role="status"><i></i>AI 생성 서버에<br>요청하고 있어요…</div>` : ''}</div>
     <p class="facehint">사진의 머리와 얼굴 특징을 참고해 전신 캐릭터를 만들어요. 닮은 정도는 다를 수 있어요.<br>승인된 메이플스토리풍의 매끈한 2D 스타일로, 머리는 전체 키의 55~60%, 몸통과 팔다리·신발은 작고 짧게 표현해요. 픽셀·디더링·계단 현상·3D·성인 비율은 사용하지 않아요.<br>참고 이미지는 스타일만 사용하며 인물·머리·후드티·의상을 복사하지 않아요. 사진 속 옷을 참고하고, 보이지 않으면 선택한 색의 티셔츠·긴 바지·운동화를 사용해요. 참고 이미지의 회색·어두운 의상을 강제하지 않아요.</p>
@@ -1601,7 +1612,6 @@ function renderSheet(){ IXC = null;
     ${faceBlock(fc || "", c.making, S.swatch, {...c, avatarStyle:c.avatarStyle ?? p.avatarStyle})}
     <div class="field"><label class="lab" for="ep-nick">닉네임</label><input type="text" id="ep-nick" maxlength="20" value="${esc(S.drafts["ep-nick"] ?? p.nick ?? "")}"></div>
     <div class="field"><label class="lab" for="ep-bio">소개</label><textarea id="ep-bio" rows="2" maxlength="120" placeholder="예: 매일 1% 성장하는 직장인">${esc(S.drafts["ep-bio"] ?? p.bio ?? "")}</textarea></div>
-    <div class="field"><span class="lab">옷 색</span><div class="swatches">${COLORS.map(x => `<button type="button" data-act="swatch" data-c="${x}" aria-pressed="${S.swatch===x}" aria-label="캐릭터 색" style="background:${x}"></button>`).join("")}</div></div>
     <button class="btn big full" data-act="submit-profile" ${c.making ? 'disabled' : ''}>저장하기</button>`); }
   if (c.type === "reply") return replySheet();
   if (c.type === "tedit"){ const m = S.mine[c.id]; if (!m){ closeSheet(); return; }
@@ -1784,6 +1794,7 @@ function route(){
   else if (h === "#shop") S.view = {name:"shop"};
   else if (h === "#cal"){ if (prev !== "cal" && S.calKeep){ S.calKeep = false; S.view = {name:"cal"}; } else if (prev !== "cal"){ S.tlTop = S.wgTop = null; S.yCenter = true; if (S.cal){ S.cal.mode = "day"; S.cal.date = today(); } } S.view = {name:"cal"}; }
   else if (h === "#settings") S.view = {name:"settings"};
+  else if (h === "#stats"){ S.view = {name:"stats"}; }
   else if (h === "#qmanage"){ if (prev !== "qmanage") { const Q = QM(); Q.sel = []; } S.view = {name:"qmanage"}; }
   else if (h === "#me"){ if (prev !== "profile") S.profN = 20; S.view = {name:"profile", uid:S.me}; }
   else if (h === "#dash") S.view = {name:"dash"};
@@ -2008,7 +2019,7 @@ document.addEventListener("click", e => {
     case "pl-later": QM().laterOpen = !QM().laterOpen; break;
     case "pl-new": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } ["pw-name","pw-act","pw-hab"].forEach(k => delete S.drafts[k]); openSheet({type:"plan", step:0, steps:[], due:today(), time:"", lv:"normal"}); return;
     case "aset": { preserveSheetDrafts(); const a = (c.area || []).slice(), v = b.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else { if (a.length >= 2){ toast("속성은 2개까지 고를 수 있어요"); return; } a.push(v); } c.area = a; renderSheet(); return; }
-    case "statsheet": openSheet({type:"stats"}); return;
+    case "statsheet": go("stats"); return;
     case "pw-go": pwGo(c, b.dataset.v); return;
     case "pw-sadd": pwRead(c); c.steps.push(""); renderSheet(); return;
     case "pw-sdel": pwRead(c); c.steps.splice(+b.dataset.v, 1); c.steps.forEach((x,i) => S.drafts["pw-s"+i] = x); renderSheet(); return;

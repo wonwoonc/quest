@@ -573,6 +573,17 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .dppop-h{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px 4px}.dppop-h .iconbtn{color:var(--muted)}.dppop-h .iconbtn svg{width:20px;height:20px}
 .dppop-t{display:block;font-size:16px;font-weight:800}
 .dppop-in .dpcal{margin:0}
+.stprof{display:grid;grid-template-columns:auto 1fr;gap:14px 16px;align-items:center}
+.stpf .av{border-radius:22px;overflow:hidden;background:var(--fill)}
+.stpf .av .avatar-photo{border-radius:0;width:100%!important;height:100%!important}
+.stpi h2{margin:0;font-size:20px;font-weight:800}.stpi p{margin:2px 0 8px;font-size:13px;color:var(--muted)}
+.stbio{grid-column:1 / -1;margin:0}
+.sttiles{grid-column:1 / -1;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sttiles div{background:var(--seg);border-radius:14px;padding:10px 8px;display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center}
+.sttiles small{font-size:11px;color:var(--muted);font-weight:700}.sttiles b{font-size:15px;font-weight:800;white-space:nowrap}
+@media (max-width:420px){.sttiles{grid-template-columns:1fr 1fr}}
+.stcard2 .ch{margin-bottom:10px}
+@media (min-width:700px){.stcard2 .stbody{justify-content:center;gap:72px}.stcard2 .radar{margin:0!important}}
 .stsum{margin:0 0 8px;font-size:13px;color:var(--muted)}.stsum b{color:var(--ink)}
 .wdp-cv[data-act="statsheet"]{cursor:pointer}
 .pladd{margin-bottom:4px}
@@ -1288,7 +1299,7 @@ a.goldchip{text-decoration:none}
   #app{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:20px;align-items:start}
   #app > *{grid-column:1/-1;min-width:0}
   #app[data-v="feed"] > .feedcard,#app[data-v="profile"] > .feedcard,#app > .card.mq:not(.calmq),#app > .pgc{grid-column:auto}
-  #app[data-v="post"],#app[data-v="project"],#app[data-v="settings"],#app[data-v="qmanage"],#app[data-v="activity"],#app[data-v="calday"]{display:flex;flex-direction:column;align-items:stretch;max-width:860px;margin:0 auto}
+  #app[data-v="post"],#app[data-v="project"],#app[data-v="settings"],#app[data-v="qmanage"],#app[data-v="stats"],#app[data-v="activity"],#app[data-v="calday"]{display:flex;flex-direction:column;align-items:stretch;max-width:860px;margin:0 auto}
   #app[data-v="profile"] > .seg,#app[data-v="profile"] > .segwrap{max-width:none}
   #app[data-v="shop"] > .seg,#app[data-v="cal"] > .seg,#app[data-v="qmanage"] > .seg{max-width:none}
   #app[data-v="shop"] .rgrid{grid-template-columns:repeat(3,1fr);gap:14px}
