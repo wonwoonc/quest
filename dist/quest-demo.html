@@ -549,6 +549,22 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .pgtop{display:flex;align-items:center;gap:6px}
 .pgtop .st{font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:3px 8px}
 .pgtop .st.dd{color:var(--sub);background:var(--fill)}
+.qmsearch input{width:100%;padding:11px 14px!important;font-size:15px!important}
+.qmgh{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 4px}
+.qmgh b{font-size:15px;font-weight:800}
+.qmgh b .num{color:var(--accent);margin-left:2px}
+.qmgh .link{font-size:13px;font-weight:700;color:var(--accent)}
+.qmrow{padding:9px 16px;gap:12px}
+.qmrow .check{width:22px;height:22px;border-width:1.8px;flex:none}
+.qmrow .check svg{width:13px;height:13px}
+.qmrow.on{background:color-mix(in srgb,var(--accent-soft) 55%,transparent)}
+.qmrow.done .t b{color:var(--muted);text-decoration:line-through}
+.qmbar{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:15;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--card);border-radius:16px;padding:10px 12px 10px 16px;box-shadow:0 6px 24px rgb(0 0 0 / .16);border:1.5px solid var(--accent)}
+.qmbar > span:first-child{font-size:14px;color:var(--sub)}
+.qmbar b{color:var(--accent);font-size:16px}
+.qmacts{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.qmdel{background:var(--warn);color:#fff}
+@media (min-width:1024px){.qmbar{bottom:16px}}
 .pgtop .st.plan{color:var(--muted);background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)}
 .pgtop .st.done{color:var(--xp);background:var(--xp-soft)}
 .pgtop .pct{margin-left:auto;font-size:20px;font-weight:800;color:var(--accent)}
@@ -1199,9 +1215,9 @@ a.goldchip{text-decoration:none}
   #app{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:20px;align-items:start}
   #app > *{grid-column:1/-1;min-width:0}
   #app[data-v="feed"] > .feedcard,#app[data-v="profile"] > .feedcard,#app > .card.mq:not(.calmq),#app > .pgc{grid-column:auto}
-  #app[data-v="post"],#app[data-v="project"],#app[data-v="settings"],#app[data-v="activity"],#app[data-v="calday"]{display:flex;flex-direction:column;align-items:stretch;max-width:860px;margin:0 auto}
+  #app[data-v="post"],#app[data-v="project"],#app[data-v="settings"],#app[data-v="qmanage"],#app[data-v="activity"],#app[data-v="calday"]{display:flex;flex-direction:column;align-items:stretch;max-width:860px;margin:0 auto}
   #app[data-v="profile"] > .seg,#app[data-v="profile"] > .segwrap{max-width:none}
-  #app[data-v="shop"] > .seg,#app[data-v="cal"] > .seg{max-width:none}
+  #app[data-v="shop"] > .seg,#app[data-v="cal"] > .seg,#app[data-v="qmanage"] > .seg{max-width:none}
   #app[data-v="shop"] .rgrid{grid-template-columns:repeat(3,1fr);gap:14px}
   #app[data-v="feed"],#app[data-v="profile"],#app[data-v="shop"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:600px;margin:0 auto}
   #app[data-v="cal"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:1192px;margin:0 auto}
@@ -2077,7 +2093,7 @@ function render(){ IXC = null;
   if (S.liveWin){ const wu = v === "profile" && S.view.uid !== S.me ? S.view.uid : null, wp = v === "post" ? S.view.pid : null; queueMicrotask(() => S.liveWin.watch(wu, wp)); }
   rollOver();
    const dash = v === "dash" && hasProfile();
-  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, shop:viewShop, cal:viewCal, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
+  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, shop:viewShop, cal:viewCal, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
   { const gg = dash && $(".wd-goals .wd-ggrid"); if (gg && S.wdGs) gg.scrollLeft = S.wdGs; }
   $("#app").dataset.v = S.me && !hasProfile() && S.canWrite ? "profile" : dash ? "dash" : v; $("#app").dataset.pt = v === "profile" || v === "today" ? (S.profTab || "") : "";
   renderReplyBar(); renderPill();
@@ -2131,8 +2147,8 @@ function bannerHtml(){ return "";
 }
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
-  const v = S.view.name, sub = v === "post" || v === "calday" || v === "project" || v === "activity" || v === "settings" || (v === "profile" && S.view.uid !== S.me);
-  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", shop:"상점", cal:"캘린더", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
+  const v = S.view.name, sub = v === "post" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "qmanage" || (v === "profile" && S.view.uid !== S.me);
+  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트 관리", shop:"상점", cal:"캘린더", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
   const n = activityItems().filter(x => x.at > actSeen).length;
   $("#topbar").innerHTML = `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : ""}<h1>${title}</h1>
     ${S.me && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
@@ -2440,6 +2456,78 @@ function viewCal(){
   return h;
 }
 
+/* ================= quest management (settings › 퀘스트 관리) ================= */
+const QM = () => S.qm || (S.qm = {tab:"goal", sel:[], q:""});
+function viewQManage(){
+  if (!hasProfile()) return viewToday();
+  const Q = QM(), sel = new Set(Q.sel), tab = Q.tab, q = (Q.q || "").trim().toLowerCase(), t = today();
+  const match = (...xs) => !q || xs.some(x => String(x || "").toLowerCase().includes(q));
+  const row = (id, kind, title, sub, cls = "") => `<div class="row qmrow ${sel.has(id) ? "on" : ""} ${cls}"><button class="check ${sel.has(id) ? "on" : ""}" data-act="qm-sel" data-id="${esc(id)}" aria-pressed="${sel.has(id)}" aria-label="${esc(title)} 선택">${I.check}</button><span class="t tap" data-act="qm-open" data-id="${esc(id)}" data-k="${kind}" role="button" tabindex="0"><b>${esc(title)}</b>${sub ? `<small>${sub}</small>` : ""}</span>${I.chev}</div>`;
+  const group = (title, list, render) => { if (!list.length) return ""; const ids = list.map(x => x.id), all = ids.every(id => sel.has(id));
+    return `<section class="card tight qmgrp"><div class="qmgh"><b>${title} <span class="num">${list.length}</span></b><button class="link" data-act="qm-all" data-ids="${esc(ids.join(","))}">${all ? "선택 해제" : "전체 선택"}</button></div>${list.map(render).join("")}</section>`; };
+  let h = `<div class="seg" role="group" aria-label="퀘스트 종류">${[["goal","메인·서브"],["daily","데일리"],["task","태스크"]].map(([k,l]) => `<button data-act="qm-tab" data-v="${k}" aria-pressed="${tab===k}">${l}</button>`).join("")}</div>
+    <div class="qmsearch"><input type="text" id="qm-q" placeholder="이름으로 찾기" value="${esc(Q.q || "")}" aria-label="퀘스트 이름으로 찾기"></div>`;
+  if (tab === "goal"){
+    const ps = Object.values(S.projects).filter(p => p.owner === S.me && match(p.title, p.parentId && S.projects[p.parentId] && S.projects[p.parentId].title));
+    const ord = l => l.sort((a,b) => (!!a.parentId - !!b.parentId) || gOrder(a,b));
+    const meta = p => { const par = p.parentId && S.projects[p.parentId], pr = goalProgress(p); return [p.parentId ? `🔗 서브${par ? ` · ${esc(par.title)}` : ""}` : "🎯 메인", p.end && p.status !== "done" ? dday(p.end) : "", `태스크 ${pr.done}/${pr.total}`].filter(Boolean).join(" · "); };
+    const r = p => row(p.id, "goal", p.title, meta(p));
+    h += group("진행 중", ord(ps.filter(p => p.status !== "done" && !isPlanned(p))), r) + group("시작 전", ord(ps.filter(isPlanned)), r) + group("🏆 달성", ord(ps.filter(p => p.status === "done")), r);
+    if (!ps.length) h += `<div class="card empty">${q ? "찾는 퀘스트가 없어요." : "아직 메인·서브 퀘스트가 없어요."}</div>`;
+  } else if (tab === "daily"){
+    const qs = mineOf("quest").filter(x => match(x.name)).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+    const r = x => { const st = streakOf(x); return row(x.id, "daily", x.name, `${repeatLabel(x)} · 🔥 ${st.cur}${streakUnit(x)} · 총 ${st.total}회`); };
+    h += group("진행 중", qs.filter(x => x.active !== false), r) + group("보관", qs.filter(x => x.active === false), r);
+    if (!qs.length) h += `<div class="card empty">${q ? "찾는 데일리 퀘스트가 없어요." : "아직 데일리 퀘스트가 없어요."}</div>`;
+  } else {
+    const ms = mineOf("mission").filter(m => match(m.name, m.projectId && S.projects[m.projectId] && S.projects[m.projectId].title));
+    const due = m => dueOf(m) || "";
+    const srt = l => l.sort((a,b) => (due(a) || "9") < (due(b) || "9") ? -1 : (due(a) || "9") > (due(b) || "9") ? 1 : (a.time || "99") < (b.time || "99") ? -1 : 1);
+    const meta = m => { const pj = m.projectId && S.projects[m.projectId], d = m.done ? activityDate(m.doneAt) : due(m);
+      return [d ? (d === t ? "오늘" : fmtD(d)) + (m.done ? " 완료" : "") : (m.done ? "완료" : "날짜 없음"), m.time && !m.done ? tmLabel(m.time) : "", pj ? esc(goalLabel(pj)) : "", lateDays(m) ? `${lateDays(m)}일째 미룸` : ""].filter(Boolean).join(" · "); };
+    const r = m => row(m.id, "task", m.name, meta(m), m.done ? "done" : "");
+    const open = ms.filter(m => !m.done);
+    h += group("지난·미룬 태스크", srt(open.filter(m => (due(m) && due(m) < t) || (m.origDue && m.origDue < t))), r)
+      + group("오늘", srt(open.filter(m => due(m) === t && !(m.origDue && m.origDue < t))), r)
+      + group("다가오는", srt(open.filter(m => due(m) > t)), r)
+      + group("날짜 없음", open.filter(m => !due(m)), r)
+      + group("완료", ms.filter(m => m.done).sort((a,b) => (b.doneAt||0) - (a.doneAt||0)), r);
+    if (!ms.length) h += `<div class="card empty">${q ? "찾는 태스크가 없어요." : "아직 태스크가 없어요."}</div>`;
+  }
+  if (sel.size){
+    const acts = tab === "goal" ? [["active","▶ 진행 중으로"],["planned","시작 전으로"],["del","삭제"]] : tab === "daily" ? [["arch","보관"],["unarch","보관 해제"],["del","삭제"]] : [["today","오늘로"],["tomorrow","내일로"],["del","삭제"]];
+    h += `<div class="qmbar" role="toolbar" aria-label="선택한 항목"><span class="num"><b>${sel.size}</b>개 선택</span><span class="qmacts">${acts.map(([k,l]) => `<button class="btn sm ${k === "del" ? "qmdel" : "sec"}" data-act="qm-do" data-v="${k}">${l}</button>`).join("")}<button class="link" data-act="qm-clear">취소</button></span></div>`;
+  }
+  return h;
+}
+function qmDo(v){
+  const Q = QM(), ids = Q.sel.slice(), t = today(), done = msg => { Q.sel = []; toast(msg); };
+  if (!ids.length) return;
+  if (Q.tab === "goal"){
+    const ps = ids.map(id => S.projects[id]).filter(Boolean);
+    if (v === "del") return ask({t:`퀘스트 ${ps.length}개를 삭제할까요?`, d:"메인 퀘스트를 지우면 아래 서브 퀘스트와 연결된 태스크도 함께 삭제돼요. 되돌릴 수 없어요.", ok:"삭제"}, () => run(async () => {
+      const all = new Set(); for (const p of ps){ all.add(p.id); if (!p.parentId) subsOf(p.id).forEach(x => all.add(x.id)); }
+      for (const m of mineOf("mission").filter(m => all.has(m.projectId))) await api.delMine(m.id);
+      for (const id of [...all].sort((a,b) => !!(S.projects[b] && S.projects[b].parentId) - !!(S.projects[a] && S.projects[a].parentId))) if (S.projects[id]) await api.delProject(id);
+    }, () => done(`퀘스트 ${all0(ps)}개를 삭제했어요`)));
+    const tgt = ps.filter(p => p.status !== "done" && (v === "planned" ? !isPlanned(p) : isPlanned(p)));
+    if (!tgt.length){ done(ps.some(p => p.status === "done") ? "달성한 퀘스트는 상태를 바꿀 수 없어요" : "이미 그 상태예요"); schedule(); return; }
+    return run(async () => { for (const p of tgt){ const doc = {...p, status:v === "planned" ? "planned" : "active", ...(v === "planned" ? {} : {start:t})}; delete doc.id; await api.putProject(p.id, doc); } }, () => done(`${tgt.length}개를 ${v === "planned" ? "시작 전으로" : "진행 중으로"} 바꿨어요`));
+  }
+  if (Q.tab === "daily"){
+    const qs = ids.map(id => S.mine[id]).filter(Boolean);
+    if (v === "del") return ask({t:`데일리 퀘스트 ${qs.length}개를 삭제할까요?`, d:"연속 기록도 함께 사라져요. 되돌릴 수 없어요.", ok:"삭제"}, () => run(async () => { for (const x of qs) await api.delMine(x.id); }, () => done(`데일리 퀘스트 ${qs.length}개를 삭제했어요`)));
+    const on = v === "unarch";
+    return run(async () => { for (const x of qs) if ((x.active !== false) !== on) await api.putMine(x.id, {...x, active:on}); }, () => done(on ? "보관을 해제했어요" : "보관했어요"));
+  }
+  const ms = ids.map(id => S.mine[id]).filter(Boolean), pjs = new Set(ms.map(m => m.projectId).filter(Boolean));
+  if (v === "del") return ask({t:`태스크 ${ms.length}개를 삭제할까요?`, d:"되돌릴 수 없어요.", ok:"삭제"}, () => run(async () => { for (const m of ms) await api.delMine(m.id); }, () => { done(`태스크 ${ms.length}개를 삭제했어요`); pjs.forEach(syncProgress); }));
+  const d = v === "today" ? t : tomorrow(), open = ms.filter(m => !m.done);
+  if (!open.length){ done("완료한 태스크는 옮길 수 없어요"); schedule(); return; }
+  return run(async () => { for (const m of open){ const nm = {...m, due:d, period:""}; delete nm.origDue; if (!nm.time) nm.time = "09:00"; await api.putMine(m.id, nm); } }, () => done(`태스크 ${open.length}개를 ${d === t ? "오늘" : "내일"}로 옮겼어요`));
+}
+const all0 = l => l.length;
+
 /* ================= settings ================= */
 const sw = (act, on0, extra = "") => `<button class="sw ${on0 ? "on" : ""}" data-act="${act}" ${extra} role="switch" aria-checked="${on0}"><i></i></button>`;
 function viewSettings(){
@@ -2456,6 +2544,7 @@ function viewSettings(){
     <div class="row" style="flex-wrap:wrap"><span class="t"><b>숨길 단어</b><small>이 단어가 들어간 답글은 보이지 않아요</small></span></div>
     <form class="addline" data-form="hide" style="padding-top:0"><input type="text" id="set-hide" placeholder="단어 입력 후 추가" value="${D("set-hide")}" aria-label="숨길 단어"><button class="btn sm sec" type="submit">추가</button></form>
     ${st.hidden.length ? `<div class="chips" style="padding:0 20px 14px">${st.hidden.map((w,i) => `<button class="chip" data-act="unhide" data-i="${i}">${esc(w)} ✕</button>`).join("")}</div>` : ""}</section>`;
+  h += `<p class="sect3">퀘스트</p><section class="card tight"><button class="row" data-act="go" data-v="qmanage"><span class="t"><b>퀘스트 관리</b><small>메인·서브·데일리·태스크를 한곳에서 찾고 한 번에 정리</small></span>${I.chev}</button></section>`;
   h += `<p class="sect3">데이터</p><section class="card tight">
     <button class="row" data-act="bkexp"><span class="t"><b>백업 내보내기</b><small>지금까지 기록을 JSON 파일로 저장</small></span>${I.chev}</button>
     <button class="row" data-act="bkimp"><span class="t"><b>백업 불러오기</b><small>저장한 JSON 파일로 복원</small></span>${I.chev}</button>
@@ -3245,6 +3334,7 @@ function route(){
   else if (h === "#shop") S.view = {name:"shop"};
   else if (h === "#cal"){ if (prev !== "cal" && S.calKeep){ S.calKeep = false; S.view = {name:"cal"}; } else if (prev !== "cal"){ S.tlTop = S.wgTop = null; S.yCenter = true; if (S.cal){ S.cal.mode = "day"; S.cal.date = today(); } } S.view = {name:"cal"}; }
   else if (h === "#settings") S.view = {name:"settings"};
+  else if (h === "#qmanage"){ if (prev !== "qmanage") { const Q = QM(); Q.sel = []; } S.view = {name:"qmanage"}; }
   else if (h === "#me"){ if (prev !== "profile") S.profN = 20; S.view = {name:"profile", uid:S.me}; }
   else if (h === "#dash") S.view = {name:"dash"};
   else if (h === "#calday"){ if (prev !== "calday") S.view = {name:"cal"}; }
@@ -3462,6 +3552,14 @@ document.addEventListener("click", e => {
     case "submit-taskadd": { if (!readTime(c)) return; const name = ($("#ta-name").value||"").trim(); if (!name){ toast("태스크 이름을 적어 주세요"); $("#ta-name").focus(); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } const pj = c.projectId || null;
       run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", due:c.due||"", time:c.due ? (c.time||"") : "", period:"", today:false, projectId:pj, done:false, createdAt:Date.now()}), () => { delete S.drafts["ta-name"]; closeSheet(); toast("✅ 태스크를 추가했어요"); if (pj) syncProgress(pj); }); return; }
     case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
+    case "qm-tab": { const Q = QM(); if (Q.tab !== b.dataset.v){ Q.tab = b.dataset.v; Q.sel = []; } break; }
+    case "qm-sel": { const Q = QM(), s0 = new Set(Q.sel); if (s0.has(id)) s0.delete(id); else s0.add(id); Q.sel = [...s0]; break; }
+    case "qm-all": { const Q = QM(), ids = (b.dataset.ids || "").split(",").filter(Boolean), s0 = new Set(Q.sel), all = ids.every(x => s0.has(x)); ids.forEach(x => all ? s0.delete(x) : s0.add(x)); Q.sel = [...s0]; break; }
+    case "qm-clear": QM().sel = []; break;
+    case "qm-do": qmDo(b.dataset.v); return;
+    case "qm-open": { const k = b.dataset.k; if (k === "goal"){ openGoal(id); return; } if (k === "daily"){ const q0 = S.mine[id]; if (!q0) return; S.drafts["he-name"] = q0.name; const r0 = qRepeat(q0);
+        openSheet({type:"hedit", id, days:((r0.days||q0.days||[])).slice(), hlv:lvKey(q0.lv), time:q0.time||"09:00", rpt:r0.type, rweeks:r0.weeks||2, revery:r0.every||3, rday:r0.day||15, rmonths:r0.months||3, ron:r0.on||2, roff:r0.off||1, ranchor:r0.anchor || activityDate(q0.createdAt) || today()}); return; }
+      const m0 = S.mine[id]; if (!m0) return; delete S.drafts["tm-in"]; S.drafts["te-name"] = m0.name; S.drafts["te-note"] = m0.note || ""; openSheet({type:"tedit", id, time:m0.time || "", lv:m0.lv || "normal", due:m0.period ? m0.due : dueOf(m0), period:m0.period || "", projectId:m0.projectId || null}); return; }
     case "pstat": { const p = S.projects[pid]; if (!p || p.status === "done") return; const toPlan = !isPlanned(p), doc = {...p, status:toPlan ? "planned" : "active", ...(toPlan ? {} : {start:today()})}; delete doc.id;
       run(() => api.putProject(pid, doc), () => { closeSheet(); toast(toPlan ? "시작 전으로 바꿨어요" : "▶ 진행을 시작했어요"); }); return; }
     case "gedit": { const p = S.projects[pid]; if (!p) return; S.drafts["ge-title"] = p.title;
@@ -3650,6 +3748,7 @@ document.addEventListener("input", e => {
   if (['alv','hlv','tlv','ntlv'].includes(e.target.id) && S.compose) { preserveSheetDrafts(); S.compose[e.target.id==='hlv'?'hlv':e.target.id==='ntlv'?'ntlv':'lv']=lvKey(e.target.value); renderSheet(); return; }
   if (e.target.id) S.drafts[e.target.id] = e.target.value;
   if (e.target.id === "rw-cost" && S.compose && S.compose.type === "reward"){ const v = e.target.value.replace(/,/g,"").trim(); S.compose.cost = v; document.querySelectorAll('#overlay [data-f="cost"]').forEach(x => x.setAttribute("aria-pressed", String(!v && false))); }
+  if (e.target.id === "qm-q"){ QM().q = e.target.value; schedule(); }
   if (e.target.id === "pj-unit") document.querySelectorAll(".uval").forEach(x => x.textContent = e.target.value);
   if (e.target.id === "pl-cond"){ S.planner.cond = +e.target.value; e.target.style.setProperty("--p", e.target.value + "%"); const v = e.target.parentNode.querySelector("#pl-cond-v"); if (v) v.textContent = e.target.value + "%"; }
 });

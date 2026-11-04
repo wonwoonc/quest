@@ -549,6 +549,22 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .pgtop{display:flex;align-items:center;gap:6px}
 .pgtop .st{font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:3px 8px}
 .pgtop .st.dd{color:var(--sub);background:var(--fill)}
+.qmsearch input{width:100%;padding:11px 14px!important;font-size:15px!important}
+.qmgh{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 4px}
+.qmgh b{font-size:15px;font-weight:800}
+.qmgh b .num{color:var(--accent);margin-left:2px}
+.qmgh .link{font-size:13px;font-weight:700;color:var(--accent)}
+.qmrow{padding:9px 16px;gap:12px}
+.qmrow .check{width:22px;height:22px;border-width:1.8px;flex:none}
+.qmrow .check svg{width:13px;height:13px}
+.qmrow.on{background:color-mix(in srgb,var(--accent-soft) 55%,transparent)}
+.qmrow.done .t b{color:var(--muted);text-decoration:line-through}
+.qmbar{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:15;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--card);border-radius:16px;padding:10px 12px 10px 16px;box-shadow:0 6px 24px rgb(0 0 0 / .16);border:1.5px solid var(--accent)}
+.qmbar > span:first-child{font-size:14px;color:var(--sub)}
+.qmbar b{color:var(--accent);font-size:16px}
+.qmacts{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.qmdel{background:var(--warn);color:#fff}
+@media (min-width:1024px){.qmbar{bottom:16px}}
 .pgtop .st.plan{color:var(--muted);background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)}
 .pgtop .st.done{color:var(--xp);background:var(--xp-soft)}
 .pgtop .pct{margin-left:auto;font-size:20px;font-weight:800;color:var(--accent)}
@@ -1199,9 +1215,9 @@ a.goldchip{text-decoration:none}
   #app{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:20px;align-items:start}
   #app > *{grid-column:1/-1;min-width:0}
   #app[data-v="feed"] > .feedcard,#app[data-v="profile"] > .feedcard,#app > .card.mq:not(.calmq),#app > .pgc{grid-column:auto}
-  #app[data-v="post"],#app[data-v="project"],#app[data-v="settings"],#app[data-v="activity"],#app[data-v="calday"]{display:flex;flex-direction:column;align-items:stretch;max-width:860px;margin:0 auto}
+  #app[data-v="post"],#app[data-v="project"],#app[data-v="settings"],#app[data-v="qmanage"],#app[data-v="activity"],#app[data-v="calday"]{display:flex;flex-direction:column;align-items:stretch;max-width:860px;margin:0 auto}
   #app[data-v="profile"] > .seg,#app[data-v="profile"] > .segwrap{max-width:none}
-  #app[data-v="shop"] > .seg,#app[data-v="cal"] > .seg{max-width:none}
+  #app[data-v="shop"] > .seg,#app[data-v="cal"] > .seg,#app[data-v="qmanage"] > .seg{max-width:none}
   #app[data-v="shop"] .rgrid{grid-template-columns:repeat(3,1fr);gap:14px}
   #app[data-v="feed"],#app[data-v="profile"],#app[data-v="shop"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:600px;margin:0 auto}
   #app[data-v="cal"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:1192px;margin:0 auto}
