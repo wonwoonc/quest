@@ -1222,3 +1222,11 @@ test('story › 퀘스트 › 메인: covers and sub/task toggles start folded a
   h.click('mfold',{k:'main'});h.click('cvfold',{p:'main'});html=h.nodes.get('app').innerHTML;
   assert.match(html,/data-act="mfold" data-k="main" aria-expanded="true"/);assert.match(html,/aria-label="표지 접기"/);
 });
+test('sub quest create is one sheet everywhere, with 속성; sub area overrides the main area for its tasks',async()=>{
+  const base=await profileUI(),saved=base.snapshot(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+  saved.projects={m1:{id:'m1',owner:'me',title:'마라톤',end:'2099-12-31',status:'active',area:['health']}};
+  const h=await profileUI(saved);h.click('project',{p:'m1'});h.click('sheet',{k:'sub',p:'m1'});
+  const ov=h.nodes.get('overlay').innerHTML;assert.match(ov,/서브 퀘스트 생성/);assert.match(ov,/data-act="aset" data-v="money"/);assert.doesNotMatch(ov,/최초 생성|data-act="ntopen"/);
+  h.nodes.set('ad-name',{value:'장비 구입'});h.click('dppick',{k:'end',v:'2099-06-01'});h.click('aset',{v:'money'});h.click('submit-add');await h.settle();
+  const sub=Object.values(h.snapshot().projects).find(p=>p.title==='장비 구입');assert.equal(sub.parentId,'m1');assert.deepEqual(sub.area,['money']);
+});

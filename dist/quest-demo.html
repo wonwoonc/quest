@@ -2359,6 +2359,7 @@ const aIcon = k => `<svg class="aic" viewBox="0 0 24 24" fill="none" stroke="cur
 const AREAS = [["health","체력","","건강"],["money","재력","","재정"],["career","실력","","커리어"],["social","매력","","관계"],["growth","지력","","자기계발"]];
 const AREA_KEYS = AREAS.map(a => a[0]);
 const areasOf = x => (x && Array.isArray(x.area) ? x.area : []).filter(k => AREA_KEYS.includes(k));
+const areaUp = pid => { let id = pid, n = 0; while (id && S.projects[id] && n++ < 6){ const a = areasOf(S.projects[id]); if (a.length) return a; id = S.projects[id].parentId; } return []; };
 const rootId = pid => { let id = pid, n = 0; while (id && S.projects[id] && S.projects[id].parentId && n++ < 5) id = S.projects[id].parentId; return id && S.projects[id] ? id : null; };
 function areaField(c){ const on = c.area || [];
   return `<div class="field"><span class="lab">속성</span><div class="chips">${AREAS.map(([k,n,e,l]) => `<button class="chip achip" data-act="aset" data-v="${k}" aria-pressed="${on.includes(k)}">${aIcon(k)}${l}</button>`).join("")}</div></div>`; }
@@ -2369,8 +2370,8 @@ function areaXp(){
     const rec = S.mine[k[1]], xp = c.xp > 0 ? c.xp : c.baseline && (c.kind === "habit" || c.kind === "task") ? activityReward(c.kind === "habit" ? "quest" : "mission", rec && rec.lv).xp : 0; if (!(xp > 0)) continue;
     let a = [];
     if (c.kind === "habit") a = areasOf(S.mine[k[1]]);
-    else if (c.kind === "task"){ const pr = (c.projects || []).filter(id => S.projects[id]), r = pr.length ? rootId(pr[pr.length - 1]) : rootId((S.mine[k[1]] || {}).projectId); a = areasOf(r && S.projects[r]); }
-    else if (c.kind === "mainDone" || c.kind === "subDone"){ const r = rootId(k[1]); a = areasOf(r && S.projects[r]); }
+    else if (c.kind === "task"){ const pr = (c.projects || []).filter(id => S.projects[id]), cur = (S.mine[k[1]] || {}).projectId; a = areaUp(cur && S.projects[cur] ? cur : pr[0]); }
+    else if (c.kind === "mainDone" || c.kind === "subDone") a = areaUp(k[1]);
     /* stat points, deliberately much smaller than XP: daily 1–3, task 1–5, sub quest 5, main quest 15 */
     const pt = c.kind === "habit" ? Math.ceil(xp / 10) : c.kind === "task" ? Math.max(1, Math.round(xp / 10)) : c.kind === "subDone" ? 5 : 15;
     a.forEach(x => out[x] += pt / a.length);
@@ -3285,7 +3286,7 @@ function renderSheet(){ IXC = null;
         ${dueField(c)}
         ${linkPick(c)}`;
       else if (K === "sub"){ const gs = goalsOf(S.me).filter(g => g.status !== "done");
-        more = gs.length ? `${datePick(c, "end", "마감일")}${statusField(c)}${metricFields(c)}${parentPick(c)}${coverField(c)}` : `<p class="empty-row" style="padding:4px 0 14px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p>`; }
+        more = gs.length ? `${datePick(c, "end", "마감일")}${statusField(c)}${areaField(c)}${metricFields(c)}${parentPick(c)}${coverField(c)}` : `<p class="empty-row" style="padding:4px 0 14px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p>`; }
       else if (K === "daily"){ more = `${repeatField(c)}
         ${timeOnlyField(c)}
         ${difficultySelector(c,'quest','hlv')}
@@ -3427,7 +3428,7 @@ function renderSheet(){ IXC = null;
     <div class="field"><label class="lab" for="ge-title">이름</label><input type="text" id="ge-title" maxlength="80" value="${D("ge-title")}"></div>
     ${datePick(c, "end", "마감일", sp, !sp)}
     ${p.status !== "done" ? statusField(c) : ""}
-    ${sp ? "" : areaField(c)}
+    ${areaField(c)}
     ${metricFields(c)}
     ${sp ? `<div class="field"><span class="lab">메인 퀘스트</span><div class="chips">${gs.map(g => `<button class="chip" data-act="cset" data-f="parentId" data-v="${g.id}" aria-pressed="${c.parentId===g.id}">🎯 ${esc(g.title)}</button>`).join("")}</div></div>` : ""}
     ${coverField(c)}
@@ -3700,6 +3701,7 @@ document.addEventListener("click", e => {
     case "compose": if (pid && S.projects[pid]) openCompose({ref:{type:"project", id:pid, label:S.projects[pid].title}, fixed:true}); else openCompose(); return;
     case "sheet": { if (!S.canWrite) return; if (!hasProfile() && b.dataset.k !== "profile"){ toast("먼저 캐릭터를 만들어 주세요"); return; }
       const k = b.dataset.k; if (k === "post") return openCompose();
+      if (k === "sub") return openSheet({type:"add", kind:"sub", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:"", period:"", projectId:null, parentId:pid || null, unit:null, tasks:[], area:[]});
       if (k === "profile") S.swatch = prof(S.me).color || S.swatch;
        if (k === "reward"){delete S.drafts["rw-name"];delete S.drafts['rw-cost'];}
       if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:false}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
@@ -3773,7 +3775,7 @@ document.addEventListener("click", e => {
       openSheet({type:"gedit", pid, cover:p.cover || "", end:p.end || "", parentId:p.parentId || null, unit:m ? (cu ? "__c" : m.unit) : null, pstat:p.status === "planned" ? "planned" : "active", area:areasOf(p)}); return; }
     case "submit-gedit": { const p = S.projects[c.pid], title = ($("#ge-title").value||"").trim(); if (!title){ toast("이름을 적어 주세요"); return; }
       if (!isProj(p) && !c.end){ toast("마감일을 골라 주세요"); return; }
-      const doc = {...p, title, end:c.end || ""}; delete doc.id; if (!isProj(p)) doc.area = c.area || [];
+      const doc = {...p, title, end:c.end || ""}; delete doc.id; doc.area = c.area || [];
       if (isProj(p)){ if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; } doc.parentId = c.parentId; }
       if (c.unit){ const s0 = parseNum(($("#pj-ms")||{}).value), t0 = parseNum(($("#pj-mt")||{}).value); if (s0 == null || t0 == null || s0 === t0){ toast("시작 숫자와 목표 숫자를 넣어 주세요"); return; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return; } doc.metric = {unit, start:s0, target:t0}; }
       else doc.metric = null;
@@ -3879,7 +3881,7 @@ document.addEventListener("click", e => {
       if (K === "once"){ const pj = c.projectId || null; run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", due:c.due||"", time:c.due ? (c.time||"") : "", period:c.due ? (c.period||"") : "", today:false, projectId:pj, done:false, createdAt:Date.now()}), () => { done0(); toast("✅ 태스크를 추가했어요"); if (pj) syncProgress(pj); }); return; }
       if (K === "daily"){ const rp = buildRepeat(c); if (needsDays(rp.type) && !rp.days.length){ toast("요일을 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } if (dupQ(name)){ toast(DUPMSG); return; } run(() => api.putMine(uid8(), {kind:"quest", name, time:c.time, repeat:rp, days:rp.days||[], lv:c.hlv||"easy", area:c.area||[], active:true, done:{}, createdAt:Date.now()}), () => { done0(); toast("🔥 데일리 퀘스트를 만들었어요"); }); return; }
       if (K === "sub"){ if (!c.end){ toast("마감일을 골라 주세요"); return; } if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; } const mt = readMetric(c); if (mt === false) return; const tasks = pendingTasks(c), pidN = uid8(), par = c.parentId, end = c.end || "";
-        run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, parentId:par, title:name, start:today(), end, status:c.pstat === "planned" ? "planned" : "active", metric:mt, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
+        run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, parentId:par, title:name, start:today(), end, status:c.pstat === "planned" ? "planned" : "active", area:c.area||[], metric:mt, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
           () => { done0(); syncProgress(par); toast("🔗 서브 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
       if (!c.end){ toast("마감일을 골라 주세요"); return; }
       let metric = null; if (c.unit){ const s0 = parseNum(($("#pj-ms")||{}).value), t0 = parseNum(($("#pj-mt")||{}).value); if (s0 == null || t0 == null || s0 === t0){ toast("지금 숫자와 목표 숫자를 넣어 주세요"); return; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return; } metric = {unit, start:s0, target:t0}; }
