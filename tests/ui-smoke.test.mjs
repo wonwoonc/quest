@@ -1230,3 +1230,9 @@ test('sub quest create is one sheet everywhere, with 속성; sub area overrides 
   h.nodes.set('ad-name',{value:'장비 구입'});h.click('dppick',{k:'end',v:'2099-06-01'});h.click('aset',{v:'money'});h.click('submit-add');await h.settle();
   const sub=Object.values(h.snapshot().projects).find(p=>p.title==='장비 구입');assert.equal(sub.parentId,'m1');assert.deepEqual(sub.area,['money']);
 });
+test('nav › 퀘스트 › 서브: planned sub quests sit under their own 나중에 시작 group',async()=>{
+  const base=await profileUI(),saved=base.snapshot();
+  saved.projects={m1:{id:'m1',owner:'me',title:'메인',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'지금 서브',end:'2099-12-31',status:'active'},s2:{id:'s2',owner:'me',parentId:'m1',title:'나중 서브',end:'2099-12-31',status:'planned'}};
+  const h=await profileUI(saved);h.route('qmanage');h.click('pl-tab',{v:'sub'});const html=h.nodes.get('app').innerHTML;
+  assert.match(html,/서브 퀘스트 <span class="num">1[\s\S]*지금 서브[\s\S]*서브 퀘스트 생성[\s\S]*나중에 시작 <span class="num">1[\s\S]*나중 서브/);
+});

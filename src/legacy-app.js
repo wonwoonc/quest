@@ -856,7 +856,9 @@ function viewPlan(){
     if (later.length) h += `<div class="subhead"><h2>나중에 시작 <span class="num">${later.length}</span></h2></div><div class="plgrid">${later.map(plCard).join("")}</div>`;
   }
   if (T("sub")){
-    h += head("서브 퀘스트", subs.length) + `<div class="plgrid">${subs.map(plCard).join("")}${addC("sub", "서브 퀘스트 생성")}</div>`;
+    const sAct = subs.filter(x => !isPlanned(x)), sLater = subs.filter(isPlanned);
+    h += head("서브 퀘스트", sAct.length) + `<div class="plgrid">${sAct.map(plCard).join("")}${addC("sub", "서브 퀘스트 생성")}</div>`;
+    if (sLater.length) h += `<div class="subhead"><h2>나중에 시작 <span class="num">${sLater.length}</span></h2></div><div class="plgrid">${sLater.map(plCard).join("")}</div>`;
   }
   if (T("daily")){
     h += head("데일리 퀘스트", qs.length) + `<div class="plgrid">${qs.map(dailyCard).join("")}${addC("daily", "데일리 퀘스트 생성", "dqadd")}</div>`;
