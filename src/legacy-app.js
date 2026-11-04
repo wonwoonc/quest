@@ -626,7 +626,7 @@ function areaXp(){
   return out;
 }
 function radarSvg(lv, size = 200){
-  const n = AREAS.length, cx = size/2, cy = size/2 + 4, R = size/2 - 34, mx = Math.max(10, ...lv), ang = i => -Math.PI/2 + i * 2*Math.PI/n;
+  const n = AREAS.length, cx = size/2, cy = size/2 + 4, R = size/2 - 28, mx = Math.max(10, ...lv), ang = i => -Math.PI/2 + i * 2*Math.PI/n;
   const pt = (i, f) => [cx + Math.cos(ang(i)) * R * f, cy + Math.sin(ang(i)) * R * f].map(v => v.toFixed(1)).join(",");
   const rings = [0.25, 0.5, 0.75, 1].map(f => `<polygon points="${AREAS.map((_, i) => pt(i, f)).join(" ")}" fill="none" stroke="var(--line)" stroke-width="1"/>`).join("");
   const axes = AREAS.map((_, i) => `<line x1="${cx}" y1="${cy}" x2="${pt(i,1).split(",")[0]}" y2="${pt(i,1).split(",")[1]}" stroke="var(--line)" stroke-width="1"/>`).join("");
