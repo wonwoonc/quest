@@ -2571,11 +2571,11 @@ const nextOf = g => { const ids = famIds(g); return mineOf("mission").filter(m =
 function viewPlan(){
   const gs = goalsOf(S.me).filter(g => g.status !== "done"), act = gs.filter(g => !isPlanned(g)).sort(gOrder), later = gs.filter(isPlanned).sort(gOrder), Q = QM();
   let h = "";
-  h += `<section class="card tight qlist"><div class="ch"><h2>🎯 메인 퀘스트</h2><button class="side btnlink" data-act="pl-mode" data-v="tidy">정리</button></div>
+  h += `<section class="card tight qlist"><div class="ch"><h2>🎯 메인 퀘스트</h2></div>
     ${act.map(g => { const nx = nextOf(g); return `<div class="plg">${goalRow(g)}${nx ? (() => { S._bare = true; try{ return taskRow(nx, false, true); } finally { S._bare = false; } })()
       : `<button class="row nested plset" data-act="taskadd" data-p="${g.id}"><span class="ic sq warn">!</span><span class="t"><b>다음 태스크 정하기</b><small>지금 바로 할 수 있는 작은 행동 하나</small></span>${I.chev}</button>`}</div>`; }).join("") || `<p class="empty-row">진행 중인 메인 퀘스트가 없어요.<br>목표를 세우고 서브 퀘스트 또는 태스크로 나눠 보세요.</p>`}
     ${later.length ? `<button class="tfold pllater" data-act="pl-later" aria-expanded="${!!Q.laterOpen}"><span>나중에 시작 <em class="num">${later.length}</em></span><span class="chev2 ${Q.laterOpen ? "open" : ""}">${I.chev}</span></button>${Q.laterOpen ? later.map(g => goalRow(g)).join("") : ""}` : ""}
-    <button class="tadd-pill" data-act="pl-new">+ 메인 퀘스트 만들기</button></section>`;
+    <button class="tadd-pill" data-act="pl-new">+ 퀘스트 생성</button></section>`;
   return h;
 }
 /* guided main quest → sub quests → first task → daily quest, in the app's own sheet */
