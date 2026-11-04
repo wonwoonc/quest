@@ -1145,13 +1145,13 @@ test('main and sub quests can be created as planned (시작 전) and toggled to 
   h.click('gedit',{p:main.id});h.click('cset',{f:'pstat',v:'planned'});h.nodes.set('ge-title',{value:'시작 전 메인'});h.click('submit-gedit');await h.settle();
   assert.equal(h.snapshot().projects[main.id].status,'planned');
 });
-test('settings › 퀘스트 관리: bulk status change, archive, task move and confirmed delete',async()=>{
+test('nav › 퀘스트: bulk status change, archive, task move and confirmed delete',async()=>{
   const base=await profileUI(),saved=base.snapshot(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
   saved.projects={m1:{id:'m1',owner:'me',title:'메인 하나',end:'2099-12-31',status:'active'},m2:{id:'m2',owner:'me',title:'메인 둘',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'서브',end:'2099-12-31',status:'active'}};
   saved.mine.qa={id:'qa',kind:'quest',name:'관리 데일리',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{},createdAt:1};
   saved.mine.t1={id:'t1',kind:'mission',name:'관리 태스크',due:'2099-01-01',time:'10:00',projectId:'s1',lv:'normal',done:false,createdAt:1};
-  const h=await profileUI(saved);h.route('settings');assert.match(h.nodes.get('app').innerHTML,/data-v="qmanage"/);
-  h.route('qmanage');assert.match(h.nodes.get('topbar').innerHTML,/퀘스트 관리/);assert.match(h.nodes.get('app').innerHTML,/메인 하나/);
+  const h=await profileUI(saved);assert.match(h.nodes.get('nav').innerHTML,/href="#qmanage"[^>]*>[\s\S]*?<span>퀘스트<\/span>/);
+  h.route('qmanage');assert.match(h.nodes.get('topbar').innerHTML,/퀘스트/);assert.match(h.nodes.get('app').innerHTML,/메인 하나/);
   h.click('qm-sel',{id:'m1'});h.click('qm-sel',{id:'m2'});assert.match(h.nodes.get('app').innerHTML,/<b>2<\/b>개 선택/);
   h.click('qm-do',{v:'planned'});await h.settle();assert.equal(h.snapshot().projects.m1.status,'planned');assert.equal(h.snapshot().projects.m2.status,'planned');
   h.click('qm-tab',{v:'daily'});h.click('qm-sel',{id:'qa'});h.click('qm-do',{v:'arch'});await h.settle();assert.equal(h.snapshot().mine.qa.active,false);
