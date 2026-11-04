@@ -1176,3 +1176,17 @@ test('nav › 퀘스트: plan sheet creates main, sub, a timed first task and a 
   assert.doesNotMatch(h.nodes.get('app').innerHTML,/지금 할 태스크/);assert.match(h.nodes.get('app').innerHTML,/러닝화 사기/);
   h.click('mcheck',{id:t.id});await h.settle();assert.match(h.nodes.get('app').innerHTML,/data-act="taskadd" data-p="[^"]+"[^>]*>[\s\S]*?다음 태스크 정하기/);
 });
+test('stats: life-area chips on main/daily feed area XP from completions; sub tasks inherit the main area; undo removes it',async()=>{
+  const base=await profileUI(),saved=base.snapshot(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+  saved.projects={m1:{id:'m1',owner:'me',title:'마라톤',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'기초',end:'2099-12-31',status:'active'}};
+  saved.mine.t1={id:'t1',kind:'mission',name:'러닝화',due:T,time:'10:00',projectId:'s1',lv:'normal',done:false,createdAt:1};
+  saved.mine.qa={id:'qa',kind:'quest',name:'독서',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:true,done:{},createdAt:1};
+  const h=await profileUI(saved);
+  h.click('gedit',{p:'m1'});assert.match(h.nodes.get('overlay').innerHTML,/data-act="aset" data-v="health"/);h.click('aset',{v:'health'});h.nodes.set('ge-title',{value:'마라톤'});h.click('submit-gedit');await h.settle();
+  assert.deepEqual(h.snapshot().projects.m1.area,['health']);
+  h.click('hedit',{id:'qa'});h.click('aset',{v:'growth'});h.click('aset',{v:'money'});h.click('aset',{v:'career'});h.nodes.set('he-name',{value:'독서'});h.click('submit-hedit');await h.settle();
+  assert.deepEqual(h.snapshot().mine.qa.area,['growth','money'],'at most two areas');
+  h.route('dash');assert.match(h.nodes.get('app').innerHTML,/능력치[\s\S]*체력<\/b><small>건강<\/small>[\s\S]*?Lv\.0/);
+  h.click('mcheck',{id:'t1'});await h.settle();h.route('dash');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><small>건강<\/small><\/span><span class="stb"><i style="width:\d+%"><\/i><\/span><b class="stl num">Lv\.1/);
+  h.click('mcheck',{id:'t1'});h.click('cfok');await h.settle();h.route('dash');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><small>건강<\/small><\/span><span class="stb"><i style="width:0%"><\/i><\/span><b class="stl num">Lv\.0/);
+});

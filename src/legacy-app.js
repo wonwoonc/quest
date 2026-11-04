@@ -601,6 +601,45 @@ const isPlanned = p => !!p && p.status === "planned";
 const stChip = g => isPlanned(g) ? `<span class="st plan">시작 전</span>` : `<span class="st">진행 중</span>`;
 function statusField(c){ const v = c.pstat === "planned" ? "planned" : "active";
   return `<div class="field"><span class="lab">상태</span><div class="chips">${[["active","바로 시작"],["planned","나중에 시작"]].map(([k,l]) => `<button class="chip" data-act="cset" data-f="pstat" data-v="${k}" aria-pressed="${v === k}">${l}</button>`).join("")}</div></div>`; }
+/* ================= stats (life areas) ================= */
+const AREAS = [["health","체력","💪","건강"],["money","재력","💰","돈"],["career","실력","💼","커리어"],["social","매력","🤝","관계"],["growth","지력","📚","자기계발"]];
+const AREA_KEYS = AREAS.map(a => a[0]);
+const areasOf = x => (x && Array.isArray(x.area) ? x.area : []).filter(k => AREA_KEYS.includes(k));
+const rootId = pid => { let id = pid, n = 0; while (id && S.projects[id] && S.projects[id].parentId && n++ < 5) id = S.projects[id].parentId; return id && S.projects[id] ? id : null; };
+function areaField(c, hint = "완료하면 이 영역 능력치가 올라요"){ const on = c.area || [];
+  return `<div class="field"><span class="lab">영역 <span class="hint">선택 · 최대 2개 · ${hint}</span></span><div class="chips">${AREAS.map(([k,n,e,l]) => `<button class="chip" data-act="aset" data-v="${k}" aria-pressed="${on.includes(k)}">${e} ${l}</button>`).join("")}</div></div>`; }
+function areaXp(){
+  const out = Object.fromEntries(AREA_KEYS.map(k => [k, 0]));
+  for (const [src, c] of Object.entries((S.economy && S.economy.claims) || {})){
+    if (!c || !c.active || c.nonactivity) continue; let k; try{ k = JSON.parse(src); } catch { continue; } if (!Array.isArray(k)) continue;
+    const rec = S.mine[k[1]], xp = c.xp > 0 ? c.xp : c.baseline && (c.kind === "habit" || c.kind === "task") ? activityReward(c.kind === "habit" ? "quest" : "mission", rec && rec.lv).xp : 0; if (!(xp > 0)) continue;
+    let a = [];
+    if (c.kind === "habit") a = areasOf(S.mine[k[1]]);
+    else if (c.kind === "task"){ const pr = (c.projects || []).filter(id => S.projects[id]), r = pr.length ? rootId(pr[pr.length - 1]) : rootId((S.mine[k[1]] || {}).projectId); a = areasOf(r && S.projects[r]); }
+    else if (c.kind === "mainDone" || c.kind === "subDone"){ const r = rootId(k[1]); a = areasOf(r && S.projects[r]); }
+    a.forEach(x => out[x] += xp / a.length);
+  }
+  return out;
+}
+function radarSvg(lv, size = 200){
+  const n = AREAS.length, cx = size/2, cy = size/2 + 4, R = size/2 - 34, mx = Math.max(5, ...lv), ang = i => -Math.PI/2 + i * 2*Math.PI/n;
+  const pt = (i, f) => [cx + Math.cos(ang(i)) * R * f, cy + Math.sin(ang(i)) * R * f].map(v => v.toFixed(1)).join(",");
+  const rings = [0.25, 0.5, 0.75, 1].map(f => `<polygon points="${AREAS.map((_, i) => pt(i, f)).join(" ")}" fill="none" stroke="var(--line)" stroke-width="1"/>`).join("");
+  const axes = AREAS.map((_, i) => `<line x1="${cx}" y1="${cy}" x2="${pt(i,1).split(",")[0]}" y2="${pt(i,1).split(",")[1]}" stroke="var(--line)" stroke-width="1"/>`).join("");
+  const shape = `<polygon points="${AREAS.map((_, i) => pt(i, Math.max(0.04, lv[i] / mx))).join(" ")}" fill="color-mix(in srgb,var(--accent) 28%,transparent)" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>`;
+  const dots = AREAS.map((_, i) => { const [x,y] = pt(i, Math.max(0.04, lv[i] / mx)).split(","); return `<circle cx="${x}" cy="${y}" r="3" fill="var(--accent)"/>`; }).join("");
+  const labels = AREAS.map(([k,n0], i) => { const [x,y] = pt(i, 1.28).split(","); return `<text x="${x}" y="${(+y + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--sub)">${n0} ${lv[i]}</text>`; }).join("");
+  return `<svg class="radar" viewBox="0 0 ${size} ${size}" role="img" aria-label="능력치 ${AREAS.map(([k,n0], i) => `${n0} ${lv[i]}`).join(", ")}">${rings}${axes}${shape}${dots}${labels}</svg>`;
+}
+function statCard(){
+  const xp = areaXp(), lvs = AREAS.map(([k]) => levelOf(Math.floor(xp[k])).L - (xp[k] > 0 ? 0 : 1)), tagged = Object.values(S.projects).some(p => p.owner === S.me && areasOf(p).length) || mineOf("quest").some(q => areasOf(q).length);
+  const rows = AREAS.map(([k,n,e,l], i) => { const v = Math.floor(xp[k]), L = levelOf(v), nx = levelStart(L.L + 1), st = levelStart(L.L), pct = v > 0 ? Math.min(100, (v - st) / Math.max(1, nx - st) * 100) : 0;
+    return `<div class="strow"><span class="ste">${e}</span><span class="stn"><b>${n}</b><small>${l}</small></span><span class="stb"><i style="width:${pct.toFixed(0)}%"></i></span><b class="stl num">Lv.${lvs[i]}</b></div>`; }).join("");
+  const top = Math.max(...lvs), low = Math.min(...lvs), best = AREAS[lvs.indexOf(top)], weak = AREAS[lvs.indexOf(low)];
+  return `<section class="card statcard"><div class="ch"><h2>능력치</h2>${top > 0 ? `<small class="side">강점 ${best[2]} ${best[1]} · 보완 ${weak[2]} ${weak[1]}</small>` : ""}</div>
+    ${radarSvg(lvs)}<div class="strows">${rows}</div>
+    ${tagged ? "" : `<p class="hint sthint">메인 퀘스트와 데일리 퀘스트에 영역을 붙이면, 완료할 때 받은 경험치만큼 그 영역 능력치가 올라요.</p>`}</section>`;
+}
 const gOrder = (a,b) => ((a.order ?? 1e9) - (b.order ?? 1e9)) || (isPlanned(a) - isPlanned(b)) || ((a.end||"9") < (b.end||"9") ? -1 : (a.end||"9") > (b.end||"9") ? 1 : 0);
 function mainTab(){
   const all = goalsOf(S.me), act = all.filter(p => p.status !== "done").sort(gOrder), ach = all.filter(p => p.status === "done");
@@ -797,7 +836,7 @@ const PW_STEPS = ["메인 퀘스트", "서브 퀘스트", "첫 태스크", "데�
 function planSheet(c){
   const st = c.step, dots = `<div class="pwdots">${PW_STEPS.map((l,i) => `<span class="${i === st ? "on" : i < st ? "ok" : ""}"><i>${i < st ? "✓" : i + 1}</i>${l}</span>`).join("")}</div>`;
   let body = "";
-  if (st === 0) body = `<p class="pwq">어떤 메인 퀘스트에 도전할까요?</p><div class="field"><input type="text" id="pw-name" maxlength="60" placeholder="예: 하프 마라톤 완주하기" value="${D("pw-name")}" aria-label="메인 퀘스트 이름"></div>${(() => { const dp = c._dp; c._dp = null; try{ return datePick(c, "end", "마감일", false, true); } finally { c._dp = dp; } })()}
+  if (st === 0) body = `<p class="pwq">어떤 메인 퀘스트에 도전할까요?</p><div class="field"><input type="text" id="pw-name" maxlength="60" placeholder="예: 하프 마라톤 완주하기" value="${D("pw-name")}" aria-label="메인 퀘스트 이름"></div>${(() => { const dp = c._dp; c._dp = null; try{ return datePick(c, "end", "마감일", false, true); } finally { c._dp = dp; } })()}${areaField(c, "서브 퀘스트·태스크도 이 영역으로 쌓여요")}
     ${c._dp === "end" ? `<div class="dppop" data-act="dpopen" data-k="end"><div class="dppop-in" data-act="dpstay" role="dialog" aria-label="마감일 선택"><b class="dppop-t">마감일 선택</b>${miniCal(c, "end")}</div></div>` : ""}`;
   else if (st === 1) body = `<p class="pwq">어떤 서브 퀘스트로 나눌까요?</p><p class="hint pwh">큰 퀘스트를 2~4개 관문으로 나누면 끝까지 가기 쉬워요. 없으면 건너뛰어도 돼요.</p>
     ${c.steps.map((x,i) => `<div class="pwstep"><span class="ic sq ok">🔗</span><input type="text" id="pw-s${i}" maxlength="60" placeholder="서브 퀘스트 ${i+1}" value="${esc(x)}" aria-label="서브 퀘스트 ${i+1}"><button class="iconbtn" data-act="pw-sdel" data-v="${i}" aria-label="서브 퀘스트 ${i+1} 지우기">${I.close}</button></div>`).join("")}
@@ -824,10 +863,10 @@ function pwGo(c, v){
   const gid = uid8(), steps = c.steps.map(x => x.trim()).filter(Boolean), sids = steps.map((_, i) => uid8() + "s" + i), now = Date.now(), end = c.end;
   const link = steps.length ? sids[Math.min(+(c.link ?? 0), steps.length - 1)] : gid, name = pv("pw-name").trim(), act = pv("pw-act").trim();
   run(async () => {
-    await api.putProject(gid, {cover:null, owner:S.me, title:name, start:today(), end, status:"active", metric:null, progress:{done:0,total:1}, createdAt:now});
+    await api.putProject(gid, {cover:null, owner:S.me, title:name, start:today(), end, status:"active", area:c.area||[], metric:null, progress:{done:0,total:1}, createdAt:now});
     for (let i = 0; i < steps.length; i++) await api.putProject(sids[i], {cover:null, owner:S.me, parentId:gid, title:steps[i], start:today(), end, status:"active", metric:null, progress:{done:0,total:sids[i] === link ? 1 : 0}, createdAt:now + i + 1});
     await api.putMine(uid8(), {kind:"mission", name:act, lv:c.lv || "normal", due:c.due, time:atime, period:"", today:false, projectId:link, done:false, createdAt:now});
-    if (hab) await api.putMine(uid8(), {kind:"quest", name:hab, time:htime, repeat:{type:"daily"}, days:[], lv:"easy", active:true, done:{}, createdAt:now});
+    if (hab) await api.putMine(uid8(), {kind:"quest", name:hab, time:htime, repeat:{type:"daily"}, days:[], lv:"easy", area:c.area||[], active:true, done:{}, createdAt:now});
   }, () => { ["pw-name","pw-act","pw-hab"].forEach(k => delete S.drafts[k]); c.steps.forEach((_, i) => delete S.drafts["pw-s"+i]); closeSheet(); syncProgress(link); if (link !== gid) syncProgress(gid); toast("🎯 메인 퀘스트를 시작했어요! 첫 태스크부터 해치워 볼까요?"); });
 }
 function viewTidy(){
@@ -1201,7 +1240,7 @@ function viewWebDash(){
   const subs = Object.values(S.projects).filter(p => p.owner === uid && p.parentId && p.status !== "done" && S.projects[p.parentId]).sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : 1);
   const goals = (gs.length >= 2 ? hintBar("reo", "카드를 길게 눌러 끌면 순서를 바꿀 수 있어요") : "") + `${strip(gs, "wdGi", "wdgi", "메인 퀘스트", 2, "big", "이루고 싶은 큰 목표를 세워 보세요")}
 `;
-  let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}</div><div class="wd-goals">${goals}</div>
+  let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}${statCard()}</div><div class="wd-goals">${goals}</div>
       <div class="wd-bot"><div class="wd-sec"><div class="wd-stack">${d}</div></div>
       <div class="wd-tl"><div class="wd-sec"><div class="wd-merge wd-fix">${(() => { S._noToday = true; S._noTime = true; let tt; try{ tt = taskTab({noUp:true}); } finally { S._noToday = false; S._noTime = false; }
         return tt; })()}</div></div>
@@ -1465,8 +1504,9 @@ function renderSheet(){ IXC = null;
         more = gs.length ? `${datePick(c, "end", "마감일")}${statusField(c)}${metricFields(c)}${parentPick(c)}${coverField(c)}${taskFields(c)}` : `<p class="empty-row" style="padding:4px 0 14px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p>`; }
       else if (K === "daily"){ more = `${repeatField(c)}
         ${timeOnlyField(c)}
-        ${difficultySelector(c,'quest','hlv')}`; }
-      else more = `${datePick(c, "end", "마감일", false, true)}${statusField(c)}${metricFields(c)}${coverField(c)}${taskFields(c)}`;
+        ${difficultySelector(c,'quest','hlv')}
+        ${areaField(c)}`; }
+      else more = `${datePick(c, "end", "마감일", false, true)}${statusField(c)}${areaField(c, "서브 퀘스트·태스크도 이 영역으로 쌓여요")}${metricFields(c)}${coverField(c)}${taskFields(c)}`;
     }
     return sheetWrap(({daily:"데일리 퀘스트 추가", once:"태스크 추가", sub:"서브 퀘스트 추가", big:"메인 퀘스트 추가"})[K] || "퀘스트 추가", "", `
     <div class="field"><input type="text" id="ad-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ad-name")}" aria-label="퀘스트 이름"></div>
@@ -1479,6 +1519,7 @@ function renderSheet(){ IXC = null;
     ${repeatField(c)}
     ${timeOnlyField(c)}
     ${difficultySelector(c,'quest','hlv')}
+    ${areaField(c)}
     <button class="btn big full" data-act="submit-hedit" ${S.busy?"disabled":""}>저장</button>
     <div class="btnrow">${dn ? `<button class="btn soft" data-act="shareq" data-id="${q.id}">공유</button>` : ""}<button class="btn sec" data-act="htoggle">${q.active === false ? "보관 해제" : "보관"}</button><button class="btn sec" style="color:var(--warn)" data-act="hdel">${S.armed === "hd"+c.id ? "정말 삭제" : "삭제"}</button></div>`); }
   if (c.type === "post") return postSheet(quick);
@@ -1602,6 +1643,7 @@ function renderSheet(){ IXC = null;
     <div class="field"><label class="lab" for="ge-title">이름</label><input type="text" id="ge-title" maxlength="80" value="${D("ge-title")}"></div>
     ${datePick(c, "end", "마감일", sp, !sp)}
     ${p.status !== "done" ? statusField(c) : ""}
+    ${sp ? "" : areaField(c, "서브 퀘스트·태스크도 이 영역으로 쌓여요")}
     ${metricFields(c)}
     ${sp ? `<div class="field"><span class="lab">메인 퀘스트</span><div class="chips">${gs.map(g => `<button class="chip" data-act="cset" data-f="parentId" data-v="${g.id}" aria-pressed="${c.parentId===g.id}">🎯 ${esc(g.title)}</button>`).join("")}</div></div>` : ""}
     ${coverField(c)}
@@ -1926,6 +1968,7 @@ document.addEventListener("click", e => {
     case "pl-mode": QM().mode = b.dataset.v; QM().sel = []; break;
     case "pl-later": QM().laterOpen = !QM().laterOpen; break;
     case "pl-new": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } ["pw-name","pw-act","pw-hab"].forEach(k => delete S.drafts[k]); openSheet({type:"plan", step:0, steps:[], due:today(), time:"", lv:"normal"}); return;
+    case "aset": { preserveSheetDrafts(); const a = (c.area || []).slice(), v = b.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else { if (a.length >= 2){ toast("영역은 2개까지 고를 수 있어요"); return; } a.push(v); } c.area = a; renderSheet(); return; }
     case "pw-go": pwGo(c, b.dataset.v); return;
     case "pw-sadd": pwRead(c); c.steps.push(""); renderSheet(); return;
     case "pw-sdel": pwRead(c); c.steps.splice(+b.dataset.v, 1); c.steps.forEach((x,i) => S.drafts["pw-s"+i] = x); renderSheet(); return;
@@ -1941,10 +1984,10 @@ document.addEventListener("click", e => {
       run(() => api.putProject(pid, doc), () => { closeSheet(); toast(toPlan ? "시작 전으로 바꿨어요" : "▶ 진행을 시작했어요"); }); return; }
     case "gedit": { const p = S.projects[pid]; if (!p) return; S.drafts["ge-title"] = p.title;
       const m = p.metric, cu = m && !UNITS.includes(m.unit); if (m){ S.drafts["pj-ms"] = String(m.start); S.drafts["pj-mt"] = String(m.target); if (cu) S.drafts["pj-unit"] = m.unit; } else { ["pj-ms","pj-mt","pj-unit"].forEach(k => delete S.drafts[k]); }
-      openSheet({type:"gedit", pid, cover:p.cover || "", end:p.end || "", parentId:p.parentId || null, unit:m ? (cu ? "__c" : m.unit) : null, pstat:p.status === "planned" ? "planned" : "active"}); return; }
+      openSheet({type:"gedit", pid, cover:p.cover || "", end:p.end || "", parentId:p.parentId || null, unit:m ? (cu ? "__c" : m.unit) : null, pstat:p.status === "planned" ? "planned" : "active", area:areasOf(p)}); return; }
     case "submit-gedit": { const p = S.projects[c.pid], title = ($("#ge-title").value||"").trim(); if (!title){ toast("이름을 적어 주세요"); return; }
       if (!isProj(p) && !c.end){ toast("마감일을 골라 주세요"); return; }
-      const doc = {...p, title, end:c.end || ""}; delete doc.id;
+      const doc = {...p, title, end:c.end || ""}; delete doc.id; if (!isProj(p)) doc.area = c.area || [];
       if (isProj(p)){ if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; } doc.parentId = c.parentId; }
       if (c.unit){ const s0 = parseNum(($("#pj-ms")||{}).value), t0 = parseNum(($("#pj-mt")||{}).value); if (s0 == null || t0 == null || s0 === t0){ toast("시작 숫자와 목표 숫자를 넣어 주세요"); return; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return; } doc.metric = {unit, start:s0, target:t0}; }
       else doc.metric = null;
@@ -2034,12 +2077,12 @@ document.addEventListener("click", e => {
     case "suggest": { const n = b.dataset.v, lv = (SUGGEST.find(x => x[0] === n)||[])[1] || "easy"; if (dupQ(n)){ toast(DUPMSG); return; } b.disabled = true;
       run(() => api.putMine(uid8(), {kind:"quest", name:n, days:[0,1,2,3,4,5,6], lv, active:true, done:{}, createdAt:Date.now()}), () => toast(`🔥 '${esc(n)}' 추가`)); return; }
     case "hedit": { e.stopPropagation(); const q = S.mine[id]; if (!q || !S.canWrite) return; S.drafts["he-name"] = q.name; const r = qRepeat(q);
-    openSheet({type:"hedit", id, days:((r.days||q.days||[])).slice(), hlv:lvKey(q.lv), time:q.time||"09:00", rpt:r.type,
+    openSheet({type:"hedit", id, area:areasOf(q), days:((r.days||q.days||[])).slice(), hlv:lvKey(q.lv), time:q.time||"09:00", rpt:r.type,
       rweeks:r.weeks||2, revery:r.every||3, rday:r.day||15, rmonths:r.months||3, ron:r.on||2, roff:r.off||1,
       ranchor:r.anchor || activityDate(q.createdAt) || today()}); return; }
     case "submit-hedit": { const q = S.mine[c.id], name = ($("#he-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (dupQ(name, c.id)){ toast(DUPMSG); return; } if (!c.days.length){ toast("요일을 골라 주세요"); return; }
       const rp2 = buildRepeat(c); if (needsDays(rp2.type) && !rp2.days.length){ toast("요일을 골라 주세요"); return; }
-      if (!c.time){ toast("시간을 골라 주세요"); return; } run(() => api.putMine(c.id, {...q, name, time:c.time, repeat:rp2, days:rp2.days||[], lv:c.hlv}), () => { closeSheet(); toast("저장했어요"); }); return; }
+      if (!c.time){ toast("시간을 골라 주세요"); return; } run(() => api.putMine(c.id, {...q, name, time:c.time, repeat:rp2, days:rp2.days||[], lv:c.hlv, area:c.area||[]}), () => { closeSheet(); toast("저장했어요"); }); return; }
     case "htoggle": { const q = S.mine[c.id]; run(() => api.putMine(c.id, {...q, active:q.active === false}), () => { closeSheet(); toast(q.active === false ? "보관을 해제했어요" : "보관했어요"); }); return; }
     case "hcheckd": { e.stopPropagation(); const q = S.mine[id]; if (!q) return; const d = b.dataset.d; if (d !== today()){ toast("지난 날짜의 완료는 바꿀 수 없어요"); return; } const dn = {...(q.done||{})}; if (dn[d]) delete dn[d]; else dn[d] = Date.now(); run(() => api.putMine(id, {...q, done:dn}), () => { toast(dn[d] ? "완료했어요" : "완료를 취소했어요"); }); return; }
     case "hdel": { const hid = c.id; if (S.armed !== "hd"+hid){ arm("hd"+hid); renderSheet(); return; } S.armed = null; run(() => api.delMine(hid), () => { closeSheet(); toast("데일리 퀘스트를 삭제했어요"); }); return; }
@@ -2047,14 +2090,14 @@ document.addEventListener("click", e => {
       const K = c.kind, done0 = () => { ["ad-name","ad-end","pj-ms","pj-mt","pj-unit","nt-name"].forEach(k => delete S.drafts[k]); closeSheet(); };
       if (K === "once" && !c.due){ toast("날짜를 골라 주세요"); return; } if (K === "once" && !c.time){ toast("시간을 골라 주세요"); return; }
       if (K === "once"){ const pj = c.projectId || null; run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", due:c.due||"", time:c.due ? (c.time||"") : "", period:c.due ? (c.period||"") : "", today:false, projectId:pj, done:false, createdAt:Date.now()}), () => { done0(); toast("✅ 태스크를 추가했어요"); if (pj) syncProgress(pj); }); return; }
-      if (K === "daily"){ const rp = buildRepeat(c); if (needsDays(rp.type) && !rp.days.length){ toast("요일을 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } if (dupQ(name)){ toast(DUPMSG); return; } run(() => api.putMine(uid8(), {kind:"quest", name, time:c.time, repeat:rp, days:rp.days||[], lv:c.hlv||"easy", active:true, done:{}, createdAt:Date.now()}), () => { done0(); toast("🔥 데일리 퀘스트를 만들었어요"); }); return; }
+      if (K === "daily"){ const rp = buildRepeat(c); if (needsDays(rp.type) && !rp.days.length){ toast("요일을 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } if (dupQ(name)){ toast(DUPMSG); return; } run(() => api.putMine(uid8(), {kind:"quest", name, time:c.time, repeat:rp, days:rp.days||[], lv:c.hlv||"easy", area:c.area||[], active:true, done:{}, createdAt:Date.now()}), () => { done0(); toast("🔥 데일리 퀘스트를 만들었어요"); }); return; }
       if (K === "sub"){ if (!c.end){ toast("마감일을 골라 주세요"); return; } if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; } const mt = readMetric(c); if (mt === false) return; const tasks = pendingTasks(c), pidN = uid8(), par = c.parentId, end = c.end || "";
         run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, parentId:par, title:name, start:today(), end, status:c.pstat === "planned" ? "planned" : "active", metric:mt, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
           () => { done0(); syncProgress(par); toast("🔗 서브 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
       if (!c.end){ toast("마감일을 골라 주세요"); return; }
       let metric = null; if (c.unit){ const s0 = parseNum(($("#pj-ms")||{}).value), t0 = parseNum(($("#pj-mt")||{}).value); if (s0 == null || t0 == null || s0 === t0){ toast("지금 숫자와 목표 숫자를 넣어 주세요"); return; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return; } metric = {unit, start:s0, target:t0}; }
       const tasks = c.more ? pendingTasks(c) : [], pidN = uid8(), end = c.end || "";
-      run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, title:name, start:today(), end, status:c.pstat === "planned" ? "planned" : "active", metric, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
+      run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, title:name, start:today(), end, status:c.pstat === "planned" ? "planned" : "active", area:c.area||[], metric, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
         () => { done0(); toast("🎯 메인 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
     case "tedit": { e.stopPropagation(); delete S.drafts["tm-in"]; const m = S.mine[id]; if (!m || !S.canWrite) return; S.drafts["te-name"] = m.name; S.drafts["te-note"] = m.note || ""; openSheet({type:"tedit", id, time:m.time || "", lv:m.lv || "normal", due:m.period ? m.due : dueOf(m), period:m.period || "", projectId:m.projectId || null}); return; }
     case "submit-tedit": { if (!readTime(c)) return; const m = S.mine[c.id], name = ($("#te-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; }

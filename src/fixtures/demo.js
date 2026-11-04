@@ -145,10 +145,10 @@ const S = emptySnapshot();
   const media = {}; for (const [k,[l,h,e]] of Object.entries(W.media)) media[k] = picSvg(l,h,e);
   const days = n => { const o = {}; for (let i = 1; i <= n; i++) o[dk(N - i*DAY)] = N - i*DAY; return o; };
   const mine = {
-    q1:{kind:"quest", name:"물 2리터 마시기", purpose:"피부와 집중력", days:[0,1,2,3,4,5,6], lv:"easy", active:true, done:days(6), createdAt:N-20*DAY},
-    q2:{kind:"quest", name:"아침 스트레칭 10분", purpose:"굳은 몸 깨우기", days:[0,1,2,3,4,5,6], lv:"normal", active:true, done:days(4), createdAt:N-15*DAY},
-    q3:{kind:"quest", name:"토익 단어 50개", purpose:"850점 넘기기", days:[1,2,3,4,5], lv:"hard", active:true, done:{}, createdAt:N-9*DAY},
-    q4:{kind:"quest", name:"하루 계획 세우기", purpose:"집중하는 하루", days:[0,1,2,3,4,5,6], lv:"normal", active:true, done:{[dk(N)]:N-2*H, ...days(2)}, createdAt:N-8*DAY},
+    q1:{kind:"quest", name:"물 2리터 마시기", purpose:"피부와 집중력", days:[0,1,2,3,4,5,6], lv:"easy", area:["health"], active:true, done:days(6), createdAt:N-20*DAY},
+    q2:{kind:"quest", name:"아침 스트레칭 10분", purpose:"굳은 몸 깨우기", days:[0,1,2,3,4,5,6], lv:"normal", area:["health"], active:true, done:days(4), createdAt:N-15*DAY},
+    q3:{kind:"quest", name:"토익 단어 50개", purpose:"850점 넘기기", days:[1,2,3,4,5], lv:"hard", area:["growth","career"], active:true, done:{}, createdAt:N-9*DAY},
+    q4:{kind:"quest", name:"하루 계획 세우기", purpose:"집중하는 하루", days:[0,1,2,3,4,5,6], lv:"normal", area:["growth"], active:true, done:{[dk(N)]:N-2*H, ...days(2)}, createdAt:N-8*DAY},
     m1:{kind:"mission", lv:"hard", time:"19:00", name:"실전 모의고사 1회 풀기", today:true, projectId:"pme", done:false, createdAt:N-DAY},
     m2:{kind:"mission", time:"10:00", name:"주간 보고서 제출", today:true, projectId:null, done:false, createdAt:N-DAY},
     m3:{kind:"mission", name:"단어장 1회독", today:false, projectId:"pme", done:true, doneAt:N-2*DAY, createdAt:N-9*DAY},
@@ -159,7 +159,7 @@ const S = emptySnapshot();
   for (let i = 1; i <= 5; i++){ const k = dk(N - i*DAY); mine["d-"+k] = {kind:"diary", date:k, cond:60+i*5, emo:["평온","기쁨","피곤","설렘","평온"][i-1], text:["점심에 회사 근처를 한 바퀴 걸었다. 바람이 시원해서 머리가 맑아졌다.","모의고사 점수가 처음으로 700을 넘었다!\n파트5 오답노트를 꾸준히 한 덕분인 것 같다. 이번 주는 파트7 시간 관리를 연습해 봐야지.","야근 때문에 운동을 못 했다. 그래도 물 2리터는 지켰다.","",""][i-1], at:N - i*DAY}; }
   for (const [k,v] of Object.entries(mine)) S.mine[k] = {id:k, ...v};
   S.projects.pme5 = {id:"pme5", owner:"me", parentId:"pme", title:"파트5 문법 정복", start:dk(N-3*DAY), end:dk(N+14*DAY), status:"active", metric:null, progress:{done:0,total:1}, createdAt:N-3*DAY};
-  S.projects.pme = {id:"pme", owner:"me", title:"토익 850점 넘기기", start:dk(N-9*DAY), end:dk(N+50*DAY), status:"active", metric:{unit:"점", start:650, target:850}, progress:{done:1,total:3}, createdAt:N-9*DAY};
+  S.projects.pme = {id:"pme", owner:"me", title:"토익 850점 넘기기", start:dk(N-9*DAY), end:dk(N+50*DAY), status:"active", area:["career","growth"], metric:{unit:"점", start:650, target:850}, progress:{done:1,total:3}, createdAt:N-9*DAY};
   S.feed["f-me1"] = {id:"f-me1", author:"me", createdAt:N-20*H, ref:{type:"project", id:"pme", label:"토익 850점 넘기기"}, mood:"포기하고 싶어요", value:710, q:"예상과 달랐던 점은?", text:"첫 모의고사 710점이에요. 생각보다 낮아서 좀 우울하네요.", imgs:0, reactions:{"s-minseo":{k:"heart",at:N-3*H}, "s-daeun":{k:"heart",at:N-2*H}}, joiners:{}};
   S.replies.rme = {id:"rme", postId:"f-me1", author:"s-soyeon", text:"저도 JLPT 첫 모의고사가 72점이었어요. 문법부터 잡으면 금방 올라요!", createdAt:N-2*H, parentId:null, likes:{}};
 
