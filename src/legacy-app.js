@@ -635,11 +635,11 @@ function radarSvg(lv, size = 200){
 }
 function statCard(){
   const xp = areaXp(), vals = AREAS.map(([k]) => Math.floor(xp[k])), mx = Math.max(1, ...vals), tagged = Object.values(S.projects).some(p => p.owner === S.me && areasOf(p).length) || mineOf("quest").some(q => areasOf(q).length);
-  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><span class="stn"><b>${n}</b></span><span class="stb"><i style="width:${(vals[i] / mx * 100).toFixed(0)}%"></i></span><b class="stl num">${fmt(vals[i])}</b></div>`).join("");
+  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><span class="stn"><b>${n}</b><small>${AREAS[i][3]}</small></span><span class="stb"><i style="width:${(vals[i] / mx * 100).toFixed(0)}%"></i></span><b class="stl num">${fmt(vals[i])}</b></div>`).join("");
   const top = Math.max(...vals), low = Math.min(...vals), best = AREAS[vals.indexOf(top)], weak = AREAS[vals.indexOf(low)];
   return `<section class="statcard">${top > 0 ? `<p class="stsum">강점 <b>${best[1]}</b> · 보완 <b>${weak[1]}</b></p>` : ""}
     ${radarSvg(vals)}<div class="strows">${rows}</div>
-    ${tagged ? "" : `<p class="hint sthint">메인 퀘스트와 데일리 퀘스트에 영역을 붙이면, 완료할 때 받은 경험치만큼 그 영역 능력치가 올라요.</p>`}</section>`;
+</section>`;
 }
 const gOrder = (a,b) => ((a.order ?? 1e9) - (b.order ?? 1e9)) || (isPlanned(a) - isPlanned(b)) || ((a.end||"9") < (b.end||"9") ? -1 : (a.end||"9") > (b.end||"9") ? 1 : 0);
 function mainTab(){
@@ -1490,7 +1490,7 @@ function preserveSheetDrafts() {
   document.querySelectorAll('.sheet input[id], .sheet textarea[id]').forEach(el => { if(!['checkbox','radio','file'].includes(el.type)) S.drafts[el.id]=el.value; });
   const todayInput=$('#ms-today'); if(todayInput&&S.compose) S.compose.today=todayInput.checked;
 }
-function sheetWrap(title, desc, body){ const creation=/^(메인|서브) 퀘스트 (추가|만들기)$/.test(title),sub=title.startsWith('서브');$("#overlay").innerHTML = `<div class="scrim" data-act="sheet-bg"><div class="sheet" role="dialog" aria-modal="true"><h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}</div></div>`; initTW(); }
+function sheetWrap(title, desc, body){ const creation=/^서브 퀘스트 (추가|만들기)$/.test(title),sub=title.startsWith('서브');$("#overlay").innerHTML = `<div class="scrim" data-act="sheet-bg"><div class="sheet" role="dialog" aria-modal="true"><h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}</div></div>`; initTW(); }
 const RW_PRICES = [100, 300, 500, 1000, 3000];
 const rwCustom = c => c.cost !== "" && c.cost != null && !RW_PRICES.includes(+c.cost);
 function renderSheet(){ IXC = null;
