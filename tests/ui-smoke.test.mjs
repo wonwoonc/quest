@@ -1173,6 +1173,6 @@ test('nav › 퀘스트: plan sheet creates main, sub, a timed first task and a 
   assert.equal(g.status,'active');assert.equal(subs.length,1);assert.equal(subs[0].title,'기초 체력');
   const t=Object.values(s.mine).find(m=>m.name==='러닝화 사기');assert.equal(t.projectId,subs[0].id);assert.equal(t.due,T);assert.equal(t.time,'09:00');
   assert.ok(Object.values(s.mine).find(m=>m.kind==='quest'&&m.name==='매일 달리기'&&m.time==='09:00'));
-  assert.match(h.nodes.get('app').innerHTML,/지금 할 태스크[\s\S]*러닝화 사기/);
+  assert.doesNotMatch(h.nodes.get('app').innerHTML,/지금 할 태스크/);assert.match(h.nodes.get('app').innerHTML,/러닝화 사기/);
   h.click('mcheck',{id:t.id});await h.settle();assert.match(h.nodes.get('app').innerHTML,/data-act="taskadd" data-p="[^"]+"[^>]*>[\s\S]*?다음 태스크 정하기/);
 });

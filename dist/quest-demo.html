@@ -549,8 +549,6 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .pgtop{display:flex;align-items:center;gap:6px}
 .pgtop .st{font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:3px 8px}
 .pgtop .st.dd{color:var(--sub);background:var(--fill)}
-.plnow .ch,.plg+.ch{padding:14px 16px 4px}
-.plwarn{margin:4px 16px 12px;font-size:13px;font-weight:700;color:#c2410c}
 .plg{border-bottom:1px solid var(--line)}.plg:last-of-type{border-bottom:0}
 .plg .row.nested{padding-left:56px}
 .plset .ic.warn{background:#fff1e6;color:#c2410c;font-weight:800}
@@ -2493,10 +2491,7 @@ const tOrd = (a,b) => (dueOf(a) || "9") < (dueOf(b) || "9") ? -1 : (dueOf(a) || 
 const nextOf = g => { const ids = famIds(g); return mineOf("mission").filter(m => !m.done && ids.includes(m.projectId)).sort(tOrd)[0] || null; };
 function viewPlan(){
   const gs = goalsOf(S.me).filter(g => g.status !== "done"), act = gs.filter(g => !isPlanned(g)).sort(gOrder), later = gs.filter(isPlanned).sort(gOrder), Q = QM();
-  const nexts = act.map(nextOf).filter(Boolean).sort(tOrd), none = act.filter(g => !nextOf(g)).length;
-  let h = `<section class="card tight qlist plnow"><div class="ch"><h2>⚡ 지금 할 태스크</h2>${nexts.length ? `<span class="cnt num">${nexts.length}</span>` : ""}</div>
-    ${nexts.length ? nexts.map(m => taskRow(m)).join("") : `<p class="empty-row">${act.length ? "메인 퀘스트마다 다음 태스크를 정해 보세요." : "메인 퀘스트를 만들면 지금 할 첫 태스크가 여기에 모여요."}</p>`}
-    ${none ? `<p class="plwarn">⚠️ 다음 태스크가 없는 메인 퀘스트 ${none}개</p>` : ""}</section>`;
+  let h = "";
   h += `<section class="card tight qlist"><div class="ch"><h2>🎯 메인 퀘스트</h2><button class="side btnlink" data-act="pl-mode" data-v="tidy">정리</button></div>
     ${act.map(g => { const nx = nextOf(g); return `<div class="plg">${goalRow(g)}${nx ? (() => { S._bare = true; try{ return taskRow(nx, false, true); } finally { S._bare = false; } })()
       : `<button class="row nested plset" data-act="taskadd" data-p="${g.id}"><span class="ic sq warn">!</span><span class="t"><b>다음 태스크 정하기</b><small>지금 바로 할 수 있는 작은 행동 하나</small></span>${I.chev}</button>`}</div>`; }).join("") || `<p class="empty-row">진행 중인 메인 퀘스트가 없어요.<br>목표를 세우고 서브 퀘스트 또는 태스크로 나눠 보세요.</p>`}
