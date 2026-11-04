@@ -1186,7 +1186,15 @@ test('stats: life-area chips on main/daily feed area XP from completions; sub ta
   assert.deepEqual(h.snapshot().projects.m1.area,['health']);
   h.click('hedit',{id:'qa'});h.click('aset',{v:'growth'});h.click('aset',{v:'money'});h.click('aset',{v:'career'});h.nodes.set('he-name',{value:'독서'});h.click('submit-hedit');await h.settle();
   assert.deepEqual(h.snapshot().mine.qa.area,['growth','money'],'at most two areas');
-  h.route('dash');assert.match(h.nodes.get('app').innerHTML,/능력치[\s\S]*체력<\/b><small>건강<\/small>[\s\S]*?Lv\.0/);
-  h.click('mcheck',{id:'t1'});await h.settle();h.route('dash');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><small>건강<\/small><\/span><span class="stb"><i style="width:\d+%"><\/i><\/span><b class="stl num">Lv\.1/);
-  h.click('mcheck',{id:'t1'});h.click('cfok');await h.settle();h.route('dash');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><small>건강<\/small><\/span><span class="stb"><i style="width:0%"><\/i><\/span><b class="stl num">Lv\.0/);
+  h.route('dash');assert.doesNotMatch(h.nodes.get('app').innerHTML,/class="statcard"/);assert.match(h.nodes.get('app').innerHTML,/data-act="statsheet"/);h.click('statsheet');assert.match(h.nodes.get('overlay').innerHTML,/능력치[\s\S]*체력<\/b><small>건강<\/small>[\s\S]*?Lv\.0/);
+  h.click('sheet-close');h.click('mcheck',{id:'t1'});await h.settle();h.click('statsheet');assert.match(h.nodes.get('overlay').innerHTML,/체력<\/b><small>건강<\/small><\/span><span class="stb"><i style="width:\d+%"><\/i><\/span><b class="stl num">Lv\.1/);
+  h.click('sheet-close');h.click('mcheck',{id:'t1'});h.click('cfok');await h.settle();h.click('statsheet');assert.match(h.nodes.get('overlay').innerHTML,/체력<\/b><small>건강<\/small><\/span><span class="stb"><i style="width:0%"><\/i><\/span><b class="stl num">Lv\.0/);
+});
+test('main quest page shows sub quests as cards with progress and next task',async()=>{
+  const base=await profileUI(),saved=base.snapshot();
+  saved.projects={m1:{id:'m1',owner:'me',title:'마라톤',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'기초 체력',end:'2099-12-31',status:'active'},s2:{id:'s2',owner:'me',parentId:'m1',title:'10km',end:'2099-12-31',status:'planned'}};
+  saved.mine.t1={id:'t1',kind:'mission',name:'러닝화 사기',due:'2099-01-01',time:'10:00',projectId:'s1',lv:'normal',done:false,createdAt:1};
+  const h=await profileUI(saved);h.click('project',{p:'m1'});const html=h.nodes.get('app').innerHTML;
+  assert.match(html,/class="card subc[^"]*" data-act="project" data-p="s1"[\s\S]*?기초 체력[\s\S]*?<em>다음<\/em>러닝화 사기/);
+  assert.match(html,/data-p="s2"[\s\S]*?시작 전[\s\S]*?다음 태스크 없음/);assert.match(html,/subadd/);
 });
