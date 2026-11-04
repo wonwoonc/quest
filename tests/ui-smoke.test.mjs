@@ -826,7 +826,7 @@ for(const [route,kind] of [['add-daily','quest'],['quest','quest'],['hedit','que
     assert.deepEqual(h.snapshot(),before,'viewing existing records does not mutate storage');
   });
 }
-for(const parent of ['project','sub','add-sub']){
+for(const parent of ['project']){
   test(`${parent}: nested task selector and draft use task metadata and retain tier keys`,async()=>{
     const h=await linkedUI(),before=h.snapshot();
     h.click('sheet',parent.startsWith('add-')?{k:'add',v:parent.slice(4),p:'main'}:{k:parent,p:'main'});

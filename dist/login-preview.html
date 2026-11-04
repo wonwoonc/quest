@@ -3264,7 +3264,7 @@ function preserveSheetDrafts() {
   document.querySelectorAll('.sheet input[id], .sheet textarea[id]').forEach(el => { if(!['checkbox','radio','file'].includes(el.type)) S.drafts[el.id]=el.value; });
   const todayInput=$('#ms-today'); if(todayInput&&S.compose) S.compose.today=todayInput.checked;
 }
-function sheetWrap(title, desc, body){ const creation=/^서브 퀘스트 (추가|생성|만들기)$/.test(title),sub=title.startsWith('서브');$("#overlay").innerHTML = `<div class="scrim" data-act="sheet-bg"><div class="sheet" role="dialog" aria-modal="true"><h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}</div></div>`; initTW(); }
+function sheetWrap(title, desc, body){ const creation=false,sub=title.startsWith('서브');$("#overlay").innerHTML = `<div class="scrim" data-act="sheet-bg"><div class="sheet" role="dialog" aria-modal="true"><h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}</div></div>`; initTW(); }
 const RW_PRICES = [100, 300, 500, 1000, 3000];
 const rwCustom = c => c.cost !== "" && c.cost != null && !RW_PRICES.includes(+c.cost);
 function renderSheet(){ IXC = null;
@@ -3284,7 +3284,7 @@ function renderSheet(){ IXC = null;
         ${dueField(c)}
         ${linkPick(c)}`;
       else if (K === "sub"){ const gs = goalsOf(S.me).filter(g => g.status !== "done");
-        more = gs.length ? `${datePick(c, "end", "마감일")}${statusField(c)}${metricFields(c)}${parentPick(c)}${coverField(c)}${taskFields(c)}` : `<p class="empty-row" style="padding:4px 0 14px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p>`; }
+        more = gs.length ? `${datePick(c, "end", "마감일")}${statusField(c)}${metricFields(c)}${parentPick(c)}${coverField(c)}` : `<p class="empty-row" style="padding:4px 0 14px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p>`; }
       else if (K === "daily"){ more = `${repeatField(c)}
         ${timeOnlyField(c)}
         ${difficultySelector(c,'quest','hlv')}
@@ -3332,7 +3332,6 @@ function renderSheet(){ IXC = null;
     ${metricFields(c)}
     ${parentPick(c)}
     ${coverField(c)}
-    ${taskFields(c)}
     <button class="btn big full" data-act="submit-sub" ${S.busy?"disabled":""}>서브 퀘스트 만들기</button>` : `<p class="empty-row" style="padding:8px 0 16px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p><button class="btn big full" data-act="sheet" data-k="project">메인 퀘스트 만들기</button>`)); }
   if (c.type === "reward"){
     return sheetWrap(c.id ? "보상 수정" : "보상 추가", "", `
