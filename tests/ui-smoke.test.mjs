@@ -1177,3 +1177,7 @@ test('profile card opens the 능력치 page with level, XP, coins and stats; pro
   h.route('stats');const html=h.nodes.get('app').innerHTML;assert.match(h.nodes.get('topbar').innerHTML,/능력치/);
   assert.match(html,/총 경험치[\s\S]*보유 코인[\s\S]*class="statcard"/);assert.doesNotMatch(html,/최장 연속/);
 });
+test('story menu opens on the 스토리 tab after visiting another menu',async()=>{
+  const h=await profileUI();h.route('me');h.click('ptab',{t:'goals'});assert.match(h.nodes.get('app').innerHTML,/data-act="ptab" data-t="goals" aria-pressed="true"/);
+  h.route('dash');h.route('me');assert.match(h.nodes.get('app').innerHTML,/data-act="ptab" data-t="posts" aria-pressed="true"/);
+});

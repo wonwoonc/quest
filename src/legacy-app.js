@@ -1796,7 +1796,7 @@ function route(){
   else if (h === "#settings") S.view = {name:"settings"};
   else if (h === "#stats"){ S.view = {name:"stats"}; }
   else if (h === "#qmanage"){ if (prev !== "qmanage") { const Q = QM(); Q.sel = []; } S.view = {name:"qmanage"}; }
-  else if (h === "#me"){ if (prev !== "profile") S.profN = 20; S.view = {name:"profile", uid:S.me}; }
+  else if (h === "#me"){ if (prev !== "profile") S.profN = 20; if (!["profile","project","post","calday","activity","settings","stats"].includes(prev)) S.profTab = "posts"; S.view = {name:"profile", uid:S.me}; }
   else if (h === "#dash") S.view = {name:"dash"};
   else if (h === "#calday"){ if (prev !== "calday") S.view = {name:"cal"}; }
   else if ((h === "#post" && prev === "post") || (h === "#goal" && prev === "project") || (h === "#profile" && prev === "profile")) {}

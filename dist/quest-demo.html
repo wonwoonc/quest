@@ -83,6 +83,7 @@ html,*{scrollbar-color:var(--sbt) var(--card)}
 .wdp-cv .wdp-fig:has(.avatar-photo){position:absolute;inset:0;filter:none!important}
 .char .stage:has(.avatar-photo){overflow:hidden}
 .wdp-cv .avatar-photo,.obstage .avatar-photo,.char .stage .avatar-photo{position:absolute;inset:0;width:100%!important;height:100%!important;max-width:none;border-radius:0}
+.wdp-cv .avatar-photo{background:transparent}.wdp-cv .avatar-photo img{object-fit:contain}
 .avatar-fullbody{display:inline-grid;place-items:center;flex:none;max-width:100%}
 .avatar-fullbody img{display:block;width:100%;height:100%;object-fit:contain}
 .obmaking{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:10px;background:color-mix(in srgb,var(--fill) 88%,transparent);font-size:13px;font-weight:700;color:var(--sub);text-align:center}
@@ -3562,7 +3563,7 @@ function route(){
   else if (h === "#settings") S.view = {name:"settings"};
   else if (h === "#stats"){ S.view = {name:"stats"}; }
   else if (h === "#qmanage"){ if (prev !== "qmanage") { const Q = QM(); Q.sel = []; } S.view = {name:"qmanage"}; }
-  else if (h === "#me"){ if (prev !== "profile") S.profN = 20; S.view = {name:"profile", uid:S.me}; }
+  else if (h === "#me"){ if (prev !== "profile") S.profN = 20; if (!["profile","project","post","calday","activity","settings","stats"].includes(prev)) S.profTab = "posts"; S.view = {name:"profile", uid:S.me}; }
   else if (h === "#dash") S.view = {name:"dash"};
   else if (h === "#calday"){ if (prev !== "calday") S.view = {name:"cal"}; }
   else if ((h === "#post" && prev === "post") || (h === "#goal" && prev === "project") || (h === "#profile" && prev === "profile")) {}
