@@ -3001,7 +3001,7 @@ async function saveCover(c){ const v = c.cover; if (!v) return null; if (v.start
 function wdMetric(g){ const m = g.metric; if (!m) return `<div class="wdm none"><div class="wdm-t"><span class="wdm-l">📈</span><b>수치 기록 없음</b></div><span class="bar"><i style="width:0%"></i></span></div>`; const cur = lastVal(g), mp = m.target !== m.start ? Math.round(Math.max(0, Math.min(100, (cur - m.start)/(m.target - m.start)*100))) : 0, u = esc(m.unit);
   return `<div class="wdm"><div class="wdm-t"><span class="wdm-l">${I.trend || "📈"}</span><b class="num">${numFmt(cur)}${u}</b><small class="num">/ ${numFmt(m.target)}${u}</small></div><span class="bar"><i style="width:${mp}%"></i></span><div class="wdm-s num">시작 ${numFmt(m.start)}${u} · 남은 ${numFmt(Math.abs(Math.round((m.target - cur)*10)/10))}${u}</div></div>`; }
 function qHead(g){ const pr = goalProgress(g), m = g.metric, cur = m ? lastVal(g) : null, mp = m && m.target !== m.start ? Math.max(0, Math.min(100, (cur - m.start)/(m.target - m.start)*100)) : null, tp = pr.total ? Math.round(pr.done/pr.total*100) : 0, pct = Math.round(mp != null ? mp : tp);
-  return `<div class="pgtop">${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}<b class="pct num">${pct}%</b></div><h3 class="qh3">${esc(g.title)}</h3><div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">태스크 ${pr.done}/${pr.total}</span></div>${wdMetric(g)}`; }
+  return `<h3 class="qh3">${esc(g.title)}</h3><div class="pgtop">${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}<b class="pct num">${pct}%</b></div><div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">태스크 ${pr.done}/${pr.total}</span></div>${wdMetric(g)}`; }
 function pgCard(g){
   const pr = goalProgress(g), done = g.status === "done", subs = subsOf(g.id);
   const latest = valLatest(g.id);
@@ -3014,8 +3014,8 @@ function pgCard(g){
   if (m) meta.push(`📈 ${numFmt(cur)} → ${numFmt(m.target)}${esc(m.unit)}`);
   return `<section class="card pgc ${done ? "done" : ""}" data-act="project" data-p="${g.id}" role="button" tabindex="0">
     ${coverHtml(g, {badge:false})}
-    <div class="pgtop">${done ? `<span class="st done">🏆 ${g.doneAt ? `${new Date(g.doneAt).getMonth()+1}/${new Date(g.doneAt).getDate()} 달성` : "달성"}</span>` : `${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}`}<b class="pct num">${pct}%</b></div>
     <h3>${esc(g.title)}${g.parentId && S.projects[g.parentId] ? `<span class="parlab">🎯 ${esc(S.projects[g.parentId].title)}</span>` : ""}</h3>
+    <div class="pgtop">${done ? `<span class="st done">🏆 ${g.doneAt ? `${new Date(g.doneAt).getMonth()+1}/${new Date(g.doneAt).getDate()} 달성` : "달성"}</span>` : `${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}`}<b class="pct num">${pct}%</b></div>
     <span class="bar green big"><i style="width:${pct}%"></i></span>
     <div class="pgmeta">${meta.map(x => `<span>${x}</span>`).join("")}</div>
     ${subs.length ? `<div class="pgsubs">${subs.map(x => { const p2 = goalProgress(x); return `<button class="pgsub ${x.status === "done" ? "ok" : ""}" data-act="project" data-p="${x.id}"><span>${x.status === "done" ? "✓" : "🔗"}</span>${esc(x.title)}${p2.total && x.status !== "done" ? ` <em class="num">${p2.done}/${p2.total}</em>` : ""}</button>`; }).join("")}</div>` : ""}
