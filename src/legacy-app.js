@@ -465,7 +465,7 @@ function bannerHtml(){ return "";
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
   const v = S.view.name, sub = v === "post" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || (v === "profile" && S.view.uid !== S.me);
-  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", stats:"능력치", shop:"상점", cal:"캘린더", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
+  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
   const n = activityItems().filter(x => x.at > actSeen).length;
   $("#topbar").innerHTML = `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : ""}<h1>${title}</h1>
     ${S.me && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
@@ -608,6 +608,7 @@ function statusField(c){ const v = c.pstat === "planned" ? "planned" : "active";
 const AREA_SVG = {health:`<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10Z"/>`, money:`<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M15.5 14.5h2.5"/>`, career:`<rect x="3" y="7" width="18" height="12" rx="2.5"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3 12.5h18"/>`, social:`<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.5M17.5 13.5a5 5 0 0 1 3 5.5"/>`, growth:`<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5Z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5Z"/>`};
 const aIcon = k => `<svg class="aic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${AREA_SVG[k] || ""}</svg>`;
 const AREAS = [["health","체력","","건강"],["money","재력","","재정"],["career","실력","","커리어"],["social","매력","","관계"],["growth","지력","","자기계발"]];
+const AREA_DESC = {health:"운동, 수면, 식단처럼 몸을 돌보는 퀘스트를 완료하면 올라요.", money:"저축, 가계부, 투자 공부처럼 돈을 관리하는 퀘스트를 완료하면 올라요.", career:"업무, 자격증, 이직 준비처럼 일과 커리어를 키우는 퀘스트를 완료하면 올라요.", social:"가족, 친구, 연인과의 관계를 챙기는 퀘스트를 완료하면 올라요.", growth:"독서, 공부, 새로운 기술 배우기처럼 스스로 성장하는 퀘스트를 완료하면 올라요."};
 const AREA_KEYS = AREAS.map(a => a[0]);
 const areasOf = x => (x && Array.isArray(x.area) ? x.area : []).filter(k => AREA_KEYS.includes(k));
 const areaUp = pid => { let id = pid, n = 0; while (id && S.projects[id] && n++ < 6){ const a = areasOf(S.projects[id]); if (a.length) return a; id = S.projects[id].parentId; } return []; };
@@ -643,7 +644,7 @@ function viewStats(){
   if (!hasProfile()) return viewToday();
   const s = statsOf(S.me), p = prof(S.me);
   const tiles = [["레벨", `Lv.${s.L}`], ["총 경험치", `${fmt(s.xp)} XP`], ["보유 코인", `🪙 ${fmt(s.gold)}`]];
-  return `<section class="card stprof"><div class="stpf">${av(S.me, 76, false)}</div><div class="stpi"><h2>${esc(nameOf(S.me))}</h2><p>Lv.${s.L} ${rankOf(s.L)} ${esc(equippedTitle())}</p>
+  return `<section class="card stprof"><div class="stpf">${av(S.me, 120, false)}</div><div class="stpi"><h2>${esc(nameOf(S.me))}</h2><p>Lv.${s.L} ${rankOf(s.L)} ${esc(equippedTitle())}</p>
       <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
       <div class="barmeta lft"><span class="num">${s.need === 0 ? "MAX" : `Lv.${s.L + 1}까지 ${fmt(s.cur)} / ${fmt(s.need)} XP`}</span></div></div>
     ${p.bio ? `<p class="bio stbio">${esc(p.bio)}</p>` : ""}
@@ -652,7 +653,7 @@ function viewStats(){
 }
 function statCard(){
   const xp = areaXp(), vals = AREAS.map(([k]) => Math.floor(xp[k])), mx = Math.max(1, ...vals), tagged = Object.values(S.projects).some(p => p.owner === S.me && areasOf(p).length) || mineOf("quest").some(q => areasOf(q).length);
-  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><span class="stn"><b>${n}</b><small>${AREAS[i][3]}</small></span><b class="stl num">${fmt(vals[i])}</b></div>`).join("");
+  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><button class="stn" data-act="areainfo" data-v="${k}" aria-label="${n} 정보 보기"><b>${n}</b></button><b class="stl num">${fmt(vals[i])}</b></div>`).join("");
   const top = Math.max(...vals), low = Math.min(...vals), best = AREAS[vals.indexOf(top)], weak = AREAS[vals.indexOf(low)];
   return `<section class="statcard">${top > 0 ? `<p class="stsum">강점 <b>${best[1]}</b> · 보완 <b>${weak[1]}</b></p>` : ""}
     <div class="stbody"><div class="strows">${rows}</div>${radarSvg(vals)}</div>
@@ -1640,6 +1641,12 @@ function renderSheet(){ IXC = null;
     <div class="btnrow"><button class="btn sec big" data-act="sheet-close">취소</button><button class="btn big" data-act="addtask">추가</button></div>`);
   if (c.type === "plan") return planSheet(c);
   if (c.type === "stats") return sheetWrap("능력치", "", statCard());
+  if (c.type === "areainfo"){ const A = AREAS.find(a => a[0] === c.k); if (!A){ closeSheet(); return; } const [k, n, , l] = A, pts = Math.floor(areaXp()[k]);
+    const gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done" && areasOf(p).includes(k)), qs = mineOf("quest").filter(q => q.active !== false && areasOf(q).includes(k));
+    const rows = [...gs.map(p => `<button class="row" data-act="project" data-p="${p.id}"><span class="ic sq ok">${p.parentId ? "🔗" : "🎯"}</span><span class="t"><b>${esc(p.title)}</b><small>${p.parentId ? "서브 퀘스트" : "메인 퀘스트"}</small></span>${I.chev}</button>`), ...qs.map(q => `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq">🔁</span><span class="t"><b>${esc(q.name)}</b><small>데일리 퀘스트</small></span>${I.chev}</button>`)].join("");
+    return sheetWrap(`${n} · ${l}`, "", `<div class="aihead"><span class="aiic">${aIcon(k)}</span><b class="num">${fmt(pts)}</b></div><p class="aidesc">${AREA_DESC[k]}</p>
+      <p class="aipt">데일리 퀘스트 +1~3 · 태스크 +1~5 · 서브 퀘스트 달성 +5 · 메인 퀘스트 달성 +15</p>
+      <p class="sect3">${l} 속성 퀘스트</p><section class="card tight">${rows || `<p class="empty-row">아직 ${l} 속성을 붙인 퀘스트가 없어요.</p>`}</section>`); }
   if (c.type === "taskadd") return sheetWrap("태스크 추가", "", `
     <div class="field"><input type="text" id="ta-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ta-name")}" aria-label="태스크 이름"></div>
     ${difficultySelector(c,'mission')}
@@ -1998,7 +2005,7 @@ document.addEventListener("click", e => {
     case "story": openStories(u); return;
     case "newpill": S.ackAt = Date.now(); $("#pill").innerHTML = ""; scrollTo({top:0, behavior:"smooth"}); return;
     case "open": e.stopPropagation(); openPost(pid); return;
-    case "project": e.stopPropagation(); openGoal(pid); return;
+    case "project": e.stopPropagation(); if (c && c.type === "areainfo") closeSheet(); openGoal(pid); return;
     case "profile": e.stopPropagation(); if (S.compose && S.compose.type === "flist") closeSheet(); openProfile(u); return;
     case "follow": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } { const f = !isFollowing(S.me, u); if (S.compose && S.compose.type === "pmenu") closeSheet(); run(() => api.follow(u, f), () => { if (S.compose && S.compose.type === "flist") renderSheet(); }); toast(f ? `${esc(nameOf(u))}님을 팔로우했어요` : "팔로우를 취소했어요"); } return;
     case "like": { const p = S.feed[pid]; if (!p || !canAct() || p.author === S.me) return; const was = liked(p); run(() => api.like(pid, !was)); if (!was) burstAt(b.closest(".body").querySelector("[data-dt]")); return; }
@@ -2023,6 +2030,7 @@ document.addEventListener("click", e => {
     case "pl-new": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } ["pw-name","pw-act","pw-hab"].forEach(k => delete S.drafts[k]); openSheet({type:"plan", step:0, steps:[], due:today(), time:"", lv:"normal"}); return;
     case "aset": { preserveSheetDrafts(); const a = (c.area || []).slice(), v = b.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else { if (a.length >= 2){ toast("속성은 2개까지 고를 수 있어요"); return; } a.push(v); } c.area = a; renderSheet(); return; }
     case "statsheet": go("stats"); return;
+    case "areainfo": openSheet({type:"areainfo", k:b.dataset.v}); return;
     case "pw-go": pwGo(c, b.dataset.v); return;
     case "pw-sadd": pwRead(c); c.steps.push(""); renderSheet(); return;
     case "pw-sdel": pwRead(c); c.steps.splice(+b.dataset.v, 1); c.steps.forEach((x,i) => S.drafts["pw-s"+i] = x); renderSheet(); return;

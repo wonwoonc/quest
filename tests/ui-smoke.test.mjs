@@ -1110,9 +1110,9 @@ test('stats: single life-area chip on main/daily feeds numeric area XP; sub task
   assert.deepEqual(h.snapshot().projects.m1.area,['health']);
   h.click('hedit',{id:'qa'});h.click('aset',{v:'growth'});h.click('aset',{v:'money'});h.click('aset',{v:'career'});h.nodes.set('he-name',{value:'독서'});h.click('submit-hedit');await h.settle();
   assert.deepEqual(h.snapshot().mine.qa.area,['growth','money'],'at most two areas');
-  h.route('dash');assert.doesNotMatch(h.nodes.get('app').innerHTML,/class="statcard"/);assert.match(h.nodes.get('app').innerHTML,/data-act="statsheet"/);h.route('stats');assert.match(h.nodes.get('app').innerHTML,/능력치[\s\S]*체력<\/b><small>건강<\/small><\/span><b class="stl num">0<\/b><\/div>/);
-  h.click('mcheck',{id:'t1'});await h.settle();h.route('stats');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><small>건강<\/small><\/span><b class="stl num">3<\/b><\/div>/);
-  h.click('mcheck',{id:'t1'});h.click('cfok');await h.settle();h.route('stats');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><small>건강<\/small><\/span><b class="stl num">0<\/b><\/div>/);
+  h.route('dash');assert.doesNotMatch(h.nodes.get('app').innerHTML,/class="statcard"/);assert.match(h.nodes.get('app').innerHTML,/data-act="statsheet"/);h.route('stats');assert.match(h.nodes.get('app').innerHTML,/능력치[\s\S]*체력<\/b><\/button><b class="stl num">0<\/b><\/div>/);
+  h.click('mcheck',{id:'t1'});await h.settle();h.route('stats');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><\/button><b class="stl num">3<\/b><\/div>/);
+  h.click('mcheck',{id:'t1'});h.click('cfok');await h.settle();h.route('stats');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><\/button><b class="stl num">0<\/b><\/div>/);
 });
 test('main quest page shows sub quests as cards with progress and next task',async()=>{
   const base=await profileUI(),saved=base.snapshot();
@@ -1174,7 +1174,7 @@ test('uploaded profile photo renders as the profile picture, not a chibi face ov
 });
 test('profile card opens the 능력치 page with level, XP, coins and stats; profile edit has no color picker',async()=>{
   const h=await profileUI();h.route('dash');h.click('sheet',{k:'profile'});assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/data-act="swatch"|옷 색/);h.click('sheet-close');
-  h.route('stats');const html=h.nodes.get('app').innerHTML;assert.match(h.nodes.get('topbar').innerHTML,/능력치/);
+  h.route('stats');const html=h.nodes.get('app').innerHTML;assert.match(h.nodes.get('topbar').innerHTML,/프로필/);h.click('areainfo',{v:'health'});assert.match(h.nodes.get('overlay').innerHTML,/체력 · 건강[\s\S]*몸을 돌보는/);
   assert.match(html,/총 경험치[\s\S]*보유 코인[\s\S]*class="statcard"/);assert.doesNotMatch(html,/최장 연속/);
 });
 test('story menu opens on the 스토리 tab after visiting another menu',async()=>{
