@@ -1190,7 +1190,7 @@ function viewGoal(){
   </section>`;
   if (!sp && (subs.length || mine)){ const addable = mine && p.status !== "done";
     h += `<div class="subhead"><h2>서브 퀘스트 <span class="num">${subs.filter(x => x.status === "done").length}/${subs.length}</span></h2></div>
-    <div class="plgrid">${subs.map(x => plCard(x).replace(/<span class="parlab">[\s\S]*?<\/span>/, "")).join("")}${addable ? `<button class="card subc subadd pladdc" data-act="sheet" data-k="sub" data-p="${p.id}"><span class="wd-plus">+</span><b>서브 퀘스트 생성</b>${subs.length ? "" : `<small>메인 퀘스트를 작은 관문으로 나눠 보세요</small>`}</button>` : ""}</div>`; }
+    <div class="plgrid hsc">${subs.map(x => plCard(x).replace(/<span class="parlab">[\s\S]*?<\/span>/, "")).join("")}${addable ? `<button class="card subc subadd pladdc" data-act="sheet" data-k="sub" data-p="${p.id}"><span class="wd-plus">+</span><b>서브 퀘스트 생성</b>${subs.length ? "" : `<small>메인 퀘스트를 작은 관문으로 나눠 보세요</small>`}</button>` : ""}</div>`; }
   if (mine){
     const ms = mineOf("mission").filter(m => m.projectId === p.id).sort((x,y) => x.done - y.done);
     const subT = sp ? [] : subs.map(x => ({x, l:mineOf("mission").filter(m => m.projectId === x.id).sort((a,b) => a.done - b.done)})).filter(o => o.l.length);
@@ -1833,7 +1833,7 @@ function syncProgress(pid){ const p = S.projects[pid]; if (!p || p.owner !== S.m
 let tapT = null, tapKey = null;
 /* ---- drag-to-scroll (mouse) for horizontal card strips ---- */
 (() => { let g = null, x0 = 0, l0 = 0, moved = false;
-  document.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse" || e.button) return; const el = e.target.closest(".wd-ggrid"); if (!el || el.scrollWidth <= el.clientWidth || e.target.closest("button:not([data-act=project]):not(.wd-addcard),input")) return; g = el; x0 = e.clientX; l0 = el.scrollLeft; moved = false; });
+  document.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse" || e.button) return; const el = e.target.closest(".wd-ggrid, .plgrid.hsc"); if (!el || el.scrollWidth <= el.clientWidth || e.target.closest("button:not([data-act=project]):not(.wd-addcard),input")) return; g = el; x0 = e.clientX; l0 = el.scrollLeft; moved = false; });
   document.addEventListener("pointermove", e => { if (!g || document.body.classList.contains("reo-lock")) return; const dx = e.clientX - x0; if (!moved && Math.abs(dx) < 6) return; if (!moved){ moved = true; g.classList.add("dragscroll"); } g.scrollLeft = l0 - dx; });
   const up = () => { if (!g) return; if (moved){ S._reoJust = Date.now(); const el = g; setTimeout(() => el.classList.remove("dragscroll"), 0); } g = null; };
   document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up);
