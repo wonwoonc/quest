@@ -313,7 +313,7 @@ for (const kind of ['once','sub','big','daily']) {
       h.click('ppick'); assert.match(h.nodes.get('overlay').innerHTML,/data-act="ppset" data-v="main"/);
       h.click('ppset',{v:'main'}); assert.match(h.nodes.get('overlay').innerHTML,/서브 퀘스트 생성/);
     } else if (kind === 'big') deadlineRequired(h);
-    else assert.match(html,/data-act="rpt"/);
+    else { assert.match(html,/data-act="rptopen"/); assert.doesNotMatch(html,/data-act="rpt"/); h.click("rptopen"); assert.match(h.nodes.get("overlay").innerHTML,/반복 선택[\s\S]*data-act="rpt" data-v="weekly"/); h.click("rpt",{v:"weekly"}); assert.doesNotMatch(h.nodes.get("overlay").innerHTML,/반복 선택/); assert.match(h.nodes.get("overlay").innerHTML,/data-act="qday"/); }
   });
 }
 for (const projectId of [null,'main','sub']) {

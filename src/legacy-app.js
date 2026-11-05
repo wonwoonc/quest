@@ -1509,7 +1509,9 @@ function repeatField(c){
   } else if (t === "runrest"){
     sub = `<div class="field"><span class="lab">하는 날 · 쉬는 날</span><div class="chips">${stepRow(c,"ron","일 하기")}${stepRow(c,"roff","일 쉬기")}</div></div>`;
   }
-  return `<div class="field"><span class="lab">반복</span><div class="chips">${RPTYPES.map(([k,l]) => `<button class="chip" data-act="rpt" data-v="${k}" aria-pressed="${t===k}">${l}</button>`).join("")}</div></div>${sub}`;
+  const cur = (RPTYPES.find(([k]) => k === t) || RPTYPES[0])[1];
+  const pop = c._rp ? `<div class="dppop" data-act="dpstay"><div class="dppop-in rppop" data-act="dpstay" role="dialog" aria-label="반복 선택"><div class="dppop-h"><b class="dppop-t">반복 선택</b><button class="iconbtn" data-act="rptopen" aria-label="닫기">${I.close}</button></div><div class="rplist">${RPTYPES.map(([k,l]) => `<button class="row rpitem" data-act="rpt" data-v="${k}" aria-pressed="${t===k}"><span class="t"><b>${l}</b></span>${t === k ? `<span class="pick">✓</span>` : ""}</button>`).join("")}</div></div></div>` : "";
+  return `<div class="field"><span class="lab">반복</span><div class="chips"><button class="chip rpsel" data-act="rptopen" aria-haspopup="dialog" aria-pressed="true">🔁 ${cur} <span class="rpcaret">▾</span></button></div></div>${sub}${pop}`;
 }
 function buildRepeat(c){
   const t = c.rpt || "weekly";
@@ -1552,8 +1554,8 @@ function renderSheet(){ IXC = null;
         more = gs.length ? `${datePick(c, "end", "마감일")}${statusField(c)}${areaField(c)}${metricFields(c)}${parentPick(c)}${coverField(c)}` : `<p class="empty-row" style="padding:4px 0 14px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p>`; }
       else if (K === "daily"){ more = `${repeatField(c)}
         ${timeOnlyField(c)}
-        ${difficultySelector(c,'quest','hlv')}
-        ${areaField(c)}`; }
+        ${areaField(c)}
+        ${difficultySelector(c,'quest','hlv')}`; }
       else more = `${datePick(c, "end", "마감일", false, true)}${statusField(c)}${areaField(c)}${metricFields(c)}${coverField(c)}`;
     }
     return sheetWrap(({daily:"데일리 퀘스트 생성", once:"태스크 추가", sub:"서브 퀘스트 생성", big:"메인 퀘스트 생성"})[K] || "퀘스트 생성", "", `
@@ -1970,7 +1972,7 @@ document.addEventListener("click", e => {
       if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:false}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
        const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : "", period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null, tasks:[]}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:300}, profile:{}}[k] || {};
       openSheet({type:k, ...base}); return; }
-    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || ["add","plan","taskadd","diary"].includes(c.type)))) closeSheet(); return;
+    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary"].includes(c.type)))) closeSheet(); return;
     case "sheet-close": closeSheet(); return;
     case "cset": { const f = b.dataset.f, toggle = f === "mood" || f === "projectId" || f === "parentId";
       if (["hlv","lv","alv","tlv","ntlv"].includes(f)){ preserveSheetDrafts(); c[f==='alv'||f==='tlv'?'lv':f] = lvKey(b.dataset.v); renderSheet(); return; } c[f] = toggle && c[f] === b.dataset.v ? null : (b.dataset.v || null); if (f === "cost") c.cost = +b.dataset.v; renderSheet(); return; }
@@ -1978,7 +1980,8 @@ document.addEventListener("click", e => {
     case "qday": { if (!c.days) c.days = []; preserveSheetDrafts();
       if (b.dataset.v === "all") c.days = [0,1,2,3,4,5,6]; else { const i = +b.dataset.v; c.days = c.days.includes(i) ? c.days.filter(x => x !== i) : [...c.days, i]; }
       renderSheet(); return; }
-    case "rpt": { preserveSheetDrafts(); const was = c.rpt; c.rpt = b.dataset.v;
+    case "rptopen": preserveSheetDrafts(); c._rp = !c._rp; renderSheet(); return;
+    case "rpt": { preserveSheetDrafts(); c._rp = false; const was = c.rpt; c.rpt = b.dataset.v;
       if (needsDays(c.rpt) && (c.days||[]).length >= 7) c.days = [];
       if (needsDays(c.rpt) && !(c.days||[]).length && needsDays(was)) c.days = [1,3,5];
       if (!c.ranchor) c.ranchor = today(); renderSheet(); return; }
