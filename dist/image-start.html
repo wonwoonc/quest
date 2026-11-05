@@ -2649,16 +2649,16 @@ function viewPlan(){
   let h = `<div class="seg pltabs" role="group" aria-label="퀘스트 종류">${[["all","전체",act.length + later.length + subs.length + qs.length],["main","메인",act.length + later.length],["sub","서브",subs.length],["daily","데일리",qs.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
   const T = t => tab === "all" || tab === t;
   if (T("main")){
-    h += head("메인 퀘스트", act.length) + `<div class="plgrid">${act.map(plCard).join("")}${addC("big", "메인 퀘스트 생성")}</div>`;
-    if (later.length && tab !== "all") h += `<div class="subhead"><h2>나중에 시작 <span class="num">${later.length}</span></h2></div><div class="plgrid">${later.map(plCard).join("")}</div>`;
+    h += head("메인 퀘스트", act.length) + `<div class="plgrid hsc">${act.map(plCard).join("")}${addC("big", "메인 퀘스트 생성")}</div>`;
+    if (later.length && tab !== "all") h += `<div class="subhead"><h2>나중에 시작 <span class="num">${later.length}</span></h2></div><div class="plgrid hsc">${later.map(plCard).join("")}</div>`;
   }
   if (T("sub")){
     const sAct = subs.filter(x => !isPlanned(x)), sLater = subs.filter(isPlanned);
-    h += head("서브 퀘스트", sAct.length) + `<div class="plgrid">${sAct.map(plCard).join("")}${addC("sub", "서브 퀘스트 생성")}</div>`;
-    if (sLater.length && tab !== "all") h += `<div class="subhead"><h2>나중에 시작 <span class="num">${sLater.length}</span></h2></div><div class="plgrid">${sLater.map(plCard).join("")}</div>`;
+    h += head("서브 퀘스트", sAct.length) + `<div class="plgrid hsc">${sAct.map(plCard).join("")}${addC("sub", "서브 퀘스트 생성")}</div>`;
+    if (sLater.length && tab !== "all") h += `<div class="subhead"><h2>나중에 시작 <span class="num">${sLater.length}</span></h2></div><div class="plgrid hsc">${sLater.map(plCard).join("")}</div>`;
   }
   if (T("daily")){
-    h += head("데일리 퀘스트", qs.length) + `<div class="plgrid">${qs.map(dailyCard).join("")}${addC("daily", "데일리 퀘스트 생성", "dqadd")}</div>`;
+    h += head("데일리 퀘스트", qs.length) + `<div class="plgrid hsc">${qs.map(dailyCard).join("")}${addC("daily", "데일리 퀘스트 생성", "dqadd")}</div>`;
     const ar = tab === "all" ? [] : mineOf("quest").filter(q => q.active === false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
     if (tab !== "all") h += `<div class="subhead"><h2>보관 <span class="num">${ar.length}</span></h2></div><section class="card tight qlist plarch">${ar.map(q => { const st = streakOf(q); return `<div class="row"><span class="t tap" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><b>${esc(q.name)}</b><small>${[repeatLabel(q), `총 ${st.total}회`].join(" · ")}</small></span><button class="btn sec xs" data-act="unarch" data-id="${q.id}">보관 해제</button></div>`; }).join("") || `<p class="empty-row">보관한 데일리 퀘스트가 없어요. 잠시 쉬고 싶은 데일리 퀘스트는 수정 창에서 보관할 수 있어요.</p>`}</section>`;
   }
