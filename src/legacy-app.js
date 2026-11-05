@@ -1177,10 +1177,8 @@ function viewGoal(){
   const latest = valLatest(p.id);
   let h = `<section class="card thead">
     ${coverHtml(p, {badge:false})}
-    <div class="ph">${av(a, 40)}<div class="who"><button class="nm" data-act="profile" data-u="${esc(a)}">${esc(nameOf(a))}</button><span class="pillLv">Lv.${statsOf(a).L}</span><small>${rankOf(statsOf(a).L)}</small></div>
-      ${hasProfile() && a !== S.me && S.canWrite ? `<button class="btn ${isFollowing(S.me,a)?"sec":"soft"} sm" data-act="follow" data-u="${esc(a)}">${isFollowing(S.me,a)?"팔로잉":"팔로우"}</button>` : ""}${mine ? `<button class="pmenu" data-act="gmenu" data-p="${p.id}" aria-label="${kind} 메뉴">${I.menu}</button>` : ""}</div>
+    <div class="gth"><h2>${sp ? "🔗 " : "🎯 "}${esc(p.title)}</h2>${mine ? `<button class="pmenu" data-act="gmenu" data-p="${p.id}" aria-label="${kind} 메뉴">${I.menu}</button>` : ""}</div>
     ${par ? `<button class="parentlink" data-act="project" data-p="${par.id}">🎯 ${esc(par.title)} ${I.chev}</button>` : ""}
-    <h2>${sp ? "🔗 " : ""}${esc(p.title)}</h2>
     <div class="tags">${p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${p.end ? `<span class="tag">${fmtD(p.end)}까지</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "속성" : "메인 퀘스트 속성"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}<span class="tag rw">최대 ${RW.xp} XP · ${RW.c} 코인</span></div>
     ${pr.total ? `<div class="prog"><div class="bar green"><i style="width:${pr.done/pr.total*100}%"></i></div><span class="num">태스크 ${pr.done}/${pr.total}</span></div>` : ""}
     ${latest ? metricFor(latest) : p.metric ? `<p class="hint" style="margin:12px 0 0">📈 ${numFmt(p.metric.start)}${esc(p.metric.unit)} → 목표 ${numFmt(p.metric.target)}${esc(p.metric.unit)}</p>` : ""}
