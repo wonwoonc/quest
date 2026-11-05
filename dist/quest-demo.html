@@ -3294,7 +3294,7 @@ function repeatField(c){
   }
   const cur = t ? (RPTYPES.find(([k]) => k === t) || RPTYPES[0])[1] : "";
   const pop = c._rp ? `<div class="dppop" data-act="dpstay"><div class="dppop-in rppop" data-act="dpstay" role="dialog" aria-label="반복 선택"><div class="dppop-h"><b class="dppop-t">반복 선택</b><button class="iconbtn" data-act="rptopen" aria-label="닫기">${I.close}</button></div><div class="rplist">${RPTYPES.map(([k,l]) => `<button class="row rpitem" data-act="rpt" data-v="${k}" aria-pressed="${t===k}"><span class="t"><b>${l}</b></span>${t === k ? `<span class="pick">✓</span>` : ""}</button>`).join("")}</div></div></div>` : "";
-  return `<div class="field"><span class="lab">반복</span><div class="chips"><button class="chip rpsel" data-act="rptopen" aria-haspopup="dialog" aria-pressed="${!!t}"><svg class="rpic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2.5l3 3-3 3"/><path d="M4 11v-1.5a4 4 0 0 1 4-4h12"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 13v1.5a4 4 0 0 1-4 4H4"/></svg>${cur || "선택"} <span class="rpcaret">▾</span></button></div></div>${sub}${pop}`;
+  return `<div class="field"><span class="lab">반복</span><div class="chips"><button class="chip rpsel" data-act="rptopen" aria-haspopup="dialog" aria-pressed="${!!t}"><svg class="rpic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2.5l3 3-3 3"/><path d="M4 11v-1.5a4 4 0 0 1 4-4h12"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 13v1.5a4 4 0 0 1-4 4H4"/></svg>${cur || "선택"}</button></div></div>${sub}${pop}`;
 }
 function buildRepeat(c){
   const t = c.rpt || "weekly";
