@@ -1641,11 +1641,10 @@ function renderSheet(){ IXC = null;
     <div class="btnrow"><button class="btn sec big" data-act="sheet-close">취소</button><button class="btn big" data-act="addtask">추가</button></div>`);
   if (c.type === "plan") return planSheet(c);
   if (c.type === "stats") return sheetWrap("능력치", "", statCard());
-  if (c.type === "areainfo"){ const A = AREAS.find(a => a[0] === c.k); if (!A){ closeSheet(); return; } const [k, n, , l] = A, pts = Math.floor(areaXp()[k]);
+  if (c.type === "areainfo"){ const A = AREAS.find(a => a[0] === c.k); if (!A){ closeSheet(); return; } const [k, n, , l] = A;
     const gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done" && areasOf(p).includes(k)), qs = mineOf("quest").filter(q => q.active !== false && areasOf(q).includes(k));
     const rows = [...gs.map(p => `<button class="row" data-act="project" data-p="${p.id}"><span class="ic sq ok">${p.parentId ? "🔗" : "🎯"}</span><span class="t"><b>${esc(p.title)}</b><small>${p.parentId ? "서브 퀘스트" : "메인 퀘스트"}</small></span>${I.chev}</button>`), ...qs.map(q => `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq">🔁</span><span class="t"><b>${esc(q.name)}</b><small>데일리 퀘스트</small></span>${I.chev}</button>`)].join("");
-    return sheetWrap(`${n} · ${l}`, "", `<div class="aihead"><span class="aiic">${aIcon(k)}</span><b class="num">${fmt(pts)}</b></div><p class="aidesc">${AREA_DESC[k]}</p>
-      <p class="aipt">데일리 퀘스트 +1~3 · 태스크 +1~5 · 서브 퀘스트 달성 +5 · 메인 퀘스트 달성 +15</p>
+    return sheetWrap(`${n} · ${l}`, "", `<div class="aihead"><span class="aiic">${aIcon(k)}</span><p class="aidesc">${AREA_DESC[k]}</p></div>
       <p class="sect3">${l} 속성 퀘스트</p><section class="card tight">${rows || `<p class="empty-row">아직 ${l} 속성을 붙인 퀘스트가 없어요.</p>`}</section>`); }
   if (c.type === "taskadd") return sheetWrap("태스크 추가", "", `
     <div class="field"><input type="text" id="ta-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ta-name")}" aria-label="태스크 이름"></div>
