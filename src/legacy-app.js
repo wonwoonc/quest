@@ -63,7 +63,7 @@ const lvStart = levelStart;
 const levelOf = economyLevel;
 const rankOf = L => RANKS.find(r => L >= r[0])[1];
 const on = v => !!(v && (v.at || (typeof v === "number" && v > 0)));
-function dday(end){ if (!end) return ""; const n = Math.round((dayStart(new Date(end).getTime()) - dayStart(Date.now()))/DAY); return n > 0 ? "D-"+n : n === 0 ? "D-Day" : "D+"+(-n); }
+function dday(end){ if (!end) return ""; const n = Math.round((dayStart(new Date(end).getTime()) - dayStart(Date.now()))/DAY); return n > 0 ? "D-"+n : n === 0 ? "D-Day" : `<span class="ddlate">${-n}일 지남</span>`; }
 const isToday = m => m.period ? perAnchor(m.period, today()) === m.due : m.due ? m.due <= today() : (m.today === true || (m.today == null && (m.pri === "focus" || m.pri === "p1")));
 const dueOf = m => m.due || (!m.done && isToday(m) ? today() : "");
 function rollOver(){ if (!S.me || !S.canWrite || !api || S.mode === "loading") return; const t = today(), late = mineOf("mission").filter(m => !m.done && !m.period && m.due && m.due < t);
@@ -1179,7 +1179,7 @@ function viewGoal(){
     ${coverHtml(p, {badge:false})}
     <div class="gth"><h2>${sp ? "🔗 " : "🎯 "}${esc(p.title)}</h2>${mine ? `<button class="pmenu" data-act="gmenu" data-p="${p.id}" aria-label="${kind} 메뉴">${I.menu}</button>` : ""}</div>
     ${par ? `<button class="parentlink" data-act="project" data-p="${par.id}">🎯 ${esc(par.title)} ${I.chev}</button>` : ""}
-    <div class="tags">${p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${p.end ? `<span class="tag">${fmtD(p.end)}까지</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "속성" : "메인 퀘스트 속성"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}<span class="tag rw">최대 ${RW.xp} XP · ${RW.c} 코인</span></div>
+    <div class="tags">${p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "속성" : "메인 퀘스트 속성"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}<span class="tag rw">최대 ${RW.xp} XP · ${RW.c} 코인</span></div>
     ${pr.total ? `<div class="prog"><div class="bar green"><i style="width:${pr.done/pr.total*100}%"></i></div><span class="num">태스크 ${pr.done}/${pr.total}</span></div>` : ""}
     ${latest ? metricFor(latest) : p.metric ? `<p class="hint" style="margin:12px 0 0">📈 ${numFmt(p.metric.start)}${esc(p.metric.unit)} → 목표 ${numFmt(p.metric.target)}${esc(p.metric.unit)}</p>` : ""}
     ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요</div>` : ""}

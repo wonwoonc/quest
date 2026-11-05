@@ -1181,3 +1181,9 @@ test('story menu opens on the 스토리 tab after visiting another menu',async()
   const h=await profileUI();h.route('me');h.click('ptab',{t:'goals'});assert.match(h.nodes.get('app').innerHTML,/data-act="ptab" data-t="goals" aria-pressed="true"/);
   h.route('dash');h.route('me');assert.match(h.nodes.get('app').innerHTML,/data-act="ptab" data-t="posts" aria-pressed="true"/);
 });
+test('overdue main/sub quests show a red "N일 지남" badge and no end-date tag',async()=>{
+  const base=await profileUI(),saved=base.snapshot(),past=new Date(Date.now()+9*3600000-3*86400000).toISOString().slice(0,10);
+  saved.projects={m1:{id:'m1',owner:'me',title:'늦은 메인',end:past,status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'늦은 서브',end:past,status:'active'}};
+  const h=await profileUI(saved);for(const id of ['m1','s1']){h.click('project',{p:id});const html=h.nodes.get('app').innerHTML;
+    assert.match(html,/<span class="tag dd"><span class="ddlate">3일 지남<\/span><\/span>/);assert.doesNotMatch(html,/까지<\/span>|D\+3/);}
+});
