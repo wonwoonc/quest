@@ -224,7 +224,7 @@ for (const route of ['add','quest']) {
 test('daily quest time is required, saved on edit and shown on its calendar days',async()=>{
   const h = await profileUI();
   h.click('sheet',{k:'add',v:'daily'}); h.nodes.set('ad-name',{value:'물 마시기'});
-  assert.match(h.nodes.get('overlay').innerHTML,/🔁 선택/); h.click('rpt',{v:'daily'});
+  assert.match(h.nodes.get('overlay').innerHTML,/class="rpic"[\s\S]*?<\/svg>선택/); h.click('rpt',{v:'daily'});
   assert.match(h.nodes.get('overlay').innerHTML,/시간 <span class="hint">필수<\/span>/);
   h.click('submit-add'); await h.settle();
   assert.equal(h.nodes.get('toast').innerHTML,'시간을 골라 주세요'); assert.deepEqual(h.snapshot().mine,{});

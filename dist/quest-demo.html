@@ -573,6 +573,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .dppop-in{background:var(--card);border-radius:20px;padding:16px;width:min(100%,360px);box-shadow:0 12px 40px rgb(0 0 0 / .25)}
 .dppop-h{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px 4px}.dppop-h .iconbtn{color:var(--muted)}.dppop-h .iconbtn svg{width:20px;height:20px}
 .rplist{display:flex;flex-direction:column;max-height:60vh;overflow:auto}.rpitem{padding:12px 6px}.rpitem[aria-pressed="true"] b{color:var(--accent)}.rpitem .pick{color:var(--accent);font-weight:800}
+.rpsel{display:inline-flex;align-items:center;gap:5px}.rpsel .rpic{width:16px;height:16px}.ic .rpic{width:18px;height:18px}
 .rpsel .rpcaret{font-size:11px;margin-left:2px;opacity:.7}
 .dppop-t{display:block;font-size:16px;font-weight:800}
 .dppop-in .dpcal{margin:0}
@@ -3293,7 +3294,7 @@ function repeatField(c){
   }
   const cur = t ? (RPTYPES.find(([k]) => k === t) || RPTYPES[0])[1] : "";
   const pop = c._rp ? `<div class="dppop" data-act="dpstay"><div class="dppop-in rppop" data-act="dpstay" role="dialog" aria-label="반복 선택"><div class="dppop-h"><b class="dppop-t">반복 선택</b><button class="iconbtn" data-act="rptopen" aria-label="닫기">${I.close}</button></div><div class="rplist">${RPTYPES.map(([k,l]) => `<button class="row rpitem" data-act="rpt" data-v="${k}" aria-pressed="${t===k}"><span class="t"><b>${l}</b></span>${t === k ? `<span class="pick">✓</span>` : ""}</button>`).join("")}</div></div></div>` : "";
-  return `<div class="field"><span class="lab">반복</span><div class="chips"><button class="chip rpsel" data-act="rptopen" aria-haspopup="dialog" aria-pressed="${!!t}">🔁 ${cur || "선택"} <span class="rpcaret">▾</span></button></div></div>${sub}${pop}`;
+  return `<div class="field"><span class="lab">반복</span><div class="chips"><button class="chip rpsel" data-act="rptopen" aria-haspopup="dialog" aria-pressed="${!!t}"><svg class="rpic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2.5l3 3-3 3"/><path d="M4 11v-1.5a4 4 0 0 1 4-4h12"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 13v1.5a4 4 0 0 1-4 4H4"/></svg>${cur || "선택"} <span class="rpcaret">▾</span></button></div></div>${sub}${pop}`;
 }
 function buildRepeat(c){
   const t = c.rpt || "weekly";
@@ -3424,7 +3425,7 @@ function renderSheet(){ IXC = null;
   if (c.type === "stats") return sheetWrap("능력치", "", statCard());
   if (c.type === "areainfo"){ const A = AREAS.find(a => a[0] === c.k); if (!A){ closeSheet(); return; } const [k, n, , l] = A;
     const gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done" && areasOf(p).includes(k)), qs = mineOf("quest").filter(q => q.active !== false && areasOf(q).includes(k));
-    const rows = [...gs.map(p => `<button class="row" data-act="project" data-p="${p.id}"><span class="ic sq ok">${p.parentId ? "🔗" : "🎯"}</span><span class="t"><b>${esc(p.title)}</b><small>${p.parentId ? "서브 퀘스트" : "메인 퀘스트"}</small></span>${I.chev}</button>`), ...qs.map(q => `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq">🔁</span><span class="t"><b>${esc(q.name)}</b><small>데일리 퀘스트</small></span>${I.chev}</button>`)].join("");
+    const rows = [...gs.map(p => `<button class="row" data-act="project" data-p="${p.id}"><span class="ic sq ok">${p.parentId ? "🔗" : "🎯"}</span><span class="t"><b>${esc(p.title)}</b><small>${p.parentId ? "서브 퀘스트" : "메인 퀘스트"}</small></span>${I.chev}</button>`), ...qs.map(q => `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq"><svg class="rpic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2.5l3 3-3 3"/><path d="M4 11v-1.5a4 4 0 0 1 4-4h12"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 13v1.5a4 4 0 0 1-4 4H4"/></svg></span><span class="t"><b>${esc(q.name)}</b><small>데일리 퀘스트</small></span>${I.chev}</button>`)].join("");
     return sheetWrap(`${n} · ${l}`, "", `<div class="aihead"><span class="aiic">${aIcon(k)}</span><p class="aidesc">${AREA_DESC[k]}</p></div>
       <p class="sect3">${l} 속성 퀘스트</p><section class="card tight">${rows || `<p class="empty-row">아직 ${l} 속성을 붙인 퀘스트가 없어요.</p>`}</section>`); }
   if (c.type === "taskadd") return sheetWrap("태스크 추가", "", `
