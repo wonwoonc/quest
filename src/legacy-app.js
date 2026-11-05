@@ -1289,7 +1289,7 @@ function viewWebDash(){
   const subs = Object.values(S.projects).filter(p => p.owner === uid && p.parentId && p.status !== "done" && S.projects[p.parentId]).sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : 1);
   const goals = (gs.length >= 2 ? hintBar("reo", "카드를 길게 눌러 끌면 순서를 바꿀 수 있어요") : "") + `${strip(gs, "wdGi", "wdgi", "메인 퀘스트", 2, "big", "이루고 싶은 큰 목표를 세워 보세요")}
 `;
-  let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}</div><div class="wd-goals">${goals}</div>
+  let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}<div class="wd-mprof">${profHead(uid).replace('<div class="stage">', '<div class="stage" data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기">')}</div></div><div class="wd-goals">${goals}</div>
       <div class="wd-bot"><div class="wd-sec"><div class="wd-stack">${d}</div></div>
       <div class="wd-tl"><div class="wd-sec"><div class="wd-merge wd-fix">${(() => { S._noToday = true; S._noTime = true; let tt; try{ tt = taskTab({noUp:true}); } finally { S._noToday = false; S._noTime = false; }
         return tt; })()}</div></div>
