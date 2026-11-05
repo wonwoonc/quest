@@ -2960,7 +2960,7 @@ function viewGoal(){
   const latest = valLatest(p.id);
   let h = `<section class="card thead">
     ${coverHtml(p, {badge:false})}
-    <div class="gth"><h2>${sp ? "🔗 " : "🎯 "}${esc(p.title)}</h2>${mine ? `<button class="pmenu" data-act="gmenu" data-p="${p.id}" aria-label="${kind} 메뉴">${I.menu}</button>` : ""}</div>
+    <div class="gth"><h2>${esc(p.title)}</h2>${mine ? `<button class="pmenu" data-act="gmenu" data-p="${p.id}" aria-label="${kind} 메뉴">${I.menu}</button>` : ""}</div>
     ${par ? `<button class="parentlink" data-act="project" data-p="${par.id}">🎯 ${esc(par.title)} ${I.chev}</button>` : ""}
     <div class="tags">${p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "속성" : "메인 퀘스트 속성"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}<span class="tag rw">최대 ${RW.xp} XP · ${RW.c} 코인</span></div>
     ${pr.total ? `<div class="prog"><div class="bar green"><i style="width:${pr.done/pr.total*100}%"></i></div><span class="num">태스크 ${pr.done}/${pr.total}</span></div>` : ""}
@@ -3274,7 +3274,7 @@ function rdayPopup(c){
 }
 function repeatField(c){
   if (!c.days) c.days = [1,3,5];
-  if (!c.rpt) c.rpt = c.days.length === 7 ? "daily" : "weekly";
+  if (c.rpt == null) c.rpt = c.days.length === 7 ? "daily" : "weekly";
   if (!c.ranchor) c.ranchor = today();
   if (!c.rday) c.rday = 15;
   const t = c.rpt, days = c.days;
@@ -3291,9 +3291,9 @@ function repeatField(c){
   } else if (t === "runrest"){
     sub = `<div class="field"><span class="lab">하는 날 · 쉬는 날</span><div class="chips">${stepRow(c,"ron","일 하기")}${stepRow(c,"roff","일 쉬기")}</div></div>`;
   }
-  const cur = (RPTYPES.find(([k]) => k === t) || RPTYPES[0])[1];
+  const cur = t ? (RPTYPES.find(([k]) => k === t) || RPTYPES[0])[1] : "";
   const pop = c._rp ? `<div class="dppop" data-act="dpstay"><div class="dppop-in rppop" data-act="dpstay" role="dialog" aria-label="반복 선택"><div class="dppop-h"><b class="dppop-t">반복 선택</b><button class="iconbtn" data-act="rptopen" aria-label="닫기">${I.close}</button></div><div class="rplist">${RPTYPES.map(([k,l]) => `<button class="row rpitem" data-act="rpt" data-v="${k}" aria-pressed="${t===k}"><span class="t"><b>${l}</b></span>${t === k ? `<span class="pick">✓</span>` : ""}</button>`).join("")}</div></div></div>` : "";
-  return `<div class="field"><span class="lab">반복</span><div class="chips"><button class="chip rpsel" data-act="rptopen" aria-haspopup="dialog" aria-pressed="true">🔁 ${cur} <span class="rpcaret">▾</span></button></div></div>${sub}${pop}`;
+  return `<div class="field"><span class="lab">반복</span><div class="chips"><button class="chip rpsel" data-act="rptopen" aria-haspopup="dialog" aria-pressed="${!!t}">🔁 ${cur || "선택"} <span class="rpcaret">▾</span></button></div></div>${sub}${pop}`;
 }
 function buildRepeat(c){
   const t = c.rpt || "weekly";
@@ -3753,6 +3753,7 @@ document.addEventListener("click", e => {
     case "compose": if (pid && S.projects[pid]) openCompose({ref:{type:"project", id:pid, label:S.projects[pid].title}, fixed:true}); else openCompose(); return;
     case "sheet": { if (!S.canWrite) return; if (!hasProfile() && b.dataset.k !== "profile"){ toast("먼저 캐릭터를 만들어 주세요"); return; }
       const k = b.dataset.k; if (k === "post") return openCompose();
+      if (k === "add" && b.dataset.v === "daily"){ const base0 = {type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:null, parentId:null, unit:null, tasks:[], area:[]}; return openSheet(base0); }
       if (k === "sub") return openSheet({type:"add", kind:"sub", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:"", period:"", projectId:null, parentId:pid || null, unit:null, tasks:[], area:[]});
       if (k === "profile") S.swatch = prof(S.me).color || S.swatch;
        if (k === "reward"){delete S.drafts["rw-name"];delete S.drafts['rw-cost'];}
@@ -3933,7 +3934,7 @@ document.addEventListener("click", e => {
       const K = c.kind, done0 = () => { ["ad-name","ad-end","pj-ms","pj-mt","pj-unit","nt-name"].forEach(k => delete S.drafts[k]); closeSheet(); };
       if (K === "once" && !c.due){ toast("날짜를 골라 주세요"); return; } if (K === "once" && !c.time){ toast("시간을 골라 주세요"); return; }
       if (K === "once"){ const pj = c.projectId || null; run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", due:c.due||"", time:c.due ? (c.time||"") : "", period:c.due ? (c.period||"") : "", today:false, projectId:pj, done:false, createdAt:Date.now()}), () => { done0(); toast("✅ 태스크를 추가했어요"); if (pj) syncProgress(pj); }); return; }
-      if (K === "daily"){ const rp = buildRepeat(c); if (needsDays(rp.type) && !rp.days.length){ toast("요일을 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } if (dupQ(name)){ toast(DUPMSG); return; } run(() => api.putMine(uid8(), {kind:"quest", name, time:c.time, repeat:rp, days:rp.days||[], lv:c.hlv||"easy", area:c.area||[], active:true, done:{}, createdAt:Date.now()}), () => { done0(); toast("🔥 데일리 퀘스트를 만들었어요"); }); return; }
+      if (K === "daily"){ if (!c.rpt){ toast("반복을 골라 주세요"); return; } const rp = buildRepeat(c); if (needsDays(rp.type) && !rp.days.length){ toast("요일을 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } if (dupQ(name)){ toast(DUPMSG); return; } run(() => api.putMine(uid8(), {kind:"quest", name, time:c.time, repeat:rp, days:rp.days||[], lv:c.hlv||"easy", area:c.area||[], active:true, done:{}, createdAt:Date.now()}), () => { done0(); toast("🔥 데일리 퀘스트를 만들었어요"); }); return; }
       if (K === "sub"){ if (!c.end){ toast("마감일을 골라 주세요"); return; } if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; } const mt = readMetric(c); if (mt === false) return; const tasks = pendingTasks(c), pidN = uid8(), par = c.parentId, end = c.end || "";
         run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, parentId:par, title:name, start:today(), end, status:c.pstat === "planned" ? "planned" : "active", area:c.area||[], metric:mt, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
           () => { done0(); syncProgress(par); toast("🔗 서브 퀘스트를 만들었어요"); openGoal(pidN); }); return; }

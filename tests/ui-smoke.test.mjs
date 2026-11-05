@@ -212,7 +212,7 @@ for (const route of ['add','quest']) {
     h.click('sheet',{k:route,v:'daily'});
     h.nodes.set(route === 'add' ? 'ad-name' : 'qs-name',{value:'매일 걷기'});
     assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/data-k="end"/);
-    if (route === 'add') h.click('tmset');
+    if (route === 'add'){ h.click('submit-add'); assert.equal(h.nodes.get('toast').innerHTML,'반복을 골라 주세요'); h.click('rpt',{v:'daily'}); h.click('tmset'); }
     h.click(`submit-${route}`); await h.settle();
     const daily = Object.values(h.snapshot().mine).filter(x => x.kind === 'quest');
     assert.equal(daily.length,1); assert.equal(daily[0].name,'매일 걷기');
@@ -224,6 +224,7 @@ for (const route of ['add','quest']) {
 test('daily quest time is required, saved on edit and shown on its calendar days',async()=>{
   const h = await profileUI();
   h.click('sheet',{k:'add',v:'daily'}); h.nodes.set('ad-name',{value:'물 마시기'});
+  assert.match(h.nodes.get('overlay').innerHTML,/🔁 선택/); h.click('rpt',{v:'daily'});
   assert.match(h.nodes.get('overlay').innerHTML,/시간 <span class="hint">필수<\/span>/);
   h.click('submit-add'); await h.settle();
   assert.equal(h.nodes.get('toast').innerHTML,'시간을 골라 주세요'); assert.deepEqual(h.snapshot().mine,{});
