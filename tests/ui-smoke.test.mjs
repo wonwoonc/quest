@@ -680,7 +680,7 @@ const removedEconomyGuidance = /economy-help|price-help|restinfo|resttoday|restc
 const removedEconomySummary = /economyStrip|eco-strip|wd-economy|경제 요약|오늘 기본|일일 제한 없음|다음 레벨까지|이번 주 \d+\/5일|3일 \+60 XP·30 코인|5일 추가 \+40 XP·20 코인|자동 지급|찜:|코인 더 필요|<b>정산 조정|코인 · 다음 수입으로 상계/;
 test('economy shop tabs and reward form omit guidance while price constraints still validate',async()=>{
   const h=await profileUI();h.route('shop');
-  assert.match(h.nodes.get('app').innerHTML,/꾸미기|보관함/);assert.doesNotMatch(h.nodes.get('app').innerHTML,/buyrest|휴식권 구매/);
+  assert.match(h.nodes.get('app').innerHTML,/꾸미기|내역/);assert.doesNotMatch(h.nodes.get('app').innerHTML,/buyrest|휴식권 구매/);
   for(const tab of ['personal','inventory','history','decorate']){h.click('shop-tab',{v:tab});assert.ok(h.nodes.get('app').innerHTML.length);assert.doesNotMatch(h.nodes.get('app').innerHTML,removedEconomyGuidance);}
   h.click('sheet',{k:'reward'});let markup=h.nodes.get('overlay').innerHTML;
   assert.match(markup,/id="rw-cost"[^>]*value=""/);for(const v of [100,300,500,1000,3000])assert.match(markup,new RegExp(`data-f="cost" data-v="${v}"`));
