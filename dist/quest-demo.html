@@ -3124,7 +3124,6 @@ function onboarding(){
     <section class="card" aria-label="캐릭터 만들기"><form data-form="profile">
       ${faceBlock(S.ob.face, S.ob.making, S.swatch, S.ob)}
       <div class="field"><label class="lab" for="nick">닉네임</label><input type="text" id="nick" maxlength="20" value="${esc(S.drafts.nick||"")}" required></div>
-      <div class="field"><span class="lab">옷 색</span><div class="swatches">${COLORS.map(c => `<button type="button" data-act="swatch" data-c="${c}" aria-pressed="${S.swatch===c}" aria-label="캐릭터 색" style="background:${c}"></button>`).join("")}</div></div>
       <button class="btn big full" type="submit" ${S.busy || S.ob.making ? "disabled":""}>모험 시작하기</button></form></section>`;
 }
 

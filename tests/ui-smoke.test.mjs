@@ -124,7 +124,7 @@ for (const action of ['preview-login','preview-kakao']) {
     assert.match(creation,/<h1 class="hello">캐릭터 만들기<\/h1>/);
     assert.match(creation,/id="nick"/); assert.match(creation,/모험 시작하기/);
     assert.doesNotMatch(creation,/개발용 코드|character-consent|크레딧|서버 시작/);
-    assert.match(creation,/data-act="faceupload">사진 업로드/);assert.doesNotMatch(creation,/data-act="faceshot"|사진 촬영/);
+    assert.match(creation,/data-act="faceupload">사진 업로드/);assert.doesNotMatch(creation,/data-act="faceshot"|사진 촬영/);assert.doesNotMatch(creation,/옷 색|data-act="swatch"/);
     assert.equal(calls,0); assert.deepEqual(h.snapshot(),before);
     h.click('swatch',{c:'#EB6E93'});
     h.nodes.set('nick',{value:'일반 모험가'});
