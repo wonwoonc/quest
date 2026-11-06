@@ -1022,7 +1022,7 @@ test('rewards tab keeps per-reward purchase history with use and refund actions'
   assert.match(html,/data-act="purchase-cancel" data-id="old"/);
   assert.doesNotMatch(html,/data-v="history"/);
   h.route('shop');h.click('shop-tab',{v:'inventory'});
-  assert.match(h.nodes.get('app').innerHTML,/구매·사용 기록/);
+  const inv=h.nodes.get('app').innerHTML;assert.match(inv,/영화 보기<\/b><small>11월 2일 · 30 코인 · 사용 예정/);assert.doesNotMatch(inv,/아이템|style-equip/);
   assert.deepEqual(h.snapshot(),before);
 });
 test('month view: daily quests show past completions, today with a checkbox, and only the next occurrence once today is done',async()=>{
