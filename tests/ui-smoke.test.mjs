@@ -784,7 +784,7 @@ test('dashboard/profile/shop omit the entire economy summary and retain balances
     if(route==='shop'){
       assert.match(html,/사용 가능 코인/);
       assert.match(html,new RegExp(`🪙 ${balances(before).gold}`));
-      assert.deepEqual([...html.matchAll(/data-act="shop-tab" data-v="([^"]+)"/g)].map(m=>m[1]),['items','personal','inventory']);
+      assert.deepEqual([...html.matchAll(/data-act="shop-tab" data-v="([^"]+)"/g)].map(m=>m[1]),['personal','inventory']);
     }else{
       assert.match(html,/Lv\.\d+/);assert.match(html,/role="progressbar" aria-label="레벨 진행도"/);
       assert.match(html,/class="num coinm"/);assert.match(html,/\d+ \/ [\d,]+ XP/);
@@ -926,10 +926,10 @@ test('existing rest days and old ticket ledger survive browsing/reload and still
   assert.deepEqual(h.snapshot().mine.oldTicket,initial.mine.oldTicket);
   assert.deepEqual(h.snapshot().economy.purchases,initial.economy.purchases);
 });
-test('shop items tab is empty after removal and rewards tab keeps add copy',async()=>{
+test('shop has no items tab; it opens on rewards and keeps add copy',async()=>{
   const h=await profileUI();h.route('shop');
   let html=h.nodes.get('app').innerHTML;
-  assert.match(html,/아직 아이템이 없어요/);
+  assert.doesNotMatch(html,/아이템/);
   assert.doesNotMatch(html,/style-buy/);
   h.click('shop-tab',{v:'personal'});html=h.nodes.get('app').innerHTML;
   assert.match(html,/하고 싶은 거 \/ 갖고 싶은 거/);
