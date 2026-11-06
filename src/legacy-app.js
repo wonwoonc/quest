@@ -1,11 +1,7 @@
-import {createCharacterClient, generateCharacter} from './character-client.js';
 import {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, levelStart, koreaDate, economySummary, goalEligibility, CATALOG, migrateEconomy} from './economy.js';
 import {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} from './day-activities.js';
 export function startLegacyApp({runtime, storage, seed = null}) {
 const entryParams = new URLSearchParams(location.search || '');
-const devCharacter = false; // photo-based character generation removed
-const characterClient = createCharacterClient({enabled:devCharacter});
-const photoNotice = '사진 기반 생성은 개발 테스트에서만 이용할 수 있어요';
 // UI routes only. These flags are not an authentication/session boundary.
 const requestedScreen = entryParams.get('screen') || document.documentElement.dataset.entryScreen;
 let entryScreen = requestedScreen === 'login' ? 'login' : requestedScreen === 'character' ? 'character' : null;
@@ -1007,7 +1003,7 @@ function viewSettings(){
     <button class="row" data-act="bkexp"><span class="t"><b>백업 내보내기</b><small>지금까지 기록을 JSON 파일로 저장</small></span>${I.chev}</button>
     <button class="row" data-act="bkimp"><span class="t"><b>백업 불러오기</b><small>저장한 JSON 파일로 복원</small></span>${I.chev}</button>
     <button class="row" data-act="bkreset"><span class="t"><b>전체 초기화</b><small>모든 기록을 지우고 처음부터</small></span>${I.chev}</button></section>`;
-  h += `<p class="sect3">정보</p><section class="card tight"><div class="row"><span class="t"><b>로컬 테스트 프로필</b><small>로그인/서버 미연결 · 이 브라우저에만 저장</small></span></div><div class="row"><span class="t"><b>앱 버전</b><small>프로토타입 0.1</small></span></div></section>`;
+  h += `<p class="sect3">정보</p><section class="card tight"><div class="row"><span class="t"><b>로컬 테스트 프로필</b><small>로그인/서버 미연결 · 이 브라우저에만 저장</small></span></div><div class="row"><span class="t"><b>앱 버전</b><small>프로토타입 0.1</small></span></div><button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
   return h;
 }
 
@@ -1326,22 +1322,10 @@ function viewProfile(){
   return h;
 }
 function faceBlock(face, making, color, state = {}){
-  if (!devCharacter) return `<div class="obstage" aria-label="캐릭터 미리보기">${face ? (state.avatarStyle === 'photo' ? photoAv(face, 150) : state.avatarStyle === 'fullbody' ? fullbody(face, 150) : chibi(color, 1, face, 150)) : sprite(color, 1, 96)}</div>
+  return `<div class="obstage" aria-label="캐릭터 미리보기">${face ? (state.avatarStyle === 'photo' ? photoAv(face, 150) : state.avatarStyle === 'fullbody' ? fullbody(face, 150) : chibi(color, 1, face, 150)) : sprite(color, 1, 96)}</div>
     <p class="facehint">사진을 올리면 프로필 사진으로 쓸 수 있어요.</p>
     <div class="facebtns"><button type="button" class="btn sec sm" data-act="faceupload">사진 업로드</button>${face ? `<button type="button" class="btn sec sm" data-act="facedel">기본 캐릭터로</button>` : ''}</div>`;
-  return `<div class="obstage" aria-busy="${!!making}">${face ? (state.avatarStyle === 'photo' ? photoAv(face, 150) : state.avatarStyle === 'fullbody' ? fullbody(face, 150) : chibi(color, 1, face, 150)) : sprite(color, 1, 96)}${making ? `<div class="obmaking" role="status"><i></i>AI 생성 서버에<br>요청하고 있어요…</div>` : ''}</div>
-    <p class="facehint">사진의 머리와 얼굴 특징을 참고해 전신 캐릭터를 만들어요. 닮은 정도는 다를 수 있어요.<br>승인된 메이플스토리풍의 매끈한 2D 스타일로, 머리는 전체 키의 55~60%, 몸통과 팔다리·신발은 작고 짧게 표현해요. 픽셀·디더링·계단 현상·3D·성인 비율은 사용하지 않아요.<br>참고 이미지는 스타일만 사용하며 인물·머리·후드티·의상을 복사하지 않아요. 사진 속 옷을 참고하고, 보이지 않으면 선택한 색의 티셔츠·긴 바지·운동화를 사용해요. 참고 이미지의 회색·어두운 의상을 강제하지 않아요.</p>
-    <p class="facehint">개발 모드 전용 · 생성 1장당 약 19크레딧 · 30초 간격 · 서버 세션당 최대 5회 시도.<br>얼굴과 원본의 정확한 보존은 확인하거나 보장할 수 없어요. <a href="https://www.genspark.ai/ai_image" target="_blank" rel="noopener noreferrer">AI 이미지 영역 편집기</a>에서 직접 확인하고 수정할 수 있어요.</p>
-    <label class="lab" for="character-dev-code">개발용 코드 (서버 시작 로그)</label><input type="password" id="character-dev-code" autocomplete="off" maxlength="128" placeholder="코드는 메모리에만 유지돼요" ${making ? 'disabled' : ''}>
-    <label class="toggle"><input type="checkbox" id="character-consent" ${state.consent ? 'checked' : ''} ${making ? 'disabled' : ''}>사진을 Genspark로 전송하고 약 19크레딧을 사용해 생성하는 데 동의해요.</label>
-    ${state.characterResultUrl ? `<p class="facehint"><a href="${esc(state.characterResultUrl)}" target="_blank" rel="noopener noreferrer">생성 이미지 열기 / 다운로드</a></p>` : ''}
-    <div class="facebtns"><button type="button" class="btn sm" data-act="faceupload" ${making ? 'disabled' : ''}>사진 업로드</button><button type="button" class="btn sec sm" data-act="faceshot" ${making ? 'disabled' : ''}>📸 사진 촬영</button>${face ? `<button type="button" class="btn sec sm" data-act="facedel" ${making ? 'disabled' : ''}>기본 캐릭터로</button>` : ''}</div>
-    ${state.characterError ? `<p class="facehint" role="alert">${esc(state.characterError)}</p>` : ''}`; }
-function takeFace(inputId, target, refresh){ if (!devCharacter){ toast(photoNotice); return; } const f = $(inputId); f.value = ''; const color = S.swatch;
-  f.onchange = async () => { if (!devCharacter) return; const file = f.files[0]; f.value = ''; if (!file) return;
-    const ok = await generateCharacter({client:characterClient, target, file, color, consent:target.consent === true, onStart:refresh, onChange:refresh});
-    toast(ok ? '캐릭터가 완성됐어요' : esc(target.characterError));
-  }; f.click(); }
+}
 async function storeFace(face){ if (!face) return face === "" ? null : undefined; const k = "face-" + uid8(); await api.putMedia(k, face); S.media[k] = face; return k; }
 function loginScreen(){
   return `<section class="card login-card" aria-labelledby="login-title">
@@ -1664,6 +1648,10 @@ function renderSheet(){ IXC = null;
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-u="${esc(u)}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
     return sheetWrap(esc(nameOf(u)), "", `<div class="sheetlist mlist">${bl ? item("unblock", "차단 해제", "다시 스토리와 답글이 보여요") : item("block", "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true)}${item("ureport", "신고", "부적절한 프로필이나 활동을 알려 주세요", true)}</div>`); }
   if (c.type === "logs") return sheetWrap("저널", "", `<div class="logsheet">${diaryList0() || `<p class="empty-row">아직 저널이 없어요.</p>`}</div>`);
+  if (c.type === "oss") return sheetWrap("오픈소스 라이선스", "", `<div class="helplist">
+      <div class="helpitem"><b>Noto Sans KR</b><p>Copyright 2014–2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. Google Fonts에서 제공하며 SIL Open Font License, Version 1.1에 따라 사용해요. 이 폰트는 상업적 사용을 포함해 무료로 쓸 수 있어요.</p><p><a href="https://openfontlicense.org" target="_blank" rel="noopener noreferrer">SIL Open Font License 1.1 전문 보기</a></p></div>
+      <div class="helpitem"><b>아이콘 · 캐릭터 · 이미지</b><p>앱 안의 아이콘, 기본 캐릭터, 카드 배경은 퀘스트에서 직접 그린 그림이에요. 이모지는 사용 중인 기기의 기본 이모지 글꼴로 표시돼요.</p></div>
+    </div><button class="btn big full" data-act="sheet-close">확인</button>`);
   if (c.type === "ptabhelp"){ const it = (k, t, body) => `<div class="helpitem ${S.profTab === k ? "on" : ""}"><b>${t}</b>${body}</div>`;
     return sheetWrap("스토리 탭 안내", "", `<div class="helplist">
       ${it("posts", "스토리", `<p>퀘스트를 하면서 남긴 기록을 다른 사람과 나누는 곳이에요. 사진과 수치 기록을 함께 올리고, 공감과 답글을 받을 수 있어요.</p>`)}
@@ -2202,16 +2190,6 @@ document.addEventListener("click", e => {
       if (!inSheet){ const n = $("#nick"); if (n) S.drafts.nick = n.value; } else { ["ep-nick","ep-bio"].forEach(k => { const el = $("#"+k); if (el) S.drafts[k] = el.value; }); }
       choosePhotos(false, async list => { if (!list || !list[0]) return; tgt.face = await shrinkImg(list[0], 800, 160000); tgt.avatarStyle = "photo"; tgt.characterError = ""; if (inSheet){ if (S.compose === tgt) renderSheet(); } else schedule(); }); return; }
     case "faceshot": return;
-    case "faceshot-removed": { const inSheet = c && c.type === "profile", tgt = inSheet ? c : S.ob, re = () => inSheet ? (S.compose === tgt && renderSheet()) : schedule();
-      if (!devCharacter){ toast(photoNotice); return; }
-      if (tgt.making) return;
-      const devCode = $("#character-dev-code")?.value;
-      if (devCode?.trim()) characterClient.setDevCode(devCode);
-      if ($("#character-dev-code")) $("#character-dev-code").value = '';
-      tgt.consent = !!$("#character-consent")?.checked;
-      if (!tgt.consent){ tgt.characterError = '사진 전송에 먼저 동의해 주세요.'; re(); return; }
-      if (!inSheet){ const n = $("#nick"); if (n) S.drafts.nick = n.value; } else { ["ep-nick","ep-bio"].forEach(k => { const el = $("#"+k); if (el) S.drafts[k] = el.value; }); }
-      takeFace(b.dataset.act === 'faceupload' ? '#characterUploadIn' : '#characterCameraIn', tgt, re); return; }
     case "facedel": { const inSheet = c && c.type === "profile", tgt = inSheet ? c : S.ob; if (tgt.making) return; tgt.avatarStyle = null; tgt.characterError = ''; if (inSheet){ ["ep-nick","ep-bio"].forEach(k => { const el = $("#"+k); if (el) S.drafts[k] = el.value; }); c.face = ""; renderSheet(); } else { const n = $("#nick"); if (n) S.drafts.nick = n.value; S.ob.face = ""; schedule(); } return; }
     case "submit-profile": { if (c.making) return; const nick = ($("#ep-nick").value||"").trim(); if (!nick){ toast("닉네임을 적어 주세요"); return; }
       run(async () => { const fk = await storeFace(c.face); await api.saveProfile({nick, bio:($("#ep-bio").value||"").trim(), color:S.swatch, ...(fk !== undefined ? {face:fk, avatarStyle:c.avatarStyle || null} : {})}); }, () => { delete S.drafts["ep-nick"]; delete S.drafts["ep-bio"]; closeSheet(); toast("프로필을 저장했어요"); }); return; }
@@ -2228,7 +2206,6 @@ document.addEventListener("keydown", e => {
 });
 document.addEventListener("scroll", e => { const t = e.target; if (t && t.classList && t.classList.contains("wd-ggrid") && t.closest(".wd-goals")) S.wdGs = t.scrollLeft; }, true);
 document.addEventListener("input", e => {
-  if (e.target.id === 'character-dev-code') { if (devCharacter) characterClient.setDevCode(e.target.value); return; }
   if (['alv','hlv','tlv','ntlv'].includes(e.target.id) && S.compose) { preserveSheetDrafts(); S.compose[e.target.id==='hlv'?'hlv':e.target.id==='ntlv'?'ntlv':'lv']=lvKey(e.target.value); renderSheet(); return; }
   if (e.target.id) S.drafts[e.target.id] = e.target.value;
   if (e.target.id === "rw-cost" && S.compose && S.compose.type === "reward"){ const v = e.target.value.replace(/,/g,"").trim(); S.compose.cost = v; document.querySelectorAll('#overlay [data-f="cost"]').forEach(x => x.setAttribute("aria-pressed", String(!v && false))); }
@@ -2237,7 +2214,6 @@ document.addEventListener("input", e => {
   if (e.target.id === "pl-cond"){ S.planner.cond = +e.target.value; e.target.style.setProperty("--p", e.target.value + "%"); const v = e.target.parentNode.querySelector("#pl-cond-v"); if (v) v.textContent = e.target.value + "%"; }
 });
 document.addEventListener("change", e => { if (e.target.id === "ml-share" && S.compose && S.compose.type === "mlog"){ const v = ($("#ml-val")||{}).value; if (v != null) S.drafts["ml-val"] = v; S.compose.share = e.target.checked; renderSheet(); return; } if (e.target.id === "pl-share") S.planner.share = e.target.checked;
-  if (e.target.id === 'character-consent') (S.compose && S.compose.type === 'profile' ? S.compose : S.ob).consent = e.target.checked;
   if (e.target.id === "tm-in" && S.compose){ const v = parseTime(e.target.value); if (v !== null){ S.compose.time = v; S.drafts["tm-in"] = v ? tmLabel(v) : ""; e.target.value = S.drafts["tm-in"]; } }
  });
 document.addEventListener("submit", e => {

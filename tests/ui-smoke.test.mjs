@@ -1188,3 +1188,7 @@ test('overdue main/sub quests show a red "N일 지남" badge and no end-date tag
   const h=await profileUI(saved);for(const id of ['m1','s1']){h.click('project',{p:id});const html=h.nodes.get('app').innerHTML;
     assert.match(html,/<span class="tag dd"><span class="ddlate">3일 지남<\/span><\/span>/);assert.doesNotMatch(html,/까지<\/span>|D\+3/);}
 });
+test('settings shows an open-source license notice for Noto Sans KR (OFL)',async()=>{
+  const h=await profileUI();h.route('settings');assert.match(h.nodes.get('app').innerHTML,/data-k="oss"[\s\S]*오픈소스 라이선스/);
+  h.click('sheet',{k:'oss'});assert.match(h.nodes.get('overlay').innerHTML,/Noto Sans KR[\s\S]*SIL Open Font License, Version 1\.1/);
+});
