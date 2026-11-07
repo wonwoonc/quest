@@ -330,6 +330,16 @@ for (const projectId of [null,'main','sub']) {
     assert.ok(task); assert.equal(task.kind,'mission'); assert.equal(task.projectId,'sub');
   });
 }
+test('taskadd sheet orders date/time, area, quest, difficulty and saves task area',async () => {
+  const h = await linkedUI(); h.click('taskadd',{});
+  const html = h.nodes.get('overlay').innerHTML;
+  const at = [html.indexOf('날짜'), html.indexOf('data-act="aset"'), html.indexOf('data-act="tqpick"'), html.indexOf('난이도')];
+  assert.ok(at.every(i => i >= 0), String(at)); assert.deepEqual([...at].sort((a,b)=>a-b), at);
+  h.nodes.set('ta-name',{value:'영역 태스크'}); h.click('aset',{v:'health'});
+  h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
+  const task = Object.values(h.snapshot().mine).find(m => m.name === '영역 태스크');
+  assert.ok(task); assert.deepEqual(task.area,['health']);
+});
 // Inspect real rendered markup; this harness does not model browser layout.
 function taskMarkup(html,id) {
   const start = html.indexOf(`data-act="tedit" data-id="${id}"`);
