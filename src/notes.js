@@ -24,11 +24,10 @@ export const BASE_DRAWERS = [
     {k:'title', t:'text', l:'제목', p:'예: 아침 루틴을 바꾼 5가지 습관'},
     {k:'summary', t:'area', l:'핵심 요약', p:'3줄 이내로 적어요'},
     {k:'why', t:'text', l:'저장한 이유', p:'예: 다음 달 발표 자료에 인용'}]},
-  {k:'learn', l:'학습', ic:'book', pt:3, area:'growth', hint:'', need:'모든 목차 완료 + 한 줄 요약 + 적용할 점', f:[
+  {k:'learn', l:'학습', ic:'book', pt:3, area:'growth', hint:'', need:'모든 목차 완료', f:[
     {k:'type', t:'choice', l:'종류', o:['강의','책','영상','기타']},
     {k:'title', t:'text', l:'제목', p:'예: 데이터 분석 입문'},
     {k:'author', t:'text', l:'강사·저자', p:'예: 김OO'},
-    {k:'url', t:'url', l:'링크', p:'https://...'},
     {k:'goal', t:'area', l:'학습 목표', p:'이걸로 무엇을 할 수 있게 되고 싶나요?'},
     {k:'rating', t:'stars', l:'별점'}]},
   {k:'memo', l:'메모', ic:'memo', pt:0, area:null, hint:'어디에도 딱 맞지 않으면 일단 여기에 적어요.', need:'', f:[
@@ -67,10 +66,8 @@ export function noteComplete(s, n) {
   if (!d || !d.pt) return false;
   if (cat === 'idea') return has(f.next);
   if (cat === 'ref') return has(f.summary) && has(f.why);
-  if (cat === 'learn') return Array.isArray(n.ch) && n.ch.length ? n.ch.every(c => c.st === 'done') && has(f.summary) && has(f.apply) : f.status === '완료' && has(f.apply);
+  if (cat === 'learn') return Array.isArray(n.ch) && n.ch.length ? n.ch.every(c => c.st === 'done') : f.status === '완료' && has(f.apply);
   return d.f.length > 0 && d.f.every(x => has(f[x.k]));
 }
 export function noteReward(s, n) { const {cat} = noteNorm(s, n), pt = noteDrawer(s, cat)?.pt || 0; return {pt, xp:pt * 10, coins:pt * 10}; }
-/* study time: 10분마다 +5 XP · +5 코인 (10분 미만은 기록만) */
 export const STUDY_LIMITS = [25, 50, 90];
-export function studyReward(min) { const n = Math.floor(Math.max(0, Number(min) || 0) / 10); return {xp:n * 5, coins:n * 5}; }

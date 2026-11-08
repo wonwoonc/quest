@@ -1,5 +1,5 @@
 import {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, levelStart, koreaDate, economySummary, goalEligibility, CATALOG, migrateEconomy} from './economy.js';
-import {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete, noteReward, studyReward, STUDY_LIMITS} from './notes.js';
+import {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete, noteReward, STUDY_LIMITS} from './notes.js';
 import {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} from './day-activities.js';
 export function startLegacyApp({runtime, storage, seed = null}) {
 const entryParams = new URLSearchParams(location.search || '');
@@ -385,7 +385,7 @@ function schedule(){ if (!raf) raf = requestAnimationFrame(() => { raf = 0; rend
 const WEB = matchMedia("(min-width:1024px)");
 S.navMini = !!LS.get("navMini", false);
 WEB.addEventListener && WEB.addEventListener("change", () => schedule());
-function render(){ IXC = null;
+function render(){ { const a = document.activeElement; if (S.view.name === "lnpage" && a && a.closest && a.closest("#nted")){ S.lpPending = true; return; } } IXC = null;
   MY = S.me ? computeMine() : null;
   applyCosmetics();
   const setup = !!entryScreen || !hasProfile();
@@ -407,7 +407,7 @@ function render(){ IXC = null;
   if (S.liveWin){ const wu = v === "profile" && S.view.uid !== S.me ? S.view.uid : null, wp = v === "post" ? S.view.pid : null; queueMicrotask(() => S.liveWin.watch(wu, wp)); }
   rollOver();
    const dash = v === "dash" && hasProfile();
-  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, learn:viewLearn, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
+  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, learn:viewLearn, lnpage:viewLnPage, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
   { const gg = dash && $(".wd-goals .wd-ggrid"); if (gg && S.wdGs) gg.scrollLeft = S.wdGs; }
   $("#app").dataset.v = S.me && !hasProfile() && S.canWrite ? "profile" : dash ? "dash" : v; $("#app").dataset.pt = v === "profile" || v === "today" ? (S.profTab || "") : "";
   renderReplyBar(); renderPill();
@@ -461,8 +461,8 @@ function bannerHtml(){ return "";
 }
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
-  const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || (v === "profile" && S.view.uid !== S.me);
-  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
+  const v = S.view.name, sub = v === "post" || v === "learn" || v === "lnpage" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || (v === "profile" && S.view.uid !== S.me);
+  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", lnpage:"학습 노트", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
   const n = activityItems().filter(x => x.at > actSeen).length;
   $("#topbar").innerHTML = `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : ""}<h1>${title}</h1>
     ${S.me && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
@@ -477,7 +477,7 @@ function renderNav(){
     <a href="#feed" ${cur(v==="feed")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7.5" r="3"/><path d="M2.5 20v-2a6.5 6.5 0 0 1 13 0v2M16 4.7a3 3 0 0 1 0 5.6M18 12a6 6 0 0 1 3.5 5.5V20"/></svg><span>커뮤니티</span></a>
     <a href="#shop" ${cur(v==="shop")}>${I.bag}<span>상점</span></a>
     <a href="#cal" ${cur(v==="cal")}>${I.cal}<span>캘린더</span></a>
-    <a href="#notes" ${cur(v==="notes" || v==="learn")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5h-7L10 5H5a1.5 1.5 0 0 0-1.5 1.5Z"/><path d="M8 12.5h8M8 15.5h5"/></svg><span>자료실</span></a>
+    <a href="#notes" ${cur(v==="notes" || v==="learn" || v==="lnpage")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5h-7L10 5H5a1.5 1.5 0 0 0-1.5 1.5Z"/><path d="M8 12.5h8M8 15.5h5"/></svg><span>자료실</span></a>
     <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`;
   document.body.classList.toggle("navmini", !!S.navMini);
   /* mobile: the bottom bar scrolls sideways; keep the current menu in view */
@@ -869,7 +869,7 @@ const nic = (k, cls = "") => `<svg class="nic ${cls}" viewBox="0 0 24 24" fill="
 const ntUrl = v => { v = String(v || "").trim(); return !v ? "" : /^https?:\/\//i.test(v) ? v : "https://" + v; };
 const ntHost = v => { try { return new URL(v).hostname.replace(/^www\./, ""); } catch { return v; } };
 const ntN = n => noteNorm(S, n);
-const ntText = n => Object.values(ntN(n).f).join(" ");
+const ntText = n => [...Object.values(ntN(n).f), ...(n.ch || []).flatMap(c => [c.t, ...(Array.isArray(c.blocks) ? c.blocks.map(bkText) : [c.sum, c.key, c.think, c.q])]), ...(n.files || []).map(x => x.name)].filter(Boolean).join(" ");
 const stars = r => r ? `<span class="ntstars" role="img" aria-label="별점 ${r}점">${nic("star").repeat(r)}<i>${nic("star").repeat(5 - r)}</i></span>` : "";
 const clip = (v, n = 140) => esc(String(v || "").length > n ? String(v).slice(0, n) + "…" : String(v || ""));
 const ntArea = n => { if (!n) return []; if (n.area && AREA_KEYS.includes(n.area)) return [n.area]; const up = n.projectId ? areaUp(n.projectId) : []; if (up.length) return up; const d = noteDrawer(S, ntN(n).cat); return d && d.area ? [d.area] : []; };
@@ -887,7 +887,7 @@ function ntCard(n){
   const act = v => v ? `<p class="ntnext">→ ${esc(v)}${run0 ? " " + run0 : ""}</p>` : "";
   let mid = "";
   if (cat === "idea") mid = h3(f.title) + p(f.why) + act(f.next);
-  else if (cat === "ref") mid = h3(f.title || (f.url && ntHost(f.url))) + sub(f.media && esc(f.media)) + p(f.summary) + (f.why ? `<p class="ntnext">저장 이유 · ${esc(f.why)}</p>` : "");
+  else if (cat === "ref") mid = h3(f.title || (f.url && ntHost(f.url)) || (n.files && n.files[0] && n.files[0].name)) + sub(f.media && esc(f.media)) + (n.files && n.files.length ? `<div class="flist card-f">${n.files.map(x => fChip(x)).join("")}</div>` : "") + p(f.summary) + (f.why ? `<p class="ntnext">저장 이유 · ${esc(f.why)}</p>` : "");
   else if (cat === "learn"){ const P = lnProg(n);
     mid = h3(f.title) + sub(f.type && esc(f.type), f.author && esc(f.author), stars(f.rating)) + (P.total ? `<div class="lnbar"><i style="width:${P.pct}%"></i></div><p class="ntsub">${P.done}/${P.total} 목차 · ${P.pct}%${P.min ? ` · ${fmtMin(P.min)}` : ""}${n.timer ? ` · <b class="lnlive">학습 중</b>` : ""}</p>` : (f.quote ? `<blockquote class="ntq">${clip(f.quote)}</blockquote>` : "") + p(f.goal || f.think)) + act(f.apply); }
   else if (cat === "memo") mid = h3(f.title) + p(f.body);
@@ -919,6 +919,7 @@ function noteSheet(c){
     <div class="chips ntkinds" role="group" aria-label="서랍">${noteDrawers(S).filter(d => !d.hidden || d.k === c.cat).map(K => `<button class="chip" data-act="nt-kind" data-v="${K.k}" aria-pressed="${c.cat === K.k}">${nic(K.ic)}${esc(K.l)}</button>`).join("")}</div>
     ${C.f.map(field).join("")}
     ${C.pt ? `<div class="field"><span class="lab">영역 <span class="hint">선택 · 비우면 ${area ? "연결한 퀘스트나 서랍 기본값을 따라요" : "영역 점수 없이 XP · 코인만 받아요"}</span></span><div class="chips">${AREAS.map(([k,,,l]) => `<button class="chip achip" data-act="nt-area" data-v="${k}" aria-pressed="${c.area === k}">${aIcon(k)}${l}</button>`).join("")}</div></div>` : ""}
+    ${C.k === "ref" ? `<div class="field"><span class="lab">파일 첨부 <span class="hint">PDF · 워드 · 엑셀 · 한글 · 이미지 · 최대 5개, 개당 20MB</span></span><div class="flist">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < 5 ? `<button class="fadd" data-act="nf-pick">+ 파일 선택</button>` : ""}</div></div>` : ""}
     ${gs.length ? `<div class="field"><span class="lab">연결할 퀘스트 <span class="hint">선택</span></span><div class="chips">${gs.map(p => `<button class="chip" data-act="cset" data-f="projectId" data-v="${p.id}" aria-pressed="${c.projectId === p.id}">${nic(p.parentId ? "link" : "target")}${esc(p.title)}</button>`).join("")}</div></div>` : ""}
     ${n && noteComplete(S, n) ? `<p class="ntreward done">${nic("check")}완성한 자료예요. 보상은 이미 받았어요.</p>` : ntRewardLine(C, area)}
     <button class="btn big full" data-act="submit-note" ${S.busy ? "disabled" : ""}>저장</button>
@@ -934,9 +935,10 @@ const ntKeys = () => [...new Set(noteDrawers(S).flatMap(C => C.f.filter(x => !["
 function saveNote(c, after){
   const C = noteDrawer(S, c.cat), old = c.id && S.mine[c.id], prev = old && ntN(old).cat === C.k ? {...ntN(old).f} : {}, f = prev;
   C.f.forEach(x => { const v = ["choice","stars"].includes(x.t) ? (c.vals || {})[x.k] : pv("nf-" + x.k).trim(); if (v) f[x.k] = x.t === "url" ? ntUrl(v) : v; else delete f[x.k]; });
-  if (!Object.keys(f).some(k => !["media","status","rating","date","type"].includes(k))){ toast(C.k === "learn" ? "제목을 적어 주세요" : "내용을 하나 이상 적어 주세요"); return; }
+  const files = C.k === "ref" ? (c.files || []) : (old && old.files) || [];
+  if (!Object.keys(f).some(k => !["media","status","rating","date","type"].includes(k)) && !files.length){ toast(C.k === "learn" ? "제목을 적어 주세요" : "내용을 하나 이상 적어 주세요"); return; }
   const key = old ? c.id : "nt"+uid8(), now = Date.now(), was = old && noteComplete(S, old);
-  run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, f, area:c.area || null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); after(key, r, !was && noteComplete(S, S.mine[key])); });
+  run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, f, files, area:c.area || null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); (c.rmFiles || []).forEach(FDB.del); c.newFiles = []; c.rmFiles = []; after(key, r, !was && noteComplete(S, S.mine[key])); });
 }
 /* drawer manager + editor */
 function drawerSheet(c){
@@ -954,71 +956,169 @@ function drawerSheet(c){
   return sheetWrap("서랍 관리", "", `<section class="qlist drlist">${DR.map(row).join("")}</section><button class="btn big full" data-act="dr-edit" data-v="">+ 새 서랍 만들기</button>`);
 }
 
-/* ================= 학습 상세 (자료실 › 학습): 목차별 코넬 노트 + 학습 타이머 ================= */
+/* ================= 학습 상세 (자료실 › 학습): 목차 + 목차별 블록 노트(노션식) + 학습 타이머 ================= */
 const fmtMin = m => m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ""}` : `${m}분`;
 const lnLimit = () => { const v = +LS.get("studyLimit", 50); return STUDY_LIMITS.includes(v) ? v : 50; };
 function lnProg(n){ const ch = n.ch || [], done = ch.filter(c => c.st === "done").length, min = ch.reduce((a, c) => a + (c.min || 0), 0); return {total:ch.length, done, pct:ch.length ? Math.round(done / ch.length * 100) : 0, min}; }
 const LN_ST = {todo:["예정",""], doing:["정리 중","doing"], done:["완료","done"]};
 const lnPut = (id, patch, after) => { const n = S.mine[id]; if (!n) return; run(() => api.putMine(id, {...n, ...patch, updatedAt:Date.now()}), after); };
+const BK_TPL = () => [["h2","핵심 요약"],["p","","배운 걸 3줄 이내로"],["h2","핵심 개념"],["ul","","개념: 뜻"],["h2","내 생각"],["p","","새로 알게 된 점, 연결, 의문"],["h2","복습 질문"],["todo","","질문 | 답"]].map(([t, h, ph], i) => ({id:uid8() + i, t, h:esc(h), ph:ph || ""}));
 function lnAddChapters(id, text){ const n = S.mine[id]; if (!n) return false;
-  const lines = String(text || "").split(/\r?\n/).map(x => x.replace(/^\s*([-*•·]|\d+[.)]|\d+\s*강|제?\s*\d+\s*장)\s*/, m => /강|장/.test(m) ? m : "").trim()).filter(Boolean); if (!lines.length) return false;
-  const ch = [...(n.ch || []), ...lines.slice(0, 200).map((t, i) => ({id:uid8() + i, t:t.slice(0, 120), st:"todo", sum:"", key:"", think:"", q:"", min:0, at:""}))];
+  const lines = String(text || "").split(/\r?\n/).map(x => x.replace(/^\s*([-*•·]|\d+[.)])\s*/, "").trim()).filter(Boolean); if (!lines.length) return false;
+  const ch = [...(n.ch || []), ...lines.slice(0, 200).map((t, i) => ({id:uid8() + i, t:t.slice(0, 120), st:"todo", min:0, at:""}))];
   lnPut(id, {ch}, () => { delete S.drafts["ln-add"]; const el = $("#ln-add"); if (el) el.value = ""; if (lines.length > 1) toast(`목차 ${lines.length}개를 추가했어요`); }); return true; }
-function lnTimerBar(n){ const t = n.timer; if (!t) return ""; const c = (n.ch || []).find(x => x.id === t.ch), el = Math.floor((Date.now() - t.start) / 1000), L = (t.limit || lnLimit()) * 60;
+/* older chapter notes (요약·개념·생각·질문 fields) become blocks */
+function chBlocks(c){ if (Array.isArray(c.blocks)) return c.blocks; if (!(c.sum || c.key || c.think || c.q)) return BK_TPL();
+  const out = [], sec = (h, v, t) => { out.push({id:uid8() + out.length, t:"h2", h:esc(h)}); String(v || "").split("\n").filter(x => x.trim() || !out.length).forEach(x => out.push({id:uid8() + out.length, t, h:esc(x)})); if (!v) out.push({id:uid8() + out.length, t, h:""}); };
+  sec("핵심 요약", c.sum, "p"); sec("핵심 개념", c.key, "ul"); sec("내 생각", c.think, "p"); sec("복습 질문", c.q, "todo"); return out; }
+const bkText = b => String(b.h || "").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+function lnTimerBar(n){ const t = n.timer; if (!t) return ""; const c = (n.ch || []).find(x => x.id === t.ch), el = Math.floor((Date.now() - t.start) / 1000);
   return `<section class="card lntimer"><div><small>학습 중</small><b>${esc(c ? c.t : "")}</b></div><span class="lnclock num" data-tmr="${n.id}">${pad(Math.floor(el / 60))}:${pad(el % 60)}</span><span class="lnlim num">/ ${t.limit || lnLimit()}분</span><button class="btn" data-act="ln-stop" data-id="${n.id}">정지</button></section>`; }
 function viewLearn(){
   const n = S.mine[S.view.id]; if (!n || !hasProfile()) return viewNotes();
   const {f} = ntN(n), P = lnProg(n), ch = n.ch || [], next = ch.find(c => c.st !== "done"), pj = n.projectId && S.projects[n.projectId], A = AREAS.find(a => a[0] === ntArea(n)[0]);
   const done = noteComplete(S, n), D0 = noteDrawer(S, "learn");
-  let h = `<section class="card lnhead"><div class="nttop"><span class="ntcat">${nic("book")}${esc(f.type || "학습")}</span>${done ? `<span class="ntdone">${nic("check")}완성</span>` : ""}<button class="link lnedit" data-act="nt-edit" data-id="${n.id}" data-info="1">정보 수정</button></div>
-    <h2>${esc(f.title || "제목 없음")}</h2>${f.author || f.rating ? `<p class="ntsub">${[f.author && esc(f.author), stars(f.rating)].filter(Boolean).join(" · ")}</p>` : ""}
-    ${f.goal ? `<p class="lngoal"><span>학습 목표</span>${esc(f.goal)}</p>` : ""}
-    <div class="lnbar big"><i style="width:${P.pct}%"></i></div><p class="lnstat"><b class="num">${P.done}/${P.total}</b> 목차 완료 · ${P.pct}% · 총 ${fmtMin(P.min)}</p>
-    ${f.url || pj || A ? `<div class="ntmeta">${f.url ? `<a class="ntlink" href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">${nic("link")}${esc(ntHost(f.url))}</a>` : ""}${pj ? `<span>${nic("target")}${esc(pj.title)}</span>` : ""}${A ? `<span>${aIcon(A[0])}${A[3]}</span>` : ""}</div>` : ""}</section>`;
+  const meta = [f.author && `<span>${esc(f.author)}</span>`, f.rating && stars(f.rating), A && `<span>${aIcon(A[0])}${A[3]}</span>`, pj && `<span>${nic("target")}${esc(pj.title)}</span>`, f.url && `<a class="ntlink" href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">${nic("link")}${esc(ntHost(f.url))}</a>`].filter(Boolean);
+  let h = `<section class="card lnhead"><div class="lntop"><span class="ntcat">${nic("book")}${esc(f.type || "학습")}</span>${done ? `<span class="ntdone">${nic("check")}완성</span>` : ""}<button class="link lnedit" data-act="nt-edit" data-id="${n.id}" data-info="1">정보 수정</button></div>
+    <h2 class="lntitle">${esc(f.title || "제목 없음")}</h2>${meta.length ? `<div class="lnmeta">${meta.join('<i class="dot">·</i>')}</div>` : ""}
+    ${f.goal ? `<div class="lngoal"><span>${nic("target")}학습 목표</span><p>${esc(f.goal)}</p></div>` : ""}
+    <div class="lnprog"><div class="lnbar big"><i style="width:${P.pct}%"></i></div><p class="lnstat"><b class="num">${P.pct}%</b><span>${P.done}/${P.total} 목차</span>${P.min ? `<span>${fmtMin(P.min)}</span>` : ""}</p></div>
+    ${done ? "" : ntRewardLine(D0, ntArea(n)[0])}</section>`;
   h += lnTimerBar(n);
   if (next && !n.timer) h += `<section class="card lnnext"><div><small>이어서 하기</small><b>${esc(next.t)}</b></div><button class="btn sec" data-act="ln-ch" data-id="${n.id}" data-v="${next.id}">노트</button><button class="btn" data-act="ln-start" data-id="${n.id}" data-v="${next.id}">학습 시작</button></section>`;
-  const row = (c, i) => `<button class="lnrow ${LN_ST[c.st || "todo"][1]}" data-act="ln-ch" data-id="${n.id}" data-v="${c.id}"><span class="lnst">${c.st === "done" ? nic("check") : `<i class="num">${i + 1}</i>`}</span><span class="lnt"><b>${esc(c.t)}</b><small>${[LN_ST[c.st || "todo"][0], c.min ? fmtMin(c.min) : "", c.sum ? "요약 있음" : ""].filter(Boolean).join(" · ")}</small></span>${n.timer && n.timer.ch === c.id ? `<span class="lnlive">학습 중</span>` : ""}<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>`;
+  const row = (c, i) => { const bl = Array.isArray(c.blocks) ? c.blocks.filter(b => b.t !== "h2" && bkText(b).trim()).length : 0;
+    return `<button class="lnrow ${LN_ST[c.st || "todo"][1]}" data-act="ln-ch" data-id="${n.id}" data-v="${c.id}"><span class="lnst">${c.st === "done" ? nic("check") : `<i class="num">${i + 1}</i>`}</span><span class="lnt"><b>${esc(c.t)}</b><small>${[LN_ST[c.st || "todo"][0], c.min ? fmtMin(c.min) : "", bl ? `노트 ${bl}줄` : ""].filter(Boolean).join(" · ")}</small></span>${n.timer && n.timer.ch === c.id ? `<span class="lnlive">학습 중</span>` : ""}<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>`; };
   h += `<section class="card lntoc"><div class="ch"><h2>목차</h2>${ch.length ? `<span class="side num">${ch.length}</span>` : ""}<button class="link bdhelp" data-act="ln-limit">자동 정지 ${lnLimit()}분</button></div>
     ${ch.length ? `<div class="lnlist">${ch.map(row).join("")}</div>` : `<p class="empty-row">강의 커리큘럼이나 책 차례를 복사해 아래에 붙여 넣으면 줄마다 목차가 만들어져요.</p>`}
     <div class="bdin"><input type="text" id="ln-add" maxlength="120" autocomplete="off" placeholder="목차 추가 (예: 3강 JOIN) · 엔터" value="${D("ln-add")}" aria-label="목차 추가" data-id="${n.id}"><button class="bdgo" data-act="ln-addbtn" data-id="${n.id}" aria-label="목차 추가"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></section>`;
-  h += `<section class="card lnwrap"><div class="ch"><h2>마무리</h2><button class="link bdhelp" data-act="ln-wrap" data-id="${n.id}">${f.summary || f.apply ? "수정" : "작성"}</button></div>
-    ${f.summary ? `<p class="lnsum">${esc(f.summary)}</p>` : `<p class="empty-row">다 배우고 나면 전체를 한 줄로 요약하고 적용할 점을 적어요.</p>`}
-    ${f.apply ? `<p class="ntnext">→ ${esc(f.apply)}</p>` : ""}
-    ${done ? `<p class="ntreward done">${nic("check")}완성한 학습이에요. 보상은 이미 받았어요.</p>` : ntRewardLine(D0, ntArea(n)[0])}</section>`;
-  if (f.quote || f.think) h += `<section class="card"><div class="ch"><h2>이전 메모</h2></div>${f.quote ? `<blockquote class="ntq">${esc(f.quote)}</blockquote>` : ""}${f.think ? `<p class="ntbody">${esc(f.think)}</p>` : ""}</section>`;
+  const old = [["핵심 요약", f.summary], ["적용할 점", f.apply], ["인상 깊은 내용", f.quote], ["내 생각", f.think]].filter(x => x[1]);
+  if (old.length) h += `<section class="card"><div class="ch"><h2>이전 메모</h2></div>${old.map(([l, v]) => `<p class="ntsub">${l}</p><p class="ntbody">${esc(v)}</p>`).join("")}</section>`;
   return h;
 }
-function lnChapterSheet(c){
-  const n = S.mine[c.id], ch = n && (n.ch || []).find(x => x.id === c.ch); if (!ch) return sheetWrap("목차", "", `<p class="empty-row">목차를 찾을 수 없어요.</p>`);
-  const i = n.ch.indexOf(ch), ss = (n.sessions || []).filter(x => x.ch === ch.id).sort((a,b) => b.start - a.start), running = n.timer && n.timer.ch === ch.id;
-  const fld = (k, l, p, rows) => `<div class="field"><span class="lab">${l}</span><textarea id="lc-${k}" rows="${rows}" maxlength="10000" placeholder="${p}">${D("lc-" + k)}</textarea></div>`;
-  return sheetWrap(`${i + 1}. ${esc(ch.t)}`, "", `
-    <div class="field"><span class="lab">목차 이름</span><input type="text" id="lc-t" maxlength="120" value="${D("lc-t")}"></div>
-    <div class="field"><span class="lab">상태</span><div class="chips">${Object.entries(LN_ST).map(([k, [l]]) => `<button class="chip" data-act="lc-st" data-v="${k}" aria-pressed="${(c.st || "todo") === k}">${l}</button>`).join("")}</div></div>
-    <div class="lcrun">${running ? `<button class="btn full" data-act="ln-stop" data-id="${n.id}">정지하고 기록하기</button>` : `<button class="btn sec full" data-act="ln-start" data-id="${n.id}" data-v="${ch.id}">학습 시작 · ${lnLimit()}분 뒤 자동 정지</button>`}
-      ${ss.length ? `<div class="lcsess">${ss.map(x => { const d = new Date(x.start); return `<div class="row"><span class="t"><b class="num">${fmtMin(x.min)}</b><small>${d.getMonth()+1}월 ${d.getDate()}일 ${pad(d.getHours())}:${pad(d.getMinutes())}${studyReward(x.min).xp ? ` · +${studyReward(x.min).xp} XP` : ""}</small></span><button class="btn sec xs" data-act="ln-sdel" data-id="${n.id}" data-v="${x.id}">${S.armed === "ls"+x.id ? "한 번 더" : "삭제"}</button></div>`; }).join("")}</div>` : ""}</div>
-    ${fld("sum", "핵심 요약", "이 강에서 배운 걸 3줄 이내로", 3)}
-    ${fld("key", "핵심 개념", "한 줄에 하나씩 · 개념: 뜻", 4)}
-    ${fld("think", "내 생각", "새로 알게 된 점, 이미 아는 것과의 연결, 의문", 3)}
-    ${fld("q", "복습 질문", "한 줄에 하나씩 · 질문 | 답", 3)}
-    <button class="btn big full" data-act="lc-save">저장</button>
-    <div class="lcmove"><button class="btn sec xs" data-act="lc-move" data-v="-1" ${i ? "" : "disabled"}>위로</button><button class="btn sec xs" data-act="lc-move" data-v="1" ${i < n.ch.length - 1 ? "" : "disabled"}>아래로</button><button class="link danger" data-act="lc-del">${S.armed === "lc"+ch.id ? "한 번 더 누르면 삭제돼요" : "목차 삭제"}</button></div>`);
+/* ---------- 목차 노트: 노션식 블록 에디터 ---------- */
+const BK_TYPES = [["p","텍스트","T"],["h1","제목 1","H1"],["h2","제목 2","H2"],["h3","제목 3","H3"],["ul","글머리 목록","•"],["ol","번호 목록","1."],["todo","체크박스","☐"],["quote","인용","❝"],["callout","강조 상자","!"],["code","코드","</>"],["divider","구분선","—"]];
+const BK_MD = [[/^###\s$/, "h3"], [/^##\s$/, "h2"], [/^#\s$/, "h1"], [/^[-*]\s$/, "ul"], [/^1[.)]\s$/, "ol"], [/^\[\s?\]\s$/, "todo"], [/^>\s$/, "quote"], [/^!\s$/, "callout"], [/^```\s?$/, "code"]];
+let LP = null; /* working copy of the open chapter page: {id, ch, blocks} */
+function bkSan(html){ const t = document.createElement("template"); t.innerHTML = String(html || "");
+  const ok = {B:"b", STRONG:"b", I:"i", EM:"i", U:"u", S:"s", STRIKE:"s", CODE:"code", A:"a", BR:"br"};
+  const walk = node => [...node.childNodes].map(x => { if (x.nodeType === 3) return esc(x.nodeValue); if (x.nodeType !== 1) return ""; const tg = ok[x.tagName], inner = walk(x);
+    if (!tg) return (x.tagName === "DIV" || x.tagName === "P") ? (inner ? "<br>" + inner : "") : inner; if (tg === "br") return "<br>";
+    if (tg === "a"){ const href = x.getAttribute("href") || ""; return /^https?:\/\//i.test(href) ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${inner}</a>` : inner; } return `<${tg}>${inner}</${tg}>`; }).join("");
+  return walk(t.content).replace(/^<br>/, ""); }
+function bkHtml(blocks){ let ol = {};
+  return blocks.map(b => { const ind = Math.max(0, Math.min(3, b.ind || 0)); if (b.t !== "ol") ol = Object.fromEntries(Object.entries(ol).filter(([k]) => +k < ind)); else { ol[ind] = (ol[ind] || 0) + 1; Object.keys(ol).forEach(k => { if (+k > ind) delete ol[k]; }); }
+    if (b.t === "divider") return `<div class="blk t-divider" data-b="${b.id}" style="--ind:${ind}"><hr><span class="bx" contenteditable="true" data-b="${b.id}"></span></div>`;
+    const pre = b.t === "ul" ? `<span class="bkp">•</span>` : b.t === "ol" ? `<span class="bkp num">${ol[ind]}.</span>` : b.t === "todo" ? `<button class="bkp bkchk" data-act="bk-chk" data-v="${b.id}" aria-pressed="${!!b.ck}" aria-label="체크">${b.ck ? nic("check") : ""}</button>` : b.t === "callout" ? `<span class="bkp">${nic("idea")}</span>` : "";
+    return `<div class="blk t-${b.t} ${b.ck ? "ck" : ""}" data-b="${b.id}" style="--ind:${ind}">${pre}<div class="bx" contenteditable="true" data-b="${b.id}" data-ph="${esc(b.ph || (b.t === "p" ? "'/'로 블록 선택, '# '·'- '·'[] ' 같은 단축 입력도 돼요" : BK_TYPES.find(x => x[0] === b.t)[1]))}" spellcheck="false">${b.h || ""}</div></div>`; }).join(""); }
+function viewLnPage(){
+  const n = S.mine[S.view.id], c = n && (n.ch || []).find(x => x.id === S.view.ch); if (!c) return viewLearn();
+  if (!LP || LP.id !== n.id || LP.ch !== c.id) LP = {id:n.id, ch:c.id, blocks:chBlocks(c).map(b => ({...b}))};
+  const i = n.ch.indexOf(c), {f} = ntN(n), running = n.timer && n.timer.ch === c.id, ss = (n.sessions || []).filter(x => x.ch === c.id).sort((a,b) => b.start - a.start);
+  return `<section class="lnpage"><button class="lncrumb" data-act="lp-back">${nic("book")}${esc(f.title || "학습")} <span class="num">· ${i + 1}/${n.ch.length}</span></button>
+    <input class="lptitle" id="lp-title" maxlength="120" value="${esc(c.t)}" aria-label="목차 이름">
+    <div class="lpmeta"><div class="chips">${Object.entries(LN_ST).map(([k, [l]]) => `<button class="chip" data-act="lp-st" data-v="${k}" aria-pressed="${(c.st || "todo") === k}">${l}</button>`).join("")}</div>
+      ${running ? `<span class="lnclock sm num" data-tmr="${n.id}">00:00</span><button class="btn xs" data-act="ln-stop" data-id="${n.id}">정지</button>` : `<button class="btn sec xs" data-act="ln-start" data-id="${n.id}" data-v="${c.id}">학습 시작</button>`}${c.min ? `<span class="lpmin">${fmtMin(c.min)}</span>` : ""}</div>
+    <div class="nted" id="nted">${bkHtml(LP.blocks)}</div>
+    <button class="bkadd" data-act="bk-add">+ 블록 추가</button>
+    <div class="bkbar" id="bkbar" hidden>${BK_TYPES.map(([k, l, g]) => `<button data-act="bk-type" data-v="${k}" title="${l}" aria-label="${l}">${esc(g)}</button>`).join("")}<button data-act="bk-ind" data-v="-1" title="내어쓰기" aria-label="내어쓰기">⇤</button><button data-act="bk-ind" data-v="1" title="들여쓰기" aria-label="들여쓰기">⇥</button><button data-act="bk-del" title="블록 삭제" aria-label="블록 삭제">${nic("memo")}</button></div>
+    <div class="bkmenu" id="bkmenu" hidden></div>
+    <details class="lpmore"><summary>학습 기록 · 목차 관리</summary>
+      ${ss.length ? `<div class="lcsess">${ss.map(x => { const d = new Date(x.start); return `<div class="row"><span class="t"><b class="num">${fmtMin(x.min)}</b><small>${d.getMonth()+1}월 ${d.getDate()}일 ${pad(d.getHours())}:${pad(d.getMinutes())}</small></span><button class="btn sec xs" data-act="ln-sdel" data-id="${n.id}" data-v="${x.id}">${S.armed === "ls"+x.id ? "한 번 더" : "삭제"}</button></div>`; }).join("")}</div>` : `<p class="empty-row">아직 학습 기록이 없어요.</p>`}
+      <div class="lcmove"><button class="btn sec xs" data-act="lc-move" data-v="-1" ${i ? "" : "disabled"}>위로</button><button class="btn sec xs" data-act="lc-move" data-v="1" ${i < n.ch.length - 1 ? "" : "disabled"}>아래로</button><button class="link danger" data-act="lc-del">${S.armed === "lc"+c.id ? "한 번 더 누르면 삭제돼요" : "목차 삭제"}</button></div></details>
+  </section>`;
 }
-function lnWrapSheet(c){
-  return sheetWrap("마무리", "", `<div class="field"><span class="lab">한 줄 요약</span><textarea id="lw-sum" rows="3" maxlength="2000" placeholder="전체 내용을 한 문장으로">${D("lw-sum")}</textarea></div>
-    <div class="field"><span class="lab">적용할 점</span><div class="nttask"><input type="text" id="lw-apply" maxlength="200" placeholder="예: 매주 데이터 리포트 1개 만들기" value="${D("lw-apply")}"><button class="btn sec xs" data-act="lw-send">보내기</button></div></div>
-    <button class="btn big full" data-act="lw-save">저장</button>`);
-}
+/* caret helpers (text offset inside one block) */
+function caretOff(el){ const sel = getSelection(); if (!sel.rangeCount) return 0; const r = sel.getRangeAt(0); if (!el.contains(r.startContainer)) return 0; const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(r.startContainer, r.startOffset); return pre.toString().length; }
+function setCaret(el, off){ if (!el) return; el.focus(); const sel = getSelection(), r = document.createRange(); let left = off == null ? Infinity : off, node = null, pos = 0;
+  const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); while (tw.nextNode()){ const t = tw.currentNode; if (left <= t.length){ node = t; pos = left; break; } left -= t.length; }
+  if (node) r.setStart(node, pos); else { r.selectNodeContents(el); r.collapse(false); } r.collapse(true); sel.removeAllRanges(); sel.addRange(r); }
+const bxOf = id => document.querySelector(`#nted .bx[data-b="${id}"]`);
+const bkIdx = id => LP.blocks.findIndex(b => b.id === id);
+function bkSync(){ document.querySelectorAll("#nted .bx").forEach(el => { const b = LP.blocks[bkIdx(el.dataset.b)]; if (b && b.t !== "divider") b.h = bkSan(el.innerHTML); }); }
+let bkT = 0;
+function bkSave(now){ clearTimeout(bkT); const go0 = () => { if (!LP) return; bkSync(); const n = S.mine[LP.id]; if (!n) return; const t0 = ($("#lp-title") || {}).value;
+  const ch = n.ch.map(x => x.id === LP.ch ? {...x, blocks:LP.blocks.map(({id, t, h, ind, ck, ph}) => ({id, t, h, ...(ind ? {ind} : {}), ...(ck ? {ck} : {}), ...(ph && !h ? {ph} : {})})), ...(t0 && t0.trim() ? {t:t0.trim().slice(0, 120)} : {}), at:x.at || today()} : x);
+  api.putMine(LP.id, {...n, ch, updatedAt:Date.now()}).catch(e => toast(esc(e.message || "저장하지 못했어요"))); };
+  if (now) go0(); else bkT = setTimeout(go0, 500); }
+function bkRedraw(focusId, off){ const ed = $("#nted"); if (!ed) return; ed.innerHTML = bkHtml(LP.blocks); if (focusId) setCaret(bxOf(focusId), off); }
+function bkSetType(id, t){ bkSync(); const b = LP.blocks[bkIdx(id)]; if (!b) return; const off = caretOff(bxOf(id) || document.body);
+  if (t === "divider"){ b.t = "divider"; b.h = ""; const nb = {id:uid8(), t:"p", h:""}; LP.blocks.splice(bkIdx(id) + 1, 0, nb); bkRedraw(nb.id, 0); }
+  else { b.t = t; delete b.ph; if (t !== "todo") delete b.ck; bkRedraw(id, off); } bkSave(); }
+function bkMenu(id, q){ const m = $("#bkmenu"), el = bxOf(id); if (!m || !el) return; const list = BK_TYPES.filter(([k, l]) => !q || l.includes(q) || k.startsWith(q.toLowerCase())); if (!list.length){ m.hidden = true; return; }
+  S.bkMenu = {id, sel:0, list:list.map(x => x[0])}; m.innerHTML = list.map(([k, l, g], i) => `<button data-act="bk-pick" data-v="${k}" class="${i ? "" : "on"}"><span>${esc(g)}</span>${l}</button>`).join("");
+  const r = el.getBoundingClientRect(), pr = $("#nted").getBoundingClientRect(); m.style.top = (r.bottom - pr.top + 4) + "px"; m.hidden = false; }
+const bkMenuClose = () => { const m = $("#bkmenu"); if (m) m.hidden = true; S.bkMenu = null; };
+function bkPick(t){ const mm = S.bkMenu; if (!mm) return; const el = bxOf(mm.id); if (el) el.innerHTML = ""; bkMenuClose(); bkSetType(mm.id, t); }
+document.addEventListener("focusin", e => { const bx = e.target.closest && e.target.closest("#nted .bx"); const bar = $("#bkbar"); if (bx){ S.bkCur = bx.dataset.b; if (bar) bar.hidden = false; } });
+document.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("#nted")){ setTimeout(() => { const a = document.activeElement; if (!(a && a.closest && a.closest("#nted"))){ const bar = $("#bkbar"); if (bar) bar.hidden = true; bkMenuClose(); bkSave(true); if (S.lpPending){ S.lpPending = false; schedule(); } } }, 0); }
+  if (e.target.id === "lp-title") bkSave(true); });
+document.addEventListener("pointerdown", e => { if (e.target.closest && e.target.closest("#bkbar, #bkmenu")) e.preventDefault(); });
+document.addEventListener("input", e => { const bx = e.target.closest && e.target.closest("#nted .bx"); if (!bx || !LP) return; const id = bx.dataset.b, b = LP.blocks[bkIdx(id)]; if (!b) return;
+  const tx = bx.textContent.replace(/ /g, " ");
+  if (b.t !== "code"){ for (const [re, t] of BK_MD) if (re.test(tx) && (b.t === "p" || t === "todo")){ bx.innerHTML = ""; bkSetType(id, t); return; }
+    if (tx === "---"){ bx.innerHTML = ""; bkSetType(id, "divider"); return; } }
+  if (tx.startsWith("/") && !tx.includes(" ") && tx.length <= 8) bkMenu(id, tx.slice(1)); else bkMenuClose();
+  bkSave(); });
+document.addEventListener("paste", e => { const bx = e.target.closest && e.target.closest("#nted .bx"); if (!bx || !LP) return; e.preventDefault(); const t = (e.clipboardData || window.clipboardData)?.getData("text") || "";
+  const lines = t.replace(/\r/g, "").split("\n"); if (lines.length < 2){ document.execCommand("insertText", false, t); return; }
+  bkSync(); const id = bx.dataset.b, i = bkIdx(id), parse = l => { const m = l.match(/^(\s*)(#{1,3}\s|[-*]\s|\d+[.)]\s|\[\s?\]\s|\[x\]\s|>\s)?(.*)$/i), pre = (m[2] || "").trim(), ind = Math.min(3, Math.floor(m[1].length / 2));
+    const t2 = !pre ? "p" : pre[0] === "#" ? "h" + pre.length : /[-*]/.test(pre) ? "ul" : /^\d/.test(pre) ? "ol" : pre[0] === ">" ? "quote" : "todo"; return {id:uid8() + Math.random().toString(36).slice(2,5), t:t2, h:esc(m[3]), ind, ...(/\[x\]/i.test(pre) ? {ck:true} : {})}; };
+  const nb = lines.filter((l, k) => l.trim() || k < lines.length - 1).map(parse); const cur = LP.blocks[i];
+  if (cur && !bkText(cur).trim() && cur.t === "p"){ LP.blocks.splice(i, 1, ...nb); } else LP.blocks.splice(i + 1, 0, ...nb);
+  bkRedraw(nb[nb.length - 1].id); bkSave(); }, true);
+document.addEventListener("keydown", e => { const bx = e.target.closest && e.target.closest("#nted .bx"); if (!bx || !LP || e.isComposing || e.keyCode === 229) return;
+  const id = bx.dataset.b, i = bkIdx(id), b = LP.blocks[i]; if (!b) return; const mm = S.bkMenu;
+  if (mm && mm.id === id){ const m = $("#bkmenu"); if (e.key === "ArrowDown" || e.key === "ArrowUp"){ e.preventDefault(); mm.sel = (mm.sel + (e.key === "ArrowDown" ? 1 : -1) + mm.list.length) % mm.list.length; [...m.children].forEach((x, k) => x.classList.toggle("on", k === mm.sel)); return; }
+    if (e.key === "Enter"){ e.preventDefault(); bkPick(mm.list[mm.sel]); return; } if (e.key === "Escape"){ e.preventDefault(); bkMenuClose(); return; } }
+  const off = caretOff(bx), len = bx.textContent.length, collapsed = getSelection().isCollapsed;
+  if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); if (b.t === "code"){ document.execCommand("insertLineBreak"); return; } bkSync();
+    if (!bkText(b).trim() && ["ul","ol","todo","quote","callout"].includes(b.t)){ if (b.ind){ b.ind--; } else b.t = "p"; bkRedraw(id, 0); bkSave(); return; }
+    const sel = getSelection(), r = sel.getRangeAt(0), tail = document.createRange(); tail.setStart(r.endContainer, r.endOffset); tail.setEnd(bx, bx.childNodes.length);
+    const box = document.createElement("div"); box.appendChild(tail.extractContents()); b.h = bkSan(bx.innerHTML);
+    const nb = {id:uid8(), t:["ul","ol","todo"].includes(b.t) ? b.t : "p", h:bkSan(box.innerHTML), ...(b.ind && ["ul","ol","todo","p"].includes(b.t) ? {ind:b.ind} : {})};
+    LP.blocks.splice(i + 1, 0, nb); bkRedraw(nb.id, 0); bkSave(); return; }
+  if (e.key === "Backspace" && collapsed && off === 0){ bkSync();
+    if (b.ind){ e.preventDefault(); b.ind--; bkRedraw(id, 0); bkSave(); return; }
+    if (b.t !== "p"){ e.preventDefault(); b.t = "p"; delete b.ck; bkRedraw(id, 0); bkSave(); return; }
+    if (i > 0){ e.preventDefault(); const pv0 = LP.blocks[i - 1]; if (pv0.t === "divider"){ LP.blocks.splice(i - 1, 1); bkRedraw(id, 0); bkSave(); return; }
+      const at = bkText(pv0).length; pv0.h = (pv0.h || "") + (b.h || ""); LP.blocks.splice(i, 1); bkRedraw(pv0.id, at); bkSave(); return; } }
+  if (e.key === "Tab"){ e.preventDefault(); bkSync(); b.ind = Math.max(0, Math.min(3, (b.ind || 0) + (e.shiftKey ? -1 : 1))); bkRedraw(id, off); bkSave(); return; }
+  if (e.key === "ArrowUp" && off === 0 && i > 0){ e.preventDefault(); setCaret(bxOf(LP.blocks[i - 1].id)); return; }
+  if (e.key === "ArrowDown" && off >= len && i < LP.blocks.length - 1){ e.preventDefault(); setCaret(bxOf(LP.blocks[i + 1].id), 0); return; }
+});
 function lnStart(id, chId){ const n = S.mine[id]; if (!n) return; const go0 = () => { const m = S.mine[id], ch = (m.ch || []).map(x => x.id === chId && x.st === "todo" ? {...x, st:"doing"} : x); lnPut(id, {timer:{ch:chId, start:Date.now(), limit:lnLimit()}, ch}, () => toast(`학습을 시작했어요 · ${lnLimit()}분 뒤 자동 정지`)); };
-  const other = mineOf("note").find(x => x.timer); if (other) lnStop(other.id, go0); else go0(); }
-function lnStop(id, then, auto){ const n = S.mine[id]; if (!n || !n.timer) { then && then(); return; } const t = n.timer, lim = t.limit || lnLimit(), end = Math.min(Date.now(), t.start + lim * 60000), min = Math.floor((end - t.start) / 60000);
+  if (LP) bkSave(true); const other = mineOf("note").find(x => x.timer); if (other) lnStop(other.id, go0); else go0(); }
+function lnStop(id, then, auto){ const n = S.mine[id]; if (!n || !n.timer) { then && then(); return; } if (LP) bkSave(true); const m0 = S.mine[id], t = m0.timer, lim = t.limit || lnLimit(), end = Math.min(Date.now(), t.start + lim * 60000), min = Math.floor((end - t.start) / 60000);
   if (min < 1){ lnPut(id, {timer:null}, () => { toast("1분 미만은 기록하지 않아요"); then && then(); }); return; }
-  const ch = (n.ch || []).map(x => x.id === t.ch ? {...x, min:(x.min || 0) + min, at:today()} : x), r = studyReward(min);
-  if (r.xp) S.quietXp = true;
-  lnPut(id, {timer:null, ch, sessions:[...(n.sessions || []), {id:uid8(), ch:t.ch, start:t.start, min}]}, () => { toast(`${auto ? `${lim}분이 지나 자동으로 멈췄어요 · ` : ""}${fmtMin(min)} 학습 기록${r.xp ? ` <b>+${r.xp} XP · +${r.coins} 코인</b>` : " · 10분부터 보상이 쌓여요"}`, 3200); then && then(); }); }
+  const ch = (m0.ch || []).map(x => x.id === t.ch ? {...x, min:(x.min || 0) + min, at:today()} : x);
+  lnPut(id, {timer:null, ch, sessions:[...(m0.sessions || []), {id:uid8(), ch:t.ch, start:t.start, min}]}, () => { toast(`${auto ? `${lim}분이 지나 자동으로 멈췄어요 · ` : ""}${fmtMin(min)} 학습을 기록했어요`, 3000); then && then(); }); }
 setInterval(() => { for (const n of mineOf("note").filter(x => x.timer)){ const t = n.timer, L = (t.limit || lnLimit()) * 60000;
   if (Date.now() - t.start >= L){ if (!S.busy) lnStop(n.id, null, true); continue; }
   document.querySelectorAll(`[data-tmr="${n.id}"]`).forEach(el => { const s0 = Math.floor((Date.now() - t.start) / 1000); el.textContent = `${pad(Math.floor(s0 / 60))}:${pad(s0 % 60)}`; }); } }, 1000);
+/* ---------- 첨부 파일: IndexedDB (기본 저장소 용량과 분리) ---------- */
+const FDB = (() => { let p = null; const open = () => p || (p = new Promise((res, rej) => { if (typeof indexedDB === "undefined") return rej(new Error("이 브라우저는 파일 저장을 지원하지 않아요"));
+  const r = indexedDB.open("quest-files", 1); r.onupgradeneeded = () => r.result.createObjectStore("f"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
+  const tx = (mode, fn) => open().then(db => new Promise((res, rej) => { const t = db.transaction("f", mode), q = fn(t.objectStore("f")); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error || new Error("파일 저장 실패")); t.onabort = () => rej(t.error || new Error("저장 공간이 부족해요")); }));
+  return {put:(k, v) => tx("readwrite", s0 => s0.put(v, k)), get:k => tx("readonly", s0 => s0.get(k)), del:k => tx("readwrite", s0 => s0.delete(k)).catch(() => {})}; })();
+const FURL = {};
+const fileUrl = async id => FURL[id] || (FURL[id] = (async () => { const b = await FDB.get(id); return b ? URL.createObjectURL(b) : ""; })());
+const fSize = n => n >= 1048576 ? (n / 1048576).toFixed(1) + "MB" : Math.max(1, Math.round(n / 1024)) + "KB";
+const fKind = f => /^image\//.test(f.type) ? "img" : /pdf/.test(f.type) || /\.pdf$/i.test(f.name) ? "PDF" : /\.(docx?|rtf)$/i.test(f.name) ? "워드" : /\.(xlsx?|csv)$/i.test(f.name) ? "엑셀" : /\.(pptx?)$/i.test(f.name) ? "PPT" : /\.hwpx?$/i.test(f.name) ? "한글" : (f.name.split(".").pop() || "파일").toUpperCase().slice(0, 4);
+const F_ACCEPT = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.hwp,.hwpx,.txt,.md,.rtf";
+const fChip = (f, rm) => fKind(f) === "img" ? `<button class="fthumb" data-act="nt-file" data-v="${f.id}" aria-label="${esc(f.name)}"><img data-fid="${f.id}" alt="">${rm ? `<span class="frm" data-act="nf-rm" data-v="${f.id}" role="button" aria-label="첨부 삭제">×</span>` : ""}</button>`
+  : `<button class="fchip" data-act="nt-file" data-v="${f.id}"><b>${fKind(f)}</b><span>${esc(f.name)}</span><small>${fSize(f.size)}</small>${rm ? `<span class="frm" data-act="nf-rm" data-v="${f.id}" role="button" aria-label="첨부 삭제">×</span>` : ""}</button>`;
+function hydrateFiles(){ document.querySelectorAll("img[data-fid]:not([src])").forEach(img => { img.src = ""; fileUrl(img.dataset.fid).then(u => { if (u) img.src = u; else img.closest(".fthumb")?.classList.add("missing"); }); }); }
+new MutationObserver(() => { clearTimeout(hydrateFiles.t); hydrateFiles.t = setTimeout(hydrateFiles, 30); }).observe(document.body, {childList:true, subtree:true});
+async function openFile(id){ const meta = mineOf("note").flatMap(n => n.files || []).concat((S.compose && S.compose.files) || []).find(x => x.id === id); const u = await fileUrl(id).catch(() => "");
+  if (!u){ toast("파일을 찾을 수 없어요. 다른 기기나 브라우저에서 첨부한 파일일 수 있어요."); return; }
+  if (meta && fKind(meta) === "img"){ openSheet({type:"fview", id, name:meta.name, back:S.compose && S.compose.type === "note" ? S.compose : null}); return; }
+  const w = window.open(u, "_blank", "noopener"); if (w) return;
+  const a = document.createElement("a"); a.href = u; a.download = meta ? meta.name : "file"; document.body.appendChild(a); a.click(); a.remove(); }
+async function addFiles(c, list){ const files = [...(list || [])]; c.files = c.files || []; c.newFiles = c.newFiles || [];
+  for (const f of files){ if (c.files.length >= 5){ toast("파일은 자료 하나에 5개까지 첨부할 수 있어요"); break; } if (f.size > 20 * 1048576){ toast(`${esc(f.name)}: 20MB 이하 파일만 첨부할 수 있어요`); continue; }
+    const id = "f" + uid8(); try { await FDB.put(id, f); } catch (e) { toast(esc(e.message || "파일을 저장하지 못했어요")); continue; }
+    c.files.push({id, name:f.name.slice(0, 120), type:f.type || "", size:f.size}); c.newFiles.push(id); }
+  if (S.compose === c){ preserveSheetDrafts(); renderSheet(); } }
 
 /* ================= quest management (nav › 퀘스트) ================= */
 const QM = () => S.qm || (S.qm = {tab:"goal", sel:[], q:""});
@@ -1676,7 +1776,7 @@ $("#fileIn").addEventListener("change", async e => { const files = [...e.target.
 
 /* ================= sheets ================= */
 function openSheet(c){ S.compose = c; renderSheet(); }
-function closeSheet(){ if (S.compose && S.compose.dumpId){ delete S.drafts["ad-name"]; delete S.drafts["ta-name"]; } if (S.compose && (S.compose.type === "nttask" || S.compose.type === "tqpick" || S.compose.type === "ppick" || S.compose.type === "confirm") && (S.parentSheet || S.compose.type === "confirm")){ S.compose = S.parentSheet; S.parentSheet = null; } else { S.compose = null; S.parentSheet = null; } renderSheet(); }
+function closeSheet(){ if (S.compose && S.compose.type === "note" && (S.compose.newFiles || []).length){ S.compose.newFiles.forEach(FDB.del); S.compose.newFiles = []; } if (S.compose && S.compose.dumpId){ delete S.drafts["ad-name"]; delete S.drafts["ta-name"]; } if (S.compose && (S.compose.type === "nttask" || S.compose.type === "tqpick" || S.compose.type === "ppick" || S.compose.type === "confirm") && (S.parentSheet || S.compose.type === "confirm")){ S.compose = S.parentSheet; S.parentSheet = null; } else { S.compose = null; S.parentSheet = null; } renderSheet(); }
 const D = k => esc(S.drafts[k]||"");
 function difficultySelector(c,kind,field='lv') {
   const levels=kind==='quest'?HLV:TLV, selected=lvKey(c[field]||(kind==='quest'?'easy':'normal'));
@@ -1846,8 +1946,7 @@ function renderSheet(){ IXC = null;
       <p class="sect3">${l} 영역 퀘스트</p><section class="card tight">${rows || `<p class="empty-row">아직 ${l} 영역을 붙인 퀘스트가 없어요.</p>`}</section>`); }
   if (c.type === "note") return noteSheet(c);
   if (c.type === "bdsort") return bdSortSheet(c);
-  if (c.type === "lnch") return lnChapterSheet(c);
-  if (c.type === "lnwrap") return lnWrapSheet(c);
+  if (c.type === "fview") return sheetWrap(esc(c.name || "이미지"), "", `<div class="fview"><img data-fid="${c.id}" alt="${esc(c.name || "")}"></div>${c.back ? `<button class="btn sec big full" data-act="fv-back">돌아가기</button>` : ""}`);
   if (c.type === "ntsend") return ntSendSheet(c);
   if (c.type === "drawers") return drawerSheet(c);
   if (c.type === "taskadd") return sheetWrap("태스크 추가", "", `
@@ -2016,7 +2115,8 @@ function route(){
   else if (h === "#me"){ if (prev !== "profile") S.profN = 20; if (!["profile","project","post","calday","activity","settings","stats"].includes(prev)) S.profTab = "posts"; S.view = {name:"profile", uid:S.me}; }
   else if (h === "#dash") S.view = {name:"dash"};
   else if (h === "#notes") S.view = {name:"notes"};
-  else if (h === "#learn"){ if (!(S.view.name === "learn" && S.mine[S.view.id])) S.view = {name:"notes"}; }
+  else if (h === "#learn"){ if (S.view.name === "lnpage" && S.mine[S.view.id]) S.view = {name:"learn", id:S.view.id}; else if (!(S.view.name === "learn" && S.mine[S.view.id])) S.view = {name:"notes"}; LP = null; }
+  else if (h === "#lnpage"){ if (!(S.view.name === "lnpage" && S.mine[S.view.id])) S.view = {name:"notes"}; }
   else if (h === "#calday"){ if (prev !== "calday") S.view = {name:"cal"}; }
   else if ((h === "#post" && prev === "post") || (h === "#goal" && prev === "project") || (h === "#profile" && prev === "profile")) {}
   else S.view = !h || h === "#" ? {name:"dash"} : {name:"feed"};
@@ -2191,7 +2291,7 @@ document.addEventListener("click", e => {
       if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:false}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
        const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : "", period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null, tasks:[]}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:300}, profile:{}}[k] || {};
       openSheet({type:k, ...base}); return; }
-    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary","note","drawers","ntsend","lnch","lnwrap"].includes(c.type)))) closeSheet(); return;
+    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary","note","drawers","ntsend","fview"].includes(c.type)))) closeSheet(); return;
     case "sheet-close": closeSheet(); return;
     case "cset": { const f = b.dataset.f, toggle = f === "mood" || f === "projectId" || f === "parentId";
       if (["hlv","lv","alv","tlv","ntlv"].includes(f)){ preserveSheetDrafts(); c[f==='alv'||f==='tlv'?'lv':f] = lvKey(b.dataset.v); renderSheet(); return; } c[f] = toggle && c[f] === b.dataset.v ? null : (b.dataset.v || null); if (f === "cost") c.cost = +b.dataset.v; renderSheet(); return; }
@@ -2243,29 +2343,33 @@ document.addEventListener("click", e => {
     case "bd-rm": if (!S.mine[id]) return; if (S.armed !== "bx"+id){ arm("bx"+id); toast("한 번 더 누르면 삭제돼요"); break; } S.armed = null; run(() => api.delMine(id), () => toast("삭제했어요")); return;
     case "bd-step": (S.bdStep || (S.bdStep = {}))[id] = +b.dataset.v; if (c && c.type === "bdsort"){ renderSheet(); return; } break;
     case "ln-start": lnStart(id, b.dataset.v); return;
-    case "ln-stop": lnStop(id, () => { if (S.compose && S.compose.type === "lnch") renderSheet(); }); return;
+    case "ln-stop": lnStop(id); return;
     case "ln-limit": { const L = STUDY_LIMITS, i = L.indexOf(lnLimit()); LS.set("studyLimit", L[(i + 1) % L.length]); toast(`자동 정지 시간을 ${L[(i + 1) % L.length]}분으로 바꿨어요`); break; }
     case "ln-addbtn": { const el = $("#ln-add"); if (!lnAddChapters(id, el && el.value)){ toast("목차 이름을 적어 주세요"); el && el.focus && el.focus(); } return; }
-    case "ln-ch": { const n = S.mine[id], ch = n && (n.ch || []).find(x => x.id === b.dataset.v); if (!ch) return; ["sum","key","think","q"].forEach(k => S.drafts["lc-" + k] = ch[k] || ""); S.drafts["lc-t"] = ch.t; openSheet({type:"lnch", id, ch:ch.id, st:ch.st || "todo"}); return; }
-    case "lc-st": preserveSheetDrafts(); c.st = b.dataset.v; renderSheet(); return;
-    case "lc-save": { const n = S.mine[c.id]; if (!n) return; const v = {}; ["sum","key","think","q"].forEach(k => v[k] = pv("lc-" + k).trim()); const t0 = pv("lc-t").trim(); if (t0) v.t = t0.slice(0, 120);
-      lnPut(c.id, {ch:n.ch.map(x => x.id === c.ch ? {...x, ...v, st:c.st, at:x.at || (v.sum || v.think ? today() : "")} : x)}, () => { ["sum","key","think","q","t"].forEach(k => delete S.drafts["lc-" + k]); closeSheet(); toast("노트를 저장했어요"); }); return; }
-    case "lc-move": { preserveSheetDrafts(); const n = S.mine[c.id], l = [...n.ch], i = l.findIndex(x => x.id === c.ch), j = i + +b.dataset.v; if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; lnPut(c.id, {ch:l}, () => renderSheet()); return; }
-    case "lc-del": { const k = "lc" + c.ch; if (S.armed !== k){ preserveSheetDrafts(); arm(k); renderSheet(); return; } S.armed = null; const n = S.mine[c.id];
-      lnPut(c.id, {ch:n.ch.filter(x => x.id !== c.ch), sessions:(n.sessions || []).filter(x => x.ch !== c.ch), timer:n.timer && n.timer.ch === c.ch ? null : n.timer}, () => { closeSheet(); toast("목차를 삭제했어요"); }); return; }
-    case "ln-sdel": { const sid = b.dataset.v; if (S.armed !== "ls" + sid){ preserveSheetDrafts(); arm("ls" + sid); renderSheet(); return; } S.armed = null; preserveSheetDrafts(); const n = S.mine[id], x = (n.sessions || []).find(y => y.id === sid); if (!x) return;
-      lnPut(id, {sessions:n.sessions.filter(y => y.id !== sid), ch:n.ch.map(y => y.id === x.ch ? {...y, min:Math.max(0, (y.min || 0) - x.min)} : y)}, () => { renderSheet(); toast("기록을 삭제했어요"); }); return; }
-    case "ln-wrap": { const n = S.mine[id]; if (!n) return; const {f} = ntN(n); S.drafts["lw-sum"] = f.summary || ""; S.drafts["lw-apply"] = f.apply || ""; openSheet({type:"lnwrap", id}); return; }
-    case "lw-save": { const n = S.mine[c.id]; if (!n) return; const {f} = ntN(n), was = noteComplete(S, n), nf = {...f, summary:pv("lw-sum").trim(), apply:pv("lw-apply").trim()}; ["summary","apply"].forEach(k => { if (!nf[k]) delete nf[k]; });
-      run(() => api.putMine(c.id, {...n, cat:"learn", f:nf, updatedAt:Date.now()}), r => { ["lw-sum","lw-apply"].forEach(k => delete S.drafts[k]); closeSheet(); const fresh = !was && noteComplete(S, S.mine[c.id]); if (fresh && r && r.xp > 0){ S.quietXp = true; toast(`학습 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>`); } else toast("저장했어요"); }); return; }
-    case "lw-send": { const name = pv("lw-apply").trim(); if (!name){ toast("먼저 내용을 적어 주세요"); return; } const n = S.mine[c.id], {f} = ntN(n), nf = {...f, summary:pv("lw-sum").trim() || f.summary, apply:name};
-      run(() => api.putMine(c.id, {...n, cat:"learn", f:nf, updatedAt:Date.now()}), () => { ["lw-sum","lw-apply"].forEach(k => delete S.drafts[k]); openSheet({type:"ntsend", noteId:c.id, name, projectId:n.projectId && S.projects[n.projectId] ? n.projectId : null}); }); return; }
+    case "ln-ch": { const n = S.mine[id]; if (!n || !(n.ch || []).some(x => x.id === b.dataset.v)) return; LP = null; push({name:"lnpage", id, ch:b.dataset.v}, "#lnpage"); return; }
+    case "lp-back": bkSave(true); LP = null; history.length > 1 ? history.back() : (S.view = {name:"learn", id:S.view.id}, location.hash = "#learn", schedule()); return;
+    case "lp-st": { bkSave(true); const n = S.mine[S.view.id]; lnPut(n.id, {ch:S.mine[n.id].ch.map(x => x.id === S.view.ch ? {...x, st:b.dataset.v} : x)}); return; }
+    case "lc-move": { bkSave(true); const n = S.mine[S.view.id], l = [...n.ch], i = l.findIndex(x => x.id === S.view.ch), j = i + +b.dataset.v; if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; lnPut(n.id, {ch:l}); return; }
+    case "lc-del": { const k = "lc" + S.view.ch; if (S.armed !== k){ arm(k); break; } S.armed = null; const n = S.mine[S.view.id], cid = S.view.ch; LP = null;
+      S.view = {name:"lnpage", id:n.id, ch:cid}; lnPut(n.id, {ch:n.ch.filter(x => x.id !== cid), sessions:(n.sessions || []).filter(x => x.ch !== cid), timer:n.timer && n.timer.ch === cid ? null : n.timer}, () => { toast("목차를 삭제했어요"); history.back(); }); return; }
+    case "ln-sdel": { const sid = b.dataset.v; if (S.armed !== "ls" + sid){ arm("ls" + sid); break; } S.armed = null; bkSave(true); const n = S.mine[id], x = (n.sessions || []).find(y => y.id === sid); if (!x) return;
+      lnPut(id, {sessions:n.sessions.filter(y => y.id !== sid), ch:n.ch.map(y => y.id === x.ch ? {...y, min:Math.max(0, (y.min || 0) - x.min)} : y)}, () => toast("기록을 삭제했어요")); return; }
+    case "bk-chk": { bkSync(); const bl = LP && LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.ck = !bl.ck; bkRedraw(); bkSave(); return; }
+    case "bk-type": if (LP && S.bkCur) bkSetType(S.bkCur, b.dataset.v); return;
+    case "bk-pick": bkPick(b.dataset.v); return;
+    case "bk-ind": { if (!LP || !S.bkCur) return; bkSync(); const bl = LP.blocks[bkIdx(S.bkCur)]; if (!bl) return; const off = caretOff(bxOf(S.bkCur)); bl.ind = Math.max(0, Math.min(3, (bl.ind || 0) + +b.dataset.v)); bkRedraw(S.bkCur, off); bkSave(); return; }
+    case "bk-del": { if (!LP || !S.bkCur) return; bkSync(); const i = bkIdx(S.bkCur); if (i < 0) return; LP.blocks.splice(i, 1); if (!LP.blocks.length) LP.blocks.push({id:uid8(), t:"p", h:""}); const nx = LP.blocks[Math.min(i, LP.blocks.length - 1)]; bkRedraw(nx.id); bkSave(); return; }
+    case "bk-add": { if (!LP) return; bkSync(); const last = LP.blocks[LP.blocks.length - 1]; if (last && last.t === "p" && !bkText(last).trim()){ setCaret(bxOf(last.id), 0); return; } const nb = {id:uid8(), t:"p", h:""}; LP.blocks.push(nb); bkRedraw(nb.id, 0); bkSave(); return; }
+    case "nt-file": e.stopPropagation(); openFile(b.dataset.v); return;
+    case "nf-rm": { e.stopPropagation(); preserveSheetDrafts(); const fid = b.dataset.v; c.files = (c.files || []).filter(x => x.id !== fid); if ((c.newFiles || []).includes(fid)){ c.newFiles = c.newFiles.filter(x => x !== fid); FDB.del(fid); } else (c.rmFiles = c.rmFiles || []).push(fid); renderSheet(); return; }
+    case "nf-pick": { const inp = document.createElement("input"); inp.type = "file"; inp.multiple = true; inp.accept = F_ACCEPT; inp.onchange = () => addFiles(c, inp.files); inp.click(); return; }
+    case "fv-back": openSheet(c.back); return;
     case "nt-cat": S.ntCat = b.dataset.v; break;
     case "nt-new": { ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => !d.hidden) || DR[0]).k;
       openSheet({type:"note", cat, vals:{}, area:null, projectId:null}); setTimeout(() => { const x = $(".sheet input[type=text], .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
     case "nt-edit": { const n = S.mine[id]; if (!n) return; if (ntN(n).cat === "learn" && !b.dataset.info){ push({name:"learn", id}, "#learn"); return; } const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
       const vals = {}; Object.entries(f).forEach(([k, v]) => { if (k === "rating" || ["status","media","type"].includes(k)) vals[k] = v; else S.drafts["nf-" + k] = v || ""; });
-      openSheet({type:"note", id, cat, vals, area:n.area || null, projectId:n.projectId || null}); return; }
+      openSheet({type:"note", id, cat, vals, area:n.area || null, projectId:n.projectId || null, files:[...(n.files || [])]}); return; }
     case "nt-kind": preserveSheetDrafts(); c.cat = b.dataset.v; renderSheet(); return;
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
     case "nt-area": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
@@ -2295,7 +2399,7 @@ document.addEventListener("click", e => {
       run(async () => { for (const n of moved){ const {f} = ntN(n); await api.putMine(n.id, {...n, cat:"memo", f:{title:f.title || "", body:Object.entries(f).filter(([x]) => x !== "title").map(([, v]) => String(v)).join("\n")}}); }
         await api.putMine("drawers", {kind:"drawers", list:(cfg.list || []).filter(x => x.k !== k), hidden:cfg.hidden || []}); },
         () => { if (S.ntCat === k) S.ntCat = "all"; openSheet({type:"drawers"}); toast(moved.length ? `서랍을 삭제하고 자료 ${moved.length}개를 메모로 옮겼어요` : "서랍을 삭제했어요"); }); return; }
-    case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; run(() => api.delMine(id), () => { closeSheet(); toast("자료를 삭제했어요"); }); return;
+    case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; { const fs0 = (S.mine[id] && S.mine[id].files) || []; run(() => api.delMine(id), () => fs0.forEach(x => FDB.del(x.id))); } return; run(() => api.delMine(id), () => { closeSheet(); toast("자료를 삭제했어요"); }); return;
     case "bd-area": LS.set("bdOff", b.dataset.v === "off"); break;
     case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); if (c && c.type === "bdsort") renderSheet(); break; } S.armed = null; run(() => api.delMine(id), () => { if (S.compose && S.compose.type === "bdsort") closeSheet(); toast("삭제했어요"); }); return;
     case "bd-send": { const d = S.mine[id]; if (!d || !canAct()) return; const v = b.dataset.v;

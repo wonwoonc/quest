@@ -225,12 +225,11 @@ test('goal lifetime dedupe survives deletion, rename, duplicate IDs and repeated
   delta(await h.api.putProject('other',{...foreign,status:'done'}),0,0);
 });
 
-test('study sessions on a learning note pay 5 XP/coins per 10 minutes; removing a session or the note reverses it',async()=>{
-  const h=setup();const note={kind:'note',cat:'learn',f:{title:'강의'},ch:[{id:'c1',t:'1강',st:'doing'}],sessions:[]};
+test('study sessions are tracked without XP/coins; completing every chapter completes the learning note once',async()=>{
+  const h=setup();const note={kind:'note',cat:'learn',f:{title:'강의'},ch:[{id:'c1',t:'1강',st:'doing'},{id:'c2',t:'2강',st:'todo'}],sessions:[]};
   await h.api.putMine('n1',note);
-  delta(await h.api.putMine('n1',{...note,sessions:[{id:'s1',ch:'c1',start:0,min:50}]}),25,25);
-  delta(await h.api.putMine('n1',{...note,sessions:[{id:'s1',ch:'c1',start:0,min:50},{id:'s2',ch:'c1',start:1,min:9}]}),0,0);
-  delta(await h.api.putMine('n1',{...note,sessions:[{id:'s2',ch:'c1',start:1,min:9}]}),-25,-25);
-  delta(await h.api.putMine('n1',{...note,sessions:[{id:'s3',ch:'c1',start:2,min:23}]}),10,10);
-  delta(await h.api.delMine('n1'),-10,-10);
+  delta(await h.api.putMine('n1',{...note,sessions:[{id:'s1',ch:'c1',start:0,min:50}]}),0,0);
+  delta(await h.api.putMine('n1',{...note,ch:[{id:'c1',t:'1강',st:'done'},{id:'c2',t:'2강',st:'done'}]}),30,30);
+  delta(await h.api.putMine('n1',{...note,ch:[{id:'c1',t:'1강',st:'done'},{id:'c2',t:'2강',st:'done'}],f:{title:'수정'}}),0,0);
+  delta(await h.api.delMine('n1'),-30,-30);
 });

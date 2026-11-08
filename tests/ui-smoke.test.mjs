@@ -382,13 +382,12 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   // learning: detail screen with chapters (Cornell notes per chapter) and wrap-up
   h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/학습 목표/); assert.match(ov(),/\+30 XP · \+30 코인/);
   h.nodes.set('nf-title',{value:'데이터 분석 입문'}); h.click('submit-note'); await h.settle();
-  const L = notes()[0]; assert.equal(L.cat,'learn'); assert.match(app(),/목차/); assert.match(app(),/마무리/);
+  const L = notes()[0]; assert.equal(L.cat,'learn'); assert.match(app(),/목차/); assert.doesNotMatch(app(),/마무리/); assert.match(app(),/완성 조건: 모든 목차 완료/);
   h.nodes.set('ln-add',{value:'1강 OT\n2강 SQL 기초'}); h.click('ln-addbtn',{id:L.id}); await h.settle();
   const chs = () => h.snapshot().mine[L.id].ch; assert.deepEqual(chs().map(c => c.t),['1강 OT','2강 SQL 기초']);
-  for (const c of chs()){ h.click('ln-ch',{id:L.id,v:c.id}); assert.match(ov(),/핵심 개념/); assert.match(ov(),/복습 질문/);
-    h.nodes.set('lc-sum',{value:'요약 '+c.t}); h.nodes.set('lc-key',{value:'JOIN: 결합'}); h.click('lc-st',{v:'done'}); h.click('lc-save'); await h.settle(); }
-  assert.ok(chs().every(c => c.st === 'done' && c.sum)); assert.match(app(),/2\/2<\/b> 목차 완료/);
-  h.click('ln-wrap',{id:L.id}); h.nodes.set('lw-sum',{value:'SQL로 데이터를 묻는 법'}); h.nodes.set('lw-apply',{value:'매주 리포트 1개'}); h.click('lw-save'); await h.settle();
+  for (const c of chs()){ h.click('ln-ch',{id:L.id,v:c.id}); assert.match(app(),/id="nted"/); assert.match(app(),/핵심 요약/); assert.match(app(),/복습 질문/);
+    h.click('lp-st',{v:'done'}); await h.settle(); h.route('learn'); }
+  assert.ok(chs().every(c => c.st === 'done')); assert.match(app(),/2\/2 목차/);
   assert.equal(xp(),x0+30,'learning completion grants 30 XP');
   h.route('notes'); assert.match(app(),/2\/2 목차 · 100%/);
   h.click('dr-manage'); h.click('dr-edit',{v:''}); h.nodes.set('dr-l',{value:'운동 기록'}); h.click('dr-icon',{v:'dumbbell'}); h.click('dr-area',{v:'health'}); h.click('dr-save'); await h.settle();
