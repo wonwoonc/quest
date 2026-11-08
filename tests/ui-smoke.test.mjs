@@ -340,19 +340,22 @@ test('taskadd sheet orders date/time, area, quest, difficulty and saves task are
   const task = Object.values(h.snapshot().mine).find(m => m.name === '영역 태스크');
   assert.ok(task); assert.deepEqual(task.area,['health']);
 });
-test('brain dump: pour lines in, hide one, send one to task and remove it from the dump',async () => {
+test('brain dump: pour lines in, guide, hide area, send one to task, delete one',async () => {
   const h = await linkedUI(); h.route('qmanage');
   assert.ok(h.nodes.get('app').innerHTML.indexOf('브레인 덤프') < h.nodes.get('app').innerHTML.indexOf('pltabs'));
   h.nodes.set('bd-in',{value:'세탁소 들르기\n\n이상한 생각'}); h.click('bd-add'); await h.settle();
   const dumps = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'dump');
   assert.equal(dumps().length,2);
-  const odd = dumps().find(d => d.text === '이상한 생각'); h.click('bd-hide',{id:odd.id}); await h.settle();
-  assert.equal(dumps().find(d => d.id === odd.id).hidden,true);
+  h.click('toggle',{k:'bdhelp'}); assert.match(h.nodes.get('app').innerHTML,/반복해서 해야 하나요\?/);
+  h.click('bd-area',{v:'off'}); assert.ok(!h.nodes.get('app').innerHTML.includes('id="bd-in"')); assert.match(h.nodes.get('app').innerHTML,/브레인 덤프 열기/);
+  h.click('bd-area',{v:'on'}); assert.ok(h.nodes.get('app').innerHTML.includes('id="bd-in"'));
   const wash = dumps().find(d => d.text === '세탁소 들르기'); h.click('bd-send',{id:wash.id,v:'task'});
   assert.match(h.nodes.get('overlay').innerHTML,/value="세탁소 들르기"/);
   h.nodes.set('ta-name',{value:'세탁소 들르기'}); h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.name === '세탁소 들르기'));
   assert.deepEqual(dumps().map(d => d.text),['이상한 생각']);
+  const odd = dumps()[0]; h.click('bd-del',{id:odd.id}); assert.equal(dumps().length,1); h.click('bd-del',{id:odd.id}); await h.settle();
+  assert.equal(dumps().length,0);
 });
 // Inspect real rendered markup; this harness does not model browser layout.
 function taskMarkup(html,id) {
