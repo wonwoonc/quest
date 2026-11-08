@@ -1,4 +1,5 @@
 import {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, levelStart, koreaDate, economySummary, goalEligibility, CATALOG, migrateEconomy} from './economy.js';
+import {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete, noteReward} from './notes.js';
 import {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} from './day-activities.js';
 export function startLegacyApp({runtime, storage, seed = null}) {
 const entryParams = new URLSearchParams(location.search || '');
@@ -621,8 +622,9 @@ function areaXp(){
     if (c.kind === "habit") a = areasOf(S.mine[k[1]]);
     else if (c.kind === "task"){ const own = areasOf(S.mine[k[1]]); if (own.length) a = own; else { const pr = (c.projects || []).filter(id => S.projects[id]), cur = (S.mine[k[1]] || {}).projectId; a = areaUp(cur && S.projects[cur] ? cur : pr[0]); } }
     else if (c.kind === "mainDone" || c.kind === "subDone") a = areaUp(k[1]);
+    else if (c.kind === "note") a = ntArea(S.mine[k[1]]);
     /* stat points, deliberately much smaller than XP: daily 1–3, task 1–5, sub quest 5, main quest 15 */
-    const pt = c.kind === "habit" ? Math.ceil(xp / 10) : c.kind === "task" ? Math.max(1, Math.round(xp / 10)) : c.kind === "subDone" ? 5 : 15;
+    const pt = c.kind === "habit" ? Math.ceil(xp / 10) : c.kind === "note" ? Math.round(xp / 10) : c.kind === "task" ? Math.max(1, Math.round(xp / 10)) : c.kind === "subDone" ? 5 : 15;
     a.forEach(x => out[x] += pt / a.length);
   }
   return out;
@@ -835,105 +837,86 @@ function viewCal(){
 }
 
 /* ================= 자료실 (nav › 자료실): references, ideas, reading notes, study notes ================= */
-/* 7 note types, each with its own structure:
-   idea = fleeting note (capture fast, next action) · link = saved article/video with "why saved" · book = reading note (quote → thought → apply)
-   study = Cornell note (cue / notes / one-line summary) · quote = commonplace book · meeting = decisions + to-dos · memo = free form */
-const NT_CATS = [
-  {k:"idea", l:"아이디어", e:"💡", hint:"떠오른 순간 한 줄로 붙잡고, 다듬는 건 나중에 해요.", f:[
-    {k:"title", t:"text", l:"한 줄 아이디어", p:"예: 친구와 함께 깨는 레이드 퀘스트"},
-    {k:"why", t:"area", l:"왜 좋은가요?", p:"어떤 문제를 풀거나 어떤 기회를 만드나요?"},
-    {k:"next", t:"text", l:"다음 행동", p:"예: 비슷한 서비스 3개 찾아보기"}]},
-  {k:"link", l:"링크", e:"🔗", hint:"나중에 볼 글·영상. 저장한 이유를 남겨야 다시 찾게 돼요.", f:[
-    {k:"url", t:"url", l:"링크", p:"https://..."},
-    {k:"media", t:"choice", l:"종류", o:["글","영상","강의","팟캐스트","SNS"]},
-    {k:"title", t:"text", l:"제목", p:"예: 아침 루틴을 바꾼 5가지 습관"},
-    {k:"summary", t:"area", l:"핵심 요약", p:"3줄 이내로 적어요"},
-    {k:"why", t:"text", l:"저장한 이유", p:"예: 다음 달 발표 자료에 인용"}]},
-  {k:"book", l:"독서", e:"📖", hint:"밑줄 → 내 생각 → 적용할 점 순서로 남기면 읽은 게 남아요.", f:[
-    {k:"title", t:"text", l:"책 제목", p:"예: 아주 작은 습관의 힘"},
-    {k:"author", t:"text", l:"저자", p:"예: 제임스 클리어"},
-    {k:"status", t:"choice", l:"상태", o:["읽고 싶음","읽는 중","완독"]},
-    {k:"rating", t:"stars", l:"별점"},
-    {k:"quote", t:"area", l:"밑줄 친 문장", p:"마음에 남은 문장을 그대로"},
-    {k:"think", t:"area", l:"내 생각", p:"왜 이 문장이 남았나요?"},
-    {k:"apply", t:"text", l:"적용할 점", p:"예: 매일 아침 10분 읽기"}]},
-  {k:"study", l:"공부", e:"✏️", hint:"코넬 노트 방식이에요. 질문으로 스스로 시험하고, 한 줄로 요약해요.", f:[
-    {k:"title", t:"text", l:"주제", p:"예: SQL JOIN"},
-    {k:"notes", t:"area", l:"정리", p:"배운 내용을 내 말로"},
-    {k:"cue", t:"area", l:"핵심 질문", p:"복습할 때 스스로 물어볼 질문. 한 줄에 하나씩"},
-    {k:"summary", t:"text", l:"한 줄 요약", p:"오늘 배운 걸 한 문장으로"}]},
-  {k:"quote", l:"문장", e:"💬", hint:"책·영상·대화에서 만난 좋은 문장을 모아 두는 곳이에요.", f:[
-    {k:"quote", t:"area", l:"문장", p:"그대로 옮겨 적어요"},
-    {k:"source", t:"text", l:"출처", p:"책 · 사람 · 영상"},
-    {k:"think", t:"area", l:"내 해석", p:"나에게 어떤 의미인가요?"}]},
-  {k:"meeting", l:"회의", e:"🗓️", hint:"회의가 끝나면 결정한 것과 할 일만 남기면 돼요.", f:[
-    {k:"title", t:"text", l:"회의 주제", p:"예: 3분기 마케팅 회의"},
-    {k:"date", t:"date", l:"날짜"},
-    {k:"people", t:"text", l:"참석자", p:"예: 민지, 준호"},
-    {k:"decisions", t:"area", l:"결정한 것", p:"한 줄에 하나씩"},
-    {k:"todo", t:"area", l:"할 일", p:"한 줄에 하나씩 · 누가 언제까지"}]},
-  {k:"memo", l:"메모", e:"📝", hint:"어디에도 딱 맞지 않으면 일단 여기에 적어요.", f:[
-    {k:"title", t:"text", l:"제목", p:"선택"},
-    {k:"body", t:"area", l:"내용", p:"자유롭게 적어요"}]}];
-const ntCat = k => NT_CATS.find(x => x.k === k) || NT_CATS[NT_CATS.length - 1];
+/* drawers (서랍) and their structures live in notes.js; rewards are granted by the economy when a note first becomes complete */
 const ntUrl = v => { v = String(v || "").trim(); return !v ? "" : /^https?:\/\//i.test(v) ? v : "https://" + v; };
 const ntHost = v => { try { return new URL(v).hostname.replace(/^www\./, ""); } catch { return v; } };
-/* notes saved before typed structure (title/body/link) map onto the closest new type */
-function ntNorm(n){
-  if (n.f) return {cat:ntCat(n.cat).k, f:n.f};
-  const cat = {ref:"link", idea:"idea", book:"book", study:"study"}[n.cat] || "memo", t = n.title || "", b = n.body || "", f = {};
-  if (cat === "link") Object.assign(f, {url:n.link || "", title:t, summary:b});
-  else if (cat === "idea") Object.assign(f, {title:t, why:b});
-  else if (cat === "book") Object.assign(f, {title:t, think:b});
-  else if (cat === "study") Object.assign(f, {title:t, notes:b});
-  else Object.assign(f, {title:t, body:b});
-  if (n.link && cat !== "link"){ const k = {idea:"why", book:"think", study:"notes"}[cat] || "body"; f[k] = [f[k], n.link].filter(Boolean).join("\n"); }
-  return {cat, f};
-}
-const ntText = n => { const {f} = ntNorm(n); return Object.values(f).join(" "); };
+const ntN = n => noteNorm(S, n);
+const ntText = n => Object.values(ntN(n).f).join(" ");
 const stars = r => r ? `<span class="ntstars" aria-label="별점 ${r}점">${"★".repeat(r)}<i>${"★".repeat(5 - r)}</i></span>` : "";
 const clip = (v, n = 140) => esc(String(v || "").length > n ? String(v).slice(0, n) + "…" : String(v || ""));
+const ntArea = n => { if (!n) return []; if (n.area && AREA_KEYS.includes(n.area)) return [n.area]; const up = n.projectId ? areaUp(n.projectId) : []; if (up.length) return up; const d = noteDrawer(S, ntN(n).cat); return d && d.area ? [d.area] : []; };
+const ntTasks = n => mineOf("mission").filter(m => m.noteId === n.id);
+function ntRewardLine(d, area){
+  if (!d.pt) return "";
+  const A = AREAS.find(a => a[0] === area);
+  return `<p class="ntreward">완성하면 <b>+${d.pt * 10} XP · +${d.pt * 10} 코인</b>${A ? ` · ${A[1]} +${d.pt}` : ""}<span>완성 조건: ${esc(d.need)}</span></p>`;
+}
 function ntCard(n){
-  const {cat, f} = ntNorm(n), C = ntCat(cat), pj = n.projectId && S.projects[n.projectId], d = new Date(n.updatedAt || n.createdAt || Date.now());
+  const {cat, f} = ntN(n), C = noteDrawer(S, cat), pj = n.projectId && S.projects[n.projectId], d = new Date(n.updatedAt || n.createdAt || Date.now());
   const h3 = v => v ? `<h3>${esc(v)}</h3>` : "", p = v => v ? `<p class="ntbody">${esc(v)}</p>` : "", sub = (...xs) => { const l = xs.filter(Boolean); return l.length ? `<p class="ntsub">${l.join(" · ")}</p>` : ""; };
+  const ts = ntTasks(n), tdone = ts.length && ts.every(m => m.done), act = v => v ? `<p class="ntnext">→ ${esc(v)}${ts.length ? ` <span class="ntrun ${tdone ? "ok" : ""}">${tdone ? "✓ 실행함" : "태스크 진행 중"}</span>` : ""}</p>` : "";
   let mid = "";
-  if (cat === "idea") mid = h3(f.title) + p(f.why) + (f.next ? `<p class="ntnext">→ ${esc(f.next)}</p>` : "");
-  else if (cat === "link") mid = h3(f.title || (f.url && ntHost(f.url))) + sub(f.media && esc(f.media)) + p(f.summary) + (f.why ? `<p class="ntnext">저장 이유 · ${esc(f.why)}</p>` : "");
-  else if (cat === "book") mid = h3(f.title) + sub(f.author && esc(f.author), f.status && esc(f.status), stars(f.rating)) + (f.quote ? `<blockquote class="ntq">${clip(f.quote)}</blockquote>` : "") + p(f.think) + (f.apply ? `<p class="ntnext">→ ${esc(f.apply)}</p>` : "");
-  else if (cat === "study") mid = h3(f.title) + (f.summary ? `<p class="ntsum">${esc(f.summary)}</p>` : "") + p(f.notes) + (f.cue ? `<p class="ntnext">질문 ${String(f.cue).split("\n").filter(x => x.trim()).length}개</p>` : "");
-  else if (cat === "quote") mid = (f.quote ? `<blockquote class="ntq big">${clip(f.quote, 220)}</blockquote>` : "") + (f.source ? `<p class="ntsub">— ${esc(f.source)}</p>` : "") + p(f.think);
-  else if (cat === "meeting"){ const todo = String(f.todo || "").split("\n").filter(x => x.trim()).length;
-    mid = h3(f.title) + sub(f.date && fmtD(f.date), f.people && esc(f.people)) + p(f.decisions) + (todo ? `<p class="ntnext">할 일 ${todo}개</p>` : ""); }
-  else mid = h3(f.title) + p(f.body);
-  return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${C.e} ${C.l}</span><small class="num">${d.getMonth()+1}.${d.getDate()}</small></div>${mid}
-    ${(cat === "link" && f.url) || pj ? `<div class="ntmeta">${cat === "link" && f.url ? `<a class="ntlink" href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(ntHost(f.url))}</a>` : ""}${pj ? `<span>🎯 ${esc(pj.title)}</span>` : ""}</div>` : ""}</article>`;
+  if (cat === "idea") mid = h3(f.title) + p(f.why) + act(f.next);
+  else if (cat === "ref") mid = h3(f.title || (f.url && ntHost(f.url))) + sub(f.media && esc(f.media)) + p(f.summary) + (f.why ? `<p class="ntnext">저장 이유 · ${esc(f.why)}</p>` : "");
+  else if (cat === "learn") mid = h3(f.title) + sub(f.type && esc(f.type), f.author && esc(f.author), f.status && esc(f.status), stars(f.rating)) + (f.quote ? `<blockquote class="ntq">${clip(f.quote)}</blockquote>` : "") + p(f.think) + act(f.apply);
+  else if (cat === "memo") mid = h3(f.title) + p(f.body);
+  else mid = h3(f.title) + sub(f.status && esc(f.status), f.date && fmtD(f.date), stars(f.rating)) + p(f.summary || f.body) + p(f.think) + act(f.apply);
+  const done = noteComplete(S, n), A = AREAS.find(a => a[0] === ntArea(n)[0]);
+  return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${C.e} ${esc(C.l)}</span>${done ? `<span class="ntdone">✓ 완성${A ? ` · ${A[1]}` : ""}</span>` : ""}<small class="num">${d.getMonth()+1}.${d.getDate()}</small></div>${mid}
+    ${(f.url) || pj ? `<div class="ntmeta">${f.url ? `<a class="ntlink" href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(ntHost(f.url))}</a>` : ""}${pj ? `<span>🎯 ${esc(pj.title)}</span>` : ""}</div>` : ""}</article>`;
 }
 function viewNotes(){
   if (!hasProfile()) return viewToday();
-  const all = mineOf("note").sort((a,b) => (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0)), cat = S.ntCat || "all", q = (S.ntQ || "").trim().toLowerCase();
-  const inCat = all.filter(n => cat === "all" || ntNorm(n).cat === cat);
+  const DR = noteDrawers(S), all = mineOf("note").sort((a,b) => (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0)), cat = DR.some(d => d.k === S.ntCat) ? S.ntCat : "all", q = (S.ntQ || "").trim().toLowerCase();
+  const inCat = all.filter(n => cat === "all" || ntN(n).cat === cat);
   const list = q ? inCat.filter(n => (ntText(n) + " " + (n.projectId && S.projects[n.projectId] ? S.projects[n.projectId].title : "")).toLowerCase().includes(q)) : inCat;
   const chip = (k, l, n) => `<button class="chip" data-act="nt-cat" data-v="${k}" aria-pressed="${cat === k}">${l}${n ? ` <span class="num">${n}</span>` : ""}</button>`;
   return `<div class="nttools"><input type="search" id="nt-q" placeholder="자료 검색" value="${esc(S.ntQ || "")}" aria-label="자료 검색"><button class="btn" data-act="nt-new">+ 자료 추가</button></div>
-    <div class="chips ntcats">${chip("all", "전체", all.length)}${NT_CATS.map(C => chip(C.k, `${C.e} ${C.l}`, all.filter(n => ntNorm(n).cat === C.k).length)).join("")}</div>
-    ${list.length ? `<div class="ntgrid">${list.map(ntCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : all.length ? "이 분류에는 아직 자료가 없어요" : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : cat !== "all" ? esc(ntCat(cat).hint) : "아이디어, 링크, 독서, 공부, 좋은 문장, 회의 기록을 한곳에 모아 두세요."}</section>`}`;
+    <div class="chips ntcats" role="group" aria-label="서랍">${chip("all", "전체", all.length)}${DR.filter(d => !d.hidden || d.k === cat).map(d => chip(d.k, `${d.e} ${esc(d.l)}`, all.filter(n => ntN(n).cat === d.k).length)).join("")}<button class="chip ntmng" data-act="dr-manage">+ 서랍</button></div>
+    ${list.length ? `<div class="ntgrid">${list.map(ntCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : all.length ? "이 서랍은 아직 비어 있어요" : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : cat !== "all" ? esc(noteDrawer(S, cat).hint) : "아이디어, 참고자료, 학습 기록, 메모를 서랍에 나눠 담아 두세요."}</section>`}`;
 }
 function noteSheet(c){
-  const n = c.id && S.mine[c.id], C = ntCat(c.cat), gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done").sort((a,b) => (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0) || (a.createdAt||0) - (b.createdAt||0));
+  const n = c.id && S.mine[c.id], C = noteDrawer(S, c.cat), gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done").sort((a,b) => (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0) || (a.createdAt||0) - (b.createdAt||0));
   const field = x => { const id = "nf-" + x.k, lab = `<span class="lab">${x.l}</span>`, v = (c.vals || {})[x.k];
-    if (x.t === "area") return `<div class="field">${lab}<textarea id="${id}" rows="${x.k === "notes" || x.k === "body" ? 6 : 3}" maxlength="10000" placeholder="${x.p}">${D(id)}</textarea></div>`;
+    if (x.t === "area") return `<div class="field">${lab}<textarea id="${id}" rows="${x.k === "body" ? 6 : 3}" maxlength="10000" placeholder="${x.p}">${D(id)}</textarea></div>`;
     if (x.t === "choice") return `<div class="field">${lab}<div class="chips">${x.o.map(o => `<button class="chip" data-act="nt-val" data-f="${x.k}" data-v="${o}" aria-pressed="${v === o}">${o}</button>`).join("")}</div></div>`;
     if (x.t === "stars") return `<div class="field">${lab}<div class="ntrate">${[1,2,3,4,5].map(i => `<button data-act="nt-val" data-f="${x.k}" data-v="${i}" aria-label="${i}점" aria-pressed="${(v||0) >= i}">★</button>`).join("")}</div></div>`;
-    return `<div class="field">${lab}<input type="${x.t === "url" ? "url" : x.t === "date" ? "date" : "text"}" id="${id}" maxlength="${x.t === "url" ? 500 : 200}" ${x.p ? `placeholder="${x.p}"` : ""} value="${D(id)}"></div>`; };
+    const inp = `<input type="${x.t === "url" ? "url" : x.t === "date" ? "date" : "text"}" id="${id}" maxlength="${x.t === "url" ? 500 : 200}" ${x.p ? `placeholder="${x.p}"` : ""} value="${D(id)}">`;
+    return `<div class="field">${lab}${x.task ? `<div class="nttask">${inp}<button class="btn sec xs" data-act="nt-task" data-f="${x.k}">태스크로 보내기</button></div>` : inp}</div>`; };
+  const area = c.area || ntArea({...(n || {}), kind:"note", cat:c.cat, f:{}, area:null, projectId:c.projectId})[0] || null;
   return sheetWrap(n ? "자료 수정" : "자료 추가", "", `
-    <div class="chips ntkinds" role="group" aria-label="분류">${NT_CATS.map(K => `<button class="chip" data-act="nt-kind" data-v="${K.k}" aria-pressed="${c.cat === K.k}">${K.e} ${K.l}</button>`).join("")}</div>
-    <p class="hint nthint">${C.hint}</p>
+    <div class="chips ntkinds" role="group" aria-label="서랍">${noteDrawers(S).filter(d => !d.hidden || d.k === c.cat).map(K => `<button class="chip" data-act="nt-kind" data-v="${K.k}" aria-pressed="${c.cat === K.k}">${K.e} ${esc(K.l)}</button>`).join("")}</div>
+    <p class="hint nthint">${esc(C.hint)}</p>
     ${C.f.map(field).join("")}
+    ${C.pt ? `<div class="field"><span class="lab">능력치 <span class="hint">선택 · 비우면 ${area ? "연결한 퀘스트나 서랍 기본값을 따라요" : "능력치 점수 없이 XP · 코인만 받아요"}</span></span><div class="chips">${AREAS.map(([k,nm]) => `<button class="chip achip" data-act="nt-area" data-v="${k}" aria-pressed="${c.area === k}">${aIcon(k)}${nm}</button>`).join("")}</div></div>` : ""}
     ${gs.length ? `<div class="field"><span class="lab">연결할 퀘스트 <span class="hint">선택</span></span><div class="chips">${gs.map(p => `<button class="chip" data-act="cset" data-f="projectId" data-v="${p.id}" aria-pressed="${c.projectId === p.id}">${p.parentId ? "🔗" : "🎯"} ${esc(p.title)}</button>`).join("")}</div></div>` : ""}
+    ${n && noteComplete(S, n) ? `<p class="ntreward done">✓ 완성한 자료예요. 보상은 이미 받았어요.</p>` : ntRewardLine(C, area)}
     <button class="btn big full" data-act="submit-note" ${S.busy ? "disabled" : ""}>저장</button>
     ${n ? `<button class="link danger ntdel" data-act="nt-del" data-id="${n.id}">${S.armed === "nd"+n.id ? "한 번 더 누르면 삭제돼요" : "삭제"}</button>` : ""}`);
 }
-const NT_KEYS = [...new Set(NT_CATS.flatMap(C => C.f.filter(x => !["choice","stars"].includes(x.t)).map(x => "nf-" + x.k)))];
+const ntKeys = () => [...new Set(noteDrawers(S).flatMap(C => C.f.filter(x => !["choice","stars"].includes(x.t)).map(x => "nf-" + x.k)))];
+/* collects the open note sheet; resolves to the saved note id or null */
+function saveNote(c, after){
+  const C = noteDrawer(S, c.cat), f = {};
+  C.f.forEach(x => { const v = ["choice","stars"].includes(x.t) ? (c.vals || {})[x.k] : pv("nf-" + x.k).trim(); if (v) f[x.k] = x.t === "url" ? ntUrl(v) : v; });
+  if (!Object.keys(f).some(k => !["media","status","rating","date","type"].includes(k))){ toast("내용을 하나 이상 적어 주세요"); return; }
+  const old = c.id && S.mine[c.id], key = old ? c.id : "nt"+uid8(), now = Date.now(), was = old && noteComplete(S, old);
+  run(() => api.putMine(key, {kind:"note", cat:C.k, f, area:c.area || null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); after(key, r, !was && noteComplete(S, S.mine[key])); });
+}
+/* drawer manager + editor */
+function drawerSheet(c){
+  const cfg = S.mine.drawers || {}, DR = noteDrawers(S);
+  if (c.edit != null){ const sel = c.fields || [];
+    return sheetWrap(c.edit ? "서랍 수정" : "새 서랍", "", `
+      <div class="field drname"><input type="text" id="dr-e" maxlength="2" placeholder="🗂️" value="${D("dr-e")}" aria-label="이모지"><input type="text" id="dr-l" maxlength="12" placeholder="서랍 이름 · 예: 운동 기록" value="${D("dr-l")}" aria-label="서랍 이름"></div>
+      <div class="field"><span class="lab">입력 칸 <span class="hint">누른 순서대로 보여요</span></span><div class="chips">${NOTE_POOL.map(x => { const i = sel.indexOf(x.k); return `<button class="chip" data-act="dr-field" data-v="${x.k}" aria-pressed="${i >= 0}">${i >= 0 ? `<b class="num">${i+1}</b> ` : ""}${x.l}</button>`; }).join("")}</div></div>
+      <div class="field"><span class="lab">기본 능력치 <span class="hint">선택</span></span><div class="chips">${AREAS.map(([k,nm]) => `<button class="chip achip" data-act="dr-area" data-v="${k}" aria-pressed="${c.area === k}">${aIcon(k)}${nm}</button>`).join("")}</div></div>
+      <p class="ntreward">모든 칸을 채우면 완성 · <b>+10 XP · +10 코인</b>${c.area ? ` · ${AREAS.find(a => a[0] === c.area)[1]} +1` : ""}</p>
+      <button class="btn big full" data-act="dr-save">저장</button>
+      ${c.edit ? `<button class="link danger ntdel" data-act="dr-del">${S.armed === "dd"+c.edit ? "한 번 더 누르면 삭제돼요 · 자료는 메모로 옮겨져요" : "서랍 삭제"}</button>` : ""}`); }
+  const row = d => `<div class="row drrow"><span class="t"><b>${d.e} ${esc(d.l)}</b><small>${d.custom ? `직접 만든 서랍 · ${d.f.map(x => x.l).join(" · ") || "칸 없음"}` : d.hint}</small></span>${d.custom ? `<button class="btn sec xs" data-act="dr-edit" data-v="${d.k}">수정</button>` : `<button class="btn sec xs" data-act="dr-hide" data-v="${d.k}">${d.hidden ? "보이기" : "숨기기"}</button>`}</div>`;
+  return sheetWrap("서랍 관리", "", `<section class="qlist drlist">${DR.map(row).join("")}</section><button class="btn big full" data-act="dr-edit" data-v="">+ 새 서랍 만들기</button>`);
+}
 
 /* ================= quest management (nav › 퀘스트) ================= */
 const QM = () => S.qm || (S.qm = {tab:"goal", sel:[], q:""});
@@ -1752,6 +1735,7 @@ function renderSheet(){ IXC = null;
     return sheetWrap(`${n} · ${l}`, "", `<div class="aihead"><span class="aiic">${aIcon(k)}</span><p class="aidesc">${AREA_DESC[k]}</p></div>
       <p class="sect3">${l} 영역 퀘스트</p><section class="card tight">${rows || `<p class="empty-row">아직 ${l} 영역을 붙인 퀘스트가 없어요.</p>`}</section>`); }
   if (c.type === "note") return noteSheet(c);
+  if (c.type === "drawers") return drawerSheet(c);
   if (c.type === "taskadd") return sheetWrap("태스크 추가", "", `
     <div class="field"><input type="text" id="ta-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ta-name")}" aria-label="태스크 이름"></div>
     ${dueField(c)}
@@ -2092,7 +2076,7 @@ document.addEventListener("click", e => {
       if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:false}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
        const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : "", period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null, tasks:[]}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:300}, profile:{}}[k] || {};
       openSheet({type:k, ...base}); return; }
-    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary","note"].includes(c.type)))) closeSheet(); return;
+    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary","note","drawers"].includes(c.type)))) closeSheet(); return;
     case "sheet-close": closeSheet(); return;
     case "cset": { const f = b.dataset.f, toggle = f === "mood" || f === "projectId" || f === "parentId";
       if (["hlv","lv","alv","tlv","ntlv"].includes(f)){ preserveSheetDrafts(); c[f==='alv'||f==='tlv'?'lv':f] = lvKey(b.dataset.v); renderSheet(); return; } c[f] = toggle && c[f] === b.dataset.v ? null : (b.dataset.v || null); if (f === "cost") c.cost = +b.dataset.v; renderSheet(); return; }
@@ -2135,7 +2119,7 @@ document.addEventListener("click", e => {
     case "dpclear": c[b.dataset.k] = ""; c._dp = null; renderSheet(); return;
     case "taskadd": { delete S.drafts["tm-in"]; if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"taskadd", lv:"normal", due:b.dataset.d || "", time:b.dataset.tm || "", period:"", projectId:pid || null}); setTimeout(() => { const x = $("#ta-name"); x && x.focus(); }, 50); return; }
     case "submit-taskadd": { if (!readTime(c)) return; const name = ($("#ta-name").value||"").trim(); if (!name){ toast("태스크 이름을 적어 주세요"); $("#ta-name").focus(); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } const pj = c.projectId || null;
-      run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", area:(c.area||[]).slice(0,2), due:c.due||"", time:c.due ? (c.time||"") : "", period:"", today:false, projectId:pj, done:false, createdAt:Date.now()}), () => { delete S.drafts["ta-name"]; closeSheet(); dumpDone(c); toast("✅ 태스크를 추가했어요"); if (pj) syncProgress(pj); }); return; }
+      run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", area:(c.area||[]).slice(0,2), due:c.due||"", time:c.due ? (c.time||"") : "", period:"", today:false, projectId:pj, ...(c.noteId ? {noteId:c.noteId} : {}), done:false, createdAt:Date.now()}), () => { delete S.drafts["ta-name"]; closeSheet(); dumpDone(c); toast("✅ 태스크를 추가했어요"); if (pj) syncProgress(pj); }); return; }
     case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
     case "pl-mode": QM().mode = b.dataset.v; QM().sel = []; break;
     case "pl-tab": QM().ptab = b.dataset.v; break;
@@ -2143,18 +2127,36 @@ document.addEventListener("click", e => {
       const at = Date.now(); run(async () => { let i = 0; for (const t of lines) await api.putMine("bd"+uid8()+(i), {kind:"dump", text:t.slice(0,200), hidden:false, createdAt:at+(i++)}); }, () => { delete S.drafts["bd-in"]; toast(`🧠 ${lines.length}개를 털어 넣었어요`); }); return; }
     case "bd-step": (S.bdStep || (S.bdStep = {}))[id] = +b.dataset.v; break;
     case "nt-cat": S.ntCat = b.dataset.v; break;
-    case "nt-new": { NT_KEYS.forEach(k => delete S.drafts[k]); const cat = S.ntCat && S.ntCat !== "all" ? S.ntCat : "idea"; if (cat === "meeting") S.drafts["nf-date"] = today();
-      openSheet({type:"note", cat, vals:{}, projectId:null}); setTimeout(() => { const x = $(".sheet input:not([type=hidden]), .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
-    case "nt-edit": { const n = S.mine[id]; if (!n) return; const {cat, f} = ntNorm(n); NT_KEYS.forEach(k => delete S.drafts[k]);
-      const vals = {}; ntCat(cat).f.forEach(x => { if (["choice","stars"].includes(x.t)) vals[x.k] = f[x.k]; else S.drafts["nf-" + x.k] = f[x.k] || ""; });
-      openSheet({type:"note", id, cat, vals, projectId:n.projectId || null}); return; }
-    case "nt-kind": preserveSheetDrafts(); c.cat = b.dataset.v; if (c.cat === "meeting" && !S.drafts["nf-date"]) S.drafts["nf-date"] = today(); renderSheet(); return;
+    case "nt-new": { ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => !d.hidden) || DR[0]).k;
+      openSheet({type:"note", cat, vals:{}, area:null, projectId:null}); setTimeout(() => { const x = $(".sheet input[type=text], .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
+    case "nt-edit": { const n = S.mine[id]; if (!n) return; const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
+      const vals = {}; Object.entries(f).forEach(([k, v]) => { if (k === "rating" || ["status","media","type"].includes(k)) vals[k] = v; else S.drafts["nf-" + k] = v || ""; });
+      openSheet({type:"note", id, cat, vals, area:n.area || null, projectId:n.projectId || null}); return; }
+    case "nt-kind": preserveSheetDrafts(); c.cat = b.dataset.v; renderSheet(); return;
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
-    case "submit-note": { const C = ntCat(c.cat), f = {};
-      C.f.forEach(x => { const v = ["choice","stars"].includes(x.t) ? (c.vals || {})[x.k] : pv("nf-" + x.k).trim(); if (v) f[x.k] = x.t === "url" ? ntUrl(v) : v; });
-      if (!Object.keys(f).some(k => !["media","status","rating","date"].includes(k))){ toast("내용을 하나 이상 적어 주세요"); return; }
-      const old = c.id && S.mine[c.id], key = old ? c.id : "nt"+uid8(), now = Date.now();
-      run(() => api.putMine(key, {kind:"note", cat:C.k, f, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), () => { NT_KEYS.forEach(k => delete S.drafts[k]); closeSheet(); toast(old ? "자료를 저장했어요" : "📚 자료실에 담았어요"); }); return; }
+    case "nt-area": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
+    case "submit-note": saveNote(c, (key, r, fresh) => { closeSheet(); if (fresh && r && r.xp > 0) S.quietXp = true; toast(fresh && r && r.xp > 0 ? `✨ 자료 완성! +${r.xp} XP · +${r.coins} 코인` : c.id ? "자료를 저장했어요" : "📚 자료실에 담았어요"); }); return;
+    case "nt-task": { const name = pv("nf-" + b.dataset.f).trim(); if (!name){ toast("먼저 내용을 적어 주세요"); return; } const pj = c.projectId || null;
+      saveNote(c, (key, r, fresh) => { delete S.drafts["tm-in"]; S.drafts["ta-name"] = name; openSheet({type:"taskadd", lv:"normal", due:"", time:"", period:"", projectId:pj && S.projects[pj] ? pj : null, noteId:key}); if (fresh && r && r.xp > 0){ S.quietXp = true; toast(`✨ 자료 완성! +${r.xp} XP · +${r.coins} 코인`); } }); return; }
+    case "dr-manage": openSheet({type:"drawers"}); return;
+    case "dr-edit": { const v = b.dataset.v, d = v && (S.mine.drawers?.list || []).find(x => x.k === v); S.drafts["dr-e"] = d ? d.e : ""; S.drafts["dr-l"] = d ? d.l : "";
+      const nc = {type:"drawers", edit:v || "", fields:d ? [...(d.fields || [])] : ["title","body"], area:d ? d.area || null : null}; openSheet(nc); return; }
+    case "dr-field": { preserveSheetDrafts(); const v = b.dataset.v; c.fields = c.fields.includes(v) ? c.fields.filter(x => x !== v) : [...c.fields, v]; renderSheet(); return; }
+    case "dr-area": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
+    case "dr-hide": { const cfg = S.mine.drawers || {}, h = cfg.hidden || [], v = b.dataset.v; const nh = h.includes(v) ? h.filter(x => x !== v) : [...h, v];
+      if (nh.length >= 4 && !(cfg.list || []).length){ toast("서랍을 하나는 남겨 주세요"); return; }
+      run(() => api.putMine("drawers", {kind:"drawers", list:cfg.list || [], hidden:nh}), () => renderSheet()); return; }
+    case "dr-save": { const l = pv("dr-l").trim(), e0 = pv("dr-e").trim() || "🗂️"; if (!l){ toast("서랍 이름을 적어 주세요"); return; } if (!c.fields.length){ toast("입력 칸을 하나 이상 골라 주세요"); return; }
+      const cfg = S.mine.drawers || {}, list = [...(cfg.list || [])], DR = noteDrawers(S);
+      if (DR.some(d => d.l === l && d.k !== c.edit)){ toast("같은 이름의 서랍이 있어요"); return; }
+      const rec = {k:c.edit || "d" + uid8(), l, e:[...e0].slice(0, 2).join(""), fields:c.fields, area:c.area || null}, i = list.findIndex(x => x.k === rec.k);
+      if (i >= 0) list[i] = rec; else list.push(rec);
+      run(() => api.putMine("drawers", {kind:"drawers", list, hidden:cfg.hidden || []}), () => { ["dr-e","dr-l"].forEach(k => delete S.drafts[k]); S.ntCat = rec.k; openSheet({type:"drawers"}); toast(c.edit ? "서랍을 수정했어요" : `${rec.e} ${l} 서랍을 만들었어요`); }); return; }
+    case "dr-del": { const k = c.edit; if (S.armed !== "dd"+k){ arm("dd"+k); renderSheet(); return; } S.armed = null; const cfg = S.mine.drawers || {};
+      const moved = mineOf("note").filter(n => ntN(n).cat === k);
+      run(async () => { for (const n of moved){ const {f} = ntN(n); await api.putMine(n.id, {...n, cat:"memo", f:{title:f.title || "", body:Object.entries(f).filter(([x]) => x !== "title").map(([, v]) => String(v)).join("\n")}}); }
+        await api.putMine("drawers", {kind:"drawers", list:(cfg.list || []).filter(x => x.k !== k), hidden:cfg.hidden || []}); },
+        () => { if (S.ntCat === k) S.ntCat = "all"; openSheet({type:"drawers"}); toast(moved.length ? `서랍을 삭제하고 자료 ${moved.length}개를 메모로 옮겼어요` : "서랍을 삭제했어요"); }); return; }
     case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; run(() => api.delMine(id), () => { closeSheet(); toast("자료를 삭제했어요"); }); return;
     case "bd-area": LS.set("bdOff", b.dataset.v === "off"); break;
     case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); break; } S.armed = null; run(() => api.delMine(id), () => toast("삭제했어요")); return;

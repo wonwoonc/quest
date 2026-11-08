@@ -359,25 +359,29 @@ test('brain dump: pour lines in, inline guide, hide area, send one to task, dele
   const odd = dumps()[0]; h.click('bd-del',{id:odd.id}); assert.equal(dumps().length,1); h.click('bd-del',{id:odd.id}); await h.settle();
   assert.equal(dumps().length,0);
 });
-test('자료실: typed notes (book structure), filter, edit, legacy note mapping, delete',async () => {
-  const h = await linkedUI(); h.route('notes');
-  assert.match(h.nodes.get('nav').innerHTML,/href="#notes"/); assert.match(h.nodes.get('app').innerHTML,/자료실이 비어 있어요/);
-  for (const k of ['아이디어','링크','독서','공부','문장','회의','메모']) assert.ok(h.nodes.get('app').innerHTML.includes(k),k);
-  h.click('nt-new'); h.click('nt-kind',{v:'book'});
-  assert.match(h.nodes.get('overlay').innerHTML,/밑줄 친 문장/); assert.match(h.nodes.get('overlay').innerHTML,/적용할 점/);
-  h.nodes.set('nf-title',{value:'아주 작은 습관의 힘'}); h.nodes.set('nf-author',{value:'제임스 클리어'}); h.nodes.set('nf-quote',{value:'환경이 의지를 이긴다'});
-  h.click('nt-val',{f:'status',v:'완독'}); h.click('nt-val',{f:'rating',v:'4'});
-  h.click('submit-note'); await h.settle();
-  const notes = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'note');
-  assert.equal(notes().length,1); const n0 = notes()[0];
-  assert.equal(n0.cat,'book'); assert.equal(n0.f.author,'제임스 클리어'); assert.equal(n0.f.status,'완독'); assert.equal(n0.f.rating,4);
-  assert.match(h.nodes.get('app').innerHTML,/환경이 의지를 이긴다/);
-  h.click('nt-cat',{v:'idea'}); assert.ok(!h.nodes.get('app').innerHTML.includes('아주 작은 습관의 힘'));
-  h.click('nt-cat',{v:'book'}); assert.ok(h.nodes.get('app').innerHTML.includes('아주 작은 습관의 힘'));
-  h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-title',{value:'수정된 제목'}); h.click('submit-note'); await h.settle();
-  assert.equal(notes()[0].f.title,'수정된 제목'); assert.equal(notes()[0].f.rating,4); assert.equal(notes().length,1);
+test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once, task link, custom drawer, legacy mapping',async () => {
+  const h = await linkedUI(); h.route('notes'); const app = () => h.nodes.get('app').innerHTML, ov = () => h.nodes.get('overlay').innerHTML;
+  assert.match(h.nodes.get('nav').innerHTML,/href="#notes"/);
+  for (const k of ['아이디어','참고자료','학습','메모','+ 서랍']) assert.ok(app().includes(k),k);
+  const notes = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'note'), xp = () => balances(h.snapshot()).xp;
+  h.click('nt-new'); h.click('nt-kind',{v:'learn'});
+  assert.match(ov(),/인상 깊은 내용/); assert.match(ov(),/\+30 XP · \+30 코인/); assert.match(ov(),/지력 \+3/);
+  h.nodes.set('nf-title',{value:'아주 작은 습관의 힘'}); h.nodes.set('nf-apply',{value:'매일 아침 10분 읽기'});
+  h.click('nt-val',{f:'status',v:'진행 중'}); const x0 = xp(); h.click('submit-note'); await h.settle();
+  assert.equal(notes().length,1); assert.equal(xp(),x0,'incomplete note gives nothing');
+  const n0 = notes()[0]; h.click('nt-edit',{id:n0.id}); h.click('nt-val',{f:'status',v:'완료'}); h.click('submit-note'); await h.settle();
+  assert.equal(xp(),x0+30,'completion grants 30 XP');
+  h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-think',{value:'시스템'}); h.click('submit-note'); await h.settle();
+  assert.equal(xp(),x0+30,'editing does not re-grant');
+  assert.match(app(),/✓ 완성 · 지력/);
+  h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-apply',{value:'매일 아침 10분 읽기'}); h.click('nt-task',{f:'apply'}); await h.settle();
+  assert.match(ov(),/value="매일 아침 10분 읽기"/); h.nodes.set('ta-name',{value:'매일 아침 10분 읽기'}); h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
+  assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.noteId === n0.id)); assert.match(app(),/태스크 진행 중/);
   h.click('nt-edit',{id:n0.id}); h.click('nt-del',{id:n0.id}); h.click('nt-del',{id:n0.id}); await h.settle();
-  assert.equal(notes().length,0);
+  assert.equal(notes().length,0); assert.equal(xp(),x0,'deleting reverses the reward');
+  h.click('dr-manage'); h.click('dr-edit',{v:''}); h.nodes.set('dr-l',{value:'운동 기록'}); h.nodes.set('dr-e',{value:'🏃'}); h.click('dr-area',{v:'health'}); h.click('dr-save'); await h.settle();
+  const dr = h.snapshot().mine.drawers.list[0]; assert.equal(dr.l,'운동 기록'); assert.deepEqual(dr.fields,['title','body']); h.click('sheet-close');
+  assert.match(app(),/🏃 운동 기록/);
 });
 // Inspect real rendered markup; this harness does not model browser layout.
 function taskMarkup(html,id) {
