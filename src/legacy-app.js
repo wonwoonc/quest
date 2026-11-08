@@ -1171,14 +1171,17 @@ function viewPlan(){
 }
 /* brain dump: pour every thought in, then sort each into main / sub / daily / task, or hide it */
 const BD_KINDS = [["big","메인"],["sub","서브"],["task","태스크"],["daily","데일리"],["note","자료실"]];
-const BD_GUIDE = [["act","실행해야 하는 일인가요?","전화하기 · 보고서 쓰기 / 아니면 기억해 둘 정보·아이디어"],["big","몇 주에서 몇 달 걸리는 큰 목표인가요?","토익 850점 · 하프 마라톤 완주"],["task","오늘이나 이번 주 안에 한 번 하면 끝나나요?","세탁소 들르기 · 병원 예약하기"],["daily","반복해서 해야 하나요?","매일 물 2L 마시기 · 주 3회 운동"]];
+const BD_GUIDE = [["act","실행해야 하는 일인가요?"],["big","몇 주 이상 걸리는 목표인가요?"],["task","한 번 하면 끝나나요?"],["daily","꾸준히 반복해야 하나요?"]];
 const bdLabel = k => (BD_KINDS.find(x => x[0] === k) || [,""])[1];
 function bdGuide(d){
-  const steps = BD_GUIDE, st = (S.bdStep || {})[d.id] || 0, yn = (yes, no) => `<div class="bdqa"><button class="btn xs" ${yes}>예</button><button class="btn sec xs" ${no}>아니요</button></div>`;
-  if (st >= steps.length) return `<div class="bdq"><div class="bdqt"><b>지금은 필요 없는 생각인가요?</b></div>${yn(`data-act="bd-ask" data-id="${d.id}" data-v="drop"`, `data-act="bd-step" data-id="${d.id}" data-v="0"`)}</div>`;
-  const [k, q] = steps[st], head = `<span class="bdqn num">${st+1}/${steps.length}</span><div class="bdqt"><b>${q}</b></div>`;
-  if (k === "act") return `<div class="bdq">${head}${yn(`data-act="bd-step" data-id="${d.id}" data-v="1"`, `data-act="bd-ask" data-id="${d.id}" data-v="note"`)}</div>`;
-  return `<div class="bdq">${head}${yn(`data-act="bd-ask" data-id="${d.id}" data-v="${k}"`, `data-act="bd-step" data-id="${d.id}" data-v="${st+1}"`)}</div>`;
+  const steps = BD_GUIDE, st = (S.bdStep || {})[d.id] || 0, yn = (yes, no) => `<div class="bdqa"><button class="btn xs" ${yes}>예</button><button class="btn sec xs" ${no}>아니요</button></div>`,
+    q = (n, of, t, yes, no) => `<div class="bdq"><span class="bdqn num">${n}/${of}</span><div class="bdqt"><b>${t}</b></div>${yn(yes, no)}</div>`,
+    ask = v => `data-act="bd-ask" data-id="${d.id}" data-v="${v}"`, step = v => `data-act="bd-step" data-id="${d.id}" data-v="${v}"`;
+  /* 1 아니요 → 저장할 자료인가요? (예 자료실 / 아니요 버리기); 2~4 예 → 메인·태스크·데일리, 4 아니요 → 버리기 */
+  if (st === 9) return q(2, 2, "저장할 자료인가요?", ask("note"), ask("drop"));
+  const [k, t] = steps[Math.min(st, steps.length - 1)], i = steps.findIndex(x => x[0] === k);
+  if (k === "act") return q(1, steps.length, t, step(1), step(9));
+  return q(i + 1, steps.length, t, ask(k), i === steps.length - 1 ? ask("drop") : step(i + 1));
 }
 function brainDump(){
   if (LS.get("bdOff", false)) return `<button class="bdshow" data-act="bd-area" data-v="on">${nic("inbox")}브레인 덤프 열기</button>`;

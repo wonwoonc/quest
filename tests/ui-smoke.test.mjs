@@ -347,9 +347,10 @@ test('brain dump: pour lines in, inline guide, hide area, send one to task, dele
   const dumps = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'dump');
   assert.equal(dumps().length,2);
   const first = dumps().find(d => d.text === '세탁소 들르기'); h.click('bd-sort',{id:first.id});
-  assert.match(h.nodes.get('overlay').innerHTML,/실행해야 하는 일인가요\?/); assert.match(h.nodes.get('overlay').innerHTML,/data-act="bd-ask" data-id="[^"]+" data-v="note">아니요/); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/예\) /);
-  h.click('bd-step',{id:first.id,v:'1'}); assert.match(h.nodes.get('overlay').innerHTML,/큰 목표인가요\?/);
-  h.click('bd-step',{id:first.id,v:'4'}); assert.match(h.nodes.get('overlay').innerHTML,/지금은 필요 없는 생각인가요\?/);
+  assert.match(h.nodes.get('overlay').innerHTML,/실행해야 하는 일인가요\?/); assert.match(h.nodes.get('overlay').innerHTML,/data-act="bd-step" data-id="[^"]+" data-v="9">아니요/); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/예\) /);
+  h.click('bd-step',{id:first.id,v:'9'}); assert.match(h.nodes.get('overlay').innerHTML,/저장할 자료인가요\?/); assert.match(h.nodes.get('overlay').innerHTML,/data-v="note">예.*data-v="drop">아니요/s);
+  h.click('bd-step',{id:first.id,v:'1'}); assert.match(h.nodes.get('overlay').innerHTML,/몇 주 이상 걸리는 목표인가요\?/);
+  h.click('bd-step',{id:first.id,v:'3'}); assert.match(h.nodes.get('overlay').innerHTML,/꾸준히 반복해야 하나요\?/); assert.match(h.nodes.get('overlay').innerHTML,/data-v="drop">아니요/);
   h.click('bd-step',{id:first.id,v:'2'}); h.click('bd-ask',{id:first.id,v:'task'}); assert.match(h.nodes.get('overlay').innerHTML,/태스크로 분류할게요/);
   h.click('cfok'); assert.match(h.nodes.get('overlay').innerHTML,/태스크 추가/); h.click('sheet-close');
   h.click('bd-area',{v:'off'}); assert.ok(!h.nodes.get('app').innerHTML.includes('id="bd-in"')); assert.match(h.nodes.get('app').innerHTML,/브레인 덤프 열기/);
