@@ -3015,12 +3015,15 @@ function bkRedraw(focusId, off){ const ed = $("#nted"); if (!ed) return; ed.inne
 function bkSetType(id, t){ bkSync(); const b = LP.blocks[bkIdx(id)]; if (!b) return; const off = caretOff(bxOf(id) || document.body);
   if (t === "divider"){ b.t = "divider"; b.h = ""; const nb = {id:uid8(), t:"p", h:""}; LP.blocks.splice(bkIdx(id) + 1, 0, nb); bkRedraw(nb.id, 0); }
   else { if (t.startsWith("callout")){ b.t = "callout"; b.c = t.split("-")[1] || "g"; } else { b.t = t; delete b.c; } if (b.t !== "todo") delete b.ck; if (!/^h/.test(b.t)) delete b.fold; bkRedraw(id, off); } bkSave(); }
-function bkMenu(id, q){ const m = $("#bkmenu"), el = bxOf(id); if (!m || !el) return; const list = BK_TYPES.filter(([k, l]) => !q || l.includes(q) || k.startsWith(q.toLowerCase())); if (!list.length){ m.hidden = true; return; }
+function bkMenu(id, q){ const m = $("#bkmenu"), el = bxOf(id); if (!m || !el) return; const list = [...BK_TYPES, ...BK_ACTS].filter(([k, l]) => !q || l.includes(q) || k.startsWith(q.toLowerCase())); if (!list.length){ m.hidden = true; return; }
   S.bkMenu = {id, sel:0, list:list.map(x => x[0])}; m.innerHTML = `<p class="bkmh">블록 선택</p>` + list.map(([k, l, g], i) => `<button data-act="bk-pick" data-v="${k}" class="${i ? "" : "on"}"><span class="${k.startsWith("callout") ? "cc c-" + k.split("-")[1] : ""}">${k.startsWith("callout") ? nic(CALLOUT[k.split("-")[1]][1]) : esc(g)}</span>${l}${BK_KEYS[k] ? `<kbd>${esc(BK_KEYS[k])}</kbd>` : ""}</button>`).join("");
   const r = el.getBoundingClientRect(), pr = $("#nted").getBoundingClientRect(); m.style.top = (r.bottom - pr.top + 4) + "px"; m.hidden = false; }
-const BK_KEYS = {h1:"#", h2:"##", h3:"###", ul:"-", ol:"1.", todo:"[]", "callout-g":"!", divider:"---"};
+const BK_ACTS = [["indent","들여쓰기","⇥"],["outdent","내어쓰기","⇤"]];
+const BK_KEYS = {indent:"Tab", outdent:"Shift+Tab", h1:"#", h2:"##", h3:"###", ul:"-", ol:"1.", todo:"[]", "callout-g":"!", divider:"---"};
 const bkMenuClose = () => { const m = $("#bkmenu"); if (m) m.hidden = true; S.bkMenu = null; };
-function bkPick(t){ const mm = S.bkMenu; if (!mm) return; const el = bxOf(mm.id); if (el) el.innerHTML = ""; bkMenuClose(); bkSetType(mm.id, t); }
+function bkPick(t){ const mm = S.bkMenu; if (!mm) return; const el = bxOf(mm.id); if (el) el.innerHTML = ""; bkMenuClose();
+  if (t === "indent" || t === "outdent"){ bkSync(); const b = LP.blocks[bkIdx(mm.id)]; if (!b) return; b.ind = Math.max(0, Math.min(3, (b.ind || 0) + (t === "indent" ? 1 : -1))); bkRedraw(mm.id, 0); bkSave(); return; }
+  bkSetType(mm.id, t); }
 /* selection toolbar: bold / italic / underline / highlight / code / clear */
 function selBar(){ const bar = $("#bksel"); if (!bar || S.lnRead) { if (bar) bar.hidden = true; return; } const sel = getSelection();
   const bx = sel.rangeCount && !sel.isCollapsed && sel.anchorNode && sel.anchorNode.parentElement && sel.anchorNode.parentElement.closest("#nted .bx");
