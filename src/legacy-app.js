@@ -1012,7 +1012,7 @@ function bdGuide(d){
 function brainDump(){
   if (LS.get("bdOff", false)) return `<button class="bdshow" data-act="bd-area" data-v="on">${nic("inbox")}브레인 덤프 열기</button>`;
   const vis = mineOf("dump").sort((a,b) => (a.createdAt||0) - (b.createdAt||0)), MAX = 3, shown = S.bdAll ? vis : vis.slice(0, MAX);
-  const row = d => `<div class="bdr"><span>${esc(d.text)}</span><button class="btn sec xs" data-act="bd-sort" data-id="${d.id}">분류</button><button class="bdx" data-act="bd-rm" data-id="${d.id}" aria-label="삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-12M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/></svg></button></div>`;
+  const row = d => `<div class="bdr"><span>${esc(d.text)}</span><button class="btn sec xs" data-act="bd-sort" data-id="${d.id}">분류</button>${S.armed === "bx"+d.id ? `<button class="btn xs bdxa" data-act="bd-rm" data-id="${d.id}">삭제</button>` : `<button class="bdx" data-act="bd-rm" data-id="${d.id}" aria-label="삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-12M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/></svg></button>`}</div>`;
   return `<section class="card bdump"><div class="ch"><h2>브레인 덤프</h2>${vis.length ? `<span class="side num">${vis.length}</span>` : ""}<button class="link bdhelp" data-act="bd-area" data-v="off">숨기기</button></div>
     <div class="bdin"><input type="text" id="bd-in" maxlength="200" enterkeyhint="done" autocomplete="off" placeholder="떠오르는 생각을 적고 엔터" value="${D("bd-in")}" aria-label="브레인 덤프"><button class="bdgo" data-act="bd-add" aria-label="털어 넣기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
     ${vis.length ? `<div class="bdlist">${shown.map(row).join("")}</div>${vis.length > MAX ? `<button class="morebtn" data-act="toggle" data-k="bdall">${S.bdAll ? "접기" : `${vis.length - MAX}개 더 보기`}</button>` : ""}` : ""}
@@ -2171,8 +2171,7 @@ document.addEventListener("click", e => {
     case "pl-tab": QM().ptab = b.dataset.v; break;
     case "bd-add": { const el = $("#bd-in"); if (!bdAdd(el && el.value)){ toast("생각을 적어 주세요"); el && el.focus && el.focus(); } return; }
     case "bd-sort": openSheet({type:"bdsort", id}); return;
-    case "bd-rm": { const d = S.mine[id]; if (!d) return; run(() => api.delMine(id), () => { S.bdUndo = {id, rec:{...d}}; toast(`삭제했어요 <button class="tundo" data-act="bd-undo">되돌리기</button>`, 4500); }); return; }
-    case "bd-undo": { const u = S.bdUndo; if (!u || S.mine[u.id]) return; S.bdUndo = null; const {id:_, ...rec} = u.rec; run(() => api.putMine(u.id, rec), () => { const t = $("#toast"); t.classList.remove("show"); }); return; }
+    case "bd-rm": if (!S.mine[id]) return; if (S.armed !== "bx"+id){ arm("bx"+id); toast("한 번 더 누르면 삭제돼요"); break; } S.armed = null; run(() => api.delMine(id), () => toast("삭제했어요")); return;
     case "bd-step": (S.bdStep || (S.bdStep = {}))[id] = +b.dataset.v; if (c && c.type === "bdsort"){ renderSheet(); return; } break;
     case "nt-cat": S.ntCat = b.dataset.v; break;
     case "nt-new": { ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => !d.hidden) || DR[0]).k;

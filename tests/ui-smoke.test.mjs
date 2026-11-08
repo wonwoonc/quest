@@ -356,7 +356,7 @@ test('brain dump: pour lines in, inline guide, hide area, send one to task, dele
   h.nodes.set('ta-name',{value:'세탁소 들르기'}); h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.name === '세탁소 들르기'));
   assert.deepEqual(dumps().map(d => d.text),['이상한 생각']);
-  { const d0 = dumps()[0]; h.click('bd-rm',{id:d0.id}); await h.settle(); assert.equal(dumps().length,0); h.click('bd-undo'); await h.settle(); assert.deepEqual(dumps().map(d => d.text),['이상한 생각']); }
+  { const d0 = dumps()[0]; h.click('bd-rm',{id:d0.id}); await h.settle(); assert.equal(dumps().length,1,'first tap only arms'); assert.match(h.nodes.get('app').innerHTML,/bdxa/); }
   const odd = dumps()[0]; h.click('bd-del',{id:odd.id}); assert.equal(dumps().length,1); h.click('bd-del',{id:odd.id}); await h.settle();
   assert.equal(dumps().length,0);
 });
