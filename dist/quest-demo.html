@@ -2746,7 +2746,7 @@ const ntTasks = n => mineOf("mission").filter(m => m.noteId === n.id);
 function ntRewardLine(d, area){
   if (!d.pt) return "";
   const A = AREAS.find(a => a[0] === area);
-  return `<p class="ntreward">완성하면 <b>+${d.pt * 10} XP · +${d.pt * 10} 코인</b>${A ? ` · ${A[1]} +${d.pt}` : ""}<span>완성 조건: ${esc(d.need)}</span></p>`;
+  return `<p class="ntreward">완성하면 <b>+${d.pt * 10} XP · +${d.pt * 10} 코인</b>${A ? ` · ${A[3]} 영역(${A[1]}) +${d.pt}` : ""}<span>완성 조건: ${esc(d.need)}</span></p>`;
 }
 function ntCard(n){
   const {cat, f} = ntN(n), C = noteDrawer(S, cat), pj = n.projectId && S.projects[n.projectId], d = new Date(n.updatedAt || n.createdAt || Date.now());
@@ -2759,7 +2759,7 @@ function ntCard(n){
   else if (cat === "memo") mid = h3(f.title) + p(f.body);
   else mid = h3(f.title) + sub(f.status && esc(f.status), f.date && fmtD(f.date), stars(f.rating)) + p(f.summary || f.body) + p(f.think) + act(f.apply);
   const done = noteComplete(S, n), A = AREAS.find(a => a[0] === ntArea(n)[0]);
-  return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${C.e} ${esc(C.l)}</span>${done ? `<span class="ntdone">✓ 완성${A ? ` · ${A[1]}` : ""}</span>` : ""}<small class="num">${d.getMonth()+1}.${d.getDate()}</small></div>${mid}
+  return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${C.e} ${esc(C.l)}</span>${done ? `<span class="ntdone">✓ 완성${A ? ` · ${A[3]}` : ""}</span>` : ""}<small class="num">${d.getMonth()+1}.${d.getDate()}</small></div>${mid}
     ${(f.url) || pj ? `<div class="ntmeta">${f.url ? `<a class="ntlink" href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(ntHost(f.url))}</a>` : ""}${pj ? `<span>🎯 ${esc(pj.title)}</span>` : ""}</div>` : ""}</article>`;
 }
 function viewNotes(){
@@ -2785,7 +2785,7 @@ function noteSheet(c){
     <div class="chips ntkinds" role="group" aria-label="서랍">${noteDrawers(S).filter(d => !d.hidden || d.k === c.cat).map(K => `<button class="chip" data-act="nt-kind" data-v="${K.k}" aria-pressed="${c.cat === K.k}">${K.e} ${esc(K.l)}</button>`).join("")}</div>
     <p class="hint nthint">${esc(C.hint)}</p>
     ${C.f.map(field).join("")}
-    ${C.pt ? `<div class="field"><span class="lab">능력치 <span class="hint">선택 · 비우면 ${area ? "연결한 퀘스트나 서랍 기본값을 따라요" : "능력치 점수 없이 XP · 코인만 받아요"}</span></span><div class="chips">${AREAS.map(([k,nm]) => `<button class="chip achip" data-act="nt-area" data-v="${k}" aria-pressed="${c.area === k}">${aIcon(k)}${nm}</button>`).join("")}</div></div>` : ""}
+    ${C.pt ? `<div class="field"><span class="lab">영역 <span class="hint">선택 · 비우면 ${area ? "연결한 퀘스트나 서랍 기본값을 따라요" : "영역 점수 없이 XP · 코인만 받아요"}</span></span><div class="chips">${AREAS.map(([k,,,l]) => `<button class="chip achip" data-act="nt-area" data-v="${k}" aria-pressed="${c.area === k}">${aIcon(k)}${l}</button>`).join("")}</div></div>` : ""}
     ${gs.length ? `<div class="field"><span class="lab">연결할 퀘스트 <span class="hint">선택</span></span><div class="chips">${gs.map(p => `<button class="chip" data-act="cset" data-f="projectId" data-v="${p.id}" aria-pressed="${c.projectId === p.id}">${p.parentId ? "🔗" : "🎯"} ${esc(p.title)}</button>`).join("")}</div></div>` : ""}
     ${n && noteComplete(S, n) ? `<p class="ntreward done">✓ 완성한 자료예요. 보상은 이미 받았어요.</p>` : ntRewardLine(C, area)}
     <button class="btn big full" data-act="submit-note" ${S.busy ? "disabled" : ""}>저장</button>
@@ -2807,8 +2807,8 @@ function drawerSheet(c){
     return sheetWrap(c.edit ? "서랍 수정" : "새 서랍", "", `
       <div class="field drname"><input type="text" id="dr-e" maxlength="2" placeholder="🗂️" value="${D("dr-e")}" aria-label="이모지"><input type="text" id="dr-l" maxlength="12" placeholder="서랍 이름 · 예: 운동 기록" value="${D("dr-l")}" aria-label="서랍 이름"></div>
       <div class="field"><span class="lab">입력 칸 <span class="hint">누른 순서대로 보여요</span></span><div class="chips">${NOTE_POOL.map(x => { const i = sel.indexOf(x.k); return `<button class="chip" data-act="dr-field" data-v="${x.k}" aria-pressed="${i >= 0}">${i >= 0 ? `<b class="num">${i+1}</b> ` : ""}${x.l}</button>`; }).join("")}</div></div>
-      <div class="field"><span class="lab">기본 능력치 <span class="hint">선택</span></span><div class="chips">${AREAS.map(([k,nm]) => `<button class="chip achip" data-act="dr-area" data-v="${k}" aria-pressed="${c.area === k}">${aIcon(k)}${nm}</button>`).join("")}</div></div>
-      <p class="ntreward">모든 칸을 채우면 완성 · <b>+10 XP · +10 코인</b>${c.area ? ` · ${AREAS.find(a => a[0] === c.area)[1]} +1` : ""}</p>
+      <div class="field"><span class="lab">기본 영역 <span class="hint">선택</span></span><div class="chips">${AREAS.map(([k,,,l]) => `<button class="chip achip" data-act="dr-area" data-v="${k}" aria-pressed="${c.area === k}">${aIcon(k)}${l}</button>`).join("")}</div></div>
+      <p class="ntreward">모든 칸을 채우면 완성 · <b>+10 XP · +10 코인</b>${c.area ? (() => { const A = AREAS.find(a => a[0] === c.area); return ` · ${A[3]} 영역(${A[1]}) +1`; })() : ""}</p>
       <button class="btn big full" data-act="dr-save">저장</button>
       ${c.edit ? `<button class="link danger ntdel" data-act="dr-del">${S.armed === "dd"+c.edit ? "한 번 더 누르면 삭제돼요 · 자료는 메모로 옮겨져요" : "서랍 삭제"}</button>` : ""}`); }
   const row = d => `<div class="row drrow"><span class="t"><b>${d.e} ${esc(d.l)}</b><small>${d.custom ? `직접 만든 서랍 · ${d.f.map(x => x.l).join(" · ") || "칸 없음"}` : d.hint}</small></span>${d.custom ? `<button class="btn sec xs" data-act="dr-edit" data-v="${d.k}">수정</button>` : `<button class="btn sec xs" data-act="dr-hide" data-v="${d.k}">${d.hidden ? "보이기" : "숨기기"}</button>`}</div>`;

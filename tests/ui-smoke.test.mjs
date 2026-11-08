@@ -365,7 +365,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   for (const k of ['아이디어','참고자료','학습','메모','+ 서랍']) assert.ok(app().includes(k),k);
   const notes = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'note'), xp = () => balances(h.snapshot()).xp;
   h.click('nt-new'); h.click('nt-kind',{v:'learn'});
-  assert.match(ov(),/인상 깊은 내용/); assert.match(ov(),/\+30 XP · \+30 코인/); assert.match(ov(),/지력 \+3/);
+  assert.match(ov(),/인상 깊은 내용/); assert.match(ov(),/\+30 XP · \+30 코인/); assert.match(ov(),/자기계발 영역\(지력\) \+3/);
   h.nodes.set('nf-title',{value:'아주 작은 습관의 힘'}); h.nodes.set('nf-apply',{value:'매일 아침 10분 읽기'});
   h.click('nt-val',{f:'status',v:'진행 중'}); const x0 = xp(); h.click('submit-note'); await h.settle();
   assert.equal(notes().length,1); assert.equal(xp(),x0,'incomplete note gives nothing');
@@ -373,7 +373,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   assert.equal(xp(),x0+30,'completion grants 30 XP');
   h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-think',{value:'시스템'}); h.click('submit-note'); await h.settle();
   assert.equal(xp(),x0+30,'editing does not re-grant');
-  assert.match(app(),/✓ 완성 · 지력/);
+  assert.match(app(),/✓ 완성 · 자기계발/);
   h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-apply',{value:'매일 아침 10분 읽기'}); h.click('nt-task',{f:'apply'}); await h.settle();
   assert.match(ov(),/value="매일 아침 10분 읽기"/); h.nodes.set('ta-name',{value:'매일 아침 10분 읽기'}); h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.noteId === n0.id)); assert.match(app(),/태스크 진행 중/);
