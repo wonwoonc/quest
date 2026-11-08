@@ -1510,6 +1510,13 @@ html[data-eco-frame="leaf"] .wdp-fig{filter:drop-shadow(0 0 4px #458c6a)}html[da
 .plan .aftq{margin:2px 0 8px}.plan .aftq small{display:block;font-size:12px;color:var(--sub);margin:0 0 6px}
 .plan .planprev{margin:6px 0 0;padding:10px 12px;border-radius:12px;background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:700;line-height:1.5}
 .plan .planlead .field{margin-bottom:10px}.plan .planlead .lab{font-size:13px;color:var(--sub)}
+.plan .pchips{gap:8px}.plan .pchip{display:inline-flex;align-items:center;gap:6px;max-width:100%}.plan .pchip>span:not(.hint){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}.plan .pchip .hint{font-size:11px}
+.plan .planlead+.pchips{margin-top:2px}
+.pphint{margin:0 4px 10px;font-size:14px;color:var(--sub)}
+.ppin input{width:100%;box-sizing:border-box;border:0;background:var(--fill);border-radius:12px;padding:13px 14px;font:inherit;color:var(--ink);outline:none}
+.ppsub{display:block;font-size:12px;color:var(--sub);margin:14px 4px 6px}
+.pplist{max-height:220px;overflow:auto;display:grid;gap:4px}
+.ppbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 .pmi{width:13px;height:13px;flex:none;vertical-align:-2px}
 .pmeta{display:inline-flex;align-items:center;gap:3px;font-size:12px;color:var(--sub);white-space:nowrap;margin-left:6px}
 .task-meta .pmeta{margin-left:0}
@@ -3794,7 +3801,7 @@ $("#fileIn").addEventListener("change", async e => { const files = [...e.target.
   const out = []; for (const f of files){ try{ out.push(await compress(f)); }catch(err){ toast(esc(err.message)); } } if (out.length) cb(out); });
 
 /* ================= sheets ================= */
-function openSheet(c){ if (c && ["add","taskadd","tedit","hedit"].includes(c.type)){ delete S.drafts["pl-place"]; delete S.drafts["pl-after"]; } S.compose = c; renderSheet(); }
+function openSheet(c){ if (c) delete S.drafts["pp-in"]; S.compose = c; renderSheet(); }
 function closeSheet(){ if (S.compose && S.compose.type === "note" && (S.compose.newFiles || []).length){ S.compose.newFiles.forEach(FDB.del); S.compose.newFiles = []; } if (S.compose && S.compose.dumpId){ delete S.drafts["ad-name"]; delete S.drafts["ta-name"]; delete S.drafts["nf-title"]; } if (S.compose && (S.compose.type === "nttask" || S.compose.type === "tqpick" || S.compose.type === "ppick" || S.compose.type === "confirm") && (S.parentSheet || S.compose.type === "confirm")){ S.compose = S.parentSheet; S.parentSheet = null; } else { S.compose = null; S.parentSheet = null; } renderSheet(); }
 const D = k => esc(S.drafts[k]||"");
 function difficultySelector(c,kind,field='lv') {
@@ -3854,24 +3861,37 @@ function planSentence(name, time, place, after){
   return [after, w].filter(Boolean).join(", ") + (after || w ? " " : "") + (name || "무엇을 할지");
 }
 const chainsTo = (from, target) => { let id = from, n = 0; while (id && n++ < 50){ if (id === target) return true; id = (S.mine[id] || {}).afterId; } return false; };
+const CLK = `<svg class="pmi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>`;
+const afterLabel = c => c.afterId && S.mine[c.afterId] ? `${S.mine[c.afterId].name} 후` : (c.after || "");
+const planName = c => S.drafts[c.type === "taskadd" ? "ta-name" : c.type === "tedit" ? "te-name" : c.type === "hedit" ? "he-name" : "ad-name"] || "";
+const ppWrap = (t, close, body) => `<div class="dppop" data-act="dpstay"><div class="dppop-in" data-act="dpstay" role="dialog" aria-label="${t}"><div class="dppop-h"><b class="dppop-t">${t}</b><button class="iconbtn" data-act="${close}" aria-label="닫기">${I.close}</button></div>${body}</div></div>`;
+function planPop(c){
+  const k = c._pp, after = k === "after";
+  const cands = after ? mineOf("quest").filter(q => q.active !== false && q.id !== c.id && !(c.id && chainsTo(q.id, c.id))).sort((a,b) => (a.createdAt||0) - (b.createdAt||0)) : [];
+  const v = after ? (c.afterId ? "" : c.after || "") : c.place || "";
+  return ppWrap(after ? "앞 행동" : "장소", "ppclose", `<p class="pphint">${after ? "이 일을 무엇을 한 뒤에 할까요?" : "어디서 할까요?"}</p>
+    <div class="ppin"><input type="text" id="pp-in" maxlength="${after ? 40 : 30}" placeholder="${after ? "예: 점심 먹은 후" : "예: 책상 앞"}" value="${esc(v)}" autocomplete="off"></div>
+    ${cands.length ? `<small class="ppsub">내 데일리 퀘스트 뒤에 붙이기</small><div class="pplist">${cands.map(q => `<button class="row rpitem" data-act="aftq" data-v="${q.id}" aria-pressed="${c.afterId === q.id}"><span class="t"><b>${esc(q.name)}</b></span>${c.afterId === q.id ? `<span class="pick">✓</span>` : ""}</button>`).join("")}</div>` : ""}
+    <div class="ppbtns">${(after ? afterLabel(c) : c.place) ? `<button class="btn ghost" data-act="ppclr">지우기</button>` : ""}<button class="btn primary" data-act="ppok">확인</button></div>`);
+}
 function planField(c, daily, lead = ""){
-  const place = S.drafts["pl-place"] ?? c.place ?? "", after = S.drafts["pl-after"] ?? c.after ?? "";
-  const name = S.drafts[c.type === "taskadd" ? "ta-name" : c.type === "tedit" ? "te-name" : c.type === "hedit" ? "he-name" : "ad-name"] || "";
-  const cands = daily ? mineOf("quest").filter(q => q.active !== false && q.id !== c.id && !(c.id && chainsTo(q.id, c.id))).sort((a,b) => (a.createdAt||0) - (b.createdAt||0)) : [];
-  return `<div class="field plan"><span class="lab plh">실행 계획</span>
-    <div class="planlead">${lead}</div>
-    <label class="planrow"><span class="pk">${PIN}장소</span><input type="text" id="pl-place" maxlength="30" placeholder="어디서 할까요? (선택)" value="${esc(place)}"></label>
-    ${daily ? `<label class="planrow"><span class="pk">${AFT}앞 행동</span><input type="text" id="pl-after" maxlength="40" placeholder="무엇을 한 뒤에 할까요? (선택)" value="${esc(after)}"></label>
-    ${cands.length ? `<div class="aftq"><small>내 데일리 퀘스트 뒤에 붙이기</small><div class="chips">${cands.map(q => `<button class="chip" data-act="aftq" data-v="${q.id}" aria-pressed="${c.afterId === q.id}">${esc(q.name)}</button>`).join("")}</div></div>` : ""}` : ""}
-    <p class="planprev" id="plprev">${esc(planSentence(name, c.time, place, after))}</p></div>`;
+  const after = afterLabel(c);
+  const chip = (act, v, icon, label, val) => `<button class="chip pchip" data-act="${act}"${v ? ` data-v="${v}"` : ""} aria-pressed="${!!val}">${icon}<span>${val ? esc(val) : label}</span></button>`;
+  const chips = [daily ? chip("tmset", "", CLK, "시간", c.time ? tmLabel(c.time) : "") : "", chip("ppopen", "place", PIN, "장소", c.place || ""), daily ? chip("ppopen", "after", AFT, "앞 행동", after) : ""].join("");
+  return `<div class="field plan"><span class="lab plh">실행 계획${daily ? ` <span class="hint">시간 필수</span>` : ""}</span>
+    ${lead ? `<div class="planlead">${lead}</div>` : ""}
+    <div class="chips pchips">${chips}</div>
+    ${daily && c._tw ? ppWrap("시간 선택", "tmdone", timeWheel(c)) : ""}${c._pp ? planPop(c) : ""}
+    <p class="planprev" id="plprev">${esc(planSentence(planName(c), c.time, c.place || "", after))}</p></div>`;
 }
 function readPlan(c, daily){
-  const place = (($("#pl-place") || {}).value || "").trim(), after = daily ? (($("#pl-after") || {}).value || "").trim() : "";
-  const afterId = daily && after && c.afterId && S.mine[c.afterId] && !chainsTo(c.afterId, c.id || "_") ? c.afterId : null;
-  return daily ? {place, after:afterId ? "" : after, afterId} : {place};
+  const place = (c.place || "").trim();
+  if (!daily) return {place};
+  const afterId = c.afterId && S.mine[c.afterId] && !chainsTo(c.afterId, c.id || "_") ? c.afterId : null;
+  return {place, after:afterId ? "" : (c.after || "").trim(), afterId};
 }
 function planPrev(){ const c = S.compose, el = $("#plprev"); if (!c || !el) return; const v = id => (($("#"+id) || {}).value || "").trim();
-  el.textContent = planSentence(v("ta-name") || v("te-name") || v("he-name") || v("ad-name"), c.time, v("pl-place"), v("pl-after")); }
+  el.textContent = planSentence(v("ta-name") || v("te-name") || v("he-name") || v("ad-name"), c.time, c.place || "", afterLabel(c)); }
 /* 연결된 데일리는 앞 행동 바로 뒤에 오도록 정렬 */
 function chainSort(qs){ const ids = new Set(qs.map(q => q.id)), out = [], seen = new Set();
   const kids = id => qs.filter(q => q.afterId === id && !seen.has(q.id));
@@ -3904,7 +3924,7 @@ function renderSheet(){ IXC = null;
       else if (K === "sub"){ const gs = goalsOf(S.me).filter(g => g.status !== "done");
         more = gs.length ? `${datePick(c, "end", "마감일")}${statusField(c)}${areaField(c)}${metricFields(c)}${parentPick(c)}${coverField(c)}` : `<p class="empty-row" style="padding:4px 0 14px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p>`; }
       else if (K === "daily"){ more = `${repeatField(c)}
-        ${planField(c, true, timeOnlyField(c))}
+        ${planField(c, true)}
         ${areaField(c)}
         ${difficultySelector(c,'quest','hlv')}`; }
       else more = `${datePick(c, "end", "마감일", false, true)}${statusField(c)}${areaField(c)}${metricFields(c)}${coverField(c)}`;
@@ -3918,7 +3938,7 @@ function renderSheet(){ IXC = null;
     <div class="field"><input type="text" id="he-name" maxlength="60" value="${D("he-name")}" aria-label="이름"></div>
     <div class="hstats"><div><b class="num">🔥 ${st.cur}</b><span>연속</span></div><div><b class="num">${st.best}</b><span>최장</span></div><div><b class="num">${st.total}</b><span>총 완료</span></div></div>
     ${repeatField(c)}
-    ${planField(c, true, timeOnlyField(c))}
+    ${planField(c, true)}
     ${difficultySelector(c,'quest','hlv')}
     ${areaField(c)}
     <button class="btn big full" data-act="submit-hedit" ${S.busy?"disabled":""}>저장</button>
@@ -4350,7 +4370,11 @@ document.addEventListener("click", e => {
     case "qday": { if (!c.days) c.days = []; preserveSheetDrafts();
       if (b.dataset.v === "all") c.days = [0,1,2,3,4,5,6]; else { const i = +b.dataset.v; c.days = c.days.includes(i) ? c.days.filter(x => x !== i) : [...c.days, i]; }
       renderSheet(); return; }
-    case "aftq": { preserveSheetDrafts(); const v = b.dataset.v; c.afterId = c.afterId === v ? null : v; S.drafts["pl-after"] = c.afterId ? `${S.mine[v].name} 후` : ""; renderSheet(); return; }
+    case "aftq": { preserveSheetDrafts(); const v = b.dataset.v; c.afterId = c.afterId === v ? null : v; c.after = c.afterId ? `${S.mine[v].name} 후` : ""; c._pp = null; renderSheet(); return; }
+    case "ppopen": { preserveSheetDrafts(); delete S.drafts["pp-in"]; c._pp = b.dataset.v; c._tw = false; c._dp = null; renderSheet(); const el = $("#pp-in"); if (el && el.focus) el.focus(); return; }
+    case "ppclose": preserveSheetDrafts(); c._pp = null; renderSheet(); return;
+    case "ppok": { const k = c._pp, v = (($("#pp-in") || {}).value || "").trim(); preserveSheetDrafts(); if (k === "place") c.place = v; else if (k === "after"){ if (v || !c.afterId){ c.after = v; c.afterId = null; } } c._pp = null; delete S.drafts["pp-in"]; renderSheet(); return; }
+    case "ppclr": { preserveSheetDrafts(); if (c._pp === "place") c.place = ""; else { c.after = ""; c.afterId = null; } c._pp = null; delete S.drafts["pp-in"]; renderSheet(); return; }
     case "rptopen": preserveSheetDrafts(); c._rp = !c._rp; renderSheet(); return;
     case "rpt": { preserveSheetDrafts(); c._rp = false; const was = c.rpt; c.rpt = b.dataset.v;
       if (needsDays(c.rpt) && (c.days||[]).length >= 7) c.days = [];
@@ -4561,7 +4585,7 @@ document.addEventListener("click", e => {
     case "actmore": S.actN = (S.actN || 10) + 10; break;
     case "jfold": { const k = b.dataset.k; if (!S.jOpen) S.jOpen = new Set(); S.jOpen.has(k) ? S.jOpen.delete(k) : S.jOpen.add(k); if (S.compose && S.compose.type === "logs"){ renderSheet(); return; } break; }
     case "tmnone": c.time = ""; c._tw = false; renderSheet(); return;
-    case "tmset": { ["ta-name","te-name","te-note","ad-name","nt-name"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); if (!c.time) c.time = "09:00"; c._tw = !c._tw; if (c._tw) c._dp = null; renderSheet(); return; }
+    case "tmset": { preserveSheetDrafts(); if (!c.time) c.time = "09:00"; c._tw = !c._tw; if (c._tw){ c._dp = null; c._pp = null; } renderSheet(); return; }
     case "tmdone": c._tw = false; renderSheet(); return;
     case "cdue1": { ["ta-name","te-name","te-note","ad-name","nt-name"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); const v = b.dataset.v; c.due = v; c.period = ""; if (!c.time) c.time = "09:00"; c._tw = true; c._dp = null; renderSheet(); return; }
     case "cdue": { const [p0, v0] = b.dataset.v.split(":"); c.period = p0 === "day" ? "" : p0; c.due = v0; renderSheet(); return; }
@@ -4644,6 +4668,8 @@ document.addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target.id === "bd-in" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); bdAdd(e.target.value); return; }
   if (e.key === "Enter" && e.target.id === "ta-name" && !e.isComposing){ e.preventDefault(); const bt = document.querySelector('[data-act="submit-taskadd"]'); bt && bt.click(); return; }
   if (e.key === "Enter" && e.target.id === "nt-name" && !e.isComposing){ e.preventDefault(); const bt = document.querySelector('[data-act="addtask"]'); bt && bt.click(); return; }
+  if (e.key === "Enter" && e.target.id === "pp-in" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); const bt = document.querySelector('[data-act="ppok"]'); bt && bt.click(); return; }
+  if (e.key === "Escape" && S.compose && (S.compose._pp || S.compose._tw)){ S.compose._pp = null; S.compose._tw = false; renderSheet(); return; }
   if (e.key === "Escape"){ if (SV) svClose(); else if (S.compose) closeSheet(); }
   if (SV && document.activeElement?.id !== "sv-reply"){ if (e.key === "ArrowRight") svStep(1); if (e.key === "ArrowLeft") svStep(-1); }
   if ((e.key === "Enter" || e.key === " ") && e.target.getAttribute && e.target.getAttribute("role") === "button"){ e.preventDefault(); e.target.click(); }
@@ -4653,7 +4679,7 @@ document.addEventListener("scroll", e => { const t = e.target; if (t && t.classL
 document.addEventListener("input", e => {
   if (['alv','hlv','tlv','ntlv'].includes(e.target.id) && S.compose) { preserveSheetDrafts(); S.compose[e.target.id==='hlv'?'hlv':e.target.id==='ntlv'?'ntlv':'lv']=lvKey(e.target.value); renderSheet(); return; }
   if (e.target.id) S.drafts[e.target.id] = e.target.value;
-  if (["pl-place","pl-after","ad-name","ta-name","te-name","he-name"].includes(e.target.id)){ if (e.target.id === "pl-after" && S.compose && S.compose.afterId && !e.target.value.trim()) S.compose.afterId = null; planPrev(); }
+  if (["ad-name","ta-name","te-name","he-name"].includes(e.target.id)) planPrev();
   if (e.target.id === "rw-cost" && S.compose && S.compose.type === "reward"){ const v = e.target.value.replace(/,/g,"").trim(); S.compose.cost = v; document.querySelectorAll('#overlay [data-f="cost"]').forEach(x => x.setAttribute("aria-pressed", String(!v && false))); }
   if (e.target.id === "qm-q"){ QM().q = e.target.value; schedule(); }
   if (e.target.id === "nt-q"){ S.ntQ = e.target.value; schedule(); }
