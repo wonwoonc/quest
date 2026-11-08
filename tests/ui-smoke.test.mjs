@@ -373,15 +373,15 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   assert.equal(xp(),x0+30,'completion grants 30 XP');
   h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-think',{value:'시스템'}); h.click('submit-note'); await h.settle();
   assert.equal(xp(),x0+30,'editing does not re-grant');
-  assert.match(app(),/✓ 완성 · 자기계발/);
+  assert.match(app(),/<\/svg>완성 · 자기계발/);
   h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-apply',{value:'매일 아침 10분 읽기'}); h.click('nt-task',{f:'apply'}); await h.settle();
   assert.match(ov(),/value="매일 아침 10분 읽기"/); h.nodes.set('ta-name',{value:'매일 아침 10분 읽기'}); h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.noteId === n0.id)); assert.match(app(),/태스크 진행 중/);
   h.click('nt-edit',{id:n0.id}); h.click('nt-del',{id:n0.id}); h.click('nt-del',{id:n0.id}); await h.settle();
   assert.equal(notes().length,0); assert.equal(xp(),x0,'deleting reverses the reward');
-  h.click('dr-manage'); h.click('dr-edit',{v:''}); h.nodes.set('dr-l',{value:'운동 기록'}); h.nodes.set('dr-e',{value:'🏃'}); h.click('dr-area',{v:'health'}); h.click('dr-save'); await h.settle();
+  h.click('dr-manage'); h.click('dr-edit',{v:''}); h.nodes.set('dr-l',{value:'운동 기록'}); h.click('dr-icon',{v:'dumbbell'}); h.click('dr-area',{v:'health'}); h.click('dr-save'); await h.settle();
   const dr = h.snapshot().mine.drawers.list[0]; assert.equal(dr.l,'운동 기록'); assert.deepEqual(dr.fields,['title','body']); h.click('sheet-close');
-  assert.match(app(),/🏃 운동 기록/);
+  assert.equal(dr.ic,'dumbbell'); assert.match(app(),/<\/svg>운동 기록/);
 });
 // Inspect real rendered markup; this harness does not model browser layout.
 function taskMarkup(html,id) {
