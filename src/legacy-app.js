@@ -484,6 +484,13 @@ function renderNav(){
   const col = $("#nav"), on = col && col.querySelector('[aria-current="page"]');
   if (on && col.scrollWidth > col.clientWidth){ const l = on.offsetLeft - col.offsetLeft, r = l + on.offsetWidth; if (r > col.scrollLeft + col.clientWidth) col.scrollLeft = r - col.clientWidth + 8; else if (l < col.scrollLeft) col.scrollLeft = Math.max(0, l - 8); }
 }
+/* mobile bottom bar: edge fades + arrows show there is more to the side; one gentle peek on first visit */
+function navEdges(){ const col = $("#nav"), nav = col && col.closest(".nav"); if (!nav) return; const over = col.scrollWidth - col.clientWidth > 4;
+  nav.classList.toggle("more-l", over && col.scrollLeft > 4); nav.classList.toggle("more-r", over && col.scrollLeft < col.scrollWidth - col.clientWidth - 4); }
+(() => { const col = $("#nav"); if (!col) return; col.addEventListener("scroll", navEdges, {passive:true}); addEventListener("resize", navEdges);
+  new MutationObserver(navEdges).observe(col, {childList:true});
+  setTimeout(() => { navEdges(); if (LS.get("navPeek", false) || col.scrollWidth <= col.clientWidth || col.scrollLeft > 0) return; LS.set("navPeek", true);
+    col.scrollTo({left:72, behavior:"smooth"}); setTimeout(() => col.scrollTo({left:0, behavior:"smooth"}), 650); }, 900); })();
 function renderReplyBar(){
   const p = S.view.name === "post" && S.feed[S.view.pid], show = p && canAct() && !p.noReply;
   document.body.classList.toggle("has-replybar", !!show);
