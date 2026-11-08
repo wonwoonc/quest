@@ -986,9 +986,8 @@ function viewLearn(){
     <div class="lnstatus"><span>상태</span><div class="seg">${LN_STATUS.map(x => `<button data-act="ln-st" data-v="${x}" aria-pressed="${st === x}">${x}</button>`).join("")}</div></div>
     ${done ? "" : ntRewardLine(D0, ntArea(n)[0])}</section>`;
   h += `<section class="card lnnote ${rd ? "read fs-" + fs : ""}"><div class="ch">${rd ? `<div class="lnfs" role="group" aria-label="글자 크기">${[["s","작게"],["m","보통"],["l","크게"]].map(([k, l]) => `<button data-act="ln-fs" data-v="${k}" aria-pressed="${fs === k}" aria-label="${l}" class="fs-${k}">가</button>`).join("")}</div>` : ""}<button class="btn sec xs lnmode" data-act="ln-read">${rd ? "편집" : "읽기 모드"}</button></div>
-    <div class="lnbody"><div class="lnmain"><div class="nted ${rd ? "ro" : ""}" id="nted">${bkHtml(LP.blocks, rd)}</div>
-    ${rd ? "" : `<button class="bkadd" data-act="bk-add">+ 블록 추가</button>
-    <div class="bkbar" id="bkbar" hidden>${BK_TYPES.filter(x => !x[0].startsWith("callout-") || x[0] === "callout-g").map(([k, l, g]) => `<button data-act="bk-type" data-v="${k}" title="${l}" aria-label="${l}">${k.startsWith("callout") ? nic("check") : esc(g)}</button>`).join("")}<button data-act="bk-ind" data-v="-1" title="내어쓰기" aria-label="내어쓰기">⇤</button><button data-act="bk-ind" data-v="1" title="들여쓰기" aria-label="들여쓰기">⇥</button><button data-act="bk-del" title="블록 삭제" aria-label="블록 삭제">${nic("trash")}</button></div>
+    <div class="lnbody"><div class="lnmain"><div class="nted ${rd ? "ro" : ""}" id="nted" ${rd ? "" : `data-act="ln-tail"`}>${bkHtml(LP.blocks, rd)}</div>
+    ${rd ? "" : `<div class="bkbar" id="bkbar" hidden>${BK_TYPES.filter(x => !x[0].startsWith("callout-") || x[0] === "callout-g").map(([k, l, g]) => `<button data-act="bk-type" data-v="${k}" title="${l}" aria-label="${l}">${k.startsWith("callout") ? nic("check") : esc(g)}</button>`).join("")}<button data-act="bk-ind" data-v="-1" title="내어쓰기" aria-label="내어쓰기">⇤</button><button data-act="bk-ind" data-v="1" title="들여쓰기" aria-label="들여쓰기">⇥</button><button data-act="bk-del" title="블록 삭제" aria-label="블록 삭제">${nic("trash")}</button></div>
     <div class="bkmenu" id="bkmenu" hidden></div>`}</div></div></section>
     <div class="bksel" id="bksel" hidden><button data-act="fmt" data-v="b" aria-label="굵게"><b>B</b></button><button data-act="fmt" data-v="i" aria-label="기울임"><i>I</i></button><button data-act="fmt" data-v="u" aria-label="밑줄"><u>U</u></button><i class="sep"></i><button data-act="fmt" data-v="hl-y" aria-label="노랑 형광펜"><span class="hlc hl-y"></span></button><button data-act="fmt" data-v="hl-g" aria-label="초록 형광펜"><span class="hlc hl-g"></span></button><button data-act="fmt" data-v="hl-p" aria-label="분홍 형광펜"><span class="hlc hl-p"></span></button><i class="sep"></i><button data-act="fmt" data-v="code" aria-label="코드">&lt;/&gt;</button><button data-act="fmt" data-v="clear" aria-label="서식 지우기">${nic("eraser")}</button></div>`;
   return h;
@@ -1029,8 +1028,9 @@ function bkSetType(id, t){ bkSync(); const b = LP.blocks[bkIdx(id)]; if (!b) ret
   if (t === "divider"){ b.t = "divider"; b.h = ""; const nb = {id:uid8(), t:"p", h:""}; LP.blocks.splice(bkIdx(id) + 1, 0, nb); bkRedraw(nb.id, 0); }
   else { if (t.startsWith("callout")){ b.t = "callout"; b.c = t.split("-")[1] || "g"; } else { b.t = t; delete b.c; } if (b.t !== "todo") delete b.ck; if (!/^h/.test(b.t)) delete b.fold; bkRedraw(id, off); } bkSave(); }
 function bkMenu(id, q){ const m = $("#bkmenu"), el = bxOf(id); if (!m || !el) return; const list = BK_TYPES.filter(([k, l]) => !q || l.includes(q) || k.startsWith(q.toLowerCase())); if (!list.length){ m.hidden = true; return; }
-  S.bkMenu = {id, sel:0, list:list.map(x => x[0])}; m.innerHTML = list.map(([k, l, g], i) => `<button data-act="bk-pick" data-v="${k}" class="${i ? "" : "on"}"><span class="${k.startsWith("callout") ? "cc c-" + k.split("-")[1] : ""}">${k.startsWith("callout") ? nic(CALLOUT[k.split("-")[1]][1]) : esc(g)}</span>${l}</button>`).join("");
+  S.bkMenu = {id, sel:0, list:list.map(x => x[0])}; m.innerHTML = `<p class="bkmh">블록 선택</p>` + list.map(([k, l, g], i) => `<button data-act="bk-pick" data-v="${k}" class="${i ? "" : "on"}"><span class="${k.startsWith("callout") ? "cc c-" + k.split("-")[1] : ""}">${k.startsWith("callout") ? nic(CALLOUT[k.split("-")[1]][1]) : esc(g)}</span>${l}${BK_KEYS[k] ? `<kbd>${esc(BK_KEYS[k])}</kbd>` : ""}</button>`).join("");
   const r = el.getBoundingClientRect(), pr = $("#nted").getBoundingClientRect(); m.style.top = (r.bottom - pr.top + 4) + "px"; m.hidden = false; }
+const BK_KEYS = {h1:"#", h2:"##", h3:"###", ul:"-", ol:"1.", todo:"[]", "callout-g":"!", divider:"---"};
 const bkMenuClose = () => { const m = $("#bkmenu"); if (m) m.hidden = true; S.bkMenu = null; };
 function bkPick(t){ const mm = S.bkMenu; if (!mm) return; const el = bxOf(mm.id); if (el) el.innerHTML = ""; bkMenuClose(); bkSetType(mm.id, t); }
 /* selection toolbar: bold / italic / underline / highlight / code / clear */
@@ -1063,7 +1063,7 @@ document.addEventListener("paste", e => { const bx = e.target.closest && e.targe
   bkRedraw(nb[nb.length - 1].id); bkSave(); }, true);
 document.addEventListener("keydown", e => { const bx = e.target.closest && e.target.closest("#nted .bx"); if (!bx || !LP || e.isComposing || e.keyCode === 229) return;
   const id = bx.dataset.b, i = bkIdx(id), b = LP.blocks[i]; if (!b) return; const mm = S.bkMenu;
-  if (mm && mm.id === id){ const m = $("#bkmenu"); if (e.key === "ArrowDown" || e.key === "ArrowUp"){ e.preventDefault(); mm.sel = (mm.sel + (e.key === "ArrowDown" ? 1 : -1) + mm.list.length) % mm.list.length; [...m.children].forEach((x, k) => x.classList.toggle("on", k === mm.sel)); return; }
+  if (mm && mm.id === id){ const m = $("#bkmenu"); if (e.key === "ArrowDown" || e.key === "ArrowUp"){ e.preventDefault(); mm.sel = (mm.sel + (e.key === "ArrowDown" ? 1 : -1) + mm.list.length) % mm.list.length; [...m.querySelectorAll("button")].forEach((x, k) => x.classList.toggle("on", k === mm.sel)); return; }
     if (e.key === "Enter"){ e.preventDefault(); bkPick(mm.list[mm.sel]); return; } if (e.key === "Escape"){ e.preventDefault(); bkMenuClose(); return; } }
   if ((e.ctrlKey || e.metaKey) && /^[biu]$/i.test(e.key)){ e.preventDefault(); bkFmt(e.key.toLowerCase()); return; }
   const off = caretOff(bx), len = bx.textContent.length, collapsed = getSelection().isCollapsed;
@@ -2344,6 +2344,7 @@ document.addEventListener("click", e => {
     case "bk-fold": { if (!LP) return; bkSync(); const bl = LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.fold = !bl.fold; bkRedraw(); bkSave(); return; }
     case "bk-cc": { if (!LP || S.lnRead) return; bkSync(); const bl = LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; const ks = Object.keys(CALLOUT); bl.c = ks[(ks.indexOf(bl.c || "g") + 1) % ks.length]; bkRedraw(); bkSave(); return; }
     case "fmt": bkFmt(b.dataset.v); return;
+    case "ln-tail": { if (!LP || S.lnRead || e.target.closest(".blk")) return; bkSync(); const last = LP.blocks[LP.blocks.length - 1]; if (last && last.t === "p" && !bkText(last).trim()){ setCaret(bxOf(last.id)); return; } const nb = {id:uid8(), t:"p", h:""}; LP.blocks.push(nb); bkRedraw(nb.id, 0); bkSave(); return; }
     case "bk-chk": { if (!LP) return; bkSync(); const bl = LP && LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.ck = !bl.ck; bkRedraw(); bkSave(); return; }
     case "bk-type": if (LP && S.bkCur) bkSetType(S.bkCur, b.dataset.v); return;
     case "bk-pick": bkPick(b.dataset.v); return;
