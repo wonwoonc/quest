@@ -1843,8 +1843,8 @@ function buildRepeat(c){
 }
 const needsDays = t => t === "weekly" || t === "biweekly";
 /* 실행 계획: 장소(태스크·데일리) + 앞 행동(데일리, 다른 데일리와 연결 가능) */
-const PIN = `<svg class="pmi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></svg>`;
-const AFT = `<svg class="pmi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h13"/><path d="M13 7l5 5-5 5"/></svg>`;
+const PIN = `<svg class="pmi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></svg>`;
+const AFT = `<svg class="pmi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h13"/><path d="M13 7l5 5-5 5"/></svg>`;
 const afterOf = q => { const a = q && q.afterId && S.mine[q.afterId]; return a && a.kind === "quest" ? `${a.name} 후` : (q && q.after) || ""; };
 const placeAt = p => !p ? "" : /(에서|에)$/.test(p) ? p : p + "에서";
 function planSentence(name, time, place, after){
