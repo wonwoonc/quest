@@ -574,6 +574,20 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .ntsub{margin:0;font-size:13px;color:var(--muted)}.ntstars{color:#F5B301;letter-spacing:1px}.ntstars i{font-style:normal;color:var(--line)}
 .ntq{margin:2px 0;padding:2px 0 2px 12px;border-left:3px solid var(--accent);font-size:14px;line-height:1.55;color:var(--ink);white-space:pre-line;word-break:break-word}.ntq.big{font-size:16px;font-weight:600}
 .ntsum{margin:0;font-size:14px;font-weight:700;color:var(--accent)}
+.lnbar{height:6px;border-radius:4px;background:var(--fill);overflow:hidden;margin:4px 0 2px}.lnbar i{display:block;height:100%;background:var(--accent);border-radius:4px}.lnbar.big{height:10px;margin:14px 0 6px}
+.lnlive{color:#D64545;font-weight:700;font-size:12px}
+.lnhead h2{margin:8px 0 4px;font-size:22px;line-height:1.3;word-break:break-word}.lnhead .lnedit{margin-left:auto;border:0;background:none;color:var(--muted);font-weight:600;font-size:13px}.lnhead .nttop{display:flex;align-items:center;gap:6px}
+.lngoal{margin:12px 0 0;padding:10px 12px;background:var(--fill);border-radius:12px;font-size:14px;line-height:1.5;white-space:pre-line}.lngoal span{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:2px}
+.lnstat{margin:0;font-size:13.5px;color:var(--sub)}.lnstat b{color:var(--accent)}
+.card.lnnext,.card.lntimer{display:flex;align-items:center;gap:10px;padding:16px 18px}.lnnext > div,.lntimer > div{flex:1;min-width:0;display:grid;gap:2px}.lnnext small,.lntimer small{font-size:12px;color:var(--muted);font-weight:600}.lnnext b,.lntimer b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lnnext .btn,.lntimer .btn{flex:none;padding:10px 14px;font-size:14px}
+.card.lntimer{background:var(--accent-soft)}.lnclock{font-size:24px;font-weight:800;color:var(--accent);letter-spacing:.5px}.lnlim{font-size:12px;color:var(--muted);margin-left:-6px}
+.lnlist{display:grid;margin-top:6px}.lnrow{display:flex;align-items:center;gap:12px;border:0;background:none;text-align:left;padding:12px 2px;border-bottom:1px solid var(--line);color:var(--ink);width:100%}.lnrow:last-child{border-bottom:0}
+.lnst{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--fill);color:var(--sub);font-size:13px;font-weight:700}.lnst i{font-style:normal}.lnst .nic{margin:0;width:16px;height:16px}
+.lnrow.doing .lnst{background:var(--accent-soft);color:var(--accent)}.lnrow.done .lnst{background:var(--accent);color:var(--accent-ink)}.lnrow.done .lnt b{color:var(--sub)}
+.lnt{flex:1;min-width:0;display:grid;gap:2px}.lnt b{font-size:15px;line-height:1.35;word-break:break-word}.lnt small{font-size:12.5px;color:var(--muted)}.lnrow .chev{width:18px;height:18px;color:var(--muted);flex:none}
+.lntoc .bdin{margin-top:10px}.lntoc .ch,.lnwrap .ch{display:flex;align-items:center;gap:8px}.lntoc .ch h2,.lnwrap .ch h2{margin:0}.lntoc .bdhelp,.lnwrap .bdhelp{margin-left:auto;border:0;background:none;color:var(--muted);font-weight:600;font-size:13px;padding:4px 0}.ntmeta .aic{width:14px;height:14px;margin-right:3px;vertical-align:-2px}.lnsum{margin:6px 0 4px;font-size:15px;font-weight:700;line-height:1.5}
+.lcrun{margin:0 0 16px}.lcsess{margin-top:8px}.lcsess .row{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line)}.lcsess .t{flex:1;display:grid}.lcsess small{color:var(--muted);font-size:12.5px}
+.lcmove{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:14px}.lcmove .link{margin-left:auto;border:0;background:none;color:#D64545;font-weight:600;font-size:13px}
 .nic{width:16px;height:16px;flex:none;vertical-align:-3px;margin-right:5px}.chip .nic,.ntcat .nic{margin-right:4px}.ntmeta .nic{width:14px;height:14px;margin-right:3px}
 .ntstars .nic{width:13px;height:13px;margin:0;vertical-align:-2px}.ntstars i .nic{color:var(--line)}.ntstars i{font-style:normal}
 .ntrate button .nic{width:30px;height:30px;margin:0}.ntrate button{color:var(--line)}
@@ -1354,7 +1368,7 @@ a.goldchip{text-decoration:none}
   #app{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:20px;align-items:start}
   #app > *{grid-column:1/-1;min-width:0}
   #app[data-v="feed"] > .feedcard,#app[data-v="profile"] > .feedcard,#app > .card.mq:not(.calmq),#app > .pgc{grid-column:auto}
-  #app[data-v="post"],#app[data-v="project"],#app[data-v="settings"],#app[data-v="qmanage"],#app[data-v="notes"],#app[data-v="stats"],#app[data-v="activity"],#app[data-v="calday"]{display:flex;flex-direction:column;align-items:stretch;max-width:860px;margin:0 auto}
+  #app[data-v="post"],#app[data-v="project"],#app[data-v="settings"],#app[data-v="qmanage"],#app[data-v="notes"],#app[data-v="learn"],#app[data-v="stats"],#app[data-v="activity"],#app[data-v="calday"]{display:flex;flex-direction:column;align-items:stretch;max-width:860px;margin:0 auto}
   #app[data-v="profile"] > .seg,#app[data-v="profile"] > .segwrap{max-width:none}
   #app[data-v="shop"] > .seg,#app[data-v="cal"] > .seg,#app[data-v="qmanage"] > .seg{max-width:none}
   #app[data-v="shop"] .rgrid{grid-template-columns:repeat(3,1fr);gap:14px}
@@ -1649,7 +1663,7 @@ Object.assign(__exports,{createAPI});
 /** Local, deterministic economy. All mutations run inside storage.commit, never in render.
  * This is an audit trail, NOT a trusted server ledger. JSON imports/device time are untrusted.
  */
-const {noteComplete, noteReward} = __require("notes.js");
+const {noteComplete, noteReward, studyReward} = __require("notes.js");
 const ENGINE_VERSION = 1;
 const POLICY_VERSION = 2;
 const MAX_LEVEL = 100;
@@ -1782,11 +1796,14 @@ function processEconomy(s,before,at,me='me') {
     if(m.kind==='mission'&&!!m.done!==!!old?.done)activity(s,key('task',id),'task',m,koreaDate(at),at,!!m.done);
     if(m.kind==='diary'&&!old){const d=m.date||koreaDate(at);claim(s,key('journal',d),'journal',{xp:10,coins:5},at,{date:koreaDate(at),daily:true,eligible:d===koreaDate(at)});}
     if(m.kind==='note'&&noteComplete(s,m)&&!noteComplete(before,old)){const r=noteReward(s,m);if(r.xp>0)claim(s,key('note',id),'note',{xp:r.xp,coins:r.coins},at,{daily:true});}
+    if(m.kind==='note'){const was=new Set((old?.sessions||[]).map(x=>x.id)),now=new Set((m.sessions||[]).map(x=>x.id));
+      for(const x of m.sessions||[])if(!was.has(x.id)){const r=studyReward(x.min);if(r.xp>0)claim(s,key('study',id,x.id),'study',r,at,{daily:true});}
+      for(const x of old?.sessions||[])if(!now.has(x.id))reverse(s,key('study',id,x.id),at);}
     if(m.kind==='mlog'){const n=old?.logs?.length||0;for(const l of (m.logs||[]).slice(n))metric(s,m.projectId,l.v,at);}
     if(m.kind==='buy'&&!old&&!e.purchases[id])redeemPersonal(s,m.rewardId,id,at);
     if(m.kind==='buy'&&old&&e.purchases[id]&&!e.purchases[id].legacy){const p=e.purchases[id];if(m.cost!==p.cost||m.rewardId!==p.rewardId||m.state!==p.state)throw new Error('구매 내역은 전용 명령으로만 변경할 수 있습니다.');}
   }
-  for(const [id,old] of Object.entries(before.mine))if(old.kind==='note'&&!s.mine[id])reverse(s,key('note',id),at);
+  for(const [id,old] of Object.entries(before.mine))if(old.kind==='note'&&!s.mine[id]){reverse(s,key('note',id),at);for(const x of old.sessions||[])reverse(s,key('study',id,x.id),at);}
   for(const [id,p] of Object.entries(s.feed)){const old=before.feed[id];if(p.author===me&&p.ref&&Number.isFinite(p.value)&&p.value!==old?.value)metric(s,p.ref.id,p.value,at);}
   for(const [id,p] of Object.entries(s.projects))if(p.owner===me){const old=before.projects[id],fp=fingerprint(s,p);
     if(!old&&!e.seenGoals[key('id',id)]){const seen=e.seenGoals[fp];e.seenGoals[key('id',id)]=true;e.seenGoals[fp]=true;const sub=!!p.parentId;claim(s,key('create',id),sub?'subCreate':'mainCreate',{xp:sub?10:20,coins:sub?5:10},at,{eligible:!seen&&!!norm(p.title)&&(sub?!!s.projects[p.parentId]&&!s.projects[p.parentId].parentId:!!p.end)});}
@@ -1851,15 +1868,13 @@ const BASE_DRAWERS = [
     {k:'title', t:'text', l:'제목', p:'예: 아침 루틴을 바꾼 5가지 습관'},
     {k:'summary', t:'area', l:'핵심 요약', p:'3줄 이내로 적어요'},
     {k:'why', t:'text', l:'저장한 이유', p:'예: 다음 달 발표 자료에 인용'}]},
-  {k:'learn', l:'학습', ic:'book', pt:3, area:'growth', hint:'책·강의에서 인상 깊은 내용 → 내 생각 → 적용할 점 순서로 남겨요. 완료 + 적용할 점까지 적으면 완성이에요.', need:'상태 완료 + 적용할 점', f:[
-    {k:'type', t:'choice', l:'종류', o:['책','강의','영상','기타']},
-    {k:'title', t:'text', l:'제목', p:'예: 아주 작은 습관의 힘'},
-    {k:'author', t:'text', l:'저자·강사', p:'예: 제임스 클리어'},
-    {k:'status', t:'choice', l:'상태', o:['예정','진행 중','완료']},
-    {k:'rating', t:'stars', l:'별점'},
-    {k:'quote', t:'area', l:'인상 깊은 내용', p:'밑줄 친 문장, 핵심 개념'},
-    {k:'think', t:'area', l:'내 생각', p:'왜 인상 깊었나요?'},
-    {k:'apply', t:'text', l:'적용할 점', p:'예: 매일 아침 10분 읽기', task:true}]},
+  {k:'learn', l:'학습', ic:'book', pt:3, area:'growth', hint:'', need:'모든 목차 완료 + 한 줄 요약 + 적용할 점', f:[
+    {k:'type', t:'choice', l:'종류', o:['강의','책','영상','기타']},
+    {k:'title', t:'text', l:'제목', p:'예: 데이터 분석 입문'},
+    {k:'author', t:'text', l:'강사·저자', p:'예: 김OO'},
+    {k:'url', t:'url', l:'링크', p:'https://...'},
+    {k:'goal', t:'area', l:'학습 목표', p:'이걸로 무엇을 할 수 있게 되고 싶나요?'},
+    {k:'rating', t:'stars', l:'별점'}]},
   {k:'memo', l:'메모', ic:'memo', pt:0, area:null, hint:'어디에도 딱 맞지 않으면 일단 여기에 적어요.', need:'', f:[
     {k:'title', t:'text', l:'제목', p:'선택'},
     {k:'body', t:'area', l:'내용', p:'자유롭게 적어요'}]}
@@ -1896,17 +1911,20 @@ function noteComplete(s, n) {
   if (!d || !d.pt) return false;
   if (cat === 'idea') return has(f.next);
   if (cat === 'ref') return has(f.summary) && has(f.why);
-  if (cat === 'learn') return f.status === '완료' && has(f.apply);
+  if (cat === 'learn') return Array.isArray(n.ch) && n.ch.length ? n.ch.every(c => c.st === 'done') && has(f.summary) && has(f.apply) : f.status === '완료' && has(f.apply);
   return d.f.length > 0 && d.f.every(x => has(f[x.k]));
 }
 function noteReward(s, n) { const {cat} = noteNorm(s, n), pt = noteDrawer(s, cat)?.pt || 0; return {pt, xp:pt * 10, coins:pt * 10}; }
+/* study time: 10분마다 +5 XP · +5 코인 (10분 미만은 기록만) */
+const STUDY_LIMITS = [25, 50, 90];
+function studyReward(min) { const n = Math.floor(Math.max(0, Number(min) || 0) / 10); return {xp:n * 5, coins:n * 5}; }
 
-Object.assign(__exports,{NOTE_POOL,BASE_DRAWERS,noteDrawers,noteDrawer,noteNorm,noteComplete,noteReward});
+Object.assign(__exports,{NOTE_POOL,BASE_DRAWERS,noteDrawers,noteDrawer,noteNorm,noteComplete,noteReward,STUDY_LIMITS,studyReward});
 },
 "legacy-app.js":function(__require,__exports){
 "use strict";
 const {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, levelStart, koreaDate, economySummary, goalEligibility, CATALOG, migrateEconomy} = __require("economy.js");
-const {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete, noteReward} = __require("notes.js");
+const {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete, noteReward, studyReward, STUDY_LIMITS} = __require("notes.js");
 const {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} = __require("day-activities.js");
 function startLegacyApp({runtime, storage, seed = null}) {
 const entryParams = new URLSearchParams(location.search || '');
@@ -2314,7 +2332,7 @@ function render(){ IXC = null;
   if (S.liveWin){ const wu = v === "profile" && S.view.uid !== S.me ? S.view.uid : null, wp = v === "post" ? S.view.pid : null; queueMicrotask(() => S.liveWin.watch(wu, wp)); }
   rollOver();
    const dash = v === "dash" && hasProfile();
-  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
+  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, learn:viewLearn, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
   { const gg = dash && $(".wd-goals .wd-ggrid"); if (gg && S.wdGs) gg.scrollLeft = S.wdGs; }
   $("#app").dataset.v = S.me && !hasProfile() && S.canWrite ? "profile" : dash ? "dash" : v; $("#app").dataset.pt = v === "profile" || v === "today" ? (S.profTab || "") : "";
   renderReplyBar(); renderPill();
@@ -2368,8 +2386,8 @@ function bannerHtml(){ return "";
 }
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
-  const v = S.view.name, sub = v === "post" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || (v === "profile" && S.view.uid !== S.me);
-  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
+  const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || (v === "profile" && S.view.uid !== S.me);
+  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
   const n = activityItems().filter(x => x.at > actSeen).length;
   $("#topbar").innerHTML = `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : ""}<h1>${title}</h1>
     ${S.me && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
@@ -2384,7 +2402,7 @@ function renderNav(){
     <a href="#feed" ${cur(v==="feed")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7.5" r="3"/><path d="M2.5 20v-2a6.5 6.5 0 0 1 13 0v2M16 4.7a3 3 0 0 1 0 5.6M18 12a6 6 0 0 1 3.5 5.5V20"/></svg><span>커뮤니티</span></a>
     <a href="#shop" ${cur(v==="shop")}>${I.bag}<span>상점</span></a>
     <a href="#cal" ${cur(v==="cal")}>${I.cal}<span>캘린더</span></a>
-    <a href="#notes" ${cur(v==="notes")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5h-7L10 5H5a1.5 1.5 0 0 0-1.5 1.5Z"/><path d="M8 12.5h8M8 15.5h5"/></svg><span>자료실</span></a>
+    <a href="#notes" ${cur(v==="notes" || v==="learn")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5h-7L10 5H5a1.5 1.5 0 0 0-1.5 1.5Z"/><path d="M8 12.5h8M8 15.5h5"/></svg><span>자료실</span></a>
     <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`;
   document.body.classList.toggle("navmini", !!S.navMini);
   /* mobile: the bottom bar scrolls sideways; keep the current menu in view */
@@ -2532,9 +2550,9 @@ function areaXp(){
     if (c.kind === "habit") a = areasOf(S.mine[k[1]]);
     else if (c.kind === "task"){ const own = areasOf(S.mine[k[1]]); if (own.length) a = own; else { const pr = (c.projects || []).filter(id => S.projects[id]), cur = (S.mine[k[1]] || {}).projectId; a = areaUp(cur && S.projects[cur] ? cur : pr[0]); } }
     else if (c.kind === "mainDone" || c.kind === "subDone") a = areaUp(k[1]);
-    else if (c.kind === "note") a = ntArea(S.mine[k[1]]);
+    else if (c.kind === "note" || c.kind === "study") a = ntArea(S.mine[k[1]]);
     /* stat points, deliberately much smaller than XP: daily 1–3, task 1–5, sub quest 5, main quest 15 */
-    const pt = c.kind === "habit" ? Math.ceil(xp / 10) : c.kind === "note" ? Math.round(xp / 10) : c.kind === "task" ? Math.max(1, Math.round(xp / 10)) : c.kind === "subDone" ? 5 : 15;
+    const pt = c.kind === "habit" ? Math.ceil(xp / 10) : c.kind === "note" || c.kind === "study" ? xp / 10 : c.kind === "task" ? Math.max(1, Math.round(xp / 10)) : c.kind === "subDone" ? 5 : 15;
     a.forEach(x => out[x] += pt / a.length);
   }
   return out;
@@ -2795,7 +2813,8 @@ function ntCard(n){
   let mid = "";
   if (cat === "idea") mid = h3(f.title) + p(f.why) + act(f.next);
   else if (cat === "ref") mid = h3(f.title || (f.url && ntHost(f.url))) + sub(f.media && esc(f.media)) + p(f.summary) + (f.why ? `<p class="ntnext">저장 이유 · ${esc(f.why)}</p>` : "");
-  else if (cat === "learn") mid = h3(f.title) + sub(f.type && esc(f.type), f.author && esc(f.author), f.status && esc(f.status), stars(f.rating)) + (f.quote ? `<blockquote class="ntq">${clip(f.quote)}</blockquote>` : "") + p(f.think) + act(f.apply);
+  else if (cat === "learn"){ const P = lnProg(n);
+    mid = h3(f.title) + sub(f.type && esc(f.type), f.author && esc(f.author), stars(f.rating)) + (P.total ? `<div class="lnbar"><i style="width:${P.pct}%"></i></div><p class="ntsub">${P.done}/${P.total} 목차 · ${P.pct}%${P.min ? ` · ${fmtMin(P.min)}` : ""}${n.timer ? ` · <b class="lnlive">학습 중</b>` : ""}</p>` : (f.quote ? `<blockquote class="ntq">${clip(f.quote)}</blockquote>` : "") + p(f.goal || f.think)) + act(f.apply); }
   else if (cat === "memo") mid = h3(f.title) + p(f.body);
   else mid = h3(f.title) + sub(f.status && esc(f.status), f.date && fmtD(f.date), stars(f.rating)) + p(f.summary || f.body) + p(f.think) + act(f.apply);
   const done = noteComplete(S, n), A = AREAS.find(a => a[0] === ntArea(n)[0]);
@@ -2838,11 +2857,11 @@ function ntSendSheet(c){
 const ntKeys = () => [...new Set(noteDrawers(S).flatMap(C => C.f.filter(x => !["choice","stars"].includes(x.t)).map(x => "nf-" + x.k)))];
 /* collects the open note sheet; resolves to the saved note id or null */
 function saveNote(c, after){
-  const C = noteDrawer(S, c.cat), f = {};
-  C.f.forEach(x => { const v = ["choice","stars"].includes(x.t) ? (c.vals || {})[x.k] : pv("nf-" + x.k).trim(); if (v) f[x.k] = x.t === "url" ? ntUrl(v) : v; });
-  if (!Object.keys(f).some(k => !["media","status","rating","date","type"].includes(k))){ toast("내용을 하나 이상 적어 주세요"); return; }
-  const old = c.id && S.mine[c.id], key = old ? c.id : "nt"+uid8(), now = Date.now(), was = old && noteComplete(S, old);
-  run(() => api.putMine(key, {kind:"note", cat:C.k, f, area:c.area || null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); after(key, r, !was && noteComplete(S, S.mine[key])); });
+  const C = noteDrawer(S, c.cat), old = c.id && S.mine[c.id], prev = old && ntN(old).cat === C.k ? {...ntN(old).f} : {}, f = prev;
+  C.f.forEach(x => { const v = ["choice","stars"].includes(x.t) ? (c.vals || {})[x.k] : pv("nf-" + x.k).trim(); if (v) f[x.k] = x.t === "url" ? ntUrl(v) : v; else delete f[x.k]; });
+  if (!Object.keys(f).some(k => !["media","status","rating","date","type"].includes(k))){ toast(C.k === "learn" ? "제목을 적어 주세요" : "내용을 하나 이상 적어 주세요"); return; }
+  const key = old ? c.id : "nt"+uid8(), now = Date.now(), was = old && noteComplete(S, old);
+  run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, f, area:c.area || null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); after(key, r, !was && noteComplete(S, S.mine[key])); });
 }
 /* drawer manager + editor */
 function drawerSheet(c){
@@ -2859,6 +2878,72 @@ function drawerSheet(c){
   const row = d => `<div class="row drrow"><span class="t"><b>${nic(d.ic)}${esc(d.l)}</b><small>${d.custom ? "직접 만든 서랍 · " : ""}${d.f.map(x => x.l).join(" · ") || "칸 없음"}</small></span>${d.custom ? `<button class="btn sec xs" data-act="dr-edit" data-v="${d.k}">수정</button>` : `<button class="btn sec xs" data-act="dr-hide" data-v="${d.k}">${d.hidden ? "보이기" : "숨기기"}</button>`}</div>`;
   return sheetWrap("서랍 관리", "", `<section class="qlist drlist">${DR.map(row).join("")}</section><button class="btn big full" data-act="dr-edit" data-v="">+ 새 서랍 만들기</button>`);
 }
+
+/* ================= 학습 상세 (자료실 › 학습): 목차별 코넬 노트 + 학습 타이머 ================= */
+const fmtMin = m => m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ""}` : `${m}분`;
+const lnLimit = () => { const v = +LS.get("studyLimit", 50); return STUDY_LIMITS.includes(v) ? v : 50; };
+function lnProg(n){ const ch = n.ch || [], done = ch.filter(c => c.st === "done").length, min = ch.reduce((a, c) => a + (c.min || 0), 0); return {total:ch.length, done, pct:ch.length ? Math.round(done / ch.length * 100) : 0, min}; }
+const LN_ST = {todo:["예정",""], doing:["정리 중","doing"], done:["완료","done"]};
+const lnPut = (id, patch, after) => { const n = S.mine[id]; if (!n) return; run(() => api.putMine(id, {...n, ...patch, updatedAt:Date.now()}), after); };
+function lnAddChapters(id, text){ const n = S.mine[id]; if (!n) return false;
+  const lines = String(text || "").split(/\r?\n/).map(x => x.replace(/^\s*([-*•·]|\d+[.)]|\d+\s*강|제?\s*\d+\s*장)\s*/, m => /강|장/.test(m) ? m : "").trim()).filter(Boolean); if (!lines.length) return false;
+  const ch = [...(n.ch || []), ...lines.slice(0, 200).map((t, i) => ({id:uid8() + i, t:t.slice(0, 120), st:"todo", sum:"", key:"", think:"", q:"", min:0, at:""}))];
+  lnPut(id, {ch}, () => { delete S.drafts["ln-add"]; const el = $("#ln-add"); if (el) el.value = ""; if (lines.length > 1) toast(`목차 ${lines.length}개를 추가했어요`); }); return true; }
+function lnTimerBar(n){ const t = n.timer; if (!t) return ""; const c = (n.ch || []).find(x => x.id === t.ch), el = Math.floor((Date.now() - t.start) / 1000), L = (t.limit || lnLimit()) * 60;
+  return `<section class="card lntimer"><div><small>학습 중</small><b>${esc(c ? c.t : "")}</b></div><span class="lnclock num" data-tmr="${n.id}">${pad(Math.floor(el / 60))}:${pad(el % 60)}</span><span class="lnlim num">/ ${t.limit || lnLimit()}분</span><button class="btn" data-act="ln-stop" data-id="${n.id}">정지</button></section>`; }
+function viewLearn(){
+  const n = S.mine[S.view.id]; if (!n || !hasProfile()) return viewNotes();
+  const {f} = ntN(n), P = lnProg(n), ch = n.ch || [], next = ch.find(c => c.st !== "done"), pj = n.projectId && S.projects[n.projectId], A = AREAS.find(a => a[0] === ntArea(n)[0]);
+  const done = noteComplete(S, n), D0 = noteDrawer(S, "learn");
+  let h = `<section class="card lnhead"><div class="nttop"><span class="ntcat">${nic("book")}${esc(f.type || "학습")}</span>${done ? `<span class="ntdone">${nic("check")}완성</span>` : ""}<button class="link lnedit" data-act="nt-edit" data-id="${n.id}" data-info="1">정보 수정</button></div>
+    <h2>${esc(f.title || "제목 없음")}</h2>${f.author || f.rating ? `<p class="ntsub">${[f.author && esc(f.author), stars(f.rating)].filter(Boolean).join(" · ")}</p>` : ""}
+    ${f.goal ? `<p class="lngoal"><span>학습 목표</span>${esc(f.goal)}</p>` : ""}
+    <div class="lnbar big"><i style="width:${P.pct}%"></i></div><p class="lnstat"><b class="num">${P.done}/${P.total}</b> 목차 완료 · ${P.pct}% · 총 ${fmtMin(P.min)}</p>
+    ${f.url || pj || A ? `<div class="ntmeta">${f.url ? `<a class="ntlink" href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">${nic("link")}${esc(ntHost(f.url))}</a>` : ""}${pj ? `<span>${nic("target")}${esc(pj.title)}</span>` : ""}${A ? `<span>${aIcon(A[0])}${A[3]}</span>` : ""}</div>` : ""}</section>`;
+  h += lnTimerBar(n);
+  if (next && !n.timer) h += `<section class="card lnnext"><div><small>이어서 하기</small><b>${esc(next.t)}</b></div><button class="btn sec" data-act="ln-ch" data-id="${n.id}" data-v="${next.id}">노트</button><button class="btn" data-act="ln-start" data-id="${n.id}" data-v="${next.id}">학습 시작</button></section>`;
+  const row = (c, i) => `<button class="lnrow ${LN_ST[c.st || "todo"][1]}" data-act="ln-ch" data-id="${n.id}" data-v="${c.id}"><span class="lnst">${c.st === "done" ? nic("check") : `<i class="num">${i + 1}</i>`}</span><span class="lnt"><b>${esc(c.t)}</b><small>${[LN_ST[c.st || "todo"][0], c.min ? fmtMin(c.min) : "", c.sum ? "요약 있음" : ""].filter(Boolean).join(" · ")}</small></span>${n.timer && n.timer.ch === c.id ? `<span class="lnlive">학습 중</span>` : ""}<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>`;
+  h += `<section class="card lntoc"><div class="ch"><h2>목차</h2>${ch.length ? `<span class="side num">${ch.length}</span>` : ""}<button class="link bdhelp" data-act="ln-limit">자동 정지 ${lnLimit()}분</button></div>
+    ${ch.length ? `<div class="lnlist">${ch.map(row).join("")}</div>` : `<p class="empty-row">강의 커리큘럼이나 책 차례를 복사해 아래에 붙여 넣으면 줄마다 목차가 만들어져요.</p>`}
+    <div class="bdin"><input type="text" id="ln-add" maxlength="120" autocomplete="off" placeholder="목차 추가 (예: 3강 JOIN) · 엔터" value="${D("ln-add")}" aria-label="목차 추가" data-id="${n.id}"><button class="bdgo" data-act="ln-addbtn" data-id="${n.id}" aria-label="목차 추가"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></section>`;
+  h += `<section class="card lnwrap"><div class="ch"><h2>마무리</h2><button class="link bdhelp" data-act="ln-wrap" data-id="${n.id}">${f.summary || f.apply ? "수정" : "작성"}</button></div>
+    ${f.summary ? `<p class="lnsum">${esc(f.summary)}</p>` : `<p class="empty-row">다 배우고 나면 전체를 한 줄로 요약하고 적용할 점을 적어요.</p>`}
+    ${f.apply ? `<p class="ntnext">→ ${esc(f.apply)}</p>` : ""}
+    ${done ? `<p class="ntreward done">${nic("check")}완성한 학습이에요. 보상은 이미 받았어요.</p>` : ntRewardLine(D0, ntArea(n)[0])}</section>`;
+  if (f.quote || f.think) h += `<section class="card"><div class="ch"><h2>이전 메모</h2></div>${f.quote ? `<blockquote class="ntq">${esc(f.quote)}</blockquote>` : ""}${f.think ? `<p class="ntbody">${esc(f.think)}</p>` : ""}</section>`;
+  return h;
+}
+function lnChapterSheet(c){
+  const n = S.mine[c.id], ch = n && (n.ch || []).find(x => x.id === c.ch); if (!ch) return sheetWrap("목차", "", `<p class="empty-row">목차를 찾을 수 없어요.</p>`);
+  const i = n.ch.indexOf(ch), ss = (n.sessions || []).filter(x => x.ch === ch.id).sort((a,b) => b.start - a.start), running = n.timer && n.timer.ch === ch.id;
+  const fld = (k, l, p, rows) => `<div class="field"><span class="lab">${l}</span><textarea id="lc-${k}" rows="${rows}" maxlength="10000" placeholder="${p}">${D("lc-" + k)}</textarea></div>`;
+  return sheetWrap(`${i + 1}. ${esc(ch.t)}`, "", `
+    <div class="field"><span class="lab">목차 이름</span><input type="text" id="lc-t" maxlength="120" value="${D("lc-t")}"></div>
+    <div class="field"><span class="lab">상태</span><div class="chips">${Object.entries(LN_ST).map(([k, [l]]) => `<button class="chip" data-act="lc-st" data-v="${k}" aria-pressed="${(c.st || "todo") === k}">${l}</button>`).join("")}</div></div>
+    <div class="lcrun">${running ? `<button class="btn full" data-act="ln-stop" data-id="${n.id}">정지하고 기록하기</button>` : `<button class="btn sec full" data-act="ln-start" data-id="${n.id}" data-v="${ch.id}">학습 시작 · ${lnLimit()}분 뒤 자동 정지</button>`}
+      ${ss.length ? `<div class="lcsess">${ss.map(x => { const d = new Date(x.start); return `<div class="row"><span class="t"><b class="num">${fmtMin(x.min)}</b><small>${d.getMonth()+1}월 ${d.getDate()}일 ${pad(d.getHours())}:${pad(d.getMinutes())}${studyReward(x.min).xp ? ` · +${studyReward(x.min).xp} XP` : ""}</small></span><button class="btn sec xs" data-act="ln-sdel" data-id="${n.id}" data-v="${x.id}">${S.armed === "ls"+x.id ? "한 번 더" : "삭제"}</button></div>`; }).join("")}</div>` : ""}</div>
+    ${fld("sum", "핵심 요약", "이 강에서 배운 걸 3줄 이내로", 3)}
+    ${fld("key", "핵심 개념", "한 줄에 하나씩 · 개념: 뜻", 4)}
+    ${fld("think", "내 생각", "새로 알게 된 점, 이미 아는 것과의 연결, 의문", 3)}
+    ${fld("q", "복습 질문", "한 줄에 하나씩 · 질문 | 답", 3)}
+    <button class="btn big full" data-act="lc-save">저장</button>
+    <div class="lcmove"><button class="btn sec xs" data-act="lc-move" data-v="-1" ${i ? "" : "disabled"}>위로</button><button class="btn sec xs" data-act="lc-move" data-v="1" ${i < n.ch.length - 1 ? "" : "disabled"}>아래로</button><button class="link danger" data-act="lc-del">${S.armed === "lc"+ch.id ? "한 번 더 누르면 삭제돼요" : "목차 삭제"}</button></div>`);
+}
+function lnWrapSheet(c){
+  return sheetWrap("마무리", "", `<div class="field"><span class="lab">한 줄 요약</span><textarea id="lw-sum" rows="3" maxlength="2000" placeholder="전체 내용을 한 문장으로">${D("lw-sum")}</textarea></div>
+    <div class="field"><span class="lab">적용할 점</span><div class="nttask"><input type="text" id="lw-apply" maxlength="200" placeholder="예: 매주 데이터 리포트 1개 만들기" value="${D("lw-apply")}"><button class="btn sec xs" data-act="lw-send">보내기</button></div></div>
+    <button class="btn big full" data-act="lw-save">저장</button>`);
+}
+function lnStart(id, chId){ const n = S.mine[id]; if (!n) return; const go0 = () => { const m = S.mine[id], ch = (m.ch || []).map(x => x.id === chId && x.st === "todo" ? {...x, st:"doing"} : x); lnPut(id, {timer:{ch:chId, start:Date.now(), limit:lnLimit()}, ch}, () => toast(`학습을 시작했어요 · ${lnLimit()}분 뒤 자동 정지`)); };
+  const other = mineOf("note").find(x => x.timer); if (other) lnStop(other.id, go0); else go0(); }
+function lnStop(id, then, auto){ const n = S.mine[id]; if (!n || !n.timer) { then && then(); return; } const t = n.timer, lim = t.limit || lnLimit(), end = Math.min(Date.now(), t.start + lim * 60000), min = Math.floor((end - t.start) / 60000);
+  if (min < 1){ lnPut(id, {timer:null}, () => { toast("1분 미만은 기록하지 않아요"); then && then(); }); return; }
+  const ch = (n.ch || []).map(x => x.id === t.ch ? {...x, min:(x.min || 0) + min, at:today()} : x), r = studyReward(min);
+  if (r.xp) S.quietXp = true;
+  lnPut(id, {timer:null, ch, sessions:[...(n.sessions || []), {id:uid8(), ch:t.ch, start:t.start, min}]}, () => { toast(`${auto ? `${lim}분이 지나 자동으로 멈췄어요 · ` : ""}${fmtMin(min)} 학습 기록${r.xp ? ` <b>+${r.xp} XP · +${r.coins} 코인</b>` : " · 10분부터 보상이 쌓여요"}`, 3200); then && then(); }); }
+setInterval(() => { for (const n of mineOf("note").filter(x => x.timer)){ const t = n.timer, L = (t.limit || lnLimit()) * 60000;
+  if (Date.now() - t.start >= L){ if (!S.busy) lnStop(n.id, null, true); continue; }
+  document.querySelectorAll(`[data-tmr="${n.id}"]`).forEach(el => { const s0 = Math.floor((Date.now() - t.start) / 1000); el.textContent = `${pad(Math.floor(s0 / 60))}:${pad(s0 % 60)}`; }); } }, 1000);
 
 /* ================= quest management (nav › 퀘스트) ================= */
 const QM = () => S.qm || (S.qm = {tab:"goal", sel:[], q:""});
@@ -3686,6 +3771,8 @@ function renderSheet(){ IXC = null;
       <p class="sect3">${l} 영역 퀘스트</p><section class="card tight">${rows || `<p class="empty-row">아직 ${l} 영역을 붙인 퀘스트가 없어요.</p>`}</section>`); }
   if (c.type === "note") return noteSheet(c);
   if (c.type === "bdsort") return bdSortSheet(c);
+  if (c.type === "lnch") return lnChapterSheet(c);
+  if (c.type === "lnwrap") return lnWrapSheet(c);
   if (c.type === "ntsend") return ntSendSheet(c);
   if (c.type === "drawers") return drawerSheet(c);
   if (c.type === "taskadd") return sheetWrap("태스크 추가", "", `
@@ -3854,6 +3941,7 @@ function route(){
   else if (h === "#me"){ if (prev !== "profile") S.profN = 20; if (!["profile","project","post","calday","activity","settings","stats"].includes(prev)) S.profTab = "posts"; S.view = {name:"profile", uid:S.me}; }
   else if (h === "#dash") S.view = {name:"dash"};
   else if (h === "#notes") S.view = {name:"notes"};
+  else if (h === "#learn"){ if (!(S.view.name === "learn" && S.mine[S.view.id])) S.view = {name:"notes"}; }
   else if (h === "#calday"){ if (prev !== "calday") S.view = {name:"cal"}; }
   else if ((h === "#post" && prev === "post") || (h === "#goal" && prev === "project") || (h === "#profile" && prev === "profile")) {}
   else S.view = !h || h === "#" ? {name:"dash"} : {name:"feed"};
@@ -4028,7 +4116,7 @@ document.addEventListener("click", e => {
       if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:false}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
        const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : "", period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null, tasks:[]}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:300}, profile:{}}[k] || {};
       openSheet({type:k, ...base}); return; }
-    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary","note","drawers","ntsend"].includes(c.type)))) closeSheet(); return;
+    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary","note","drawers","ntsend","lnch","lnwrap"].includes(c.type)))) closeSheet(); return;
     case "sheet-close": closeSheet(); return;
     case "cset": { const f = b.dataset.f, toggle = f === "mood" || f === "projectId" || f === "parentId";
       if (["hlv","lv","alv","tlv","ntlv"].includes(f)){ preserveSheetDrafts(); c[f==='alv'||f==='tlv'?'lv':f] = lvKey(b.dataset.v); renderSheet(); return; } c[f] = toggle && c[f] === b.dataset.v ? null : (b.dataset.v || null); if (f === "cost") c.cost = +b.dataset.v; renderSheet(); return; }
@@ -4079,16 +4167,34 @@ document.addEventListener("click", e => {
     case "bd-sort": openSheet({type:"bdsort", id}); return;
     case "bd-rm": if (!S.mine[id]) return; if (S.armed !== "bx"+id){ arm("bx"+id); toast("한 번 더 누르면 삭제돼요"); break; } S.armed = null; run(() => api.delMine(id), () => toast("삭제했어요")); return;
     case "bd-step": (S.bdStep || (S.bdStep = {}))[id] = +b.dataset.v; if (c && c.type === "bdsort"){ renderSheet(); return; } break;
+    case "ln-start": lnStart(id, b.dataset.v); return;
+    case "ln-stop": lnStop(id, () => { if (S.compose && S.compose.type === "lnch") renderSheet(); }); return;
+    case "ln-limit": { const L = STUDY_LIMITS, i = L.indexOf(lnLimit()); LS.set("studyLimit", L[(i + 1) % L.length]); toast(`자동 정지 시간을 ${L[(i + 1) % L.length]}분으로 바꿨어요`); break; }
+    case "ln-addbtn": { const el = $("#ln-add"); if (!lnAddChapters(id, el && el.value)){ toast("목차 이름을 적어 주세요"); el && el.focus && el.focus(); } return; }
+    case "ln-ch": { const n = S.mine[id], ch = n && (n.ch || []).find(x => x.id === b.dataset.v); if (!ch) return; ["sum","key","think","q"].forEach(k => S.drafts["lc-" + k] = ch[k] || ""); S.drafts["lc-t"] = ch.t; openSheet({type:"lnch", id, ch:ch.id, st:ch.st || "todo"}); return; }
+    case "lc-st": preserveSheetDrafts(); c.st = b.dataset.v; renderSheet(); return;
+    case "lc-save": { const n = S.mine[c.id]; if (!n) return; const v = {}; ["sum","key","think","q"].forEach(k => v[k] = pv("lc-" + k).trim()); const t0 = pv("lc-t").trim(); if (t0) v.t = t0.slice(0, 120);
+      lnPut(c.id, {ch:n.ch.map(x => x.id === c.ch ? {...x, ...v, st:c.st, at:x.at || (v.sum || v.think ? today() : "")} : x)}, () => { ["sum","key","think","q","t"].forEach(k => delete S.drafts["lc-" + k]); closeSheet(); toast("노트를 저장했어요"); }); return; }
+    case "lc-move": { preserveSheetDrafts(); const n = S.mine[c.id], l = [...n.ch], i = l.findIndex(x => x.id === c.ch), j = i + +b.dataset.v; if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; lnPut(c.id, {ch:l}, () => renderSheet()); return; }
+    case "lc-del": { const k = "lc" + c.ch; if (S.armed !== k){ preserveSheetDrafts(); arm(k); renderSheet(); return; } S.armed = null; const n = S.mine[c.id];
+      lnPut(c.id, {ch:n.ch.filter(x => x.id !== c.ch), sessions:(n.sessions || []).filter(x => x.ch !== c.ch), timer:n.timer && n.timer.ch === c.ch ? null : n.timer}, () => { closeSheet(); toast("목차를 삭제했어요"); }); return; }
+    case "ln-sdel": { const sid = b.dataset.v; if (S.armed !== "ls" + sid){ preserveSheetDrafts(); arm("ls" + sid); renderSheet(); return; } S.armed = null; preserveSheetDrafts(); const n = S.mine[id], x = (n.sessions || []).find(y => y.id === sid); if (!x) return;
+      lnPut(id, {sessions:n.sessions.filter(y => y.id !== sid), ch:n.ch.map(y => y.id === x.ch ? {...y, min:Math.max(0, (y.min || 0) - x.min)} : y)}, () => { renderSheet(); toast("기록을 삭제했어요"); }); return; }
+    case "ln-wrap": { const n = S.mine[id]; if (!n) return; const {f} = ntN(n); S.drafts["lw-sum"] = f.summary || ""; S.drafts["lw-apply"] = f.apply || ""; openSheet({type:"lnwrap", id}); return; }
+    case "lw-save": { const n = S.mine[c.id]; if (!n) return; const {f} = ntN(n), was = noteComplete(S, n), nf = {...f, summary:pv("lw-sum").trim(), apply:pv("lw-apply").trim()}; ["summary","apply"].forEach(k => { if (!nf[k]) delete nf[k]; });
+      run(() => api.putMine(c.id, {...n, cat:"learn", f:nf, updatedAt:Date.now()}), r => { ["lw-sum","lw-apply"].forEach(k => delete S.drafts[k]); closeSheet(); const fresh = !was && noteComplete(S, S.mine[c.id]); if (fresh && r && r.xp > 0){ S.quietXp = true; toast(`학습 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>`); } else toast("저장했어요"); }); return; }
+    case "lw-send": { const name = pv("lw-apply").trim(); if (!name){ toast("먼저 내용을 적어 주세요"); return; } const n = S.mine[c.id], {f} = ntN(n), nf = {...f, summary:pv("lw-sum").trim() || f.summary, apply:name};
+      run(() => api.putMine(c.id, {...n, cat:"learn", f:nf, updatedAt:Date.now()}), () => { ["lw-sum","lw-apply"].forEach(k => delete S.drafts[k]); openSheet({type:"ntsend", noteId:c.id, name, projectId:n.projectId && S.projects[n.projectId] ? n.projectId : null}); }); return; }
     case "nt-cat": S.ntCat = b.dataset.v; break;
     case "nt-new": { ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => !d.hidden) || DR[0]).k;
       openSheet({type:"note", cat, vals:{}, area:null, projectId:null}); setTimeout(() => { const x = $(".sheet input[type=text], .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
-    case "nt-edit": { const n = S.mine[id]; if (!n) return; const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
+    case "nt-edit": { const n = S.mine[id]; if (!n) return; if (ntN(n).cat === "learn" && !b.dataset.info){ push({name:"learn", id}, "#learn"); return; } const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
       const vals = {}; Object.entries(f).forEach(([k, v]) => { if (k === "rating" || ["status","media","type"].includes(k)) vals[k] = v; else S.drafts["nf-" + k] = v || ""; });
       openSheet({type:"note", id, cat, vals, area:n.area || null, projectId:n.projectId || null}); return; }
     case "nt-kind": preserveSheetDrafts(); c.cat = b.dataset.v; renderSheet(); return;
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
     case "nt-area": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
-    case "submit-note": saveNote(c, (key, r, fresh) => { closeSheet(); if (fresh && r && r.xp > 0) S.quietXp = true; toast(fresh && r && r.xp > 0 ? `자료 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>` : c.id ? "자료를 저장했어요" : "자료실에 담았어요"); }); return;
+    case "submit-note": saveNote(c, (key, r, fresh) => { closeSheet(); if (!c.id && c.cat === "learn") push({name:"learn", id:key}, "#learn"); if (fresh && r && r.xp > 0) S.quietXp = true; toast(fresh && r && r.xp > 0 ? `자료 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>` : c.id ? "자료를 저장했어요" : "자료실에 담았어요"); }); return;
     case "nt-task": { const name = pv("nf-" + b.dataset.f).trim(); if (!name){ toast("먼저 내용을 적어 주세요"); return; } const pj = c.projectId || null;
       saveNote(c, (key, r, fresh) => { openSheet({type:"ntsend", noteId:key, name, projectId:pj && S.projects[pj] ? pj : null}); if (fresh && r && r.xp > 0){ S.quietXp = true; toast(`자료 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>`); } }); return; }
     case "nt-send": { const v = b.dataset.v, name = c.name, key = c.noteId, pj = c.projectId;
@@ -4309,13 +4415,14 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target.id === "bd-in" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); bdAdd(e.target.value); return; }
+  if (e.key === "Enter" && e.target.id === "ln-add" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); lnAddChapters(e.target.dataset.id, e.target.value); return; }
   if (e.key === "Enter" && e.target.id === "ta-name" && !e.isComposing){ e.preventDefault(); const bt = document.querySelector('[data-act="submit-taskadd"]'); bt && bt.click(); return; }
   if (e.key === "Enter" && e.target.id === "nt-name" && !e.isComposing){ e.preventDefault(); const bt = document.querySelector('[data-act="addtask"]'); bt && bt.click(); return; }
   if (e.key === "Escape"){ if (SV) svClose(); else if (S.compose) closeSheet(); }
   if (SV && document.activeElement?.id !== "sv-reply"){ if (e.key === "ArrowRight") svStep(1); if (e.key === "ArrowLeft") svStep(-1); }
   if ((e.key === "Enter" || e.key === " ") && e.target.getAttribute && e.target.getAttribute("role") === "button"){ e.preventDefault(); e.target.click(); }
 });
-document.addEventListener("paste", e => { if (e.target.id !== "bd-in") return; const t = (e.clipboardData || window.clipboardData)?.getData("text") || ""; if (/\n/.test(t.trim())){ e.preventDefault(); bdAdd(t); } });
+document.addEventListener("paste", e => { if (e.target.id !== "bd-in" && e.target.id !== "ln-add") return; const t = (e.clipboardData || window.clipboardData)?.getData("text") || ""; if (/\n/.test(t.trim())){ e.preventDefault(); if (e.target.id === "bd-in") bdAdd(t); else lnAddChapters(e.target.dataset.id, t); } });
 document.addEventListener("scroll", e => { const t = e.target; if (t && t.classList && t.classList.contains("wd-ggrid") && t.closest(".wd-goals")) S.wdGs = t.scrollLeft; }, true);
 document.addEventListener("input", e => {
   if (['alv','hlv','tlv','ntlv'].includes(e.target.id) && S.compose) { preserveSheetDrafts(); S.compose[e.target.id==='hlv'?'hlv':e.target.id==='ntlv'?'ntlv':'lv']=lvKey(e.target.value); renderSheet(); return; }
