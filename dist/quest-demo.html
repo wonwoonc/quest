@@ -568,7 +568,12 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .card.ntcard{padding:16px 18px;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}.ntcard .nttop{display:flex;justify-content:space-between;align-items:center}.ntcat{font-size:12.5px;font-weight:700;color:var(--sub);background:var(--fill);border-radius:8px;padding:3px 8px}.ntcard .nttop small{color:var(--muted);font-size:12px}
 .ntcard h3{margin:2px 0 0;font-size:16px;line-height:1.35;word-break:break-word}.ntbody{margin:0;font-size:14px;line-height:1.5;color:var(--sub);white-space:pre-line;word-break:break-word;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .ntmeta{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12.5px;color:var(--muted);margin-top:2px}.ntmeta span,.ntlink{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ntlink{color:var(--accent);text-decoration:none;font-weight:600}
-.sheet textarea#no-body{width:100%;box-sizing:border-box;resize:vertical;min-height:160px}.ntdel{display:block;margin:14px auto 0;border:0;background:none;color:#D64545;font-weight:600}
+.sheet textarea[id^="nf-"]{resize:vertical}.ntkinds{margin-bottom:6px}.nthint{margin:4px 2px 14px}
+.ntrate{display:flex;gap:4px}.ntrate button{border:0;background:none;font-size:28px;line-height:1;padding:2px;color:var(--line)}.ntrate button[aria-pressed="true"]{color:#F5B301}
+.ntsub{margin:0;font-size:13px;color:var(--muted)}.ntstars{color:#F5B301;letter-spacing:1px}.ntstars i{font-style:normal;color:var(--line)}
+.ntq{margin:2px 0;padding:2px 0 2px 12px;border-left:3px solid var(--accent);font-size:14px;line-height:1.55;color:var(--ink);white-space:pre-line;word-break:break-word}.ntq.big{font-size:16px;font-weight:600}
+.ntsum{margin:0;font-size:14px;font-weight:700;color:var(--accent)}.ntnext{margin:0;font-size:13px;font-weight:600;color:var(--sub)}
+input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0;border:0;background:none;color:#D64545;font-weight:600}
 .bdump .ch{display:flex;align-items:center;gap:8px}.bdump .ch h2{margin:0}.bdump .bdhelp{margin-left:auto;border:0;background:none;color:var(--muted);font-weight:600;font-size:13px;padding:4px 0}
 .bdq{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:10px 12px;background:var(--accent-soft);border-radius:12px}.bdq .bdqn{font-size:12px;font-weight:700;color:var(--accent)}.bdqt{flex:1;min-width:180px;display:grid;gap:2px}.bdqt b{font-size:14px;color:var(--ink)}.bdqt small{font-size:12.5px;color:var(--muted)}.bdqa{display:flex;gap:6px}.bdq.end{background:var(--fill);font-size:13.5px;color:var(--sub)}.bdq.end span{flex:1;min-width:180px}
 .bdal{font-size:12.5px;color:var(--muted);align-self:center;margin-right:2px}
@@ -2637,36 +2642,105 @@ function viewCal(){
 }
 
 /* ================= 자료실 (nav › 자료실): references, ideas, reading notes, study notes ================= */
-const NT_CATS = [["ref","참고자료","📎"],["idea","아이디어","💡"],["book","독서노트","📖"],["study","공부","✏️"],["etc","기타","🗂️"]];
-const ntCat = k => NT_CATS.find(x => x[0] === k) || NT_CATS[4];
+/* 7 note types, each with its own structure:
+   idea = fleeting note (capture fast, next action) · link = saved article/video with "why saved" · book = reading note (quote → thought → apply)
+   study = Cornell note (cue / notes / one-line summary) · quote = commonplace book · meeting = decisions + to-dos · memo = free form */
+const NT_CATS = [
+  {k:"idea", l:"아이디어", e:"💡", hint:"떠오른 순간 한 줄로 붙잡고, 다듬는 건 나중에 해요.", f:[
+    {k:"title", t:"text", l:"한 줄 아이디어", p:"예: 친구와 함께 깨는 레이드 퀘스트"},
+    {k:"why", t:"area", l:"왜 좋은가요?", p:"어떤 문제를 풀거나 어떤 기회를 만드나요?"},
+    {k:"next", t:"text", l:"다음 행동", p:"예: 비슷한 서비스 3개 찾아보기"}]},
+  {k:"link", l:"링크", e:"🔗", hint:"나중에 볼 글·영상. 저장한 이유를 남겨야 다시 찾게 돼요.", f:[
+    {k:"url", t:"url", l:"링크", p:"https://..."},
+    {k:"media", t:"choice", l:"종류", o:["글","영상","강의","팟캐스트","SNS"]},
+    {k:"title", t:"text", l:"제목", p:"예: 아침 루틴을 바꾼 5가지 습관"},
+    {k:"summary", t:"area", l:"핵심 요약", p:"3줄 이내로 적어요"},
+    {k:"why", t:"text", l:"저장한 이유", p:"예: 다음 달 발표 자료에 인용"}]},
+  {k:"book", l:"독서", e:"📖", hint:"밑줄 → 내 생각 → 적용할 점 순서로 남기면 읽은 게 남아요.", f:[
+    {k:"title", t:"text", l:"책 제목", p:"예: 아주 작은 습관의 힘"},
+    {k:"author", t:"text", l:"저자", p:"예: 제임스 클리어"},
+    {k:"status", t:"choice", l:"상태", o:["읽고 싶음","읽는 중","완독"]},
+    {k:"rating", t:"stars", l:"별점"},
+    {k:"quote", t:"area", l:"밑줄 친 문장", p:"마음에 남은 문장을 그대로"},
+    {k:"think", t:"area", l:"내 생각", p:"왜 이 문장이 남았나요?"},
+    {k:"apply", t:"text", l:"적용할 점", p:"예: 매일 아침 10분 읽기"}]},
+  {k:"study", l:"공부", e:"✏️", hint:"코넬 노트 방식이에요. 질문으로 스스로 시험하고, 한 줄로 요약해요.", f:[
+    {k:"title", t:"text", l:"주제", p:"예: SQL JOIN"},
+    {k:"notes", t:"area", l:"정리", p:"배운 내용을 내 말로"},
+    {k:"cue", t:"area", l:"핵심 질문", p:"복습할 때 스스로 물어볼 질문. 한 줄에 하나씩"},
+    {k:"summary", t:"text", l:"한 줄 요약", p:"오늘 배운 걸 한 문장으로"}]},
+  {k:"quote", l:"문장", e:"💬", hint:"책·영상·대화에서 만난 좋은 문장을 모아 두는 곳이에요.", f:[
+    {k:"quote", t:"area", l:"문장", p:"그대로 옮겨 적어요"},
+    {k:"source", t:"text", l:"출처", p:"책 · 사람 · 영상"},
+    {k:"think", t:"area", l:"내 해석", p:"나에게 어떤 의미인가요?"}]},
+  {k:"meeting", l:"회의", e:"🗓️", hint:"회의가 끝나면 결정한 것과 할 일만 남기면 돼요.", f:[
+    {k:"title", t:"text", l:"회의 주제", p:"예: 3분기 마케팅 회의"},
+    {k:"date", t:"date", l:"날짜"},
+    {k:"people", t:"text", l:"참석자", p:"예: 민지, 준호"},
+    {k:"decisions", t:"area", l:"결정한 것", p:"한 줄에 하나씩"},
+    {k:"todo", t:"area", l:"할 일", p:"한 줄에 하나씩 · 누가 언제까지"}]},
+  {k:"memo", l:"메모", e:"📝", hint:"어디에도 딱 맞지 않으면 일단 여기에 적어요.", f:[
+    {k:"title", t:"text", l:"제목", p:"선택"},
+    {k:"body", t:"area", l:"내용", p:"자유롭게 적어요"}]}];
+const ntCat = k => NT_CATS.find(x => x.k === k) || NT_CATS[NT_CATS.length - 1];
 const ntUrl = v => { v = String(v || "").trim(); return !v ? "" : /^https?:\/\//i.test(v) ? v : "https://" + v; };
 const ntHost = v => { try { return new URL(v).hostname.replace(/^www\./, ""); } catch { return v; } };
+/* notes saved before typed structure (title/body/link) map onto the closest new type */
+function ntNorm(n){
+  if (n.f) return {cat:ntCat(n.cat).k, f:n.f};
+  const cat = {ref:"link", idea:"idea", book:"book", study:"study"}[n.cat] || "memo", t = n.title || "", b = n.body || "", f = {};
+  if (cat === "link") Object.assign(f, {url:n.link || "", title:t, summary:b});
+  else if (cat === "idea") Object.assign(f, {title:t, why:b});
+  else if (cat === "book") Object.assign(f, {title:t, think:b});
+  else if (cat === "study") Object.assign(f, {title:t, notes:b});
+  else Object.assign(f, {title:t, body:b});
+  if (n.link && cat !== "link"){ const k = {idea:"why", book:"think", study:"notes"}[cat] || "body"; f[k] = [f[k], n.link].filter(Boolean).join("\n"); }
+  return {cat, f};
+}
+const ntText = n => { const {f} = ntNorm(n); return Object.values(f).join(" "); };
+const stars = r => r ? `<span class="ntstars" aria-label="별점 ${r}점">${"★".repeat(r)}<i>${"★".repeat(5 - r)}</i></span>` : "";
+const clip = (v, n = 140) => esc(String(v || "").length > n ? String(v).slice(0, n) + "…" : String(v || ""));
+function ntCard(n){
+  const {cat, f} = ntNorm(n), C = ntCat(cat), pj = n.projectId && S.projects[n.projectId], d = new Date(n.updatedAt || n.createdAt || Date.now());
+  const h3 = v => v ? `<h3>${esc(v)}</h3>` : "", p = v => v ? `<p class="ntbody">${esc(v)}</p>` : "", sub = (...xs) => { const l = xs.filter(Boolean); return l.length ? `<p class="ntsub">${l.join(" · ")}</p>` : ""; };
+  let mid = "";
+  if (cat === "idea") mid = h3(f.title) + p(f.why) + (f.next ? `<p class="ntnext">→ ${esc(f.next)}</p>` : "");
+  else if (cat === "link") mid = h3(f.title || (f.url && ntHost(f.url))) + sub(f.media && esc(f.media)) + p(f.summary) + (f.why ? `<p class="ntnext">저장 이유 · ${esc(f.why)}</p>` : "");
+  else if (cat === "book") mid = h3(f.title) + sub(f.author && esc(f.author), f.status && esc(f.status), stars(f.rating)) + (f.quote ? `<blockquote class="ntq">${clip(f.quote)}</blockquote>` : "") + p(f.think) + (f.apply ? `<p class="ntnext">→ ${esc(f.apply)}</p>` : "");
+  else if (cat === "study") mid = h3(f.title) + (f.summary ? `<p class="ntsum">${esc(f.summary)}</p>` : "") + p(f.notes) + (f.cue ? `<p class="ntnext">질문 ${String(f.cue).split("\n").filter(x => x.trim()).length}개</p>` : "");
+  else if (cat === "quote") mid = (f.quote ? `<blockquote class="ntq big">${clip(f.quote, 220)}</blockquote>` : "") + (f.source ? `<p class="ntsub">— ${esc(f.source)}</p>` : "") + p(f.think);
+  else if (cat === "meeting"){ const todo = String(f.todo || "").split("\n").filter(x => x.trim()).length;
+    mid = h3(f.title) + sub(f.date && fmtD(f.date), f.people && esc(f.people)) + p(f.decisions) + (todo ? `<p class="ntnext">할 일 ${todo}개</p>` : ""); }
+  else mid = h3(f.title) + p(f.body);
+  return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${C.e} ${C.l}</span><small class="num">${d.getMonth()+1}.${d.getDate()}</small></div>${mid}
+    ${(cat === "link" && f.url) || pj ? `<div class="ntmeta">${cat === "link" && f.url ? `<a class="ntlink" href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(ntHost(f.url))}</a>` : ""}${pj ? `<span>🎯 ${esc(pj.title)}</span>` : ""}</div>` : ""}</article>`;
+}
 function viewNotes(){
   if (!hasProfile()) return viewToday();
   const all = mineOf("note").sort((a,b) => (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0)), cat = S.ntCat || "all", q = (S.ntQ || "").trim().toLowerCase();
-  const inCat = all.filter(n => cat === "all" || (n.cat || "etc") === cat);
-  const list = q ? inCat.filter(n => [n.title, n.body, n.link, n.projectId && S.projects[n.projectId] ? S.projects[n.projectId].title : ""].join(" ").toLowerCase().includes(q)) : inCat;
-  const chip = (k, l, n) => `<button class="chip" data-act="nt-cat" data-v="${k}" aria-pressed="${cat === k}">${l} <span class="num">${n}</span></button>`;
-  const card = n => { const [, l, e] = ntCat(n.cat), pj = n.projectId && S.projects[n.projectId], d = new Date(n.updatedAt || n.createdAt || Date.now());
-    return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${e} ${l}</span><small class="num">${d.getMonth()+1}.${d.getDate()}</small></div>
-      ${n.title ? `<h3>${esc(n.title)}</h3>` : ""}${n.body ? `<p class="ntbody">${esc(n.body)}</p>` : ""}
-      ${n.link || pj ? `<div class="ntmeta">${n.link ? `<a class="ntlink" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(ntHost(n.link))}</a>` : ""}${pj ? `<span>🎯 ${esc(pj.title)}</span>` : ""}</div>` : ""}</article>`; };
-  return `<div class="nttools"><input type="search" id="nt-q" placeholder="제목 · 내용 · 링크 검색" value="${esc(S.ntQ || "")}" aria-label="자료 검색"><button class="btn" data-act="nt-new">+ 자료 추가</button></div>
-    <div class="chips ntcats">${chip("all", "전체", all.length)}${NT_CATS.map(([k, l]) => chip(k, l, all.filter(n => (n.cat || "etc") === k).length)).join("")}</div>
-    ${list.length ? `<div class="ntgrid">${list.map(card).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : all.length ? "이 분류에는 아직 자료가 없어요" : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "참고자료, 아이디어, 독서노트, 공부한 내용을 한곳에 모아 두세요."}</section>`}`;
+  const inCat = all.filter(n => cat === "all" || ntNorm(n).cat === cat);
+  const list = q ? inCat.filter(n => (ntText(n) + " " + (n.projectId && S.projects[n.projectId] ? S.projects[n.projectId].title : "")).toLowerCase().includes(q)) : inCat;
+  const chip = (k, l, n) => `<button class="chip" data-act="nt-cat" data-v="${k}" aria-pressed="${cat === k}">${l}${n ? ` <span class="num">${n}</span>` : ""}</button>`;
+  return `<div class="nttools"><input type="search" id="nt-q" placeholder="자료 검색" value="${esc(S.ntQ || "")}" aria-label="자료 검색"><button class="btn" data-act="nt-new">+ 자료 추가</button></div>
+    <div class="chips ntcats">${chip("all", "전체", all.length)}${NT_CATS.map(C => chip(C.k, `${C.e} ${C.l}`, all.filter(n => ntNorm(n).cat === C.k).length)).join("")}</div>
+    ${list.length ? `<div class="ntgrid">${list.map(ntCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : all.length ? "이 분류에는 아직 자료가 없어요" : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : cat !== "all" ? esc(ntCat(cat).hint) : "아이디어, 링크, 독서, 공부, 좋은 문장, 회의 기록을 한곳에 모아 두세요."}</section>`}`;
 }
 function noteSheet(c){
-  const n = c.id && S.mine[c.id], gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done").sort((a,b) => (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0) || (a.createdAt||0) - (b.createdAt||0));
-  const ph = {book:["책 제목 · 저자", "인상 깊은 문장, 생각, 적용할 점"], idea:["아이디어 한 줄", "떠오른 생각을 자유롭게"], study:["공부한 주제", "배운 내용, 핵심 정리, 헷갈린 점"], ref:["자료 제목", "왜 저장하는지, 핵심 내용"]}[c.cat] || ["제목", "내용"];
+  const n = c.id && S.mine[c.id], C = ntCat(c.cat), gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done").sort((a,b) => (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0) || (a.createdAt||0) - (b.createdAt||0));
+  const field = x => { const id = "nf-" + x.k, lab = `<span class="lab">${x.l}</span>`, v = (c.vals || {})[x.k];
+    if (x.t === "area") return `<div class="field">${lab}<textarea id="${id}" rows="${x.k === "notes" || x.k === "body" ? 6 : 3}" maxlength="10000" placeholder="${x.p}">${D(id)}</textarea></div>`;
+    if (x.t === "choice") return `<div class="field">${lab}<div class="chips">${x.o.map(o => `<button class="chip" data-act="nt-val" data-f="${x.k}" data-v="${o}" aria-pressed="${v === o}">${o}</button>`).join("")}</div></div>`;
+    if (x.t === "stars") return `<div class="field">${lab}<div class="ntrate">${[1,2,3,4,5].map(i => `<button data-act="nt-val" data-f="${x.k}" data-v="${i}" aria-label="${i}점" aria-pressed="${(v||0) >= i}">★</button>`).join("")}</div></div>`;
+    return `<div class="field">${lab}<input type="${x.t === "url" ? "url" : x.t === "date" ? "date" : "text"}" id="${id}" maxlength="${x.t === "url" ? 500 : 200}" ${x.p ? `placeholder="${x.p}"` : ""} value="${D(id)}"></div>`; };
   return sheetWrap(n ? "자료 수정" : "자료 추가", "", `
-    <div class="field"><span class="lab">분류</span><div class="chips">${NT_CATS.map(([k, l, e]) => `<button class="chip" data-act="cset" data-f="cat" data-v="${k}" aria-pressed="${c.cat === k}">${e} ${l}</button>`).join("")}</div></div>
-    <div class="field"><input type="text" id="no-title" maxlength="120" placeholder="${ph[0]}" value="${D("no-title")}" aria-label="제목"></div>
-    <div class="field"><textarea id="no-body" rows="8" maxlength="20000" placeholder="${ph[1]}" aria-label="내용">${D("no-body")}</textarea></div>
-    <div class="field"><input type="url" id="no-link" maxlength="500" placeholder="링크 (선택) · 예: https://..." value="${D("no-link")}" aria-label="링크"></div>
+    <div class="chips ntkinds" role="group" aria-label="분류">${NT_CATS.map(K => `<button class="chip" data-act="nt-kind" data-v="${K.k}" aria-pressed="${c.cat === K.k}">${K.e} ${K.l}</button>`).join("")}</div>
+    <p class="hint nthint">${C.hint}</p>
+    ${C.f.map(field).join("")}
     ${gs.length ? `<div class="field"><span class="lab">연결할 퀘스트 <span class="hint">선택</span></span><div class="chips">${gs.map(p => `<button class="chip" data-act="cset" data-f="projectId" data-v="${p.id}" aria-pressed="${c.projectId === p.id}">${p.parentId ? "🔗" : "🎯"} ${esc(p.title)}</button>`).join("")}</div></div>` : ""}
     <button class="btn big full" data-act="submit-note" ${S.busy ? "disabled" : ""}>저장</button>
     ${n ? `<button class="link danger ntdel" data-act="nt-del" data-id="${n.id}">${S.armed === "nd"+n.id ? "한 번 더 누르면 삭제돼요" : "삭제"}</button>` : ""}`);
 }
+const NT_KEYS = [...new Set(NT_CATS.flatMap(C => C.f.filter(x => !["choice","stars"].includes(x.t)).map(x => "nf-" + x.k)))];
 
 /* ================= quest management (nav › 퀘스트) ================= */
 const QM = () => S.qm || (S.qm = {tab:"goal", sel:[], q:""});
@@ -3876,11 +3950,18 @@ document.addEventListener("click", e => {
       const at = Date.now(); run(async () => { let i = 0; for (const t of lines) await api.putMine("bd"+uid8()+(i), {kind:"dump", text:t.slice(0,200), hidden:false, createdAt:at+(i++)}); }, () => { delete S.drafts["bd-in"]; toast(`🧠 ${lines.length}개를 털어 넣었어요`); }); return; }
     case "bd-step": (S.bdStep || (S.bdStep = {}))[id] = +b.dataset.v; break;
     case "nt-cat": S.ntCat = b.dataset.v; break;
-    case "nt-new": ["no-title","no-body","no-link"].forEach(k => delete S.drafts[k]); openSheet({type:"note", cat:S.ntCat && S.ntCat !== "all" ? S.ntCat : "ref", projectId:null}); setTimeout(() => { const x = $("#no-title"); x && x.focus(); }, 50); return;
-    case "nt-edit": { const n = S.mine[id]; if (!n) return; S.drafts["no-title"] = n.title || ""; S.drafts["no-body"] = n.body || ""; S.drafts["no-link"] = n.link || ""; openSheet({type:"note", id, cat:n.cat || "etc", projectId:n.projectId || null}); return; }
-    case "submit-note": { const title = pv("no-title").trim(), body = pv("no-body").trim(), link = ntUrl(pv("no-link")); if (!title && !body){ toast("제목이나 내용을 적어 주세요"); const el = $("#no-title"); el && el.focus && el.focus(); return; }
+    case "nt-new": { NT_KEYS.forEach(k => delete S.drafts[k]); const cat = S.ntCat && S.ntCat !== "all" ? S.ntCat : "idea"; if (cat === "meeting") S.drafts["nf-date"] = today();
+      openSheet({type:"note", cat, vals:{}, projectId:null}); setTimeout(() => { const x = $(".sheet input:not([type=hidden]), .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
+    case "nt-edit": { const n = S.mine[id]; if (!n) return; const {cat, f} = ntNorm(n); NT_KEYS.forEach(k => delete S.drafts[k]);
+      const vals = {}; ntCat(cat).f.forEach(x => { if (["choice","stars"].includes(x.t)) vals[x.k] = f[x.k]; else S.drafts["nf-" + x.k] = f[x.k] || ""; });
+      openSheet({type:"note", id, cat, vals, projectId:n.projectId || null}); return; }
+    case "nt-kind": preserveSheetDrafts(); c.cat = b.dataset.v; if (c.cat === "meeting" && !S.drafts["nf-date"]) S.drafts["nf-date"] = today(); renderSheet(); return;
+    case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
+    case "submit-note": { const C = ntCat(c.cat), f = {};
+      C.f.forEach(x => { const v = ["choice","stars"].includes(x.t) ? (c.vals || {})[x.k] : pv("nf-" + x.k).trim(); if (v) f[x.k] = x.t === "url" ? ntUrl(v) : v; });
+      if (!Object.keys(f).some(k => !["media","status","rating","date"].includes(k))){ toast("내용을 하나 이상 적어 주세요"); return; }
       const old = c.id && S.mine[c.id], key = old ? c.id : "nt"+uid8(), now = Date.now();
-      run(() => api.putMine(key, {kind:"note", cat:c.cat || "etc", title, body, link, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), () => { ["no-title","no-body","no-link"].forEach(k => delete S.drafts[k]); closeSheet(); toast(old ? "자료를 저장했어요" : "📚 자료실에 담았어요"); }); return; }
+      run(() => api.putMine(key, {kind:"note", cat:C.k, f, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), () => { NT_KEYS.forEach(k => delete S.drafts[k]); closeSheet(); toast(old ? "자료를 저장했어요" : "📚 자료실에 담았어요"); }); return; }
     case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; run(() => api.delMine(id), () => { closeSheet(); toast("자료를 삭제했어요"); }); return;
     case "bd-area": LS.set("bdOff", b.dataset.v === "off"); break;
     case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); break; } S.armed = null; run(() => api.delMine(id), () => toast("삭제했어요")); return;

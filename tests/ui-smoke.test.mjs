@@ -359,19 +359,24 @@ test('brain dump: pour lines in, inline guide, hide area, send one to task, dele
   const odd = dumps()[0]; h.click('bd-del',{id:odd.id}); assert.equal(dumps().length,1); h.click('bd-del',{id:odd.id}); await h.settle();
   assert.equal(dumps().length,0);
 });
-test('자료실: nav entry, add note with category/link/quest, filter, edit, delete',async () => {
+test('자료실: typed notes (book structure), filter, edit, legacy note mapping, delete',async () => {
   const h = await linkedUI(); h.route('notes');
   assert.match(h.nodes.get('nav').innerHTML,/href="#notes"/); assert.match(h.nodes.get('app').innerHTML,/자료실이 비어 있어요/);
-  h.click('nt-new'); h.click('cset',{f:'cat',v:'book'});
-  h.nodes.set('no-title',{value:'아주 작은 습관의 힘'}); h.nodes.set('no-body',{value:'환경 설계'}); h.nodes.set('no-link',{value:'example.com/b'});
+  for (const k of ['아이디어','링크','독서','공부','문장','회의','메모']) assert.ok(h.nodes.get('app').innerHTML.includes(k),k);
+  h.click('nt-new'); h.click('nt-kind',{v:'book'});
+  assert.match(h.nodes.get('overlay').innerHTML,/밑줄 친 문장/); assert.match(h.nodes.get('overlay').innerHTML,/적용할 점/);
+  h.nodes.set('nf-title',{value:'아주 작은 습관의 힘'}); h.nodes.set('nf-author',{value:'제임스 클리어'}); h.nodes.set('nf-quote',{value:'환경이 의지를 이긴다'});
+  h.click('nt-val',{f:'status',v:'완독'}); h.click('nt-val',{f:'rating',v:'4'});
   h.click('submit-note'); await h.settle();
   const notes = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'note');
-  assert.equal(notes().length,1); assert.equal(notes()[0].cat,'book'); assert.equal(notes()[0].link,'https://example.com/b');
+  assert.equal(notes().length,1); const n0 = notes()[0];
+  assert.equal(n0.cat,'book'); assert.equal(n0.f.author,'제임스 클리어'); assert.equal(n0.f.status,'완독'); assert.equal(n0.f.rating,4);
+  assert.match(h.nodes.get('app').innerHTML,/환경이 의지를 이긴다/);
   h.click('nt-cat',{v:'idea'}); assert.ok(!h.nodes.get('app').innerHTML.includes('아주 작은 습관의 힘'));
   h.click('nt-cat',{v:'book'}); assert.ok(h.nodes.get('app').innerHTML.includes('아주 작은 습관의 힘'));
-  const id = notes()[0].id; h.click('nt-edit',{id}); h.nodes.set('no-title',{value:'수정된 제목'}); h.click('submit-note'); await h.settle();
-  assert.equal(notes()[0].title,'수정된 제목'); assert.equal(notes().length,1);
-  h.click('nt-edit',{id}); h.click('nt-del',{id}); h.click('nt-del',{id}); await h.settle();
+  h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-title',{value:'수정된 제목'}); h.click('submit-note'); await h.settle();
+  assert.equal(notes()[0].f.title,'수정된 제목'); assert.equal(notes()[0].f.rating,4); assert.equal(notes().length,1);
+  h.click('nt-edit',{id:n0.id}); h.click('nt-del',{id:n0.id}); h.click('nt-del',{id:n0.id}); await h.settle();
   assert.equal(notes().length,0);
 });
 // Inspect real rendered markup; this harness does not model browser layout.
