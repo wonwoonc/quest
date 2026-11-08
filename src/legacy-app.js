@@ -985,9 +985,8 @@ function viewLearn(){
     ${rows.length ? `<dl class="lninfo">${rows.map(([l, v, c]) => `<dt>${l}</dt><dd class="${c || ""}">${v}</dd>`).join("")}</dl>` : ""}
     <div class="lnstatus"><span>상태</span><div class="seg">${LN_STATUS.map(x => `<button data-act="ln-st" data-v="${x}" aria-pressed="${st === x}">${x}</button>`).join("")}</div></div>
     ${done ? "" : ntRewardLine(D0, ntArea(n)[0])}</section>`;
-  h += `<section class="card lnnote ${rd ? "read fs-" + fs : ""}"><div class="ch"><h2>노트</h2>${rd ? `<div class="lnfs" role="group" aria-label="글자 크기">${[["s","작게"],["m","보통"],["l","크게"]].map(([k, l]) => `<button data-act="ln-fs" data-v="${k}" aria-pressed="${fs === k}" aria-label="${l}" class="fs-${k}">가</button>`).join("")}</div>` : ""}<button class="btn sec xs lnmode" data-act="ln-read">${rd ? "편집" : "읽기 모드"}</button></div>
-    <div class="lnbody"><aside class="lnolw" id="lnol">${lnOutline(LP.blocks)}</aside>
-    <div class="lnmain"><div class="nted ${rd ? "ro" : ""}" id="nted">${bkHtml(LP.blocks, rd)}</div>
+  h += `<section class="card lnnote ${rd ? "read fs-" + fs : ""}"><div class="ch">${rd ? `<div class="lnfs" role="group" aria-label="글자 크기">${[["s","작게"],["m","보통"],["l","크게"]].map(([k, l]) => `<button data-act="ln-fs" data-v="${k}" aria-pressed="${fs === k}" aria-label="${l}" class="fs-${k}">가</button>`).join("")}</div>` : ""}<button class="btn sec xs lnmode" data-act="ln-read">${rd ? "편집" : "읽기 모드"}</button></div>
+    <div class="lnbody"><div class="lnmain"><div class="nted ${rd ? "ro" : ""}" id="nted">${bkHtml(LP.blocks, rd)}</div>
     ${rd ? "" : `<button class="bkadd" data-act="bk-add">+ 블록 추가</button>
     <div class="bkbar" id="bkbar" hidden>${BK_TYPES.filter(x => !x[0].startsWith("callout-") || x[0] === "callout-g").map(([k, l, g]) => `<button data-act="bk-type" data-v="${k}" title="${l}" aria-label="${l}">${k.startsWith("callout") ? nic("check") : esc(g)}</button>`).join("")}<button data-act="bk-ind" data-v="-1" title="내어쓰기" aria-label="내어쓰기">⇤</button><button data-act="bk-ind" data-v="1" title="들여쓰기" aria-label="들여쓰기">⇥</button><button data-act="bk-del" title="블록 삭제" aria-label="블록 삭제">${nic("trash")}</button></div>
     <div class="bkmenu" id="bkmenu" hidden></div>`}</div></div></section>
@@ -995,8 +994,8 @@ function viewLearn(){
   return h;
 }
 /* ---------- 블록 에디터 ---------- */
-const BK_TYPES = [["p","텍스트","T"],["h1","제목 1","H1"],["h2","제목 2","H2"],["h3","제목 3","H3"],["ul","글머리 목록","•"],["ol","번호 목록","1."],["todo","체크박스","☐"],["quote","인용","❝"],["callout-g","핵심 상자","!"],["callout-r","주의 상자","!"],["callout-y","팁 상자","!"],["callout-b","정보 상자","!"],["code","코드","</>"],["divider","구분선","—"]];
-const BK_MD = [[/^###\s$/, "h3"], [/^##\s$/, "h2"], [/^#\s$/, "h1"], [/^[-*]\s$/, "ul"], [/^1[.)]\s$/, "ol"], [/^\[\s?\]\s$/, "todo"], [/^>\s$/, "quote"], [/^!\s$/, "callout-g"], [/^```\s?$/, "code"]];
+const BK_TYPES = [["p","텍스트","T"],["h1","제목 1","H1"],["h2","제목 2","H2"],["h3","제목 3","H3"],["ul","글머리 목록","•"],["ol","번호 목록","1."],["todo","체크박스","☐"],["callout-g","핵심 상자","!"],["callout-r","주의 상자","!"],["callout-y","팁 상자","!"],["callout-b","정보 상자","!"],["divider","구분선","—"]];
+const BK_MD = [[/^###\s$/, "h3"], [/^##\s$/, "h2"], [/^#\s$/, "h1"], [/^[-*]\s$/, "ul"], [/^1[.)]\s$/, "ol"], [/^\[\s?\]\s$/, "todo"], [/^!\s$/, "callout-g"]];
 let LP = null; /* working copy of the open learning note: {id, blocks} */
 function bkSan(html){ const t = document.createElement("template"); t.innerHTML = String(html || "");
   const ok = {B:"b", STRONG:"b", I:"i", EM:"i", U:"u", S:"s", STRIKE:"s", CODE:"code", A:"a", BR:"br", MARK:"mark"};
@@ -1023,8 +1022,7 @@ const bxOf = id => document.querySelector(`#nted .bx[data-b="${id}"]`);
 const bkIdx = id => LP.blocks.findIndex(b => b.id === id);
 function bkSync(){ if (!LP) return; document.querySelectorAll("#nted .bx").forEach(el => { const b = LP.blocks[bkIdx(el.dataset.b)]; if (b && b.t !== "divider") b.h = bkSan(el.innerHTML); }); }
 let bkT = 0;
-function bkSave(now){ clearTimeout(bkT); const go0 = () => { if (!LP) return; bkSync(); const n = S.mine[LP.id]; if (!n) return; const ol = $("#lnol"); if (ol) ol.innerHTML = lnOutline(LP.blocks);
-  api.putMine(LP.id, {...n, blocks:LP.blocks.map(({id, t, h, ind, ck, c, fold}) => ({id, t, h, ...(ind ? {ind} : {}), ...(ck ? {ck} : {}), ...(c ? {c} : {}), ...(fold ? {fold} : {})})), updatedAt:Date.now()}).catch(e => toast(esc(e.message || "저장하지 못했어요"))); };
+function bkSave(now){ clearTimeout(bkT); const go0 = () => { if (!LP) return; bkSync(); const n = S.mine[LP.id]; if (!n) return;   api.putMine(LP.id, {...n, blocks:LP.blocks.map(({id, t, h, ind, ck, c, fold}) => ({id, t, h, ...(ind ? {ind} : {}), ...(ck ? {ck} : {}), ...(c ? {c} : {}), ...(fold ? {fold} : {})})), updatedAt:Date.now()}).catch(e => toast(esc(e.message || "저장하지 못했어요"))); };
   if (now) go0(); else bkT = setTimeout(go0, 500); }
 function bkRedraw(focusId, off){ const ed = $("#nted"); if (!ed) return; ed.innerHTML = bkHtml(LP.blocks, !!S.lnRead); if (focusId) setCaret(bxOf(focusId), off); }
 function bkSetType(id, t){ bkSync(); const b = LP.blocks[bkIdx(id)]; if (!b) return; const off = caretOff(bxOf(id) || document.body);
@@ -1059,7 +1057,7 @@ document.addEventListener("input", e => { const bx = e.target.closest && e.targe
 document.addEventListener("paste", e => { const bx = e.target.closest && e.target.closest("#nted .bx"); if (!bx || !LP) return; e.preventDefault(); const t = (e.clipboardData || window.clipboardData)?.getData("text") || "";
   const lines = t.replace(/\r/g, "").split("\n"); if (lines.length < 2){ document.execCommand("insertText", false, t); return; }
   bkSync(); const id = bx.dataset.b, i = bkIdx(id), parse = l => { const m = l.match(/^(\s*)(#{1,3}\s|[-*]\s|\d+[.)]\s|\[\s?\]\s|\[x\]\s|>\s)?(.*)$/i), pre = (m[2] || "").trim(), ind = Math.min(3, Math.floor(m[1].length / 2));
-    const t2 = !pre ? "p" : pre[0] === "#" ? "h" + pre.length : /[-*]/.test(pre) ? "ul" : /^\d/.test(pre) ? "ol" : pre[0] === ">" ? "quote" : "todo"; return {id:uid8() + Math.random().toString(36).slice(2,5), t:t2, h:esc(m[3]), ind, ...(/\[x\]/i.test(pre) ? {ck:true} : {})}; };
+    const t2 = !pre ? "p" : pre[0] === "#" ? "h" + pre.length : /[-*]/.test(pre) ? "ul" : /^\d/.test(pre) ? "ol" : pre[0] === ">" ? "p" : "todo"; return {id:uid8() + Math.random().toString(36).slice(2,5), t:t2, h:esc(m[3]), ind, ...(/\[x\]/i.test(pre) ? {ck:true} : {})}; };
   const nb = lines.filter((l, k) => l.trim() || k < lines.length - 1).map(parse); const cur = LP.blocks[i];
   if (cur && !bkText(cur).trim() && cur.t === "p"){ LP.blocks.splice(i, 1, ...nb); } else LP.blocks.splice(i + 1, 0, ...nb);
   bkRedraw(nb[nb.length - 1].id); bkSave(); }, true);
