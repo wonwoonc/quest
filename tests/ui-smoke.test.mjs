@@ -1257,3 +1257,22 @@ test('settings shows an open-source license notice for Noto Sans KR (OFL)',async
   const h=await profileUI();h.route('settings');assert.match(h.nodes.get('app').innerHTML,/data-k="oss"[\s\S]*오픈소스 라이선스/);
   h.click('sheet',{k:'oss'});assert.match(h.nodes.get('overlay').innerHTML,/Noto Sans KR[\s\S]*SIL Open Font License, Version 1\.1/);
 });
+test('plan: place on tasks, place + after-habit on dailies, chained next-habit prompt',async()=>{
+  const h = await profileUI();
+  const mk = (name, extra) => { h.click('sheet',{k:'add',v:'daily'}); h.nodes.set('ad-name',{value:name}); h.click('rpt',{v:'daily'}); h.click('tmset'); extra && extra(); h.click('submit-add'); };
+  mk('양치'); await h.settle();
+  const a = Object.values(h.snapshot().mine).find(x => x.name === '양치');
+  h.click('sheet',{k:'add',v:'daily'}); h.nodes.set('ad-name',{value:'영어 한 줄 읽기'});
+  assert.match(h.nodes.get('overlay').innerHTML,/실행 계획/); assert.match(h.nodes.get('overlay').innerHTML,/id="pl-after"/);
+  h.click('aftq',{v:a.id}); assert.match(h.nodes.get('overlay').innerHTML,/value="양치 후"/);
+  h.nodes.set('ad-name',{value:'영어 한 줄 읽기'}); h.nodes.set('pl-place',{value:'욕실'}); h.nodes.set('pl-after',{value:'양치 후'});
+  h.click('rpt',{v:'daily'}); h.click('tmset'); h.click('submit-add'); await h.settle();
+  const b = Object.values(h.snapshot().mine).find(x => x.name === '영어 한 줄 읽기');
+  assert.equal(b.place,'욕실'); assert.equal(b.afterId,a.id); assert.equal(b.after,'');
+  h.route('qmanage'); assert.match(h.nodes.get('app').innerHTML,/양치 후/); assert.match(h.nodes.get('app').innerHTML,/욕실/);
+  h.click('qcheck',{id:a.id}); await h.settle();
+  assert.match(h.nodes.get('toast').innerHTML,/다음 습관: <b>영어 한 줄 읽기<\/b>/);
+  h.click('taskadd'); assert.match(h.nodes.get('overlay').innerHTML,/id="pl-place"/); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/id="pl-after"/);
+  h.nodes.set('ta-name',{value:'스쿼트 5개'}); h.nodes.set('pl-place',{value:'거실'}); h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
+  const t = Object.values(h.snapshot().mine).find(x => x.name === '스쿼트 5개'); assert.equal(t.place,'거실');
+});
