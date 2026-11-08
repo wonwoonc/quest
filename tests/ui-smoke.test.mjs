@@ -380,7 +380,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   h.click('nt-edit',{id:n0.id}); h.click('nt-del',{id:n0.id}); h.click('nt-del',{id:n0.id}); await h.settle();
   assert.equal(notes().length,0); assert.equal(xp(),x0,'deleting reverses the reward');
   // learning: detail screen with chapters (Cornell notes per chapter) and wrap-up
-  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/학습 목표/); assert.match(ov(),/\+30 XP · \+30 코인/);
+  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/학습 목표/); assert.doesNotMatch(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'강의'}); assert.match(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'책'}); assert.doesNotMatch(ov(),/id="nf-url"/); assert.match(ov(),/\+30 XP · \+30 코인/);
   h.nodes.set('nf-title',{value:'데이터 분석 입문'}); h.click('submit-note'); await h.settle();
   const L = notes()[0]; assert.equal(L.cat,'learn'); assert.match(app(),/목차/); assert.doesNotMatch(app(),/마무리/); assert.match(app(),/완성 조건: 모든 목차 완료/);
   h.nodes.set('ln-add',{value:'1강 OT\n2강 SQL 기초'}); h.click('ln-addbtn',{id:L.id}); await h.settle();

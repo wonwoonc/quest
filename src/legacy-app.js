@@ -908,7 +908,8 @@ function viewNotes(){
 }
 function noteSheet(c){
   const n = c.id && S.mine[c.id], C = noteDrawer(S, c.cat), gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done").sort((a,b) => (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0) || (a.createdAt||0) - (b.createdAt||0));
-  const field = x => { const id = "nf-" + x.k, lab = `<span class="lab">${x.l}</span>`, v = (c.vals || {})[x.k];
+  const shown = x => !x.when || Object.entries(x.when).every(([k, vs]) => vs.includes((c.vals || {})[k]));
+  const field = x => { if (!shown(x)) return ""; const id = "nf-" + x.k, lab = `<span class="lab">${x.l}</span>`, v = (c.vals || {})[x.k];
     if (x.t === "area") return `<div class="field">${lab}<textarea id="${id}" rows="${x.k === "body" ? 6 : 3}" maxlength="10000" placeholder="${x.p}">${D(id)}</textarea></div>`;
     if (x.t === "choice") return `<div class="field">${lab}<div class="chips">${x.o.map(o => `<button class="chip" data-act="nt-val" data-f="${x.k}" data-v="${o}" aria-pressed="${v === o}">${o}</button>`).join("")}</div></div>`;
     if (x.t === "stars") return `<div class="field">${lab}<div class="ntrate">${[1,2,3,4,5].map(i => `<button data-act="nt-val" data-f="${x.k}" data-v="${i}" aria-label="${i}점" aria-pressed="${(v||0) >= i}">${nic("star")}</button>`).join("")}</div></div>`;
@@ -933,7 +934,7 @@ const ntKeys = () => [...new Set(noteDrawers(S).flatMap(C => C.f.filter(x => !["
 /* collects the open note sheet; resolves to the saved note id or null */
 function saveNote(c, after){
   const C = noteDrawer(S, c.cat), old = c.id && S.mine[c.id], prev = old && ntN(old).cat === C.k ? {...ntN(old).f} : {}, f = prev;
-  C.f.forEach(x => { const v = ["choice","stars"].includes(x.t) ? (c.vals || {})[x.k] : pv("nf-" + x.k).trim(); if (v) f[x.k] = x.t === "url" ? ntUrl(v) : v; else delete f[x.k]; });
+  C.f.forEach(x => { if (x.when && !Object.entries(x.when).every(([k, vs]) => vs.includes((c.vals || {})[k]))){ delete f[x.k]; return; } const v = ["choice","stars"].includes(x.t) ? (c.vals || {})[x.k] : pv("nf-" + x.k).trim(); if (v) f[x.k] = x.t === "url" ? ntUrl(v) : v; else delete f[x.k]; });
   const files = C.k === "ref" ? (c.files || []) : (old && old.files) || [];
   if (!Object.keys(f).some(k => !["media","status","rating","date","type"].includes(k)) && !files.length){ toast(C.k === "learn" ? "제목을 적어 주세요" : "내용을 하나 이상 적어 주세요"); return; }
   const key = old ? c.id : "nt"+uid8(), now = Date.now(), was = old && noteComplete(S, old);
