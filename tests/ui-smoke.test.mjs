@@ -359,6 +359,21 @@ test('brain dump: pour lines in, inline guide, hide area, send one to task, dele
   const odd = dumps()[0]; h.click('bd-del',{id:odd.id}); assert.equal(dumps().length,1); h.click('bd-del',{id:odd.id}); await h.settle();
   assert.equal(dumps().length,0);
 });
+test('자료실: nav entry, add note with category/link/quest, filter, edit, delete',async () => {
+  const h = await linkedUI(); h.route('notes');
+  assert.match(h.nodes.get('nav').innerHTML,/href="#notes"/); assert.match(h.nodes.get('app').innerHTML,/자료실이 비어 있어요/);
+  h.click('nt-new'); h.click('cset',{f:'cat',v:'book'});
+  h.nodes.set('no-title',{value:'아주 작은 습관의 힘'}); h.nodes.set('no-body',{value:'환경 설계'}); h.nodes.set('no-link',{value:'example.com/b'});
+  h.click('submit-note'); await h.settle();
+  const notes = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'note');
+  assert.equal(notes().length,1); assert.equal(notes()[0].cat,'book'); assert.equal(notes()[0].link,'https://example.com/b');
+  h.click('nt-cat',{v:'idea'}); assert.ok(!h.nodes.get('app').innerHTML.includes('아주 작은 습관의 힘'));
+  h.click('nt-cat',{v:'book'}); assert.ok(h.nodes.get('app').innerHTML.includes('아주 작은 습관의 힘'));
+  const id = notes()[0].id; h.click('nt-edit',{id}); h.nodes.set('no-title',{value:'수정된 제목'}); h.click('submit-note'); await h.settle();
+  assert.equal(notes()[0].title,'수정된 제목'); assert.equal(notes().length,1);
+  h.click('nt-edit',{id}); h.click('nt-del',{id}); h.click('nt-del',{id}); await h.settle();
+  assert.equal(notes().length,0);
+});
 // Inspect real rendered markup; this harness does not model browser layout.
 function taskMarkup(html,id) {
   const start = html.indexOf(`data-act="tedit" data-id="${id}"`);

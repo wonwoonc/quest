@@ -406,7 +406,7 @@ function render(){ IXC = null;
   if (S.liveWin){ const wu = v === "profile" && S.view.uid !== S.me ? S.view.uid : null, wp = v === "post" ? S.view.pid : null; queueMicrotask(() => S.liveWin.watch(wu, wp)); }
   rollOver();
    const dash = v === "dash" && hasProfile();
-  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, stats:viewStats, shop:viewShop, cal:viewCal, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
+  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
   { const gg = dash && $(".wd-goals .wd-ggrid"); if (gg && S.wdGs) gg.scrollLeft = S.wdGs; }
   $("#app").dataset.v = S.me && !hasProfile() && S.canWrite ? "profile" : dash ? "dash" : v; $("#app").dataset.pt = v === "profile" || v === "today" ? (S.profTab || "") : "";
   renderReplyBar(); renderPill();
@@ -461,7 +461,7 @@ function bannerHtml(){ return "";
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
   const v = S.view.name, sub = v === "post" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || (v === "profile" && S.view.uid !== S.me);
-  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
+  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
   const n = activityItems().filter(x => x.at > actSeen).length;
   $("#topbar").innerHTML = `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : ""}<h1>${title}</h1>
     ${S.me && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
@@ -476,6 +476,7 @@ function renderNav(){
     <a href="#feed" ${cur(v==="feed")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7.5" r="3"/><path d="M2.5 20v-2a6.5 6.5 0 0 1 13 0v2M16 4.7a3 3 0 0 1 0 5.6M18 12a6 6 0 0 1 3.5 5.5V20"/></svg><span>커뮤니티</span></a>
     <a href="#shop" ${cur(v==="shop")}>${I.bag}<span>상점</span></a>
     <a href="#cal" ${cur(v==="cal")}>${I.cal}<span>캘린더</span></a>
+    <a href="#notes" ${cur(v==="notes")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5h-7L10 5H5a1.5 1.5 0 0 0-1.5 1.5Z"/><path d="M8 12.5h8M8 15.5h5"/></svg><span>자료실</span></a>
     <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`;
   document.body.classList.toggle("navmini", !!S.navMini);
 }
@@ -831,6 +832,38 @@ function viewCal(){
     h += `</div>`;
   }
   return h;
+}
+
+/* ================= 자료실 (nav › 자료실): references, ideas, reading notes, study notes ================= */
+const NT_CATS = [["ref","참고자료","📎"],["idea","아이디어","💡"],["book","독서노트","📖"],["study","공부","✏️"],["etc","기타","🗂️"]];
+const ntCat = k => NT_CATS.find(x => x[0] === k) || NT_CATS[4];
+const ntUrl = v => { v = String(v || "").trim(); return !v ? "" : /^https?:\/\//i.test(v) ? v : "https://" + v; };
+const ntHost = v => { try { return new URL(v).hostname.replace(/^www\./, ""); } catch { return v; } };
+function viewNotes(){
+  if (!hasProfile()) return viewToday();
+  const all = mineOf("note").sort((a,b) => (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0)), cat = S.ntCat || "all", q = (S.ntQ || "").trim().toLowerCase();
+  const inCat = all.filter(n => cat === "all" || (n.cat || "etc") === cat);
+  const list = q ? inCat.filter(n => [n.title, n.body, n.link, n.projectId && S.projects[n.projectId] ? S.projects[n.projectId].title : ""].join(" ").toLowerCase().includes(q)) : inCat;
+  const chip = (k, l, n) => `<button class="chip" data-act="nt-cat" data-v="${k}" aria-pressed="${cat === k}">${l} <span class="num">${n}</span></button>`;
+  const card = n => { const [, l, e] = ntCat(n.cat), pj = n.projectId && S.projects[n.projectId], d = new Date(n.updatedAt || n.createdAt || Date.now());
+    return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${e} ${l}</span><small class="num">${d.getMonth()+1}.${d.getDate()}</small></div>
+      ${n.title ? `<h3>${esc(n.title)}</h3>` : ""}${n.body ? `<p class="ntbody">${esc(n.body)}</p>` : ""}
+      ${n.link || pj ? `<div class="ntmeta">${n.link ? `<a class="ntlink" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(ntHost(n.link))}</a>` : ""}${pj ? `<span>🎯 ${esc(pj.title)}</span>` : ""}</div>` : ""}</article>`; };
+  return `<div class="nttools"><input type="search" id="nt-q" placeholder="제목 · 내용 · 링크 검색" value="${esc(S.ntQ || "")}" aria-label="자료 검색"><button class="btn" data-act="nt-new">+ 자료 추가</button></div>
+    <div class="chips ntcats">${chip("all", "전체", all.length)}${NT_CATS.map(([k, l]) => chip(k, l, all.filter(n => (n.cat || "etc") === k).length)).join("")}</div>
+    ${list.length ? `<div class="ntgrid">${list.map(card).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : all.length ? "이 분류에는 아직 자료가 없어요" : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "참고자료, 아이디어, 독서노트, 공부한 내용을 한곳에 모아 두세요."}</section>`}`;
+}
+function noteSheet(c){
+  const n = c.id && S.mine[c.id], gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done").sort((a,b) => (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0) || (a.createdAt||0) - (b.createdAt||0));
+  const ph = {book:["책 제목 · 저자", "인상 깊은 문장, 생각, 적용할 점"], idea:["아이디어 한 줄", "떠오른 생각을 자유롭게"], study:["공부한 주제", "배운 내용, 핵심 정리, 헷갈린 점"], ref:["자료 제목", "왜 저장하는지, 핵심 내용"]}[c.cat] || ["제목", "내용"];
+  return sheetWrap(n ? "자료 수정" : "자료 추가", "", `
+    <div class="field"><span class="lab">분류</span><div class="chips">${NT_CATS.map(([k, l, e]) => `<button class="chip" data-act="cset" data-f="cat" data-v="${k}" aria-pressed="${c.cat === k}">${e} ${l}</button>`).join("")}</div></div>
+    <div class="field"><input type="text" id="no-title" maxlength="120" placeholder="${ph[0]}" value="${D("no-title")}" aria-label="제목"></div>
+    <div class="field"><textarea id="no-body" rows="8" maxlength="20000" placeholder="${ph[1]}" aria-label="내용">${D("no-body")}</textarea></div>
+    <div class="field"><input type="url" id="no-link" maxlength="500" placeholder="링크 (선택) · 예: https://..." value="${D("no-link")}" aria-label="링크"></div>
+    ${gs.length ? `<div class="field"><span class="lab">연결할 퀘스트 <span class="hint">선택</span></span><div class="chips">${gs.map(p => `<button class="chip" data-act="cset" data-f="projectId" data-v="${p.id}" aria-pressed="${c.projectId === p.id}">${p.parentId ? "🔗" : "🎯"} ${esc(p.title)}</button>`).join("")}</div></div>` : ""}
+    <button class="btn big full" data-act="submit-note" ${S.busy ? "disabled" : ""}>저장</button>
+    ${n ? `<button class="link danger ntdel" data-act="nt-del" data-id="${n.id}">${S.armed === "nd"+n.id ? "한 번 더 누르면 삭제돼요" : "삭제"}</button>` : ""}`);
 }
 
 /* ================= quest management (nav › 퀘스트) ================= */
@@ -1649,6 +1682,7 @@ function renderSheet(){ IXC = null;
     const rows = [...gs.map(p => `<button class="row" data-act="project" data-p="${p.id}"><span class="ic sq ok">${p.parentId ? "🔗" : "🎯"}</span><span class="t"><b>${esc(p.title)}</b><small>${p.parentId ? "서브 퀘스트" : "메인 퀘스트"}</small></span>${I.chev}</button>`), ...qs.map(q => `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq"><svg class="rpic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2.5l3 3-3 3"/><path d="M4 11v-1.5a4 4 0 0 1 4-4h12"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 13v1.5a4 4 0 0 1-4 4H4"/></svg></span><span class="t"><b>${esc(q.name)}</b><small>데일리 퀘스트</small></span>${I.chev}</button>`)].join("");
     return sheetWrap(`${n} · ${l}`, "", `<div class="aihead"><span class="aiic">${aIcon(k)}</span><p class="aidesc">${AREA_DESC[k]}</p></div>
       <p class="sect3">${l} 영역 퀘스트</p><section class="card tight">${rows || `<p class="empty-row">아직 ${l} 영역을 붙인 퀘스트가 없어요.</p>`}</section>`); }
+  if (c.type === "note") return noteSheet(c);
   if (c.type === "taskadd") return sheetWrap("태스크 추가", "", `
     <div class="field"><input type="text" id="ta-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ta-name")}" aria-label="태스크 이름"></div>
     ${dueField(c)}
@@ -1814,6 +1848,7 @@ function route(){
   else if (h === "#qmanage"){ if (prev !== "qmanage") { const Q = QM(); Q.sel = []; } S.view = {name:"qmanage"}; }
   else if (h === "#me"){ if (prev !== "profile") S.profN = 20; if (!["profile","project","post","calday","activity","settings","stats"].includes(prev)) S.profTab = "posts"; S.view = {name:"profile", uid:S.me}; }
   else if (h === "#dash") S.view = {name:"dash"};
+  else if (h === "#notes") S.view = {name:"notes"};
   else if (h === "#calday"){ if (prev !== "calday") S.view = {name:"cal"}; }
   else if ((h === "#post" && prev === "post") || (h === "#goal" && prev === "project") || (h === "#profile" && prev === "profile")) {}
   else S.view = !h || h === "#" ? {name:"dash"} : {name:"feed"};
@@ -1892,6 +1927,7 @@ document.addEventListener("click", e => {
       if (canAct() && p && p.author !== S.me){ if (!liked(p)) run(() => api.like(key, true)); burstAt(dt); } return; }
     tapKey = key; const openKey = dt.dataset.open; tapT = setTimeout(() => { tapT = null; if (openKey) openPost(openKey); }, 280); return;
   }
+  if (e.target.closest("a.ntlink")) return;
   const b = e.target.closest("[data-act]"); if (!b) return;
   const a = b.dataset.act, pid = b.dataset.p, u = b.dataset.u, id = b.dataset.id, c = S.compose;
   const CONF = {pdel:1, tdel:1, hdel:1, delpost:1, rdel:1, block:1, bdel:1, qdel:1, ldel:1, rolldel:1};
@@ -1987,7 +2023,7 @@ document.addEventListener("click", e => {
       if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:false}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
        const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : "", period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null, tasks:[]}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:300}, profile:{}}[k] || {};
       openSheet({type:k, ...base}); return; }
-    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary"].includes(c.type)))) closeSheet(); return;
+    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary","note"].includes(c.type)))) closeSheet(); return;
     case "sheet-close": closeSheet(); return;
     case "cset": { const f = b.dataset.f, toggle = f === "mood" || f === "projectId" || f === "parentId";
       if (["hlv","lv","alv","tlv","ntlv"].includes(f)){ preserveSheetDrafts(); c[f==='alv'||f==='tlv'?'lv':f] = lvKey(b.dataset.v); renderSheet(); return; } c[f] = toggle && c[f] === b.dataset.v ? null : (b.dataset.v || null); if (f === "cost") c.cost = +b.dataset.v; renderSheet(); return; }
@@ -2037,6 +2073,13 @@ document.addEventListener("click", e => {
     case "bd-add": { const el = $("#bd-in"), lines = String((el && el.value) || "").split("\n").map(x => x.trim()).filter(Boolean); if (!lines.length){ toast("생각을 적어 주세요"); el && el.focus(); return; }
       const at = Date.now(); run(async () => { let i = 0; for (const t of lines) await api.putMine("bd"+uid8()+(i), {kind:"dump", text:t.slice(0,200), hidden:false, createdAt:at+(i++)}); }, () => { delete S.drafts["bd-in"]; toast(`🧠 ${lines.length}개를 털어 넣었어요`); }); return; }
     case "bd-step": (S.bdStep || (S.bdStep = {}))[id] = +b.dataset.v; break;
+    case "nt-cat": S.ntCat = b.dataset.v; break;
+    case "nt-new": ["no-title","no-body","no-link"].forEach(k => delete S.drafts[k]); openSheet({type:"note", cat:S.ntCat && S.ntCat !== "all" ? S.ntCat : "ref", projectId:null}); setTimeout(() => { const x = $("#no-title"); x && x.focus(); }, 50); return;
+    case "nt-edit": { const n = S.mine[id]; if (!n) return; S.drafts["no-title"] = n.title || ""; S.drafts["no-body"] = n.body || ""; S.drafts["no-link"] = n.link || ""; openSheet({type:"note", id, cat:n.cat || "etc", projectId:n.projectId || null}); return; }
+    case "submit-note": { const title = pv("no-title").trim(), body = pv("no-body").trim(), link = ntUrl(pv("no-link")); if (!title && !body){ toast("제목이나 내용을 적어 주세요"); const el = $("#no-title"); el && el.focus && el.focus(); return; }
+      const old = c.id && S.mine[c.id], key = old ? c.id : "nt"+uid8(), now = Date.now();
+      run(() => api.putMine(key, {kind:"note", cat:c.cat || "etc", title, body, link, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), () => { ["no-title","no-body","no-link"].forEach(k => delete S.drafts[k]); closeSheet(); toast(old ? "자료를 저장했어요" : "📚 자료실에 담았어요"); }); return; }
+    case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; run(() => api.delMine(id), () => { closeSheet(); toast("자료를 삭제했어요"); }); return;
     case "bd-area": LS.set("bdOff", b.dataset.v === "off"); break;
     case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); break; } S.armed = null; run(() => api.delMine(id), () => toast("삭제했어요")); return;
     case "bd-send": { const d = S.mine[id]; if (!d || !canAct()) return; const v = b.dataset.v;
@@ -2242,6 +2285,7 @@ document.addEventListener("input", e => {
   if (e.target.id) S.drafts[e.target.id] = e.target.value;
   if (e.target.id === "rw-cost" && S.compose && S.compose.type === "reward"){ const v = e.target.value.replace(/,/g,"").trim(); S.compose.cost = v; document.querySelectorAll('#overlay [data-f="cost"]').forEach(x => x.setAttribute("aria-pressed", String(!v && false))); }
   if (e.target.id === "qm-q"){ QM().q = e.target.value; schedule(); }
+  if (e.target.id === "nt-q"){ S.ntQ = e.target.value; schedule(); }
   if (e.target.id === "pj-unit") document.querySelectorAll(".uval").forEach(x => x.textContent = e.target.value);
   if (e.target.id === "pl-cond"){ S.planner.cond = +e.target.value; e.target.style.setProperty("--p", e.target.value + "%"); const v = e.target.parentNode.querySelector("#pl-cond-v"); if (v) v.textContent = e.target.value + "%"; }
 });
