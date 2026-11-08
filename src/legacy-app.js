@@ -1170,11 +1170,11 @@ function viewPlan(){
   return h;
 }
 /* brain dump: pour every thought in, then sort each into main / sub / daily / task, or hide it */
-const BD_KINDS = [["big","메인"],["sub","서브"],["daily","데일리"],["task","태스크"]];
-const BD_GUIDE = [["daily","반복해서 해야 하나요?","매일 물 2L 마시기 · 주 3회 운동"],["task","오늘이나 이번 주 안에 한 번 하면 끝나나요?","세탁소 들르기 · 병원 예약하기"],["sub","이미 있는 메인 퀘스트를 이루는 한 단계인가요?","토익 850 → 단어장 1권 끝내기"],["big","몇 주에서 몇 달 걸리는 큰 목표인가요?","토익 850점 · 하프 마라톤 완주"]];
+const BD_KINDS = [["big","메인"],["sub","서브"],["task","태스크"],["daily","데일리"],["note","자료실"]];
+const BD_GUIDE = [["big","몇 주에서 몇 달 걸리는 큰 목표인가요?","토익 850점 · 하프 마라톤 완주"],["task","오늘이나 이번 주 안에 한 번 하면 끝나나요?","세탁소 들르기 · 병원 예약하기"],["daily","반복해서 해야 하나요?","매일 물 2L 마시기 · 주 3회 운동"],["note","나중에 참고하거나 기억해 둘 아이디어·정보인가요?","읽고 싶은 책 · 떠오른 사업 아이디어"]];
 const bdLabel = k => (BD_KINDS.find(x => x[0] === k) || [,""])[1];
 function bdGuide(d){
-  const steps = BD_GUIDE.filter(g => g[0] !== "sub" || goalsOf(S.me).some(x => x.status !== "done")), st = (S.bdStep || {})[d.id] || 0;
+  const steps = BD_GUIDE, st = (S.bdStep || {})[d.id] || 0;
   if (st >= steps.length) return `<div class="bdq end"><span>어디에도 해당하지 않아요. 조금 더 구체적으로 다시 적거나 삭제해 보세요.</span><button class="btn sec xs" data-act="bd-step" data-id="${d.id}" data-v="0">처음부터</button></div>`;
   const [k, q, ex] = steps[st];
   return `<div class="bdq"><span class="bdqn num">${st+1}/${steps.length}</span><div class="bdqt"><b>${q}</b><small>예) ${ex}</small></div><div class="bdqa"><button class="btn xs" data-act="bd-send" data-id="${d.id}" data-v="${k === "task" ? "task" : k}">예 → ${bdLabel(k)}</button><button class="btn sec xs" data-act="bd-step" data-id="${d.id}" data-v="${st+1}">아니오</button></div></div>`;
@@ -1780,7 +1780,7 @@ $("#fileIn").addEventListener("change", async e => { const files = [...e.target.
 
 /* ================= sheets ================= */
 function openSheet(c){ S.compose = c; renderSheet(); }
-function closeSheet(){ if (S.compose && S.compose.type === "note" && (S.compose.newFiles || []).length){ S.compose.newFiles.forEach(FDB.del); S.compose.newFiles = []; } if (S.compose && S.compose.dumpId){ delete S.drafts["ad-name"]; delete S.drafts["ta-name"]; } if (S.compose && (S.compose.type === "nttask" || S.compose.type === "tqpick" || S.compose.type === "ppick" || S.compose.type === "confirm") && (S.parentSheet || S.compose.type === "confirm")){ S.compose = S.parentSheet; S.parentSheet = null; } else { S.compose = null; S.parentSheet = null; } renderSheet(); }
+function closeSheet(){ if (S.compose && S.compose.type === "note" && (S.compose.newFiles || []).length){ S.compose.newFiles.forEach(FDB.del); S.compose.newFiles = []; } if (S.compose && S.compose.dumpId){ delete S.drafts["ad-name"]; delete S.drafts["ta-name"]; delete S.drafts["nf-title"]; } if (S.compose && (S.compose.type === "nttask" || S.compose.type === "tqpick" || S.compose.type === "ppick" || S.compose.type === "confirm") && (S.parentSheet || S.compose.type === "confirm")){ S.compose = S.parentSheet; S.parentSheet = null; } else { S.compose = null; S.parentSheet = null; } renderSheet(); }
 const D = k => esc(S.drafts[k]||"");
 function difficultySelector(c,kind,field='lv') {
   const levels=kind==='quest'?HLV:TLV, selected=lvKey(c[field]||(kind==='quest'?'easy':'normal'));
@@ -2373,7 +2373,7 @@ document.addEventListener("click", e => {
     case "nt-kind": preserveSheetDrafts(); c.cat = b.dataset.v; renderSheet(); return;
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
     case "nt-area": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
-    case "submit-note": saveNote(c, (key, r, fresh) => { closeSheet(); if (!c.id && c.cat === "learn") push({name:"learn", id:key}, "#learn"); if (fresh && r && r.xp > 0) S.quietXp = true; toast(fresh && r && r.xp > 0 ? `자료 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>` : c.id ? "자료를 저장했어요" : "자료실에 담았어요"); }); return;
+    case "submit-note": saveNote(c, (key, r, fresh) => { closeSheet(); dumpDone(c); if (!c.id && c.cat === "learn") push({name:"learn", id:key}, "#learn"); if (fresh && r && r.xp > 0) S.quietXp = true; toast(fresh && r && r.xp > 0 ? `자료 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>` : c.id ? "자료를 저장했어요" : "자료실에 담았어요"); }); return;
     case "nt-task": { const name = pv("nf-" + b.dataset.f).trim(); if (!name){ toast("먼저 내용을 적어 주세요"); return; } const pj = c.projectId || null;
       saveNote(c, (key, r, fresh) => { openSheet({type:"ntsend", noteId:key, name, projectId:pj && S.projects[pj] ? pj : null}); if (fresh && r && r.xp > 0){ S.quietXp = true; toast(`자료 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>`); } }); return; }
     case "nt-send": { const v = b.dataset.v, name = c.name, key = c.noteId, pj = c.projectId;
@@ -2404,6 +2404,7 @@ document.addEventListener("click", e => {
     case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); if (c && c.type === "bdsort") renderSheet(); break; } S.armed = null; run(() => api.delMine(id), () => { if (S.compose && S.compose.type === "bdsort") closeSheet(); toast("삭제했어요"); }); return;
     case "bd-send": { const d = S.mine[id]; if (!d || !canAct()) return; const v = b.dataset.v;
       if (v === "task"){ delete S.drafts["tm-in"]; S.drafts["ta-name"] = d.text; openSheet({type:"taskadd", lv:"normal", due:"", time:"", period:"", projectId:null, dumpId:id}); return; }
+      if (v === "note"){ ntKeys().forEach(k => delete S.drafts[k]); S.drafts["nf-title"] = d.text; const DR = noteDrawers(S); openSheet({type:"note", cat:(DR.find(x => x.k === "idea" && !x.hidden) || DR.find(x => !x.hidden) || DR[0]).k, vals:{}, area:null, projectId:null, dumpId:id}); return; }
       S.drafts["ad-name"] = d.text;
       if (v === "daily") return openSheet({type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:null, parentId:null, unit:null, tasks:[], area:[], dumpId:id});
       return openSheet({type:"add", kind:v, more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:"", period:"", projectId:null, parentId:null, unit:null, tasks:[], dumpId:id}); }
