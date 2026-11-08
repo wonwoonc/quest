@@ -1508,8 +1508,8 @@ html[data-eco-frame="leaf"] .wdp-fig{filter:drop-shadow(0 0 4px #458c6a)}html[da
 .plan .planrow .pk{display:inline-flex;align-items:center;gap:5px;flex:none;width:76px;font-size:13px;font-weight:700;color:var(--sub)}
 .plan .planrow input{flex:1;min-width:0;border:0;background:transparent;padding:12px 0;font:inherit;color:var(--ink);outline:none}
 .plan .aftq{margin:2px 0 8px}.plan .aftq small{display:block;font-size:12px;color:var(--sub);margin:0 0 6px}
-.plan .planprev{margin:6px 0 0;padding:10px 12px;border-radius:12px;background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:700;line-height:1.5}
-.plan .planlead .field{margin-bottom:10px}.plan .planlead .lab{font-size:13px;color:var(--sub)}
+.plan .planprev{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:700;line-height:1.5}
+.plan .planlead .field{margin-bottom:0}.plan .planlead .lab{font-size:13px;color:var(--sub)}
 .plan .pchips{gap:8px}.plan .pchip{display:inline-flex;align-items:center;gap:6px;max-width:100%}.plan .pchip>span:not(.hint){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}.plan .pchip .hint{font-size:11px}
 .plan .planlead+.pchips{margin-top:2px}
 .pphint{margin:0 4px 10px;font-size:14px;color:var(--sub)}
@@ -2089,8 +2089,8 @@ const hintDone = k => { if (!LS.get("hint_" + k, 0)){ LS.set("hint_" + k, 1); do
 const restDays = () => (S.mine.rest && S.mine.rest.days) || {};
 function dueLabel(m){ if (m.period && m.due){ if (m.done) return ""; return perEnd(m.period, m.due) < today() ? `<span class="tday late">기한 지남</span>` : `<span class="tday soft">${perName(m.period, m.due)}</span>`; }
   const d = dueOf(m); if (!d || m.done) return ""; const t = today(); if (d < t) return `<span class="tday late">기한 지남</span>`; if (d === t) return S._noToday ? "" : `<span class="tday">오늘</span>`; if (d === tomorrow()) return `<span class="tday soft">내일</span>`; const x = new Date(d+"T00:00"); return `<span class="tday soft">${x.getMonth()+1}/${x.getDate()}</span>`; }
-const dueField = (c) => { const t = today(), tm = tomorrow(), other = c.due && !c.period && c.due !== t && c.due !== tm;
-  return `<div class="field"><span class="lab">날짜·시간 <span class="hint">필수</span></span><div class="chips">${[["오늘", t],["내일", tm]].map(([l,v]) => `<button class="chip" data-act="cdue1" data-v="${v}" aria-pressed="${!c.period && c.due === v}">${l}</button>`).join("")}<button class="chip" data-act="dpopen" data-k="due" aria-pressed="${!!other}">📅 ${other ? fmtD(c.due) : "날짜"}</button><button class="chip" data-act="tmset" aria-pressed="${!!c.time}">🕒 <span class="tmval">${c.time ? tmLabel(c.time) : "시간"}</span></button></div>${c._dp === "due" ? miniCal(c, "due") : ""}${c._tw ? timeWheel(c) : ""}</div>`; };
+const dueField = (c, extra = "", bare = false) => { const t = today(), tm = tomorrow(), other = c.due && !c.period && c.due !== t && c.due !== tm;
+  return `<div class="field">${bare ? "" : `<span class="lab">날짜·시간 <span class="hint">필수</span></span>`}<div class="chips">${[["오늘", t],["내일", tm]].map(([l,v]) => `<button class="chip" data-act="cdue1" data-v="${v}" aria-pressed="${!c.period && c.due === v}">${l}</button>`).join("")}<button class="chip" data-act="dpopen" data-k="due" aria-pressed="${!!other}">📅 ${other ? fmtD(c.due) : "날짜"}</button><button class="chip" data-act="tmset" aria-pressed="${!!c.time}">🕒 <span class="tmval">${c.time ? tmLabel(c.time) : "시간"}</span></button>${extra}</div>${c._dp === "due" ? miniCal(c, "due") : ""}${c._tw ? timeWheel(c) : ""}</div>`; };
 const TW_H = 36;
 function timeWheel(c){ const [h, m] = (c.time || "09:00").split(":").map(Number), mi = Math.round(m/5) % 12;
   const col = (k, n, step, sel) => `<div class="twc" data-tw="${k}" data-sel="${sel}"><i></i><i></i>${Array.from({length:n}, (_, i) => `<span>${pad(i*step)}</span>`).join("")}<i></i><i></i></div>`;
@@ -3859,7 +3859,7 @@ const afterOf = q => { const a = q && q.afterId && S.mine[q.afterId]; return a &
 const placeAt = p => !p ? "" : /(에서|에)$/.test(p) ? p : p + "에서";
 function planSentence(name, time, place, after){
   const w = [time ? tmLabel(time) : "", placeAt(place)].filter(Boolean).join(" ");
-  return [after, w].filter(Boolean).join(", ") + (after || w ? " " : "") + (name || "무엇을 할지");
+  return [after, w].filter(Boolean).join(", ") + (after || w ? " " : "") + (name || "");
 }
 const chainsTo = (from, target) => { let id = from, n = 0; while (id && n++ < 50){ if (id === target) return true; id = (S.mine[id] || {}).afterId; } return false; };
 const CLK = `<svg class="pmi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>`;
@@ -3875,15 +3875,15 @@ function planPop(c){
     ${cands.length ? `<small class="ppsub">내 데일리 퀘스트 뒤에 붙이기</small><div class="pplist">${cands.map(q => `<button class="row rpitem" data-act="aftq" data-v="${q.id}" aria-pressed="${c.afterId === q.id}"><span class="t"><b>${esc(q.name)}</b></span>${c.afterId === q.id ? `<span class="pick">✓</span>` : ""}</button>`).join("")}</div>` : ""}
     <div class="ppbtns">${(after ? afterLabel(c) : c.place) ? `<button class="btn ghost" data-act="ppclr">지우기</button>` : ""}<button class="btn primary" data-act="ppok">확인</button></div>`);
 }
-function planField(c, daily, lead = ""){
+function planField(c, daily){
   const after = afterLabel(c);
   const chip = (act, v, icon, label, val) => `<button class="chip pchip" data-act="${act}"${v ? ` data-v="${v}"` : ""} aria-pressed="${!!val}">${icon}<span>${val ? esc(val) : label}</span></button>`;
   const chips = [daily ? chip("tmset", "", CLK, "시간", c.time ? tmLabel(c.time) : "") : "", chip("ppopen", "place", PIN, "장소", c.place || ""), daily ? chip("ppopen", "after", AFT, "앞 행동", after) : ""].join("");
-  return `<div class="field plan"><span class="lab plh">실행 계획${daily ? ` <span class="hint">시간 필수</span>` : ""}</span>
-    ${lead ? `<div class="planlead">${lead}</div>` : ""}
-    <div class="chips pchips">${chips}</div>
+  const sent = planSentence(planName(c), c.time, c.place || "", after).trim();
+  return `<div class="field plan"><span class="lab plh">실행 계획 <span class="hint">${daily ? "시간 필수" : "날짜·시간 필수"}</span></span>
+    ${daily ? `<div class="chips pchips">${chips}</div>` : `<div class="planlead">${dueField(c, chips, true)}</div>`}
     ${daily && c._tw ? ppWrap("시간 선택", "tmdone", timeWheel(c)) : ""}${c._pp ? planPop(c) : ""}
-    <p class="planprev" id="plprev">${esc(planSentence(planName(c), c.time, c.place || "", after))}</p></div>`;
+    <p class="planprev" id="plprev"${sent ? "" : " hidden"}>${esc(sent)}</p></div>`;
 }
 function readPlan(c, daily){
   const place = (c.place || "").trim();
@@ -3892,7 +3892,7 @@ function readPlan(c, daily){
   return {place, after:afterId ? "" : (c.after || "").trim(), afterId};
 }
 function planPrev(){ const c = S.compose, el = $("#plprev"); if (!c || !el) return; const v = id => (($("#"+id) || {}).value || "").trim();
-  el.textContent = planSentence(v("ta-name") || v("te-name") || v("he-name") || v("ad-name"), c.time, c.place || "", afterLabel(c)); }
+  const t = planSentence(v("ta-name") || v("te-name") || v("he-name") || v("ad-name"), c.time, c.place || "", afterLabel(c)).trim(); el.textContent = t; el.hidden = !t; }
 /* 연결된 데일리는 앞 행동 바로 뒤에 오도록 정렬 */
 function chainSort(qs){ const ids = new Set(qs.map(q => q.id)), out = [], seen = new Set();
   const kids = id => qs.filter(q => q.afterId === id && !seen.has(q.id));
@@ -3920,7 +3920,7 @@ function renderSheet(){ IXC = null;
     let more = "";
     if (c.more){
       if (K === "once") more = `${difficultySelector(c,'mission')}
-        ${planField(c, false, dueField(c))}
+        ${planField(c, false)}
         ${linkPick(c)}`;
       else if (K === "sub"){ const gs = goalsOf(S.me).filter(g => g.status !== "done");
         more = gs.length ? `${datePick(c, "end", "마감일")}${statusField(c)}${areaField(c)}${metricFields(c)}${parentPick(c)}${coverField(c)}` : `<p class="empty-row" style="padding:4px 0 14px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p>`; }
@@ -3993,7 +3993,7 @@ function renderSheet(){ IXC = null;
     <div class="field"><input type="text" id="te-name" maxlength="80" value="${D("te-name")}" aria-label="이름"></div>
     <div class="field"><label class="lab" for="te-note">메모</label><textarea id="te-note" rows="5" maxlength="2000" placeholder="자유롭게 적어 두세요">${D("te-note")}</textarea></div>
     ${difficultySelector(c,'mission')}
-    ${planField(c, false, dueField(c))}
+    ${planField(c, false)}
     ${linkPick(c)}
     ${m.done && m.projectId && S.projects[m.projectId] ? `<button class="btn soft full" style="margin-bottom:10px" data-act="sharem" data-id="${m.id}">커뮤니티에 공유하기</button>` : ""}
     <button class="btn big full" data-act="submit-tedit" ${S.busy?"disabled":""}>저장</button>
@@ -4024,7 +4024,7 @@ function renderSheet(){ IXC = null;
   if (c.type === "drawers") return drawerSheet(c);
   if (c.type === "taskadd") return sheetWrap("태스크 추가", "", `
     <div class="field"><input type="text" id="ta-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ta-name")}" aria-label="태스크 이름"></div>
-    ${planField(c, false, dueField(c))}
+    ${planField(c, false)}
     ${areaField(c)}
     ${linkPick(c)}
     ${difficultySelector(c,'mission')}
