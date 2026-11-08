@@ -3168,7 +3168,7 @@ const BD_GUIDE = [["act","실행해야 하는 일인가요?","전화하기 · �
 const bdLabel = k => (BD_KINDS.find(x => x[0] === k) || [,""])[1];
 function bdGuide(d){
   const steps = BD_GUIDE, st = (S.bdStep || {})[d.id] || 0, yn = (yes, no) => `<div class="bdqa"><button class="btn xs" ${yes}>예</button><button class="btn sec xs" ${no}>아니요</button></div>`;
-  if (st >= steps.length) return `<div class="bdq"><div class="bdqt"><b>어디에도 해당하지 않아요. 버릴까요?</b></div>${yn(`data-act="bd-ask" data-id="${d.id}" data-v="drop"`, `data-act="bd-step" data-id="${d.id}" data-v="0"`)}</div>`;
+  if (st >= steps.length) return `<div class="bdq"><div class="bdqt"><b>지금은 필요 없는 생각인가요?</b></div>${yn(`data-act="bd-ask" data-id="${d.id}" data-v="drop"`, `data-act="bd-step" data-id="${d.id}" data-v="0"`)}</div>`;
   const [k, q] = steps[st], head = `<span class="bdqn num">${st+1}/${steps.length}</span><div class="bdqt"><b>${q}</b></div>`;
   if (k === "act") return `<div class="bdq">${head}${yn(`data-act="bd-step" data-id="${d.id}" data-v="1"`, `data-act="bd-ask" data-id="${d.id}" data-v="note"`)}</div>`;
   return `<div class="bdq">${head}${yn(`data-act="bd-ask" data-id="${d.id}" data-v="${k}"`, `data-act="bd-step" data-id="${d.id}" data-v="${st+1}"`)}</div>`;
