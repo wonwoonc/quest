@@ -892,7 +892,8 @@ function ntCard(n){
   let mid = "";
   if (cat === "idea") mid = h3(f.title) + p(f.why) + act(f.next);
   else if (cat === "ref") mid = h3(f.title || (f.url && ntHost(f.url)) || (n.files && n.files[0] && n.files[0].name)) + sub(f.media && esc(f.media)) + (n.files && n.files.length ? `<div class="flist card-f">${n.files.map(x => fChip(x)).join("")}</div>` : "") + p(f.summary) + (f.why ? `<p class="ntnext">저장 이유 · ${esc(f.why)}</p>` : "");
-  else if (cat === "learn") mid = h3(f.title) + sub(f.type && esc(f.type), f.author && esc(f.author), stars(f.rating), f.status && `<b class="lnstb ${f.status === "완료" ? "ok" : ""}">${esc(f.status)}</b>`);
+  else if (cat === "learn"){ const first = (Array.isArray(n.blocks) ? n.blocks : noteBlocks(n)).find(x => !/^h|divider/.test(x.t) && bkText(x).trim());
+    mid = h3(f.title) + sub(f.type && esc(f.type), f.author && esc(f.author), stars(f.rating), f.status && `<b class="lnstb ${f.status === "완료" ? "ok" : ""}">${esc(f.status)}</b>`) + (first ? p(clip(bkText(first), 120)) : (f.quote ? `<blockquote class="ntq">${clip(f.quote)}</blockquote>` : p(f.goal || f.think))); }
   else if (cat === "memo") mid = h3(f.title) + p(f.body);
   else mid = h3(f.title) + sub(f.status && esc(f.status), f.date && fmtD(f.date), stars(f.rating)) + p(f.summary || f.body) + p(f.think) + act(f.apply);
   const done = noteComplete(S, n), A = AREAS.find(a => a[0] === ntArea(n)[0]);
@@ -907,7 +908,7 @@ function viewNotes(){
   const chip = (k, l, n) => `<button class="chip" data-act="nt-cat" data-v="${k}" aria-pressed="${cat === k}">${l}${n ? ` <span class="num">${n}</span>` : ""}</button>`;
   return `<div class="nttools"><input type="search" id="nt-q" placeholder="자료 검색" value="${esc(S.ntQ || "")}" aria-label="자료 검색"><button class="btn" data-act="nt-new">+ 자료 추가</button></div>
     <div class="chips ntcats" role="group" aria-label="서랍">${chip("all", "전체", all.length)}${DR.filter(d => !d.hidden || d.k === cat).map(d => chip(d.k, `${nic(d.ic)}${esc(d.l)}`, all.filter(n => ntN(n).cat === d.k).length)).join("")}<button class="chip ntmng" data-act="dr-manage">+ 서랍</button></div>
-    ${list.length ? `<div class="ntgrid">${list.map(ntCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : all.length ? "이 서랍은 아직 비어 있어요" : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : cat !== "all" ? "「+ 자료 추가」로 첫 자료를 담아 보세요." : "아이디어, 참고자료, 학습 기록, 메모를 서랍에 나눠 담아 두세요."}</section>`}`;
+    ${list.length ? `<div class="ntgrid">${list.map(ntCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : all.length ? "이 서랍은 아직 비어 있어요" : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : cat !== "all" ? "「+ 자료 추가」로 첫 자료를 담아 보세요." : ""}</section>`}`;
 }
 function noteSheet(c){
   const n = c.id && S.mine[c.id], C = noteDrawer(S, c.cat), gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done").sort((a,b) => (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0) || (a.createdAt||0) - (b.createdAt||0));
