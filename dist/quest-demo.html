@@ -2810,7 +2810,7 @@ function viewNotes(){
   const chip = (k, l, n) => `<button class="chip" data-act="nt-cat" data-v="${k}" aria-pressed="${cat === k}">${l}${n ? ` <span class="num">${n}</span>` : ""}</button>`;
   return `<div class="nttools"><input type="search" id="nt-q" placeholder="자료 검색" value="${esc(S.ntQ || "")}" aria-label="자료 검색"><button class="btn" data-act="nt-new">+ 자료 추가</button></div>
     <div class="chips ntcats" role="group" aria-label="서랍">${chip("all", "전체", all.length)}${DR.filter(d => !d.hidden || d.k === cat).map(d => chip(d.k, `${nic(d.ic)}${esc(d.l)}`, all.filter(n => ntN(n).cat === d.k).length)).join("")}<button class="chip ntmng" data-act="dr-manage">+ 서랍</button></div>
-    ${list.length ? `<div class="ntgrid">${list.map(ntCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : all.length ? "이 서랍은 아직 비어 있어요" : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : cat !== "all" ? esc(noteDrawer(S, cat).hint) : "아이디어, 참고자료, 학습 기록, 메모를 서랍에 나눠 담아 두세요."}</section>`}`;
+    ${list.length ? `<div class="ntgrid">${list.map(ntCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : all.length ? "이 서랍은 아직 비어 있어요" : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : cat !== "all" ? "「+ 자료 추가」로 첫 자료를 담아 보세요." : "아이디어, 참고자료, 학습 기록, 메모를 서랍에 나눠 담아 두세요."}</section>`}`;
 }
 function noteSheet(c){
   const n = c.id && S.mine[c.id], C = noteDrawer(S, c.cat), gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done").sort((a,b) => (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0) || (a.createdAt||0) - (b.createdAt||0));
@@ -2823,7 +2823,6 @@ function noteSheet(c){
   const area = c.area || ntArea({...(n || {}), kind:"note", cat:c.cat, f:{}, area:null, projectId:c.projectId})[0] || null;
   return sheetWrap(n ? "자료 수정" : "자료 추가", "", `
     <div class="chips ntkinds" role="group" aria-label="서랍">${noteDrawers(S).filter(d => !d.hidden || d.k === c.cat).map(K => `<button class="chip" data-act="nt-kind" data-v="${K.k}" aria-pressed="${c.cat === K.k}">${nic(K.ic)}${esc(K.l)}</button>`).join("")}</div>
-    <p class="hint nthint">${esc(C.hint)}</p>
     ${C.f.map(field).join("")}
     ${C.pt ? `<div class="field"><span class="lab">영역 <span class="hint">선택 · 비우면 ${area ? "연결한 퀘스트나 서랍 기본값을 따라요" : "영역 점수 없이 XP · 코인만 받아요"}</span></span><div class="chips">${AREAS.map(([k,,,l]) => `<button class="chip achip" data-act="nt-area" data-v="${k}" aria-pressed="${c.area === k}">${aIcon(k)}${l}</button>`).join("")}</div></div>` : ""}
     ${gs.length ? `<div class="field"><span class="lab">연결할 퀘스트 <span class="hint">선택</span></span><div class="chips">${gs.map(p => `<button class="chip" data-act="cset" data-f="projectId" data-v="${p.id}" aria-pressed="${c.projectId === p.id}">${nic(p.parentId ? "link" : "target")}${esc(p.title)}</button>`).join("")}</div></div>` : ""}
@@ -2857,7 +2856,7 @@ function drawerSheet(c){
       <p class="ntreward">모든 칸을 채우면 완성 · <b>+10 XP · +10 코인</b>${c.area ? (() => { const A = AREAS.find(a => a[0] === c.area); return ` · ${A[3]} 영역(${A[1]}) +1`; })() : ""}</p>
       <button class="btn big full" data-act="dr-save">저장</button>
       ${c.edit ? `<button class="link danger ntdel" data-act="dr-del">${S.armed === "dd"+c.edit ? "한 번 더 누르면 삭제돼요 · 자료는 메모로 옮겨져요" : "서랍 삭제"}</button>` : ""}`); }
-  const row = d => `<div class="row drrow"><span class="t"><b>${nic(d.ic)}${esc(d.l)}</b><small>${d.custom ? `직접 만든 서랍 · ${d.f.map(x => x.l).join(" · ") || "칸 없음"}` : d.hint}</small></span>${d.custom ? `<button class="btn sec xs" data-act="dr-edit" data-v="${d.k}">수정</button>` : `<button class="btn sec xs" data-act="dr-hide" data-v="${d.k}">${d.hidden ? "보이기" : "숨기기"}</button>`}</div>`;
+  const row = d => `<div class="row drrow"><span class="t"><b>${nic(d.ic)}${esc(d.l)}</b><small>${d.custom ? "직접 만든 서랍 · " : ""}${d.f.map(x => x.l).join(" · ") || "칸 없음"}</small></span>${d.custom ? `<button class="btn sec xs" data-act="dr-edit" data-v="${d.k}">수정</button>` : `<button class="btn sec xs" data-act="dr-hide" data-v="${d.k}">${d.hidden ? "보이기" : "숨기기"}</button>`}</div>`;
   return sheetWrap("서랍 관리", "", `<section class="qlist drlist">${DR.map(row).join("")}</section><button class="btn big full" data-act="dr-edit" data-v="">+ 새 서랍 만들기</button>`);
 }
 
