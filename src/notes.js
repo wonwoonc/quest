@@ -24,7 +24,7 @@ export const BASE_DRAWERS = [
     {k:'title', t:'text', l:'제목', p:'예: 아침 루틴을 바꾼 5가지 습관'},
     {k:'summary', t:'area', l:'핵심 요약', p:'3줄 이내로 적어요'},
     {k:'why', t:'text', l:'저장한 이유', p:'예: 다음 달 발표 자료에 인용'}]},
-  {k:'learn', l:'학습', ic:'book', pt:3, area:'growth', hint:'', need:'모든 목차 완료', f:[
+  {k:'learn', l:'학습', ic:'book', pt:3, area:'growth', hint:'', need:'상태를 완료로 바꾸기', f:[
     {k:'type', t:'choice', l:'종류', o:['강의','책','영상','기타']},
     {k:'title', t:'text', l:'제목', p:'예: 데이터 분석 입문'},
     {k:'author', t:'text', l:'강사·저자', p:'예: 김OO'},
@@ -45,10 +45,12 @@ const lines = (...xs) => xs.filter(Boolean).join('\n');
 /* Earlier note formats map onto the current drawers (display + reward checks; stored data is rewritten only on save). */
 export function noteNorm(s, n) {
   const f0 = n.f, c0 = n.cat;
+  if (f0 && c0 === 'learn') { const st = f0.status === '진행 중' ? '학습 중' : f0.status, chDone = Array.isArray(n.ch) && n.ch.length && n.ch.every(c => c.st === 'done');
+    return {cat:c0, f:{...f0, status:st || (chDone ? '완료' : undefined)}}; }
   if (f0 && noteDrawers(s).some(d => d.k === c0)) return {cat:c0, f:f0};
   if (f0) {
     if (c0 === 'link') return {cat:'ref', f:{url:f0.url, media:{'글':'글','영상':'영상','강의':'영상','SNS':'SNS'}[f0.media] || (f0.media ? '기타' : undefined), title:f0.title, summary:f0.summary, why:f0.why}};
-    if (c0 === 'book') return {cat:'learn', f:{type:'책', title:f0.title, author:f0.author, status:{'읽고 싶음':'예정','읽는 중':'진행 중','완독':'완료'}[f0.status], rating:f0.rating, quote:f0.quote, think:f0.think, apply:f0.apply}};
+    if (c0 === 'book') return {cat:'learn', f:{type:'책', title:f0.title, author:f0.author, status:{'읽고 싶음':'예정','읽는 중':'학습 중','완독':'완료'}[f0.status], rating:f0.rating, quote:f0.quote, think:f0.think, apply:f0.apply}};
     if (c0 === 'study') return {cat:'learn', f:{title:f0.title, quote:lines(f0.notes, f0.cue), think:f0.summary}};
     if (c0 === 'quote') return {cat:'memo', f:{title:f0.source, body:lines(f0.quote, f0.think)}};
     if (c0 === 'meeting') return {cat:'memo', f:{title:f0.title, body:lines(f0.date, f0.people && '참석: '+f0.people, f0.decisions && '결정: '+f0.decisions, f0.todo && '할 일: '+f0.todo)}};
@@ -67,7 +69,7 @@ export function noteComplete(s, n) {
   if (!d || !d.pt) return false;
   if (cat === 'idea') return has(f.next);
   if (cat === 'ref') return has(f.summary) && has(f.why);
-  if (cat === 'learn') return Array.isArray(n.ch) && n.ch.length ? n.ch.every(c => c.st === 'done') : f.status === '완료' && has(f.apply);
+  if (cat === 'learn') return f.status === '완료';
   return d.f.length > 0 && d.f.every(x => has(f[x.k]));
 }
 export function noteReward(s, n) { const {cat} = noteNorm(s, n), pt = noteDrawer(s, cat)?.pt || 0; return {pt, xp:pt * 10, coins:pt * 10}; }

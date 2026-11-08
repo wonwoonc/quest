@@ -382,14 +382,11 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   // learning: detail screen with chapters (Cornell notes per chapter) and wrap-up
   h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/학습 목표/); assert.doesNotMatch(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'강의'}); assert.match(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'책'}); assert.doesNotMatch(ov(),/id="nf-url"/); assert.match(ov(),/\+30 XP · \+30 코인/);
   h.nodes.set('nf-title',{value:'데이터 분석 입문'}); h.click('submit-note'); await h.settle();
-  const L = notes()[0]; assert.equal(L.cat,'learn'); assert.match(app(),/목차/); assert.doesNotMatch(app(),/마무리/); assert.match(app(),/완성 조건: 모든 목차 완료/);
-  h.nodes.set('ln-add',{value:'1강 OT\n2강 SQL 기초'}); h.click('ln-addbtn',{id:L.id}); await h.settle();
-  const chs = () => h.snapshot().mine[L.id].ch; assert.deepEqual(chs().map(c => c.t),['1강 OT','2강 SQL 기초']);
-  for (const c of chs()){ h.click('ln-ch',{id:L.id,v:c.id}); assert.match(app(),/id="nted"/); assert.match(app(),/핵심 요약/); assert.match(app(),/복습 질문/);
-    h.click('lp-st',{v:'done'}); await h.settle(); h.route('learn'); }
-  assert.ok(chs().every(c => c.st === 'done')); assert.match(app(),/2\/2 목차/);
-  assert.equal(xp(),x0+30,'learning completion grants 30 XP');
-  h.route('notes'); assert.match(app(),/2\/2 목차 · 100%/);
+  const L = notes()[0]; assert.equal(L.cat,'learn'); assert.match(app(),/id="nted"/); assert.doesNotMatch(app(),/목차/); assert.match(app(),/완성 조건: 상태를 완료로 바꾸기/);
+  h.click('ln-st',{v:'학습 중'}); await h.settle(); assert.equal(xp(),x0); assert.equal(h.snapshot().mine[L.id].f.status,'학습 중');
+  h.click('ln-st',{v:'완료'}); await h.settle(); assert.equal(xp(),x0+30,'learning completion grants 30 XP');
+  h.click('ln-read'); assert.match(app(),/lnnote read/); assert.doesNotMatch(app(),/contenteditable/); h.click('ln-read');
+  h.route('notes'); assert.match(app(),/lnstb ok">완료/);
   h.click('dr-manage'); h.click('dr-edit',{v:''}); h.nodes.set('dr-l',{value:'운동 기록'}); h.click('dr-icon',{v:'dumbbell'}); h.click('dr-area',{v:'health'}); h.click('dr-save'); await h.settle();
   const dr = h.snapshot().mine.drawers.list[0]; assert.equal(dr.l,'운동 기록'); assert.deepEqual(dr.fields,['title','body']); h.click('sheet-close');
   assert.equal(dr.ic,'dumbbell'); assert.match(app(),/<\/svg>운동 기록/);

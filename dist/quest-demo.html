@@ -603,6 +603,27 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .blk.t-code .bx{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;background:var(--fill);padding:10px 12px;border-radius:10px}
 .blk.t-divider{position:relative;padding:8px 0}.blk.t-divider hr{flex:1;border:0;border-top:1px solid var(--line);margin:6px 0}.blk.t-divider .bx{position:absolute;inset:0;opacity:0}
 .bkadd{border:0;background:none;color:var(--muted);font-size:14px;font-weight:600;padding:8px 2px}
+.lnstatus{display:flex;align-items:center;gap:12px;margin:16px 0 0;padding-top:16px;border-top:1px solid var(--line)}.lnstatus > span{font-size:13px;font-weight:600;color:var(--muted)}.lnstatus .seg{flex:1;max-width:none}.lnstatus .seg button{padding:8px 0;font-size:14px}
+.lnstb{font-size:11.5px;font-weight:700;color:var(--sub);background:var(--fill);border-radius:6px;padding:1px 6px}.lnstb.ok{color:var(--accent);background:var(--accent-soft)}
+.card.lnnote{padding:18px 20px 22px}.lnnote > .ch{display:flex;align-items:center;gap:8px;margin-bottom:6px}.lnnote > .ch h2{margin:0;margin-right:auto}.lnmode{flex:none}
+.lnfs{display:flex;gap:2px;background:var(--fill);border-radius:10px;padding:2px}.lnfs button{border:0;background:none;border-radius:8px;width:30px;height:28px;color:var(--sub);font-weight:700}.lnfs button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgb(0 0 0 / .1)}.lnfs .fs-s{font-size:12px}.lnfs .fs-m{font-size:14px}.lnfs .fs-l{font-size:17px}
+.lnbody{display:block}.lnmain{min-width:0;position:relative}
+.lnol{display:grid;gap:2px;margin:0 0 12px;padding:10px 12px;background:var(--fill);border-radius:12px}.lnol b{font-size:12px;color:var(--muted);margin-bottom:2px}.lnol button{border:0;background:none;text-align:left;padding:4px 0;font-size:14px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lnol button:hover{color:var(--accent)}.lnol .ol1{font-weight:700;color:var(--ink)}.lnol .ol2{padding-left:10px}.lnol .ol3{padding-left:22px;font-size:13px}
+.lnolw:empty{display:none}
+@media (min-width:1024px){#app[data-v="learn"]{max-width:1100px}.lnbody{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:28px}.lnolw{order:2}.lnolw .lnol{position:sticky;top:96px;background:none;padding:4px 0 4px 14px;border-left:2px solid var(--line);border-radius:0}.lnbody:has(.lnolw:empty){grid-template-columns:1fr}}
+.blk.fhide{display:none}.blk.flash{background:var(--accent-soft);transition:background .6s}
+.bkfold{flex:none;width:22px;height:22px;margin-top:calc(.6em);border:0;background:none;border-radius:6px;padding:0;color:var(--muted);display:grid;place-items:center;margin-left:-26px;opacity:.35}.bkfold svg{width:15px;height:15px;transition:transform .15s;transform:rotate(90deg)}.bkfold[aria-expanded="false"] svg{transform:rotate(0)}.bkfold[aria-expanded="false"],.blk:hover .bkfold{opacity:1}
+.nted{padding-left:26px}
+.blk.t-callout.c-g{background:var(--accent-soft)}.blk.t-callout.c-r{background:#FDECEC}.blk.t-callout.c-y{background:#FFF6DB}.blk.t-callout.c-b{background:#E8F1FD}
+.bkcc{border:0;background:none;padding:0;margin-top:3px;width:24px;height:24px;display:grid;place-items:center;cursor:pointer}.bkcc .nic{width:18px;height:18px;margin:0}
+.c-g .bkcc,.bkmenu .cc.c-g{color:var(--accent)}.c-r .bkcc,.bkmenu .cc.c-r{color:#D64545}.c-y .bkcc,.bkmenu .cc.c-y{color:#D99A00}.c-b .bkcc,.bkmenu .cc.c-b{color:#3B7DDD}.bkmenu .cc .nic{width:15px;height:15px;margin:0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .blk.t-callout.c-r{background:#3a2020}:root:not([data-theme="light"]) .blk.t-callout.c-y{background:#3a3220}:root:not([data-theme="light"]) .blk.t-callout.c-b{background:#1f2c3d}}
+.bx mark{border-radius:3px;padding:0 2px;color:inherit}.bx mark.hl-y{background:#FFE58A}.bx mark.hl-g{background:#BDEBD3}.bx mark.hl-p{background:#FFC9DE}
+.bksel{position:fixed;z-index:95;display:flex;align-items:center;gap:2px;background:#2A302D;border-radius:12px;padding:4px;box-shadow:0 8px 24px rgb(0 0 0 / .25)}.bksel[hidden]{display:none}
+.bksel button{border:0;background:none;color:#fff;min-width:32px;height:32px;border-radius:8px;font-size:14px;display:grid;place-items:center}.bksel button:hover{background:rgb(255 255 255 / .12)}.bksel .nic{width:16px;height:16px;margin:0}.bksel .sep{width:1px;height:20px;background:rgb(255 255 255 / .2);margin:0 3px}
+.hlc{width:16px;height:16px;border-radius:50%;display:block}.hlc.hl-y{background:#FFE58A}.hlc.hl-g{background:#BDEBD3}.hlc.hl-p{background:#FFC9DE}
+.lnnote.read .nted{max-width:680px;margin:0 auto}.lnnote.read .blk .bx{line-height:1.8}.lnnote.read.fs-s .blk .bx{font-size:14px}.lnnote.read.fs-l .blk .bx{font-size:19px}.lnnote.read.fs-l .blk.t-h1 .bx{font-size:28px}.lnnote.read.fs-l .blk.t-h2 .bx{font-size:22px}
+.lnnote.read .blk .bx:empty{display:none}.lnnote.read .blk:has(.bx:empty):not(.t-divider){display:none}
 .bkbar{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom,0px));z-index:5;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:5px;box-shadow:0 6px 20px rgb(0 0 0 / .12);margin:8px 0}
 .bkbar::-webkit-scrollbar{display:none}.bkbar[hidden]{display:none}.bkbar button{flex:none;min-width:38px;height:36px;border:0;background:none;border-radius:9px;font-size:13.5px;font-weight:700;color:var(--sub)}.bkbar button:hover{background:var(--fill)}.bkbar .nic{width:16px;height:16px;margin:0}
 @media (min-width:1024px){.bkbar{bottom:16px}}
@@ -1910,7 +1931,7 @@ const BASE_DRAWERS = [
     {k:'title', t:'text', l:'제목', p:'예: 아침 루틴을 바꾼 5가지 습관'},
     {k:'summary', t:'area', l:'핵심 요약', p:'3줄 이내로 적어요'},
     {k:'why', t:'text', l:'저장한 이유', p:'예: 다음 달 발표 자료에 인용'}]},
-  {k:'learn', l:'학습', ic:'book', pt:3, area:'growth', hint:'', need:'모든 목차 완료', f:[
+  {k:'learn', l:'학습', ic:'book', pt:3, area:'growth', hint:'', need:'상태를 완료로 바꾸기', f:[
     {k:'type', t:'choice', l:'종류', o:['강의','책','영상','기타']},
     {k:'title', t:'text', l:'제목', p:'예: 데이터 분석 입문'},
     {k:'author', t:'text', l:'강사·저자', p:'예: 김OO'},
@@ -1931,10 +1952,12 @@ const lines = (...xs) => xs.filter(Boolean).join('\n');
 /* Earlier note formats map onto the current drawers (display + reward checks; stored data is rewritten only on save). */
 function noteNorm(s, n) {
   const f0 = n.f, c0 = n.cat;
+  if (f0 && c0 === 'learn') { const st = f0.status === '진행 중' ? '학습 중' : f0.status, chDone = Array.isArray(n.ch) && n.ch.length && n.ch.every(c => c.st === 'done');
+    return {cat:c0, f:{...f0, status:st || (chDone ? '완료' : undefined)}}; }
   if (f0 && noteDrawers(s).some(d => d.k === c0)) return {cat:c0, f:f0};
   if (f0) {
     if (c0 === 'link') return {cat:'ref', f:{url:f0.url, media:{'글':'글','영상':'영상','강의':'영상','SNS':'SNS'}[f0.media] || (f0.media ? '기타' : undefined), title:f0.title, summary:f0.summary, why:f0.why}};
-    if (c0 === 'book') return {cat:'learn', f:{type:'책', title:f0.title, author:f0.author, status:{'읽고 싶음':'예정','읽는 중':'진행 중','완독':'완료'}[f0.status], rating:f0.rating, quote:f0.quote, think:f0.think, apply:f0.apply}};
+    if (c0 === 'book') return {cat:'learn', f:{type:'책', title:f0.title, author:f0.author, status:{'읽고 싶음':'예정','읽는 중':'학습 중','완독':'완료'}[f0.status], rating:f0.rating, quote:f0.quote, think:f0.think, apply:f0.apply}};
     if (c0 === 'study') return {cat:'learn', f:{title:f0.title, quote:lines(f0.notes, f0.cue), think:f0.summary}};
     if (c0 === 'quote') return {cat:'memo', f:{title:f0.source, body:lines(f0.quote, f0.think)}};
     if (c0 === 'meeting') return {cat:'memo', f:{title:f0.title, body:lines(f0.date, f0.people && '참석: '+f0.people, f0.decisions && '결정: '+f0.decisions, f0.todo && '할 일: '+f0.todo)}};
@@ -1953,7 +1976,7 @@ function noteComplete(s, n) {
   if (!d || !d.pt) return false;
   if (cat === 'idea') return has(f.next);
   if (cat === 'ref') return has(f.summary) && has(f.why);
-  if (cat === 'learn') return Array.isArray(n.ch) && n.ch.length ? n.ch.every(c => c.st === 'done') : f.status === '완료' && has(f.apply);
+  if (cat === 'learn') return f.status === '완료';
   return d.f.length > 0 && d.f.every(x => has(f[x.k]));
 }
 function noteReward(s, n) { const {cat} = noteNorm(s, n), pt = noteDrawer(s, cat)?.pt || 0; return {pt, xp:pt * 10, coins:pt * 10}; }
@@ -2350,7 +2373,7 @@ function schedule(){ if (!raf) raf = requestAnimationFrame(() => { raf = 0; rend
 const WEB = matchMedia("(min-width:1024px)");
 S.navMini = !!LS.get("navMini", false);
 WEB.addEventListener && WEB.addEventListener("change", () => schedule());
-function render(){ { const a = document.activeElement; if (S.view.name === "lnpage" && a && a.closest && a.closest("#nted")){ S.lpPending = true; return; } } IXC = null;
+function render(){ { const a = document.activeElement; if (S.view.name === "learn" && a && a.closest && a.closest("#nted")){ S.lpPending = true; return; } } IXC = null;
   MY = S.me ? computeMine() : null;
   applyCosmetics();
   const setup = !!entryScreen || !hasProfile();
@@ -2372,7 +2395,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lnpa
   if (S.liveWin){ const wu = v === "profile" && S.view.uid !== S.me ? S.view.uid : null, wp = v === "post" ? S.view.pid : null; queueMicrotask(() => S.liveWin.watch(wu, wp)); }
   rollOver();
    const dash = v === "dash" && hasProfile();
-  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, learn:viewLearn, lnpage:viewLnPage, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
+  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, learn:viewLearn, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
   { const gg = dash && $(".wd-goals .wd-ggrid"); if (gg && S.wdGs) gg.scrollLeft = S.wdGs; }
   $("#app").dataset.v = S.me && !hasProfile() && S.canWrite ? "profile" : dash ? "dash" : v; $("#app").dataset.pt = v === "profile" || v === "today" ? (S.profTab || "") : "";
   renderReplyBar(); renderPill();
@@ -2426,8 +2449,8 @@ function bannerHtml(){ return "";
 }
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
-  const v = S.view.name, sub = v === "post" || v === "learn" || v === "lnpage" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || (v === "profile" && S.view.uid !== S.me);
-  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", lnpage:"학습 노트", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
+  const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || (v === "profile" && S.view.uid !== S.me);
+  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "서브 퀘스트" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
   const n = activityItems().filter(x => x.at > actSeen).length;
   $("#topbar").innerHTML = `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : ""}<h1>${title}</h1>
     ${S.me && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
@@ -2442,7 +2465,7 @@ function renderNav(){
     <a href="#feed" ${cur(v==="feed")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7.5" r="3"/><path d="M2.5 20v-2a6.5 6.5 0 0 1 13 0v2M16 4.7a3 3 0 0 1 0 5.6M18 12a6 6 0 0 1 3.5 5.5V20"/></svg><span>커뮤니티</span></a>
     <a href="#shop" ${cur(v==="shop")}>${I.bag}<span>상점</span></a>
     <a href="#cal" ${cur(v==="cal")}>${I.cal}<span>캘린더</span></a>
-    <a href="#notes" ${cur(v==="notes" || v==="learn" || v==="lnpage")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5h-7L10 5H5a1.5 1.5 0 0 0-1.5 1.5Z"/><path d="M8 12.5h8M8 15.5h5"/></svg><span>자료실</span></a>
+    <a href="#notes" ${cur(v==="notes" || v==="learn")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5h-7L10 5H5a1.5 1.5 0 0 0-1.5 1.5Z"/><path d="M8 12.5h8M8 15.5h5"/></svg><span>자료실</span></a>
     <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`;
   document.body.classList.toggle("navmini", !!S.navMini);
   /* mobile: the bottom bar scrolls sideways; keep the current menu in view */
@@ -2827,6 +2850,10 @@ const NIP = {
   target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>',
   check:'<path d="M20 6 9 17l-5-5"/>',
   star:'<path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.3l-5.6 2.9 1.1-6.3L2.9 9.5l6.3-.9Z" fill="currentColor"/>',
+  alert:'<path d="M12 3 2.5 20h19Z"/><path d="M12 10v4.5M12 17.2v.3"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.3"/>',
+  trash:'<path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-12M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/>',
+  eraser:'<path d="M7 21h13M5.5 15.5l9-9.5a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L11 19.5H8.5l-3-3a.7.7 0 0 1 0-1Z"/><path d="m9.5 11 4.5 4.5"/>',
   inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1Z"/>'};
 const DR_ICONS = ["folder","dumbbell","heart","wallet","briefcase","users","music","camera","code","globe","coffee","leaf","calendar","target"];
 const nic = (k, cls = "") => `<svg class="nic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NIP[k] || NIP.folder}</svg>`;
@@ -2834,7 +2861,7 @@ const nic = (k, cls = "") => `<svg class="nic ${cls}" viewBox="0 0 24 24" fill="
 const ntUrl = v => { v = String(v || "").trim(); return !v ? "" : /^https?:\/\//i.test(v) ? v : "https://" + v; };
 const ntHost = v => { try { return new URL(v).hostname.replace(/^www\./, ""); } catch { return v; } };
 const ntN = n => noteNorm(S, n);
-const ntText = n => [...Object.values(ntN(n).f), ...(n.ch || []).flatMap(c => [c.t, ...(Array.isArray(c.blocks) ? c.blocks.map(bkText) : [c.sum, c.key, c.think, c.q])]), ...(n.files || []).map(x => x.name)].filter(Boolean).join(" ");
+const ntText = n => [...Object.values(ntN(n).f), ...(n.blocks || []).map(bkText), ...(n.ch || []).flatMap(c => [c.t, ...(Array.isArray(c.blocks) ? c.blocks.map(bkText) : [c.sum, c.key, c.think, c.q])]), ...(n.files || []).map(x => x.name)].filter(Boolean).join(" ");
 const stars = r => r ? `<span class="ntstars" role="img" aria-label="별점 ${r}점">${nic("star").repeat(r)}<i>${nic("star").repeat(5 - r)}</i></span>` : "";
 const clip = (v, n = 140) => esc(String(v || "").length > n ? String(v).slice(0, n) + "…" : String(v || ""));
 const ntArea = n => { if (!n) return []; if (n.area && AREA_KEYS.includes(n.area)) return [n.area]; const up = n.projectId ? areaUp(n.projectId) : []; if (up.length) return up; const d = noteDrawer(S, ntN(n).cat); return d && d.area ? [d.area] : []; };
@@ -2853,8 +2880,8 @@ function ntCard(n){
   let mid = "";
   if (cat === "idea") mid = h3(f.title) + p(f.why) + act(f.next);
   else if (cat === "ref") mid = h3(f.title || (f.url && ntHost(f.url)) || (n.files && n.files[0] && n.files[0].name)) + sub(f.media && esc(f.media)) + (n.files && n.files.length ? `<div class="flist card-f">${n.files.map(x => fChip(x)).join("")}</div>` : "") + p(f.summary) + (f.why ? `<p class="ntnext">저장 이유 · ${esc(f.why)}</p>` : "");
-  else if (cat === "learn"){ const P = lnProg(n);
-    mid = h3(f.title) + sub(f.type && esc(f.type), f.author && esc(f.author), stars(f.rating)) + (P.total ? `<div class="lnbar"><i style="width:${P.pct}%"></i></div><p class="ntsub">${P.done}/${P.total} 목차 · ${P.pct}%</p>` : (f.quote ? `<blockquote class="ntq">${clip(f.quote)}</blockquote>` : "") + p(f.goal || f.think)) + act(f.apply); }
+  else if (cat === "learn"){ const first = (Array.isArray(n.blocks) ? n.blocks : noteBlocks(n)).find(x => !/^h|divider/.test(x.t) && bkText(x).trim());
+    mid = h3(f.title) + sub(f.type && esc(f.type), f.author && esc(f.author), stars(f.rating), f.status && `<b class="lnstb ${f.status === "완료" ? "ok" : ""}">${esc(f.status)}</b>`) + (first ? p(clip(bkText(first), 120)) : (f.quote ? `<blockquote class="ntq">${clip(f.quote)}</blockquote>` : p(f.goal || f.think))); }
   else if (cat === "memo") mid = h3(f.title) + p(f.body);
   else mid = h3(f.title) + sub(f.status && esc(f.status), f.date && fmtD(f.date), stars(f.rating)) + p(f.summary || f.body) + p(f.think) + act(f.apply);
   const done = noteComplete(S, n), A = AREAS.find(a => a[0] === ntArea(n)[0]);
@@ -2921,98 +2948,96 @@ function drawerSheet(c){
   return sheetWrap("서랍 관리", "", `<section class="qlist drlist">${DR.map(row).join("")}</section><button class="btn big full" data-act="dr-edit" data-v="">+ 새 서랍 만들기</button>`);
 }
 
-/* ================= 학습 상세 (자료실 › 학습): 목차 + 목차별 블록 노트(노션식) + 학습 타이머 ================= */
-const fmtMin = m => m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ""}` : `${m}분`;
-function lnProg(n){ const ch = n.ch || [], done = ch.filter(c => c.st === "done").length, min = ch.reduce((a, c) => a + (c.min || 0), 0); return {total:ch.length, done, pct:ch.length ? Math.round(done / ch.length * 100) : 0, min}; }
-const LN_ST = {todo:["예정",""], doing:["정리 중","doing"], done:["완료","done"]};
-const lnPut = (id, patch, after) => { const n = S.mine[id]; if (!n) return; run(() => api.putMine(id, {...n, ...patch, updatedAt:Date.now()}), after); };
-const BK_TPL = () => [["h2","핵심 요약"],["p","","배운 걸 3줄 이내로"],["h2","핵심 개념"],["ul","","개념: 뜻"],["h2","내 생각"],["p","","새로 알게 된 점, 연결, 의문"],["h2","복습 질문"],["todo","","질문 | 답"]].map(([t, h, ph], i) => ({id:uid8() + i, t, h:esc(h), ph:ph || ""}));
-function lnAddChapters(id, text){ const n = S.mine[id]; if (!n) return false;
-  const lines = String(text || "").split(/\r?\n/).map(x => x.replace(/^\s*([-*•·]|\d+[.)])\s*/, "").trim()).filter(Boolean); if (!lines.length) return false;
-  const ch = [...(n.ch || []), ...lines.slice(0, 200).map((t, i) => ({id:uid8() + i, t:t.slice(0, 120), st:"todo", min:0, at:""}))];
-  lnPut(id, {ch}, () => { delete S.drafts["ln-add"]; const el = $("#ln-add"); if (el) el.value = ""; if (lines.length > 1) toast(`목차 ${lines.length}개를 추가했어요`); }); return true; }
-/* older chapter notes (요약·개념·생각·질문 fields) become blocks */
-function chBlocks(c){ if (Array.isArray(c.blocks)) return c.blocks; if (!(c.sum || c.key || c.think || c.q)) return BK_TPL();
-  const out = [], sec = (h, v, t) => { out.push({id:uid8() + out.length, t:"h2", h:esc(h)}); String(v || "").split("\n").filter(x => x.trim() || !out.length).forEach(x => out.push({id:uid8() + out.length, t, h:esc(x)})); if (!v) out.push({id:uid8() + out.length, t, h:""}); };
+/* ================= 학습 상세 (자료실 › 학습): 상단 정보 + 자유 노트(블록 에디터) ================= */
+const LN_STATUS = ["예정","학습 중","완료"];
+const BK_TPL = () => [{id:uid8(), t:"p", h:""}];
+/* chapter-era notes (n.ch) merge into one note: chapter title → H2, then its content */
+function chBlocks(c){ if (Array.isArray(c.blocks)) return c.blocks.filter(b => !(b.ph && !b.h));
+  const out = [], sec = (h, v, t) => { if (!v) return; out.push({id:uid8() + out.length, t:"h3", h:esc(h)}); String(v).split("\n").filter(x => x.trim()).forEach(x => out.push({id:uid8() + out.length, t, h:esc(x)})); };
   sec("핵심 요약", c.sum, "p"); sec("핵심 개념", c.key, "ul"); sec("내 생각", c.think, "p"); sec("복습 질문", c.q, "todo"); return out; }
+function noteBlocks(n){ if (Array.isArray(n.blocks)) return n.blocks; const out = [];
+  (n.ch || []).forEach(c => { out.push({id:uid8() + out.length, t:"h2", h:esc(c.t)}); chBlocks(c).forEach(b => out.push({...b, id:uid8() + out.length})); });
+  return out.length ? out : BK_TPL(); }
 const bkText = b => String(b.h || "").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+const CALLOUT = {g:["핵심","check"], r:["주의","alert"], y:["팁","idea"], b:["정보","info"]};
+function lnOutline(blocks){ const hs = blocks.filter(b => /^h[123]$/.test(b.t) && bkText(b).trim()); if (!hs.length) return "";
+  return `<div class="lnol"><b>개요</b>${hs.map(b => `<button class="ol${b.t[1]}" data-act="bk-jump" data-v="${b.id}">${esc(bkText(b))}</button>`).join("")}</div>`; }
 function viewLearn(){
   const n = S.mine[S.view.id]; if (!n || !hasProfile()) return viewNotes();
-  const {f} = ntN(n), P = lnProg(n), ch = n.ch || [], next = ch.find(c => c.st !== "done"), pj = n.projectId && S.projects[n.projectId], A = AREAS.find(a => a[0] === ntArea(n)[0]);
-  const done = noteComplete(S, n), D0 = noteDrawer(S, "learn");
+  const {f} = ntN(n), pj = n.projectId && S.projects[n.projectId], A = AREAS.find(a => a[0] === ntArea(n)[0]), done = noteComplete(S, n), D0 = noteDrawer(S, "learn");
+  if (!LP || LP.id !== n.id) LP = {id:n.id, blocks:noteBlocks(n).map(b => ({...b}))};
   const rows = [["강사·저자", f.author && esc(f.author)], ["별점", f.rating && stars(f.rating)], ["영역", A && `${aIcon(A[0])}${A[3]}`], ["퀘스트", pj && `${nic("target")}${esc(pj.title)}`], ["링크", f.url && `<a class="ntlink" href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">${esc(ntHost(f.url))}</a>`], ["학습 목표", f.goal && esc(f.goal), "goal"]].filter(r => r[1]);
+  const st = f.status || "예정", rd = !!S.lnRead, fs = S.lnFs || LS.get("lnFs", "m");
   let h = `<section class="card lnhead"><div class="lntop"><span class="ntcat">${nic("book")}${esc(f.type || "학습")}</span>${done ? `<span class="ntdone">${nic("check")}완성</span>` : ""}<button class="link lnedit" data-act="nt-edit" data-id="${n.id}" data-info="1">정보 수정</button></div>
     <h2 class="lntitle">${esc(f.title || "제목 없음")}</h2>
     ${rows.length ? `<dl class="lninfo">${rows.map(([l, v, c]) => `<dt>${l}</dt><dd class="${c || ""}">${v}</dd>`).join("")}</dl>` : ""}
-    <div class="lnprog"><div class="lnbar big"><i style="width:${P.pct}%"></i></div><p class="lnstat"><b class="num">${P.pct}%</b><span>${P.done}/${P.total} 목차 완료</span></p></div>
+    <div class="lnstatus"><span>상태</span><div class="seg">${LN_STATUS.map(x => `<button data-act="ln-st" data-v="${x}" aria-pressed="${st === x}">${x}</button>`).join("")}</div></div>
     ${done ? "" : ntRewardLine(D0, ntArea(n)[0])}</section>`;
-  if (next) h += `<section class="card lnnext"><div><small>이어서 하기</small><b>${esc(next.t)}</b></div><button class="btn" data-act="ln-ch" data-id="${n.id}" data-v="${next.id}">노트 열기</button></section>`;
-  const row = (c, i) => { const bl = Array.isArray(c.blocks) ? c.blocks.filter(b => b.t !== "h2" && bkText(b).trim()).length : 0;
-    return `<button class="lnrow ${LN_ST[c.st || "todo"][1]}" data-act="ln-ch" data-id="${n.id}" data-v="${c.id}"><span class="lnst">${c.st === "done" ? nic("check") : `<i class="num">${i + 1}</i>`}</span><span class="lnt"><b>${esc(c.t)}</b><small>${[LN_ST[c.st || "todo"][0], bl ? `노트 ${bl}줄` : ""].filter(Boolean).join(" · ")}</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>`; };
-  h += `<section class="card lntoc"><div class="ch"><h2>목차</h2>${ch.length ? `<span class="side num">${ch.length}</span>` : ""}</div>
-    ${ch.length ? `<div class="lnlist">${ch.map(row).join("")}</div>` : `<p class="empty-row">강의 커리큘럼이나 책 차례를 복사해 아래에 붙여 넣으면 줄마다 목차가 만들어져요.</p>`}
-    <div class="bdin"><input type="text" id="ln-add" maxlength="120" autocomplete="off" placeholder="목차 추가 (예: 3강 JOIN) · 엔터" value="${D("ln-add")}" aria-label="목차 추가" data-id="${n.id}"><button class="bdgo" data-act="ln-addbtn" data-id="${n.id}" aria-label="목차 추가"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></section>`;
-  const old = [["핵심 요약", f.summary], ["적용할 점", f.apply], ["인상 깊은 내용", f.quote], ["내 생각", f.think]].filter(x => x[1]);
-  if (old.length) h += `<section class="card"><div class="ch"><h2>이전 메모</h2></div>${old.map(([l, v]) => `<p class="ntsub">${l}</p><p class="ntbody">${esc(v)}</p>`).join("")}</section>`;
+  h += `<section class="card lnnote ${rd ? "read fs-" + fs : ""}"><div class="ch"><h2>노트</h2>${rd ? `<div class="lnfs" role="group" aria-label="글자 크기">${[["s","작게"],["m","보통"],["l","크게"]].map(([k, l]) => `<button data-act="ln-fs" data-v="${k}" aria-pressed="${fs === k}" aria-label="${l}" class="fs-${k}">가</button>`).join("")}</div>` : ""}<button class="btn sec xs lnmode" data-act="ln-read">${rd ? "편집" : "읽기 모드"}</button></div>
+    <div class="lnbody"><aside class="lnolw" id="lnol">${lnOutline(LP.blocks)}</aside>
+    <div class="lnmain"><div class="nted ${rd ? "ro" : ""}" id="nted">${bkHtml(LP.blocks, rd)}</div>
+    ${rd ? "" : `<button class="bkadd" data-act="bk-add">+ 블록 추가</button>
+    <div class="bkbar" id="bkbar" hidden>${BK_TYPES.filter(x => !x[0].startsWith("callout-") || x[0] === "callout-g").map(([k, l, g]) => `<button data-act="bk-type" data-v="${k}" title="${l}" aria-label="${l}">${k.startsWith("callout") ? nic("check") : esc(g)}</button>`).join("")}<button data-act="bk-ind" data-v="-1" title="내어쓰기" aria-label="내어쓰기">⇤</button><button data-act="bk-ind" data-v="1" title="들여쓰기" aria-label="들여쓰기">⇥</button><button data-act="bk-del" title="블록 삭제" aria-label="블록 삭제">${nic("trash")}</button></div>
+    <div class="bkmenu" id="bkmenu" hidden></div>`}</div></div></section>
+    <div class="bksel" id="bksel" hidden><button data-act="fmt" data-v="b" aria-label="굵게"><b>B</b></button><button data-act="fmt" data-v="i" aria-label="기울임"><i>I</i></button><button data-act="fmt" data-v="u" aria-label="밑줄"><u>U</u></button><i class="sep"></i><button data-act="fmt" data-v="hl-y" aria-label="노랑 형광펜"><span class="hlc hl-y"></span></button><button data-act="fmt" data-v="hl-g" aria-label="초록 형광펜"><span class="hlc hl-g"></span></button><button data-act="fmt" data-v="hl-p" aria-label="분홍 형광펜"><span class="hlc hl-p"></span></button><i class="sep"></i><button data-act="fmt" data-v="code" aria-label="코드">&lt;/&gt;</button><button data-act="fmt" data-v="clear" aria-label="서식 지우기">${nic("eraser")}</button></div>`;
   return h;
 }
-/* ---------- 목차 노트: 노션식 블록 에디터 ---------- */
-const BK_TYPES = [["p","텍스트","T"],["h1","제목 1","H1"],["h2","제목 2","H2"],["h3","제목 3","H3"],["ul","글머리 목록","•"],["ol","번호 목록","1."],["todo","체크박스","☐"],["quote","인용","❝"],["callout","강조 상자","!"],["code","코드","</>"],["divider","구분선","—"]];
-const BK_MD = [[/^###\s$/, "h3"], [/^##\s$/, "h2"], [/^#\s$/, "h1"], [/^[-*]\s$/, "ul"], [/^1[.)]\s$/, "ol"], [/^\[\s?\]\s$/, "todo"], [/^>\s$/, "quote"], [/^!\s$/, "callout"], [/^```\s?$/, "code"]];
-let LP = null; /* working copy of the open chapter page: {id, ch, blocks} */
+/* ---------- 블록 에디터 ---------- */
+const BK_TYPES = [["p","텍스트","T"],["h1","제목 1","H1"],["h2","제목 2","H2"],["h3","제목 3","H3"],["ul","글머리 목록","•"],["ol","번호 목록","1."],["todo","체크박스","☐"],["quote","인용","❝"],["callout-g","핵심 상자","!"],["callout-r","주의 상자","!"],["callout-y","팁 상자","!"],["callout-b","정보 상자","!"],["code","코드","</>"],["divider","구분선","—"]];
+const BK_MD = [[/^###\s$/, "h3"], [/^##\s$/, "h2"], [/^#\s$/, "h1"], [/^[-*]\s$/, "ul"], [/^1[.)]\s$/, "ol"], [/^\[\s?\]\s$/, "todo"], [/^>\s$/, "quote"], [/^!\s$/, "callout-g"], [/^```\s?$/, "code"]];
+let LP = null; /* working copy of the open learning note: {id, blocks} */
 function bkSan(html){ const t = document.createElement("template"); t.innerHTML = String(html || "");
-  const ok = {B:"b", STRONG:"b", I:"i", EM:"i", U:"u", S:"s", STRIKE:"s", CODE:"code", A:"a", BR:"br"};
+  const ok = {B:"b", STRONG:"b", I:"i", EM:"i", U:"u", S:"s", STRIKE:"s", CODE:"code", A:"a", BR:"br", MARK:"mark"};
   const walk = node => [...node.childNodes].map(x => { if (x.nodeType === 3) return esc(x.nodeValue); if (x.nodeType !== 1) return ""; const tg = ok[x.tagName], inner = walk(x);
-    if (!tg) return (x.tagName === "DIV" || x.tagName === "P") ? (inner ? "<br>" + inner : "") : inner; if (tg === "br") return "<br>";
+    if (!tg) return (x.tagName === "DIV" || x.tagName === "P") ? (inner ? "<br>" + inner : "") : inner; if (tg === "br") return "<br>"; if (!inner) return "";
+    if (tg === "mark"){ const c = (x.className.match(/hl-[ygp]/) || ["hl-y"])[0]; return `<mark class="${c}">${inner}</mark>`; }
     if (tg === "a"){ const href = x.getAttribute("href") || ""; return /^https?:\/\//i.test(href) ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${inner}</a>` : inner; } return `<${tg}>${inner}</${tg}>`; }).join("");
   return walk(t.content).replace(/^<br>/, ""); }
-function bkHtml(blocks){ let ol = {};
-  return blocks.map(b => { const ind = Math.max(0, Math.min(3, b.ind || 0)); if (b.t !== "ol") ol = Object.fromEntries(Object.entries(ol).filter(([k]) => +k < ind)); else { ol[ind] = (ol[ind] || 0) + 1; Object.keys(ol).forEach(k => { if (+k > ind) delete ol[k]; }); }
-    if (b.t === "divider") return `<div class="blk t-divider" data-b="${b.id}" style="--ind:${ind}"><hr><span class="bx" contenteditable="true" data-b="${b.id}"></span></div>`;
-    const pre = b.t === "ul" ? `<span class="bkp">•</span>` : b.t === "ol" ? `<span class="bkp num">${ol[ind]}.</span>` : b.t === "todo" ? `<button class="bkp bkchk" data-act="bk-chk" data-v="${b.id}" aria-pressed="${!!b.ck}" aria-label="체크">${b.ck ? nic("check") : ""}</button>` : b.t === "callout" ? `<span class="bkp">${nic("idea")}</span>` : "";
-    return `<div class="blk t-${b.t} ${b.ck ? "ck" : ""}" data-b="${b.id}" style="--ind:${ind}">${pre}<div class="bx" contenteditable="true" data-b="${b.id}" data-ph="${esc(b.ph || (b.t === "p" ? "'/'로 블록 선택, '# '·'- '·'[] ' 같은 단축 입력도 돼요" : BK_TYPES.find(x => x[0] === b.t)[1]))}" spellcheck="false">${b.h || ""}</div></div>`; }).join(""); }
-function viewLnPage(){
-  const n = S.mine[S.view.id], c = n && (n.ch || []).find(x => x.id === S.view.ch); if (!c) return viewLearn();
-  if (!LP || LP.id !== n.id || LP.ch !== c.id) LP = {id:n.id, ch:c.id, blocks:chBlocks(c).map(b => ({...b}))};
-  const i = n.ch.indexOf(c), {f} = ntN(n);
-  return `<section class="lnpage"><button class="lncrumb" data-act="lp-back">${nic("book")}${esc(f.title || "학습")} <span class="num">· ${i + 1}/${n.ch.length}</span></button>
-    <input class="lptitle" id="lp-title" maxlength="120" value="${esc(c.t)}" aria-label="목차 이름">
-    <div class="lpmeta"><div class="chips">${Object.entries(LN_ST).map(([k, [l]]) => `<button class="chip" data-act="lp-st" data-v="${k}" aria-pressed="${(c.st || "todo") === k}">${l}</button>`).join("")}</div>
-</div>
-    <div class="nted" id="nted">${bkHtml(LP.blocks)}</div>
-    <button class="bkadd" data-act="bk-add">+ 블록 추가</button>
-    <div class="bkbar" id="bkbar" hidden>${BK_TYPES.map(([k, l, g]) => `<button data-act="bk-type" data-v="${k}" title="${l}" aria-label="${l}">${esc(g)}</button>`).join("")}<button data-act="bk-ind" data-v="-1" title="내어쓰기" aria-label="내어쓰기">⇤</button><button data-act="bk-ind" data-v="1" title="들여쓰기" aria-label="들여쓰기">⇥</button><button data-act="bk-del" title="블록 삭제" aria-label="블록 삭제">${nic("memo")}</button></div>
-    <div class="bkmenu" id="bkmenu" hidden></div>
-    <details class="lpmore"><summary>목차 관리</summary>
-      <div class="lcmove"><button class="btn sec xs" data-act="lc-move" data-v="-1" ${i ? "" : "disabled"}>위로</button><button class="btn sec xs" data-act="lc-move" data-v="1" ${i < n.ch.length - 1 ? "" : "disabled"}>아래로</button><button class="link danger" data-act="lc-del">${S.armed === "lc"+c.id ? "한 번 더 누르면 삭제돼요" : "목차 삭제"}</button></div></details>
-  </section>`;
-}
-/* caret helpers (text offset inside one block) */
+function bkHtml(blocks, ro){ let ol = {}, hide = 0;
+  return blocks.map(b => { const lv = /^h[123]$/.test(b.t) ? +b.t[1] : 0; if (lv && hide && lv <= hide) hide = 0; const hidden = !!hide && !(lv && lv <= hide); if (lv && b.fold && !hide) hide = lv;
+    const ind = Math.max(0, Math.min(3, b.ind || 0)); if (b.t !== "ol") ol = Object.fromEntries(Object.entries(ol).filter(([k]) => +k < ind)); else { ol[ind] = (ol[ind] || 0) + 1; Object.keys(ol).forEach(k => { if (+k > ind) delete ol[k]; }); }
+    const cls = `blk t-${b.t}${b.t === "callout" ? " c-" + (b.c || "g") : ""}${b.ck ? " ck" : ""}${hidden ? " fhide" : ""}`, ce = ro ? "" : `contenteditable="true"`;
+    if (b.t === "divider") return `<div class="${cls}" data-b="${b.id}" style="--ind:${ind}"><hr>${ro ? "" : `<span class="bx" ${ce} data-b="${b.id}"></span>`}</div>`;
+    const pre = lv ? `<button class="bkfold" data-act="bk-fold" data-v="${b.id}" aria-expanded="${!b.fold}" aria-label="${b.fold ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>`
+      : b.t === "ul" ? `<span class="bkp">•</span>` : b.t === "ol" ? `<span class="bkp num">${ol[ind]}.</span>` : b.t === "todo" ? `<button class="bkp bkchk" data-act="bk-chk" data-v="${b.id}" aria-pressed="${!!b.ck}" aria-label="체크">${b.ck ? nic("check") : ""}</button>`
+      : b.t === "callout" ? `<button class="bkp bkcc" data-act="bk-cc" data-v="${b.id}" title="${CALLOUT[b.c || "g"][0]} · 눌러서 색 바꾸기" aria-label="상자 색 바꾸기">${nic(CALLOUT[b.c || "g"][1])}</button>` : "";
+    const ph = b.t === "p" ? "'/'로 블록 선택 · '# ' '- ' '[] ' 단축 입력 · 글자를 드래그하면 강조" : (BK_TYPES.find(x => x[0] === b.t || x[0] === b.t + "-g") || ["", ""])[1];
+    return `<div class="${cls}" data-b="${b.id}" id="bk-${b.id}" style="--ind:${ind}">${pre}<div class="bx" ${ce} data-b="${b.id}" data-ph="${esc(ph)}" spellcheck="false">${b.h || ""}</div></div>`; }).join(""); }
 function caretOff(el){ const sel = getSelection(); if (!sel.rangeCount) return 0; const r = sel.getRangeAt(0); if (!el.contains(r.startContainer)) return 0; const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(r.startContainer, r.startOffset); return pre.toString().length; }
 function setCaret(el, off){ if (!el) return; el.focus(); const sel = getSelection(), r = document.createRange(); let left = off == null ? Infinity : off, node = null, pos = 0;
   const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); while (tw.nextNode()){ const t = tw.currentNode; if (left <= t.length){ node = t; pos = left; break; } left -= t.length; }
   if (node) r.setStart(node, pos); else { r.selectNodeContents(el); r.collapse(false); } r.collapse(true); sel.removeAllRanges(); sel.addRange(r); }
 const bxOf = id => document.querySelector(`#nted .bx[data-b="${id}"]`);
 const bkIdx = id => LP.blocks.findIndex(b => b.id === id);
-function bkSync(){ document.querySelectorAll("#nted .bx").forEach(el => { const b = LP.blocks[bkIdx(el.dataset.b)]; if (b && b.t !== "divider") b.h = bkSan(el.innerHTML); }); }
+function bkSync(){ if (!LP) return; document.querySelectorAll("#nted .bx").forEach(el => { const b = LP.blocks[bkIdx(el.dataset.b)]; if (b && b.t !== "divider") b.h = bkSan(el.innerHTML); }); }
 let bkT = 0;
-function bkSave(now){ clearTimeout(bkT); const go0 = () => { if (!LP) return; bkSync(); const n = S.mine[LP.id]; if (!n) return; const t0 = ($("#lp-title") || {}).value;
-  const ch = n.ch.map(x => x.id === LP.ch ? {...x, blocks:LP.blocks.map(({id, t, h, ind, ck, ph}) => ({id, t, h, ...(ind ? {ind} : {}), ...(ck ? {ck} : {}), ...(ph && !h ? {ph} : {})})), ...(t0 && t0.trim() ? {t:t0.trim().slice(0, 120)} : {}), at:x.at || today()} : x);
-  api.putMine(LP.id, {...n, ch, updatedAt:Date.now()}).catch(e => toast(esc(e.message || "저장하지 못했어요"))); };
+function bkSave(now){ clearTimeout(bkT); const go0 = () => { if (!LP) return; bkSync(); const n = S.mine[LP.id]; if (!n) return; const ol = $("#lnol"); if (ol) ol.innerHTML = lnOutline(LP.blocks);
+  api.putMine(LP.id, {...n, blocks:LP.blocks.map(({id, t, h, ind, ck, c, fold}) => ({id, t, h, ...(ind ? {ind} : {}), ...(ck ? {ck} : {}), ...(c ? {c} : {}), ...(fold ? {fold} : {})})), updatedAt:Date.now()}).catch(e => toast(esc(e.message || "저장하지 못했어요"))); };
   if (now) go0(); else bkT = setTimeout(go0, 500); }
-function bkRedraw(focusId, off){ const ed = $("#nted"); if (!ed) return; ed.innerHTML = bkHtml(LP.blocks); if (focusId) setCaret(bxOf(focusId), off); }
+function bkRedraw(focusId, off){ const ed = $("#nted"); if (!ed) return; ed.innerHTML = bkHtml(LP.blocks, !!S.lnRead); if (focusId) setCaret(bxOf(focusId), off); }
 function bkSetType(id, t){ bkSync(); const b = LP.blocks[bkIdx(id)]; if (!b) return; const off = caretOff(bxOf(id) || document.body);
   if (t === "divider"){ b.t = "divider"; b.h = ""; const nb = {id:uid8(), t:"p", h:""}; LP.blocks.splice(bkIdx(id) + 1, 0, nb); bkRedraw(nb.id, 0); }
-  else { b.t = t; delete b.ph; if (t !== "todo") delete b.ck; bkRedraw(id, off); } bkSave(); }
+  else { if (t.startsWith("callout")){ b.t = "callout"; b.c = t.split("-")[1] || "g"; } else { b.t = t; delete b.c; } if (b.t !== "todo") delete b.ck; if (!/^h/.test(b.t)) delete b.fold; bkRedraw(id, off); } bkSave(); }
 function bkMenu(id, q){ const m = $("#bkmenu"), el = bxOf(id); if (!m || !el) return; const list = BK_TYPES.filter(([k, l]) => !q || l.includes(q) || k.startsWith(q.toLowerCase())); if (!list.length){ m.hidden = true; return; }
-  S.bkMenu = {id, sel:0, list:list.map(x => x[0])}; m.innerHTML = list.map(([k, l, g], i) => `<button data-act="bk-pick" data-v="${k}" class="${i ? "" : "on"}"><span>${esc(g)}</span>${l}</button>`).join("");
+  S.bkMenu = {id, sel:0, list:list.map(x => x[0])}; m.innerHTML = list.map(([k, l, g], i) => `<button data-act="bk-pick" data-v="${k}" class="${i ? "" : "on"}"><span class="${k.startsWith("callout") ? "cc c-" + k.split("-")[1] : ""}">${k.startsWith("callout") ? nic(CALLOUT[k.split("-")[1]][1]) : esc(g)}</span>${l}</button>`).join("");
   const r = el.getBoundingClientRect(), pr = $("#nted").getBoundingClientRect(); m.style.top = (r.bottom - pr.top + 4) + "px"; m.hidden = false; }
 const bkMenuClose = () => { const m = $("#bkmenu"); if (m) m.hidden = true; S.bkMenu = null; };
 function bkPick(t){ const mm = S.bkMenu; if (!mm) return; const el = bxOf(mm.id); if (el) el.innerHTML = ""; bkMenuClose(); bkSetType(mm.id, t); }
+/* selection toolbar: bold / italic / underline / highlight / code / clear */
+function selBar(){ const bar = $("#bksel"); if (!bar || S.lnRead) { if (bar) bar.hidden = true; return; } const sel = getSelection();
+  const bx = sel.rangeCount && !sel.isCollapsed && sel.anchorNode && sel.anchorNode.parentElement && sel.anchorNode.parentElement.closest("#nted .bx");
+  if (!bx || !bx.contains(sel.focusNode)){ bar.hidden = true; return; } const r = sel.getRangeAt(0).getBoundingClientRect(); bar.hidden = false;
+  const w = bar.offsetWidth, x = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)), top = r.top - bar.offsetHeight - 8;
+  bar.style.left = x + "px"; bar.style.top = (top < 60 ? r.bottom + 8 : top) + "px"; }
+document.addEventListener("selectionchange", () => { clearTimeout(selBar.t); selBar.t = setTimeout(selBar, 60); });
+function bkFmt(v){ const sel = getSelection(); if (!sel.rangeCount || sel.isCollapsed) return; const r = sel.getRangeAt(0), bx = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer.closest(".bx") : r.commonAncestorContainer.parentElement.closest(".bx"); if (!bx) return;
+  if (v === "b" || v === "i" || v === "u") document.execCommand({b:"bold", i:"italic", u:"underline"}[v]);
+  else { const frag = r.extractContents(); if (v === "clear"){ r.insertNode(document.createTextNode(frag.textContent)); }
+    else { const tmp = document.createElement("div"); tmp.appendChild(frag); tmp.querySelectorAll("mark,code").forEach(m => m.replaceWith(...m.childNodes)); const el = document.createElement(v === "code" ? "code" : "mark"); if (v !== "code") el.className = v; el.append(...tmp.childNodes); r.insertNode(el); sel.removeAllRanges(); const nr = document.createRange(); nr.selectNodeContents(el); sel.addRange(nr); } }
+  bkSave(); selBar(); }
 document.addEventListener("focusin", e => { const bx = e.target.closest && e.target.closest("#nted .bx"); const bar = $("#bkbar"); if (bx){ S.bkCur = bx.dataset.b; if (bar) bar.hidden = false; } });
-document.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("#nted")){ setTimeout(() => { const a = document.activeElement; if (!(a && a.closest && a.closest("#nted"))){ const bar = $("#bkbar"); if (bar) bar.hidden = true; bkMenuClose(); bkSave(true); if (S.lpPending){ S.lpPending = false; schedule(); } } }, 0); }
-  if (e.target.id === "lp-title") bkSave(true); });
-document.addEventListener("pointerdown", e => { if (e.target.closest && e.target.closest("#bkbar, #bkmenu")) e.preventDefault(); });
+document.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("#nted")){ setTimeout(() => { const a = document.activeElement; if (!(a && a.closest && a.closest("#nted"))){ const bar = $("#bkbar"); if (bar) bar.hidden = true; bkMenuClose(); bkSave(true); if (S.lpPending){ S.lpPending = false; schedule(); } } }, 0); } });
+document.addEventListener("pointerdown", e => { if (e.target.closest && e.target.closest("#bkbar, #bkmenu, #bksel")) e.preventDefault(); });
 document.addEventListener("input", e => { const bx = e.target.closest && e.target.closest("#nted .bx"); if (!bx || !LP) return; const id = bx.dataset.b, b = LP.blocks[bkIdx(id)]; if (!b) return;
   const tx = bx.textContent.replace(/ /g, " ");
   if (b.t !== "code"){ for (const [re, t] of BK_MD) if (re.test(tx) && (b.t === "p" || t === "todo")){ bx.innerHTML = ""; bkSetType(id, t); return; }
@@ -3030,21 +3055,23 @@ document.addEventListener("keydown", e => { const bx = e.target.closest && e.tar
   const id = bx.dataset.b, i = bkIdx(id), b = LP.blocks[i]; if (!b) return; const mm = S.bkMenu;
   if (mm && mm.id === id){ const m = $("#bkmenu"); if (e.key === "ArrowDown" || e.key === "ArrowUp"){ e.preventDefault(); mm.sel = (mm.sel + (e.key === "ArrowDown" ? 1 : -1) + mm.list.length) % mm.list.length; [...m.children].forEach((x, k) => x.classList.toggle("on", k === mm.sel)); return; }
     if (e.key === "Enter"){ e.preventDefault(); bkPick(mm.list[mm.sel]); return; } if (e.key === "Escape"){ e.preventDefault(); bkMenuClose(); return; } }
+  if ((e.ctrlKey || e.metaKey) && /^[biu]$/i.test(e.key)){ e.preventDefault(); bkFmt(e.key.toLowerCase()); return; }
   const off = caretOff(bx), len = bx.textContent.length, collapsed = getSelection().isCollapsed;
   if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); if (b.t === "code"){ document.execCommand("insertLineBreak"); return; } bkSync();
-    if (!bkText(b).trim() && ["ul","ol","todo","quote","callout"].includes(b.t)){ if (b.ind){ b.ind--; } else b.t = "p"; bkRedraw(id, 0); bkSave(); return; }
+    if (!bkText(b).trim() && ["ul","ol","todo","quote","callout"].includes(b.t)){ if (b.ind){ b.ind--; } else { b.t = "p"; delete b.c; } bkRedraw(id, 0); bkSave(); return; }
     const sel = getSelection(), r = sel.getRangeAt(0), tail = document.createRange(); tail.setStart(r.endContainer, r.endOffset); tail.setEnd(bx, bx.childNodes.length);
     const box = document.createElement("div"); box.appendChild(tail.extractContents()); b.h = bkSan(bx.innerHTML);
     const nb = {id:uid8(), t:["ul","ol","todo"].includes(b.t) ? b.t : "p", h:bkSan(box.innerHTML), ...(b.ind && ["ul","ol","todo","p"].includes(b.t) ? {ind:b.ind} : {})};
-    LP.blocks.splice(i + 1, 0, nb); bkRedraw(nb.id, 0); bkSave(); return; }
+    if (b.fold){ b.fold = false; } LP.blocks.splice(i + 1, 0, nb); bkRedraw(nb.id, 0); bkSave(); return; }
   if (e.key === "Backspace" && collapsed && off === 0){ bkSync();
     if (b.ind){ e.preventDefault(); b.ind--; bkRedraw(id, 0); bkSave(); return; }
-    if (b.t !== "p"){ e.preventDefault(); b.t = "p"; delete b.ck; bkRedraw(id, 0); bkSave(); return; }
+    if (b.t !== "p"){ e.preventDefault(); b.t = "p"; delete b.ck; delete b.c; delete b.fold; bkRedraw(id, 0); bkSave(); return; }
     if (i > 0){ e.preventDefault(); const pv0 = LP.blocks[i - 1]; if (pv0.t === "divider"){ LP.blocks.splice(i - 1, 1); bkRedraw(id, 0); bkSave(); return; }
       const at = bkText(pv0).length; pv0.h = (pv0.h || "") + (b.h || ""); LP.blocks.splice(i, 1); bkRedraw(pv0.id, at); bkSave(); return; } }
   if (e.key === "Tab"){ e.preventDefault(); bkSync(); b.ind = Math.max(0, Math.min(3, (b.ind || 0) + (e.shiftKey ? -1 : 1))); bkRedraw(id, off); bkSave(); return; }
-  if (e.key === "ArrowUp" && off === 0 && i > 0){ e.preventDefault(); setCaret(bxOf(LP.blocks[i - 1].id)); return; }
-  if (e.key === "ArrowDown" && off >= len && i < LP.blocks.length - 1){ e.preventDefault(); setCaret(bxOf(LP.blocks[i + 1].id), 0); return; }
+  const vis = k => { let j = i + k; while (LP.blocks[j] && document.querySelector(`#bk-${LP.blocks[j].id}.fhide`)) j += k; return LP.blocks[j]; };
+  if (e.key === "ArrowUp" && off === 0 && vis(-1)){ e.preventDefault(); setCaret(bxOf(vis(-1).id)); return; }
+  if (e.key === "ArrowDown" && off >= len && vis(1)){ e.preventDefault(); setCaret(bxOf(vis(1).id), 0); return; }
 });
 /* ---------- 첨부 파일: IndexedDB (기본 저장소 용량과 분리) ---------- */
 const FDB = (() => { let p = null; const open = () => p || (p = new Promise((res, rej) => { if (typeof indexedDB === "undefined") return rej(new Error("이 브라우저는 파일 저장을 지원하지 않아요"));
@@ -4056,7 +4083,7 @@ function burstAt(el){ if (!el) return; const t = (el.parentElement && el.parentE
 /* ================= navigation ================= */
 function go(name){ location.hash = "#"+name; }
 const viewKey = () => S.view.name + (S.view.uid ? ":"+S.view.uid : "") + (S.view.pid ? ":"+S.view.pid : "");
-function push(view, hash){ S.scrolls[viewKey()] = scrollY; S.view = view; if (location.hash !== hash) location.hash = hash; schedule(); scrollTo(0,0); }
+function push(view, hash){ if (LP && view.name !== "learn") { bkSave(true); LP = null; } if (view.name === "learn" && LP && LP.id !== view.id) LP = null; S.scrolls[viewKey()] = scrollY; S.view = view; if (location.hash !== hash) location.hash = hash; schedule(); scrollTo(0,0); }
 const openPost = pid => push({name:"post", pid}, "#post");
 const openGoal = pid => { if (S.view.name === "project" && S.view.pid !== pid){ (S.vstack = S.vstack || []).push({...S.view}); } push({name:"project", pid}, "#goal"); };
 const openProfile = uid => { S.profTab = "posts"; S.profN = 20; push({name:"profile", uid}, uid === S.me ? "#me" : "#profile"); };
@@ -4073,8 +4100,7 @@ function route(){
   else if (h === "#me"){ if (prev !== "profile") S.profN = 20; if (!["profile","project","post","calday","activity","settings","stats"].includes(prev)) S.profTab = "posts"; S.view = {name:"profile", uid:S.me}; }
   else if (h === "#dash") S.view = {name:"dash"};
   else if (h === "#notes") S.view = {name:"notes"};
-  else if (h === "#learn"){ if (S.view.name === "lnpage" && S.mine[S.view.id]) S.view = {name:"learn", id:S.view.id}; else if (!(S.view.name === "learn" && S.mine[S.view.id])) S.view = {name:"notes"}; LP = null; }
-  else if (h === "#lnpage"){ if (!(S.view.name === "lnpage" && S.mine[S.view.id])) S.view = {name:"notes"}; }
+  else if (h === "#learn" || h === "#lnpage"){ if (!(S.view.name === "learn" && S.mine[S.view.id])){ S.view = {name:"notes"}; LP = null; } }
   else if (h === "#calday"){ if (prev !== "calday") S.view = {name:"cal"}; }
   else if ((h === "#post" && prev === "post") || (h === "#goal" && prev === "project") || (h === "#profile" && prev === "profile")) {}
   else S.view = !h || h === "#" ? {name:"dash"} : {name:"feed"};
@@ -4300,14 +4326,15 @@ document.addEventListener("click", e => {
     case "bd-sort": openSheet({type:"bdsort", id}); return;
     case "bd-rm": if (!S.mine[id]) return; if (S.armed !== "bx"+id){ arm("bx"+id); toast("한 번 더 누르면 삭제돼요"); break; } S.armed = null; run(() => api.delMine(id), () => toast("삭제했어요")); return;
     case "bd-step": (S.bdStep || (S.bdStep = {}))[id] = +b.dataset.v; if (c && c.type === "bdsort"){ renderSheet(); return; } break;
-    case "ln-addbtn": { const el = $("#ln-add"); if (!lnAddChapters(id, el && el.value)){ toast("목차 이름을 적어 주세요"); el && el.focus && el.focus(); } return; }
-    case "ln-ch": { const n = S.mine[id]; if (!n || !(n.ch || []).some(x => x.id === b.dataset.v)) return; LP = null; push({name:"lnpage", id, ch:b.dataset.v}, "#lnpage"); return; }
-    case "lp-back": bkSave(true); LP = null; history.length > 1 ? history.back() : (S.view = {name:"learn", id:S.view.id}, location.hash = "#learn", schedule()); return;
-    case "lp-st": { bkSave(true); const n = S.mine[S.view.id]; lnPut(n.id, {ch:S.mine[n.id].ch.map(x => x.id === S.view.ch ? {...x, st:b.dataset.v} : x)}); return; }
-    case "lc-move": { bkSave(true); const n = S.mine[S.view.id], l = [...n.ch], i = l.findIndex(x => x.id === S.view.ch), j = i + +b.dataset.v; if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; lnPut(n.id, {ch:l}); return; }
-    case "lc-del": { const k = "lc" + S.view.ch; if (S.armed !== k){ arm(k); break; } S.armed = null; const n = S.mine[S.view.id], cid = S.view.ch; LP = null;
-      S.view = {name:"lnpage", id:n.id, ch:cid}; lnPut(n.id, {ch:n.ch.filter(x => x.id !== cid), sessions:(n.sessions || []).filter(x => x.ch !== cid), timer:n.timer && n.timer.ch === cid ? null : n.timer}, () => { toast("목차를 삭제했어요"); history.back(); }); return; }
-    case "bk-chk": { bkSync(); const bl = LP && LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.ck = !bl.ck; bkRedraw(); bkSave(); return; }
+    case "ln-st": { if (LP) bkSave(true); const n = S.mine[S.view.id]; if (!n) return; const {f} = ntN(n), was = noteComplete(S, n);
+      run(() => api.putMine(n.id, {...S.mine[n.id], cat:"learn", f:{...f, status:b.dataset.v}, updatedAt:Date.now()}), r => { if (!was && noteComplete(S, S.mine[n.id]) && r && r.xp > 0){ S.quietXp = true; toast(`학습 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>`); } }); return; }
+    case "ln-read": if (LP) bkSave(true); S.lnRead = !S.lnRead; break;
+    case "ln-fs": S.lnFs = b.dataset.v; LS.set("lnFs", b.dataset.v); break;
+    case "bk-jump": { const el = document.getElementById("bk-" + b.dataset.v); if (el){ el.scrollIntoView({behavior:"smooth", block:"start"}); el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 900); } return; }
+    case "bk-fold": { if (!LP) return; bkSync(); const bl = LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.fold = !bl.fold; bkRedraw(); bkSave(); return; }
+    case "bk-cc": { if (!LP || S.lnRead) return; bkSync(); const bl = LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; const ks = Object.keys(CALLOUT); bl.c = ks[(ks.indexOf(bl.c || "g") + 1) % ks.length]; bkRedraw(); bkSave(); return; }
+    case "fmt": bkFmt(b.dataset.v); return;
+    case "bk-chk": { if (!LP) return; bkSync(); const bl = LP && LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.ck = !bl.ck; bkRedraw(); bkSave(); return; }
     case "bk-type": if (LP && S.bkCur) bkSetType(S.bkCur, b.dataset.v); return;
     case "bk-pick": bkPick(b.dataset.v); return;
     case "bk-ind": { if (!LP || !S.bkCur) return; bkSync(); const bl = LP.blocks[bkIdx(S.bkCur)]; if (!bl) return; const off = caretOff(bxOf(S.bkCur)); bl.ind = Math.max(0, Math.min(3, (bl.ind || 0) + +b.dataset.v)); bkRedraw(S.bkCur, off); bkSave(); return; }
@@ -4547,14 +4574,13 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target.id === "bd-in" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); bdAdd(e.target.value); return; }
-  if (e.key === "Enter" && e.target.id === "ln-add" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); lnAddChapters(e.target.dataset.id, e.target.value); return; }
   if (e.key === "Enter" && e.target.id === "ta-name" && !e.isComposing){ e.preventDefault(); const bt = document.querySelector('[data-act="submit-taskadd"]'); bt && bt.click(); return; }
   if (e.key === "Enter" && e.target.id === "nt-name" && !e.isComposing){ e.preventDefault(); const bt = document.querySelector('[data-act="addtask"]'); bt && bt.click(); return; }
   if (e.key === "Escape"){ if (SV) svClose(); else if (S.compose) closeSheet(); }
   if (SV && document.activeElement?.id !== "sv-reply"){ if (e.key === "ArrowRight") svStep(1); if (e.key === "ArrowLeft") svStep(-1); }
   if ((e.key === "Enter" || e.key === " ") && e.target.getAttribute && e.target.getAttribute("role") === "button"){ e.preventDefault(); e.target.click(); }
 });
-document.addEventListener("paste", e => { if (e.target.id !== "bd-in" && e.target.id !== "ln-add") return; const t = (e.clipboardData || window.clipboardData)?.getData("text") || ""; if (/\n/.test(t.trim())){ e.preventDefault(); if (e.target.id === "bd-in") bdAdd(t); else lnAddChapters(e.target.dataset.id, t); } });
+document.addEventListener("paste", e => { if (e.target.id !== "bd-in") return; const t = (e.clipboardData || window.clipboardData)?.getData("text") || ""; if (/\n/.test(t.trim())){ e.preventDefault(); bdAdd(t); } });
 document.addEventListener("scroll", e => { const t = e.target; if (t && t.classList && t.classList.contains("wd-ggrid") && t.closest(".wd-goals")) S.wdGs = t.scrollLeft; }, true);
 document.addEventListener("input", e => {
   if (['alv','hlv','tlv','ntlv'].includes(e.target.id) && S.compose) { preserveSheetDrafts(); S.compose[e.target.id==='hlv'?'hlv':e.target.id==='ntlv'?'ntlv':'lv']=lvKey(e.target.value); renderSheet(); return; }
