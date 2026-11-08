@@ -212,6 +212,8 @@ const EI = (() => {
     "🔒": sv(`<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>`),
     "🕒": sv(`<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>`),
     "🛡": sv(`<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.9-7.5-9.5V6z"/><path d="M9 12l2 2 4-4"/>`),
+    "📍": sv(`<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/>`),
+    "↪": sv(`<path d="M5 4v7a4 4 0 0 0 4 4h10"/><path d="M15 11l4 4-4 4"/>`),
     "📅": sv(`<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>`),
     "📝": pencil, "✏": pencil,
     "💪": sv(`<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>`),
@@ -616,7 +618,7 @@ function statusField(c){ const v = c.pstat === "planned" ? "planned" : "active";
 /* ================= stats (life areas) ================= */
 const AREA_SVG = {health:`<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10Z"/>`, money:`<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M15.5 14.5h2.5"/>`, career:`<rect x="3" y="7" width="18" height="12" rx="2.5"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3 12.5h18"/>`, social:`<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.5M17.5 13.5a5 5 0 0 1 3 5.5"/>`, growth:`<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5Z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5Z"/>`};
 const aIcon = k => `<svg class="aic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${AREA_SVG[k] || ""}</svg>`;
-const AREAS = [["health","체력","","건강"],["money","재력","","재정"],["career","실력","","커리어"],["social","매력","","관계"],["growth","지력","","자기계발"]];
+const AREAS = [["health","체력","","건강"],["money","재력","","재정"],["career","실력","","커리어"],["social","매력","","관계"],["growth","지력","","배움"]];
 const AREA_DESC = {health:"운동, 수면, 식단처럼 몸을 돌보는 퀘스트를 완료하면 올라요.", money:"저축, 가계부, 투자 공부처럼 돈을 관리하는 퀘스트를 완료하면 올라요.", career:"업무, 자격증, 이직 준비처럼 일과 커리어를 키우는 퀘스트를 완료하면 올라요.", social:"가족, 친구, 연인과의 관계를 챙기는 퀘스트를 완료하면 올라요.", growth:"독서, 공부, 새로운 기술 배우기처럼 스스로 성장하는 퀘스트를 완료하면 올라요."};
 const AREA_KEYS = AREAS.map(a => a[0]);
 const areasOf = x => (x && Array.isArray(x.area) ? x.area : []).filter(k => AREA_KEYS.includes(k));
@@ -1844,7 +1846,7 @@ function buildRepeat(c){
 const needsDays = t => t === "weekly" || t === "biweekly";
 /* 실행 계획: 장소(태스크·데일리) + 앞 행동(데일리, 다른 데일리와 연결 가능) */
 const PIN = `<svg class="pmi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></svg>`;
-const AFT = `<svg class="pmi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h13"/><path d="M13 7l5 5-5 5"/></svg>`;
+const AFT = `<svg class="pmi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4v7a4 4 0 0 0 4 4h10"/><path d="M15 11l4 4-4 4"/></svg>`;
 const afterOf = q => { const a = q && q.afterId && S.mine[q.afterId]; return a && a.kind === "quest" ? `${a.name} 후` : (q && q.after) || ""; };
 const placeAt = p => !p ? "" : /(에서|에)$/.test(p) ? p : p + "에서";
 function planSentence(name, time, place, after){
@@ -1852,7 +1854,6 @@ function planSentence(name, time, place, after){
   return [after, w].filter(Boolean).join(", ") + (after || w ? " " : "") + (name || "");
 }
 const chainsTo = (from, target) => { let id = from, n = 0; while (id && n++ < 50){ if (id === target) return true; id = (S.mine[id] || {}).afterId; } return false; };
-const CLK = `<svg class="pmi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>`;
 const afterLabel = c => c.afterId && S.mine[c.afterId] ? `${S.mine[c.afterId].name} 후` : (c.after || "");
 const planName = c => S.drafts[c.type === "taskadd" ? "ta-name" : c.type === "tedit" ? "te-name" : c.type === "hedit" ? "he-name" : "ad-name"] || "";
 const ppWrap = (t, close, body) => `<div class="dppop" data-act="dpstay"><div class="dppop-in" data-act="dpstay" role="dialog" aria-label="${t}"><div class="dppop-h"><b class="dppop-t">${t}</b><button class="iconbtn" data-act="${close}" aria-label="닫기">${I.close}</button></div>${body}</div></div>`;
@@ -1867,8 +1868,8 @@ function planPop(c){
 }
 function planField(c, daily){
   const after = afterLabel(c);
-  const chip = (act, v, icon, label, val) => `<button class="chip pchip" data-act="${act}"${v ? ` data-v="${v}"` : ""} aria-pressed="${!!val}">${icon}<span>${val ? esc(val) : label}</span></button>`;
-  const chips = [daily ? chip("tmset", "", CLK, "시간", c.time ? tmLabel(c.time) : "") : "", chip("ppopen", "place", PIN, "장소", c.place || ""), daily ? chip("ppopen", "after", AFT, "앞 행동", after) : ""].join("");
+  const chip = (act, v, icon, label, val) => `<button class="chip pchip" data-act="${act}"${v ? ` data-v="${v}"` : ""} aria-pressed="${!!val}">${icon} <span>${val ? esc(val) : label}</span></button>`;
+  const chips = [daily ? chip("tmset", "", "🕒", "시간", c.time ? tmLabel(c.time) : "") : "", chip("ppopen", "place", "📍", "장소", c.place || ""), daily ? chip("ppopen", "after", "↪", "앞 행동", after) : ""].join("");
   const sent = planSentence(planName(c), c.time, c.place || "", after).trim();
   return `<div class="field plan"><span class="lab plh">실행 계획 <span class="hint">${daily ? "시간 필수" : "날짜·시간 필수"}</span></span>
     ${daily ? `<div class="chips pchips">${chips}</div>` : `<div class="planlead">${dueField(c, chips, true)}</div>`}

@@ -1229,7 +1229,7 @@ test('main / sub quest page shows selected 속성 tags; sub without its own show
   const base=await profileUI(),saved=base.snapshot();
   saved.projects={m1:{id:'m1',owner:'me',title:'메인',end:'2099-12-31',status:'active',area:['health','growth']},s1:{id:'s1',owner:'me',parentId:'m1',title:'서브',end:'2099-12-31',status:'active'},s2:{id:'s2',owner:'me',parentId:'m1',title:'서브2',end:'2099-12-31',status:'active',area:['money']}};
   const h=await profileUI(saved);h.click('project',{p:'m1'});let html=h.nodes.get('app').innerHTML;
-  assert.match(html,/class="tag atag "[^>]*>[\s\S]*?건강<\/span>[\s\S]*?자기계발<\/span>/);
+  assert.match(html,/class="tag atag "[^>]*>[\s\S]*?건강<\/span>[\s\S]*?배움<\/span>/);
   h.click('project',{p:'s1'});html=h.nodes.get('app').innerHTML;assert.match(html,/class="tag atag inh"[\s\S]*?건강/);
   h.click('project',{p:'s2'});html=h.nodes.get('app').innerHTML;assert.match(html,/class="tag atag "[\s\S]*?재정/);assert.doesNotMatch(html.slice(0,html.indexOf('rw')),/건강/);
 });
