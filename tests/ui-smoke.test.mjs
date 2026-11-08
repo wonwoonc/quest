@@ -346,9 +346,9 @@ test('brain dump: pour lines in, inline guide, hide area, send one to task, dele
   h.nodes.set('bd-in',{value:'세탁소 들르기\n\n이상한 생각'}); h.click('bd-add'); await h.settle();
   const dumps = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'dump');
   assert.equal(dumps().length,2);
-  assert.match(h.nodes.get('app').innerHTML,/반복해서 해야 하나요\?/);
-  const first = dumps().find(d => d.text === '세탁소 들르기'); h.click('bd-step',{id:first.id,v:'1'});
-  assert.match(h.nodes.get('app').innerHTML,/한 번 하면 끝나나요\?/);
+  const first = dumps().find(d => d.text === '세탁소 들르기'); h.click('bd-sort',{id:first.id});
+  assert.match(h.nodes.get('overlay').innerHTML,/반복해서 해야 하나요\?/);
+  h.click('bd-step',{id:first.id,v:'1'}); assert.match(h.nodes.get('overlay').innerHTML,/한 번 하면 끝나나요\?/); h.click('sheet-close');
   h.click('bd-area',{v:'off'}); assert.ok(!h.nodes.get('app').innerHTML.includes('id="bd-in"')); assert.match(h.nodes.get('app').innerHTML,/브레인 덤프 열기/);
   h.click('bd-area',{v:'on'}); assert.ok(h.nodes.get('app').innerHTML.includes('id="bd-in"'));
   const wash = dumps().find(d => d.text === '세탁소 들르기'); h.click('bd-send',{id:wash.id,v:'task'});
@@ -375,6 +375,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   assert.equal(xp(),x0+30,'editing does not re-grant');
   assert.match(app(),/<\/svg>완성 · 자기계발/);
   h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-apply',{value:'매일 아침 10분 읽기'}); h.click('nt-task',{f:'apply'}); await h.settle();
+  assert.match(ov(),/어디로 보낼까요/); assert.match(ov(),/ntsendo rec" data-act="nt-send" data-v="daily"/); h.click('nt-send',{v:'task'});
   assert.match(ov(),/value="매일 아침 10분 읽기"/); h.nodes.set('ta-name',{value:'매일 아침 10분 읽기'}); h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.noteId === n0.id)); assert.match(app(),/태스크 진행 중/);
   h.click('nt-edit',{id:n0.id}); h.click('nt-del',{id:n0.id}); h.click('nt-del',{id:n0.id}); await h.settle();

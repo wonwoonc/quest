@@ -591,11 +591,14 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .bdq{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:10px 12px;background:var(--accent-soft);border-radius:12px}.bdq .bdqn{font-size:12px;font-weight:700;color:var(--accent)}.bdqt{flex:1;min-width:180px;display:grid;gap:2px}.bdqt b{font-size:14px;color:var(--ink)}.bdqt small{font-size:12.5px;color:var(--muted)}.bdqa{display:flex;gap:6px}.bdq.end{background:var(--fill);font-size:13.5px;color:var(--sub)}.bdq.end span{flex:1;min-width:180px}
 .bdal{font-size:12.5px;color:var(--muted);align-self:center;margin-right:2px}
 @media (max-width:520px){.bdal{display:none}.bdact .btn.xs{padding:5px 9px}.bdqa .btn.xs{padding:6px 12px}}
+.sheet .bdact .bdal{display:block;width:100%;margin:6px 0 2px;font-size:13px}
 .bdshow{display:block;margin:0 auto;border:1px dashed var(--line);background:none;border-radius:14px;padding:10px 16px;font-weight:700;color:var(--muted);font-size:14px}
-.bdin{display:flex;gap:8px;align-items:flex-end;margin-top:12px}.bdin textarea{flex:1;min-width:0;resize:vertical;border:0;background:var(--fill);border-radius:14px;padding:12px 14px;font:inherit;font-size:15px;color:var(--ink)}.bdin .btn{padding:12px 16px;font-size:15px}
-.bdlist{display:grid;gap:8px;margin-top:12px}.bdi{border:1px solid var(--line);border-radius:14px;padding:10px 12px}.bdi p{margin:0 0 8px;font-size:15px;line-height:1.45;word-break:break-word}
+.bdin{position:relative;margin-top:12px}.bdin input{width:100%;box-sizing:border-box;padding-right:52px}.bdgo{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:11px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center}.bdgo svg{width:20px;height:20px}
+.bdlist{display:grid;margin-top:8px}.bdr{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--line)}.bdr:last-child{border-bottom:0}.bdr span{flex:1;min-width:0;font-size:15px;line-height:1.4;word-break:break-word}.bdr .btn{flex:none}
+.bdtext{margin:0 0 12px;font-size:17px;font-weight:700;line-height:1.4;word-break:break-word}
+.ntsend{display:grid;gap:10px}.ntsendo{display:grid;gap:4px;text-align:left;border:0;background:var(--fill);border-radius:14px;padding:16px 18px;color:var(--ink)}.ntsendo b{font-size:16px;display:flex;align-items:center;gap:8px}.ntsendo small{color:var(--muted);font-size:13px}.ntsendo.rec{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}.ntrec{font-size:11.5px;font-weight:700;color:var(--accent-ink);background:var(--accent);border-radius:6px;padding:1px 6px}.bdi{border:1px solid var(--line);border-radius:14px;padding:10px 12px}.bdi p{margin:0 0 8px;font-size:15px;line-height:1.45;word-break:break-word}
 .bdact{display:flex;flex-wrap:wrap;gap:6px}.bdact .bddel{margin-left:auto;color:var(--muted)}.bdact .bddel.armed{color:#D64545}
-.bdump .morebtn{margin-top:10px}
+.bdump .morebtn{margin-top:6px}
 .plback .link{display:inline-flex;align-items:center;gap:4px;font-weight:700;color:var(--muted);border:0;background:none;padding:4px 0}
 .plback .link svg{width:18px;height:18px}
 .pwdots{display:flex;gap:4px;margin:0 0 16px}
@@ -2784,7 +2787,9 @@ function ntRewardLine(d, area){
 function ntCard(n){
   const {cat, f} = ntN(n), C = noteDrawer(S, cat), pj = n.projectId && S.projects[n.projectId], d = new Date(n.updatedAt || n.createdAt || Date.now());
   const h3 = v => v ? `<h3>${esc(v)}</h3>` : "", p = v => v ? `<p class="ntbody">${esc(v)}</p>` : "", sub = (...xs) => { const l = xs.filter(Boolean); return l.length ? `<p class="ntsub">${l.join(" · ")}</p>` : ""; };
-  const ts = ntTasks(n), tdone = ts.length && ts.every(m => m.done), act = v => v ? `<p class="ntnext">→ ${esc(v)}${ts.length ? ` <span class="ntrun ${tdone ? "ok" : ""}">${tdone ? nic("check") + "실행함" : "태스크 진행 중"}</span>` : ""}</p>` : "";
+  const ts = ntTasks(n), tdone = ts.length && ts.every(m => m.done), dq = mineOf("quest").find(q => q.noteId === n.id && q.active !== false);
+  const run0 = dq ? `<span class="ntrun ok">데일리 진행 중 · 연속 ${streakOf(dq).cur}${streakUnit(dq)}</span>` : ts.length ? `<span class="ntrun ${tdone ? "ok" : ""}">${tdone ? nic("check") + "실행함" : "태스크 진행 중"}</span>` : "";
+  const act = v => v ? `<p class="ntnext">→ ${esc(v)}${run0 ? " " + run0 : ""}</p>` : "";
   let mid = "";
   if (cat === "idea") mid = h3(f.title) + p(f.why) + act(f.next);
   else if (cat === "ref") mid = h3(f.title || (f.url && ntHost(f.url))) + sub(f.media && esc(f.media)) + p(f.summary) + (f.why ? `<p class="ntnext">저장 이유 · ${esc(f.why)}</p>` : "");
@@ -2812,7 +2817,7 @@ function noteSheet(c){
     if (x.t === "choice") return `<div class="field">${lab}<div class="chips">${x.o.map(o => `<button class="chip" data-act="nt-val" data-f="${x.k}" data-v="${o}" aria-pressed="${v === o}">${o}</button>`).join("")}</div></div>`;
     if (x.t === "stars") return `<div class="field">${lab}<div class="ntrate">${[1,2,3,4,5].map(i => `<button data-act="nt-val" data-f="${x.k}" data-v="${i}" aria-label="${i}점" aria-pressed="${(v||0) >= i}">${nic("star")}</button>`).join("")}</div></div>`;
     const inp = `<input type="${x.t === "url" ? "url" : x.t === "date" ? "date" : "text"}" id="${id}" maxlength="${x.t === "url" ? 500 : 200}" ${x.p ? `placeholder="${x.p}"` : ""} value="${D(id)}">`;
-    return `<div class="field">${lab}${x.task ? `<div class="nttask">${inp}<button class="btn sec xs" data-act="nt-task" data-f="${x.k}">태스크로 보내기</button></div>` : inp}</div>`; };
+    return `<div class="field">${lab}${x.task ? `<div class="nttask">${inp}<button class="btn sec xs" data-act="nt-task" data-f="${x.k}">보내기</button></div>` : inp}</div>`; };
   const area = c.area || ntArea({...(n || {}), kind:"note", cat:c.cat, f:{}, area:null, projectId:c.projectId})[0] || null;
   return sheetWrap(n ? "자료 수정" : "자료 추가", "", `
     <div class="chips ntkinds" role="group" aria-label="서랍">${noteDrawers(S).filter(d => !d.hidden || d.k === c.cat).map(K => `<button class="chip" data-act="nt-kind" data-v="${K.k}" aria-pressed="${c.cat === K.k}">${nic(K.ic)}${esc(K.l)}</button>`).join("")}</div>
@@ -2823,6 +2828,11 @@ function noteSheet(c){
     ${n && noteComplete(S, n) ? `<p class="ntreward done">${nic("check")}완성한 자료예요. 보상은 이미 받았어요.</p>` : ntRewardLine(C, area)}
     <button class="btn big full" data-act="submit-note" ${S.busy ? "disabled" : ""}>저장</button>
     ${n ? `<button class="link danger ntdel" data-act="nt-del" data-id="${n.id}">${S.armed === "nd"+n.id ? "한 번 더 누르면 삭제돼요" : "삭제"}</button>` : ""}`);
+}
+function ntSendSheet(c){
+  const daily = /매일|매주|아침마다|저녁마다|날마다|주\s*\d+\s*회|하루\s*\d+|꾸준히|습관/.test(c.name);
+  const opt = (k, t, d, rec) => `<button class="ntsendo ${rec ? "rec" : ""}" data-act="nt-send" data-v="${k}"><b>${t}${rec ? `<span class="ntrec">추천</span>` : ""}</b><small>${d}</small></button>`;
+  return sheetWrap("어디로 보낼까요?", "", `<p class="bdtext">${esc(c.name)}</p><div class="ntsend">${opt("task", "태스크", "한 번 하면 끝나는 일 · 날짜와 시간을 정해요", !daily)}${opt("daily", "데일리", "반복해서 할 습관 · 연속 기록이 쌓여요", daily)}</div>`);
 }
 const ntKeys = () => [...new Set(noteDrawers(S).flatMap(C => C.f.filter(x => !["choice","stars"].includes(x.t)).map(x => "nf-" + x.k)))];
 /* collects the open note sheet; resolves to the saved note id or null */
@@ -2906,13 +2916,21 @@ function bdGuide(d){
 }
 function brainDump(){
   if (LS.get("bdOff", false)) return `<button class="bdshow" data-act="bd-area" data-v="on">${nic("inbox")}브레인 덤프 열기</button>`;
-  const vis = mineOf("dump").sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
-  const row = d => `<div class="bdi"><p>${esc(d.text)}</p>${bdGuide(d)}<div class="bdact"><span class="bdal">바로 보내기</span>${BD_KINDS.map(([k,l]) => `<button class="btn sec xs" data-act="bd-send" data-id="${d.id}" data-v="${k}">${l}</button>`).join("")}<button class="btn sec xs bddel ${S.armed === "bd"+d.id ? "armed" : ""}" data-act="bd-del" data-id="${d.id}">${S.armed === "bd"+d.id ? "한 번 더 누르면 삭제" : "삭제"}</button></div></div>`;
+  const vis = mineOf("dump").sort((a,b) => (a.createdAt||0) - (b.createdAt||0)), MAX = 3, shown = S.bdAll ? vis : vis.slice(0, MAX);
+  const row = d => `<div class="bdr"><span>${esc(d.text)}</span><button class="btn sec xs" data-act="bd-sort" data-id="${d.id}">분류</button></div>`;
   return `<section class="card bdump"><div class="ch"><h2>브레인 덤프</h2>${vis.length ? `<span class="side num">${vis.length}</span>` : ""}<button class="link bdhelp" data-act="bd-area" data-v="off">숨기기</button></div>
-    <div class="bdin"><textarea id="bd-in" rows="3" maxlength="2000" placeholder="머릿속에 있는 생각을 전부 적어 보세요. 한 줄에 하나씩" aria-label="브레인 덤프">${D("bd-in")}</textarea><button class="btn" data-act="bd-add">털어 넣기</button></div>
-    ${vis.length ? `<div class="bdlist">${vis.map(row).join("")}</div>` : `<p class="empty-row">털어 넣은 생각마다 질문에 답하면 어디로 보낼지 정해져요.</p>`}
+    <div class="bdin"><input type="text" id="bd-in" maxlength="200" enterkeyhint="done" autocomplete="off" placeholder="떠오르는 생각을 적고 엔터" value="${D("bd-in")}" aria-label="브레인 덤프"><button class="bdgo" data-act="bd-add" aria-label="털어 넣기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+    ${vis.length ? `<div class="bdlist">${shown.map(row).join("")}</div>${vis.length > MAX ? `<button class="morebtn" data-act="toggle" data-k="bdall">${S.bdAll ? "접기" : `${vis.length - MAX}개 더 보기`}</button>` : ""}` : `<p class="empty-row">적은 생각은 「분류」를 눌러 메인 · 서브 · 데일리 · 태스크로 보내요.</p>`}
   </section>`;
 }
+function bdSortSheet(c){
+  const d = S.mine[c.id]; if (!d){ return sheetWrap("분류하기", "", `<p class="empty-row">이미 처리한 생각이에요.</p>`); }
+  return sheetWrap("분류하기", "", `<p class="bdtext">${esc(d.text)}</p>${bdGuide(d)}
+    <div class="bdact"><span class="bdal">바로 보내기</span>${BD_KINDS.map(([k,l]) => `<button class="btn sec xs" data-act="bd-send" data-id="${d.id}" data-v="${k}">${l}</button>`).join("")}</div>
+    <button class="link danger ntdel" data-act="bd-del" data-id="${d.id}">${S.armed === "bd"+d.id ? "한 번 더 누르면 삭제돼요" : "삭제"}</button>`);
+}
+const bdAdd = text => { const lines = String(text || "").split(/\r?\n/).map(x => x.trim()).filter(Boolean); if (!lines.length) return false;
+  const at = Date.now(); run(async () => { let i = 0; for (const t of lines) await api.putMine("bd"+uid8()+(i), {kind:"dump", text:t.slice(0,200), hidden:false, createdAt:at+(i++)}); }, () => { delete S.drafts["bd-in"]; const el = $("#bd-in"); if (el) el.value = ""; if (lines.length > 1) toast(`${lines.length}개를 털어 넣었어요`); }); return true; };
 const dumpDone = c => { if (c && c.dumpId && S.mine[c.dumpId]) api.delMine(c.dumpId).then(schedule, () => {}); };
 /* guided main quest → sub quests → first task → daily quest, in the app's own sheet */
 const PW_STEPS = ["메인 퀘스트", "서브 퀘스트", "태스크", "데일리 퀘스트"];
@@ -3666,6 +3684,8 @@ function renderSheet(){ IXC = null;
     return sheetWrap(`${n} · ${l}`, "", `<div class="aihead"><span class="aiic">${aIcon(k)}</span><p class="aidesc">${AREA_DESC[k]}</p></div>
       <p class="sect3">${l} 영역 퀘스트</p><section class="card tight">${rows || `<p class="empty-row">아직 ${l} 영역을 붙인 퀘스트가 없어요.</p>`}</section>`); }
   if (c.type === "note") return noteSheet(c);
+  if (c.type === "bdsort") return bdSortSheet(c);
+  if (c.type === "ntsend") return ntSendSheet(c);
   if (c.type === "drawers") return drawerSheet(c);
   if (c.type === "taskadd") return sheetWrap("태스크 추가", "", `
     <div class="field"><input type="text" id="ta-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ta-name")}" aria-label="태스크 이름"></div>
@@ -3996,7 +4016,7 @@ document.addEventListener("click", e => {
     case "unblock": { if (S.compose && S.compose.type === "umenu") closeSheet(); const st = getSet(); run(() => api.putMine("settings", {kind:"settings", ...st, blocked:st.blocked.filter(x => x !== u)}), () => toast("차단을 해제했어요")); return; }
     case "unhide": { const st = getSet(); st.hidden.splice(+b.dataset.i, 1); run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
     case "tfold": { const l = LS.get("tfold", []), k = b.dataset.k; LS.set("tfold", l.includes(k) ? l.filter(x => x !== k) : [...l, k]); break; }
-    case "toggle": { const m = {habits:"openHabits", later:"openLater", done:"openDone", ach:"openAch", blk:"openBlk", subdone:"openSubDone", buys:"openBuys", tdone:"openTDone"}[b.dataset.k]; S[m] = !S[m]; break; }
+    case "toggle": { const m = {habits:"openHabits", later:"openLater", done:"openDone", ach:"openAch", blk:"openBlk", subdone:"openSubDone", buys:"openBuys", tdone:"openTDone", bdall:"bdAll"}[b.dataset.k]; S[m] = !S[m]; break; }
     case "compose": if (pid && S.projects[pid]) openCompose({ref:{type:"project", id:pid, label:S.projects[pid].title}, fixed:true}); else openCompose(); return;
     case "sheet": { if (!S.canWrite) return; if (!hasProfile() && b.dataset.k !== "profile"){ toast("먼저 캐릭터를 만들어 주세요"); return; }
       const k = b.dataset.k; if (k === "post") return openCompose();
@@ -4007,7 +4027,7 @@ document.addEventListener("click", e => {
       if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:false}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
        const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : "", period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null, tasks:[]}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:300}, profile:{}}[k] || {};
       openSheet({type:k, ...base}); return; }
-    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary","note","drawers"].includes(c.type)))) closeSheet(); return;
+    case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary","note","drawers","ntsend"].includes(c.type)))) closeSheet(); return;
     case "sheet-close": closeSheet(); return;
     case "cset": { const f = b.dataset.f, toggle = f === "mood" || f === "projectId" || f === "parentId";
       if (["hlv","lv","alv","tlv","ntlv"].includes(f)){ preserveSheetDrafts(); c[f==='alv'||f==='tlv'?'lv':f] = lvKey(b.dataset.v); renderSheet(); return; } c[f] = toggle && c[f] === b.dataset.v ? null : (b.dataset.v || null); if (f === "cost") c.cost = +b.dataset.v; renderSheet(); return; }
@@ -4054,9 +4074,9 @@ document.addEventListener("click", e => {
     case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
     case "pl-mode": QM().mode = b.dataset.v; QM().sel = []; break;
     case "pl-tab": QM().ptab = b.dataset.v; break;
-    case "bd-add": { const el = $("#bd-in"), lines = String((el && el.value) || "").split("\n").map(x => x.trim()).filter(Boolean); if (!lines.length){ toast("생각을 적어 주세요"); el && el.focus(); return; }
-      const at = Date.now(); run(async () => { let i = 0; for (const t of lines) await api.putMine("bd"+uid8()+(i), {kind:"dump", text:t.slice(0,200), hidden:false, createdAt:at+(i++)}); }, () => { delete S.drafts["bd-in"]; toast(`${lines.length}개를 털어 넣었어요`); }); return; }
-    case "bd-step": (S.bdStep || (S.bdStep = {}))[id] = +b.dataset.v; break;
+    case "bd-add": { const el = $("#bd-in"); if (!bdAdd(el && el.value)){ toast("생각을 적어 주세요"); el && el.focus && el.focus(); } return; }
+    case "bd-sort": openSheet({type:"bdsort", id}); return;
+    case "bd-step": (S.bdStep || (S.bdStep = {}))[id] = +b.dataset.v; if (c && c.type === "bdsort"){ renderSheet(); return; } break;
     case "nt-cat": S.ntCat = b.dataset.v; break;
     case "nt-new": { ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => !d.hidden) || DR[0]).k;
       openSheet({type:"note", cat, vals:{}, area:null, projectId:null}); setTimeout(() => { const x = $(".sheet input[type=text], .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
@@ -4068,7 +4088,10 @@ document.addEventListener("click", e => {
     case "nt-area": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
     case "submit-note": saveNote(c, (key, r, fresh) => { closeSheet(); if (fresh && r && r.xp > 0) S.quietXp = true; toast(fresh && r && r.xp > 0 ? `자료 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>` : c.id ? "자료를 저장했어요" : "자료실에 담았어요"); }); return;
     case "nt-task": { const name = pv("nf-" + b.dataset.f).trim(); if (!name){ toast("먼저 내용을 적어 주세요"); return; } const pj = c.projectId || null;
-      saveNote(c, (key, r, fresh) => { delete S.drafts["tm-in"]; S.drafts["ta-name"] = name; openSheet({type:"taskadd", lv:"normal", due:"", time:"", period:"", projectId:pj && S.projects[pj] ? pj : null, noteId:key}); if (fresh && r && r.xp > 0){ S.quietXp = true; toast(`자료 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>`); } }); return; }
+      saveNote(c, (key, r, fresh) => { openSheet({type:"ntsend", noteId:key, name, projectId:pj && S.projects[pj] ? pj : null}); if (fresh && r && r.xp > 0){ S.quietXp = true; toast(`자료 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>`); } }); return; }
+    case "nt-send": { const v = b.dataset.v, name = c.name, key = c.noteId, pj = c.projectId;
+      if (v === "task"){ delete S.drafts["tm-in"]; S.drafts["ta-name"] = name; openSheet({type:"taskadd", lv:"normal", due:"", time:"", period:"", projectId:pj, noteId:key}); return; }
+      S.drafts["ad-name"] = name; openSheet({type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:null, parentId:null, unit:null, tasks:[], area:[], noteId:key}); return; }
     case "dr-manage": openSheet({type:"drawers"}); return;
     case "dr-edit": { const v = b.dataset.v, d = v && (S.mine.drawers?.list || []).find(x => x.k === v); S.drafts["dr-l"] = d ? d.l : "";
       const nc = {type:"drawers", edit:v || "", ic:d ? d.ic || "folder" : "folder", fields:d ? [...(d.fields || [])] : ["title","body"], area:d ? d.area || null : null}; openSheet(nc); return; }
@@ -4091,7 +4114,7 @@ document.addEventListener("click", e => {
         () => { if (S.ntCat === k) S.ntCat = "all"; openSheet({type:"drawers"}); toast(moved.length ? `서랍을 삭제하고 자료 ${moved.length}개를 메모로 옮겼어요` : "서랍을 삭제했어요"); }); return; }
     case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; run(() => api.delMine(id), () => { closeSheet(); toast("자료를 삭제했어요"); }); return;
     case "bd-area": LS.set("bdOff", b.dataset.v === "off"); break;
-    case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); break; } S.armed = null; run(() => api.delMine(id), () => toast("삭제했어요")); return;
+    case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); if (c && c.type === "bdsort") renderSheet(); break; } S.armed = null; run(() => api.delMine(id), () => { if (S.compose && S.compose.type === "bdsort") closeSheet(); toast("삭제했어요"); }); return;
     case "bd-send": { const d = S.mine[id]; if (!d || !canAct()) return; const v = b.dataset.v;
       if (v === "task"){ delete S.drafts["tm-in"]; S.drafts["ta-name"] = d.text; openSheet({type:"taskadd", lv:"normal", due:"", time:"", period:"", projectId:null, dumpId:id}); return; }
       S.drafts["ad-name"] = d.text;
@@ -4224,7 +4247,7 @@ document.addEventListener("click", e => {
       const K = c.kind, done0 = () => { ["ad-name","ad-end","pj-ms","pj-mt","pj-unit","nt-name"].forEach(k => delete S.drafts[k]); closeSheet(); dumpDone(c); };
       if (K === "once" && !c.due){ toast("날짜를 골라 주세요"); return; } if (K === "once" && !c.time){ toast("시간을 골라 주세요"); return; }
       if (K === "once"){ const pj = c.projectId || null; run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", due:c.due||"", time:c.due ? (c.time||"") : "", period:c.due ? (c.period||"") : "", today:false, projectId:pj, done:false, createdAt:Date.now()}), () => { done0(); toast("✅ 태스크를 추가했어요"); if (pj) syncProgress(pj); }); return; }
-      if (K === "daily"){ if (!c.rpt){ toast("반복을 골라 주세요"); return; } const rp = buildRepeat(c); if (needsDays(rp.type) && !rp.days.length){ toast("요일을 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } if (dupQ(name)){ toast(DUPMSG); return; } run(() => api.putMine(uid8(), {kind:"quest", name, time:c.time, repeat:rp, days:rp.days||[], lv:c.hlv||"easy", area:c.area||[], active:true, done:{}, createdAt:Date.now()}), () => { done0(); toast("🔥 데일리 퀘스트를 만들었어요"); }); return; }
+      if (K === "daily"){ if (!c.rpt){ toast("반복을 골라 주세요"); return; } const rp = buildRepeat(c); if (needsDays(rp.type) && !rp.days.length){ toast("요일을 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } if (dupQ(name)){ toast(DUPMSG); return; } run(() => api.putMine(uid8(), {kind:"quest", name, time:c.time, repeat:rp, days:rp.days||[], lv:c.hlv||"easy", area:c.area||[], active:true, done:{}, ...(c.noteId ? {noteId:c.noteId} : {}), createdAt:Date.now()}), () => { done0(); toast("🔥 데일리 퀘스트를 만들었어요"); }); return; }
       if (K === "sub"){ if (!c.end){ toast("마감일을 골라 주세요"); return; } if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; } const mt = readMetric(c); if (mt === false) return; const tasks = pendingTasks(c), pidN = uid8(), par = c.parentId, end = c.end || "";
         run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, parentId:par, title:name, start:today(), end, status:c.pstat === "planned" ? "planned" : "active", area:c.area||[], metric:mt, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
           () => { done0(); syncProgress(par); toast("🔗 서브 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
@@ -4283,12 +4306,14 @@ document.addEventListener("click", e => {
   schedule();
 });
 document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target.id === "bd-in" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); bdAdd(e.target.value); return; }
   if (e.key === "Enter" && e.target.id === "ta-name" && !e.isComposing){ e.preventDefault(); const bt = document.querySelector('[data-act="submit-taskadd"]'); bt && bt.click(); return; }
   if (e.key === "Enter" && e.target.id === "nt-name" && !e.isComposing){ e.preventDefault(); const bt = document.querySelector('[data-act="addtask"]'); bt && bt.click(); return; }
   if (e.key === "Escape"){ if (SV) svClose(); else if (S.compose) closeSheet(); }
   if (SV && document.activeElement?.id !== "sv-reply"){ if (e.key === "ArrowRight") svStep(1); if (e.key === "ArrowLeft") svStep(-1); }
   if ((e.key === "Enter" || e.key === " ") && e.target.getAttribute && e.target.getAttribute("role") === "button"){ e.preventDefault(); e.target.click(); }
 });
+document.addEventListener("paste", e => { if (e.target.id !== "bd-in") return; const t = (e.clipboardData || window.clipboardData)?.getData("text") || ""; if (/\n/.test(t.trim())){ e.preventDefault(); bdAdd(t); } });
 document.addEventListener("scroll", e => { const t = e.target; if (t && t.classList && t.classList.contains("wd-ggrid") && t.closest(".wd-goals")) S.wdGs = t.scrollLeft; }, true);
 document.addEventListener("input", e => {
   if (['alv','hlv','tlv','ntlv'].includes(e.target.id) && S.compose) { preserveSheetDrafts(); S.compose[e.target.id==='hlv'?'hlv':e.target.id==='ntlv'?'ntlv':'lv']=lvKey(e.target.value); renderSheet(); return; }
