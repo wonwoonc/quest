@@ -347,9 +347,9 @@ test('brain dump: pour lines in, inline guide, hide area, send one to task, dele
   const dumps = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'dump');
   assert.equal(dumps().length,2);
   const first = dumps().find(d => d.text === '세탁소 들르기'); h.click('bd-sort',{id:first.id});
-  assert.match(h.nodes.get('overlay').innerHTML,/큰 목표인가요\?/);
-  h.click('bd-step',{id:first.id,v:'1'}); assert.match(h.nodes.get('overlay').innerHTML,/한 번 하면 끝나나요\?/);
-  h.click('bd-step',{id:first.id,v:'3'}); assert.match(h.nodes.get('overlay').innerHTML,/data-act="bd-send" data-id="[^"]+" data-v="note">예 → 자료실/); h.click('sheet-close');
+  assert.match(h.nodes.get('overlay').innerHTML,/실행해야 하는 일인가요\?/); assert.match(h.nodes.get('overlay').innerHTML,/data-v="note">아니요 → 자료실/);
+  h.click('bd-step',{id:first.id,v:'1'}); assert.match(h.nodes.get('overlay').innerHTML,/큰 목표인가요\?/);
+  h.click('bd-step',{id:first.id,v:'4'}); assert.match(h.nodes.get('overlay').innerHTML,/data-act="bd-drop"/); h.click('sheet-close');
   h.click('bd-area',{v:'off'}); assert.ok(!h.nodes.get('app').innerHTML.includes('id="bd-in"')); assert.match(h.nodes.get('app').innerHTML,/브레인 덤프 열기/);
   h.click('bd-area',{v:'on'}); assert.ok(h.nodes.get('app').innerHTML.includes('id="bd-in"'));
   const wash = dumps().find(d => d.text === '세탁소 들르기'); h.click('bd-send',{id:wash.id,v:'task'});
