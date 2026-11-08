@@ -1852,13 +1852,14 @@ function planSentence(name, time, place, after){
   return [after, w].filter(Boolean).join(", ") + (after || w ? " " : "") + (name || "무엇을 할지");
 }
 const chainsTo = (from, target) => { let id = from, n = 0; while (id && n++ < 50){ if (id === target) return true; id = (S.mine[id] || {}).afterId; } return false; };
-function planField(c, daily){
+function planField(c, daily, lead = ""){
   const place = S.drafts["pl-place"] ?? c.place ?? "", after = S.drafts["pl-after"] ?? c.after ?? "";
   const name = S.drafts[c.type === "taskadd" ? "ta-name" : c.type === "tedit" ? "te-name" : c.type === "hedit" ? "he-name" : "ad-name"] || "";
   const cands = daily ? mineOf("quest").filter(q => q.active !== false && q.id !== c.id && !(c.id && chainsTo(q.id, c.id))).sort((a,b) => (a.createdAt||0) - (b.createdAt||0)) : [];
-  return `<div class="field plan"><span class="lab">실행 계획 <span class="hint">선택</span></span>
-    <label class="planrow"><span class="pk">${PIN}장소</span><input type="text" id="pl-place" maxlength="30" placeholder="어디서 할까요?" value="${esc(place)}"></label>
-    ${daily ? `<label class="planrow"><span class="pk">${AFT}앞 행동</span><input type="text" id="pl-after" maxlength="40" placeholder="무엇을 한 뒤에 할까요?" value="${esc(after)}"></label>
+  return `<div class="field plan"><span class="lab plh">실행 계획</span>
+    <div class="planlead">${lead}</div>
+    <label class="planrow"><span class="pk">${PIN}장소</span><input type="text" id="pl-place" maxlength="30" placeholder="어디서 할까요? (선택)" value="${esc(place)}"></label>
+    ${daily ? `<label class="planrow"><span class="pk">${AFT}앞 행동</span><input type="text" id="pl-after" maxlength="40" placeholder="무엇을 한 뒤에 할까요? (선택)" value="${esc(after)}"></label>
     ${cands.length ? `<div class="aftq"><small>내 데일리 퀘스트 뒤에 붙이기</small><div class="chips">${cands.map(q => `<button class="chip" data-act="aftq" data-v="${q.id}" aria-pressed="${c.afterId === q.id}">${esc(q.name)}</button>`).join("")}</div></div>` : ""}` : ""}
     <p class="planprev" id="plprev">${esc(planSentence(name, c.time, place, after))}</p></div>`;
 }
@@ -1896,14 +1897,12 @@ function renderSheet(){ IXC = null;
     let more = "";
     if (c.more){
       if (K === "once") more = `${difficultySelector(c,'mission')}
-        ${dueField(c)}
-        ${planField(c, false)}
+        ${planField(c, false, dueField(c))}
         ${linkPick(c)}`;
       else if (K === "sub"){ const gs = goalsOf(S.me).filter(g => g.status !== "done");
         more = gs.length ? `${datePick(c, "end", "마감일")}${statusField(c)}${areaField(c)}${metricFields(c)}${parentPick(c)}${coverField(c)}` : `<p class="empty-row" style="padding:4px 0 14px">서브 퀘스트는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p>`; }
       else if (K === "daily"){ more = `${repeatField(c)}
-        ${timeOnlyField(c)}
-        ${planField(c, true)}
+        ${planField(c, true, timeOnlyField(c))}
         ${areaField(c)}
         ${difficultySelector(c,'quest','hlv')}`; }
       else more = `${datePick(c, "end", "마감일", false, true)}${statusField(c)}${areaField(c)}${metricFields(c)}${coverField(c)}`;
@@ -1917,8 +1916,7 @@ function renderSheet(){ IXC = null;
     <div class="field"><input type="text" id="he-name" maxlength="60" value="${D("he-name")}" aria-label="이름"></div>
     <div class="hstats"><div><b class="num">🔥 ${st.cur}</b><span>연속</span></div><div><b class="num">${st.best}</b><span>최장</span></div><div><b class="num">${st.total}</b><span>총 완료</span></div></div>
     ${repeatField(c)}
-    ${timeOnlyField(c)}
-    ${planField(c, true)}
+    ${planField(c, true, timeOnlyField(c))}
     ${difficultySelector(c,'quest','hlv')}
     ${areaField(c)}
     <button class="btn big full" data-act="submit-hedit" ${S.busy?"disabled":""}>저장</button>
@@ -1972,8 +1970,7 @@ function renderSheet(){ IXC = null;
     <div class="field"><input type="text" id="te-name" maxlength="80" value="${D("te-name")}" aria-label="이름"></div>
     <div class="field"><label class="lab" for="te-note">메모</label><textarea id="te-note" rows="5" maxlength="2000" placeholder="자유롭게 적어 두세요">${D("te-note")}</textarea></div>
     ${difficultySelector(c,'mission')}
-    ${dueField(c)}
-    ${planField(c, false)}
+    ${planField(c, false, dueField(c))}
     ${linkPick(c)}
     ${m.done && m.projectId && S.projects[m.projectId] ? `<button class="btn soft full" style="margin-bottom:10px" data-act="sharem" data-id="${m.id}">커뮤니티에 공유하기</button>` : ""}
     <button class="btn big full" data-act="submit-tedit" ${S.busy?"disabled":""}>저장</button>
@@ -2004,8 +2001,7 @@ function renderSheet(){ IXC = null;
   if (c.type === "drawers") return drawerSheet(c);
   if (c.type === "taskadd") return sheetWrap("태스크 추가", "", `
     <div class="field"><input type="text" id="ta-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ta-name")}" aria-label="태스크 이름"></div>
-    ${dueField(c)}
-    ${planField(c, false)}
+    ${planField(c, false, dueField(c))}
     ${areaField(c)}
     ${linkPick(c)}
     ${difficultySelector(c,'mission')}
