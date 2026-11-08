@@ -880,16 +880,21 @@ function viewPlan(){
 }
 /* brain dump: pour every thought in, then sort each into main / sub / daily / task, or hide it */
 const BD_KINDS = [["big","메인"],["sub","서브"],["daily","데일리"],["task","태스크"]];
-const BD_GUIDE = [["반복해서 해야 하나요?","데일리","매일 물 2L 마시기 · 주 3회 운동"],["오늘이나 이번 주 안에 한 번 하면 끝나나요?","태스크","세탁소 들르기 · 병원 예약하기"],["이미 있는 메인 퀘스트를 이루는 한 단계인가요?","서브","토익 850 → 단어장 1권 끝내기"],["몇 주에서 몇 달 걸리는 큰 목표인가요?","메인","토익 850점 · 하프 마라톤 완주"]];
+const BD_GUIDE = [["daily","반복해서 해야 하나요?","매일 물 2L 마시기 · 주 3회 운동"],["task","오늘이나 이번 주 안에 한 번 하면 끝나나요?","세탁소 들르기 · 병원 예약하기"],["sub","이미 있는 메인 퀘스트를 이루는 한 단계인가요?","토익 850 → 단어장 1권 끝내기"],["big","몇 주에서 몇 달 걸리는 큰 목표인가요?","토익 850점 · 하프 마라톤 완주"]];
+const bdLabel = k => (BD_KINDS.find(x => x[0] === k) || [,""])[1];
+function bdGuide(d){
+  const steps = BD_GUIDE.filter(g => g[0] !== "sub" || goalsOf(S.me).some(x => x.status !== "done")), st = (S.bdStep || {})[d.id] || 0;
+  if (st >= steps.length) return `<div class="bdq end"><span>어디에도 해당하지 않아요. 조금 더 구체적으로 다시 적거나 삭제해 보세요.</span><button class="btn sec xs" data-act="bd-step" data-id="${d.id}" data-v="0">처음부터</button></div>`;
+  const [k, q, ex] = steps[st];
+  return `<div class="bdq"><span class="bdqn num">${st+1}/${steps.length}</span><div class="bdqt"><b>${q}</b><small>예) ${ex}</small></div><div class="bdqa"><button class="btn xs" data-act="bd-send" data-id="${d.id}" data-v="${k === "task" ? "task" : k}">예 → ${bdLabel(k)}</button><button class="btn sec xs" data-act="bd-step" data-id="${d.id}" data-v="${st+1}">아니오</button></div></div>`;
+}
 function brainDump(){
   if (LS.get("bdOff", false)) return `<button class="bdshow" data-act="bd-area" data-v="on">🧠 브레인 덤프 열기</button>`;
   const vis = mineOf("dump").sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
-  const row = d => `<div class="bdi"><p>${esc(d.text)}</p><div class="bdact">${BD_KINDS.map(([k,l]) => `<button class="btn sec xs" data-act="bd-send" data-id="${d.id}" data-v="${k}">${l}</button>`).join("")}<button class="btn sec xs bddel ${S.armed === "bd"+d.id ? "armed" : ""}" data-act="bd-del" data-id="${d.id}">${S.armed === "bd"+d.id ? "한 번 더 누르면 삭제" : "삭제"}</button></div></div>`;
-  const guide = `<div class="bdguide"><p class="bdgq">위에서부터 차례로 물어보고, 처음 "예"가 나오는 곳으로 보내세요.</p><ol>${BD_GUIDE.map(([q,k,ex]) => `<li><span>${q}</span><b>${k}</b><small>예) ${ex}</small></li>`).join("")}</ol><p class="bdgq">어디에도 해당하지 않으면 아직 생각이 덜 구체적인 거예요. 조금 더 적어 보거나 삭제하세요.</p></div>`;
-  return `<section class="card bdump"><div class="ch"><h2>브레인 덤프</h2>${vis.length ? `<span class="side num">${vis.length}</span>` : ""}<button class="link bdhelp" data-act="toggle" data-k="bdhelp" aria-expanded="${!!S.openBdHelp}">보내기 가이드</button><button class="link bdhelp" data-act="bd-area" data-v="off">숨기기</button></div>
-    ${S.openBdHelp ? guide : ""}
+  const row = d => `<div class="bdi"><p>${esc(d.text)}</p>${bdGuide(d)}<div class="bdact"><span class="bdal">바로 보내기</span>${BD_KINDS.map(([k,l]) => `<button class="btn sec xs" data-act="bd-send" data-id="${d.id}" data-v="${k}">${l}</button>`).join("")}<button class="btn sec xs bddel ${S.armed === "bd"+d.id ? "armed" : ""}" data-act="bd-del" data-id="${d.id}">${S.armed === "bd"+d.id ? "한 번 더 누르면 삭제" : "삭제"}</button></div></div>`;
+  return `<section class="card bdump"><div class="ch"><h2>브레인 덤프</h2>${vis.length ? `<span class="side num">${vis.length}</span>` : ""}<button class="link bdhelp" data-act="bd-area" data-v="off">숨기기</button></div>
     <div class="bdin"><textarea id="bd-in" rows="3" maxlength="2000" placeholder="머릿속에 있는 생각을 전부 적어 보세요. 한 줄에 하나씩" aria-label="브레인 덤프">${D("bd-in")}</textarea><button class="btn" data-act="bd-add">털어 넣기</button></div>
-    ${vis.length ? `<div class="bdlist">${vis.map(row).join("")}</div>` : `<p class="empty-row">적은 생각을 메인 · 서브 · 데일리 · 태스크로 보낼 수 있어요.</p>`}
+    ${vis.length ? `<div class="bdlist">${vis.map(row).join("")}</div>` : `<p class="empty-row">털어 넣은 생각마다 질문에 답하면 어디로 보낼지 정해져요.</p>`}
   </section>`;
 }
 const dumpDone = c => { if (c && c.dumpId && S.mine[c.dumpId]) api.delMine(c.dumpId).then(schedule, () => {}); };
@@ -1971,7 +1976,7 @@ document.addEventListener("click", e => {
     case "unblock": { if (S.compose && S.compose.type === "umenu") closeSheet(); const st = getSet(); run(() => api.putMine("settings", {kind:"settings", ...st, blocked:st.blocked.filter(x => x !== u)}), () => toast("차단을 해제했어요")); return; }
     case "unhide": { const st = getSet(); st.hidden.splice(+b.dataset.i, 1); run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
     case "tfold": { const l = LS.get("tfold", []), k = b.dataset.k; LS.set("tfold", l.includes(k) ? l.filter(x => x !== k) : [...l, k]); break; }
-    case "toggle": { const m = {habits:"openHabits", later:"openLater", done:"openDone", ach:"openAch", blk:"openBlk", subdone:"openSubDone", buys:"openBuys", tdone:"openTDone", bdhelp:"openBdHelp"}[b.dataset.k]; S[m] = !S[m]; break; }
+    case "toggle": { const m = {habits:"openHabits", later:"openLater", done:"openDone", ach:"openAch", blk:"openBlk", subdone:"openSubDone", buys:"openBuys", tdone:"openTDone"}[b.dataset.k]; S[m] = !S[m]; break; }
     case "compose": if (pid && S.projects[pid]) openCompose({ref:{type:"project", id:pid, label:S.projects[pid].title}, fixed:true}); else openCompose(); return;
     case "sheet": { if (!S.canWrite) return; if (!hasProfile() && b.dataset.k !== "profile"){ toast("먼저 캐릭터를 만들어 주세요"); return; }
       const k = b.dataset.k; if (k === "post") return openCompose();
@@ -2031,6 +2036,7 @@ document.addEventListener("click", e => {
     case "pl-tab": QM().ptab = b.dataset.v; break;
     case "bd-add": { const el = $("#bd-in"), lines = String((el && el.value) || "").split("\n").map(x => x.trim()).filter(Boolean); if (!lines.length){ toast("생각을 적어 주세요"); el && el.focus(); return; }
       const at = Date.now(); run(async () => { let i = 0; for (const t of lines) await api.putMine("bd"+uid8()+(i), {kind:"dump", text:t.slice(0,200), hidden:false, createdAt:at+(i++)}); }, () => { delete S.drafts["bd-in"]; toast(`🧠 ${lines.length}개를 털어 넣었어요`); }); return; }
+    case "bd-step": (S.bdStep || (S.bdStep = {}))[id] = +b.dataset.v; break;
     case "bd-area": LS.set("bdOff", b.dataset.v === "off"); break;
     case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); break; } S.armed = null; run(() => api.delMine(id), () => toast("삭제했어요")); return;
     case "bd-send": { const d = S.mine[id]; if (!d || !canAct()) return; const v = b.dataset.v;

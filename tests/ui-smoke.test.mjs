@@ -340,13 +340,15 @@ test('taskadd sheet orders date/time, area, quest, difficulty and saves task are
   const task = Object.values(h.snapshot().mine).find(m => m.name === '영역 태스크');
   assert.ok(task); assert.deepEqual(task.area,['health']);
 });
-test('brain dump: pour lines in, guide, hide area, send one to task, delete one',async () => {
+test('brain dump: pour lines in, inline guide, hide area, send one to task, delete one',async () => {
   const h = await linkedUI(); h.route('qmanage');
   assert.ok(h.nodes.get('app').innerHTML.indexOf('브레인 덤프') < h.nodes.get('app').innerHTML.indexOf('pltabs'));
   h.nodes.set('bd-in',{value:'세탁소 들르기\n\n이상한 생각'}); h.click('bd-add'); await h.settle();
   const dumps = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'dump');
   assert.equal(dumps().length,2);
-  h.click('toggle',{k:'bdhelp'}); assert.match(h.nodes.get('app').innerHTML,/반복해서 해야 하나요\?/);
+  assert.match(h.nodes.get('app').innerHTML,/반복해서 해야 하나요\?/);
+  const first = dumps().find(d => d.text === '세탁소 들르기'); h.click('bd-step',{id:first.id,v:'1'});
+  assert.match(h.nodes.get('app').innerHTML,/한 번 하면 끝나나요\?/);
   h.click('bd-area',{v:'off'}); assert.ok(!h.nodes.get('app').innerHTML.includes('id="bd-in"')); assert.match(h.nodes.get('app').innerHTML,/브레인 덤프 열기/);
   h.click('bd-area',{v:'on'}); assert.ok(h.nodes.get('app').innerHTML.includes('id="bd-in"'));
   const wash = dumps().find(d => d.text === '세탁소 들르기'); h.click('bd-send',{id:wash.id,v:'task'});
