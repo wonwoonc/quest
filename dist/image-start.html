@@ -612,7 +612,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .fthumb{position:relative;width:84px;height:84px;border:0;padding:0;border-radius:12px;overflow:hidden;background:var(--fill);flex:none}.fthumb img{width:100%;height:100%;object-fit:cover;display:block}.fthumb.missing::after{content:"없음";position:absolute;inset:0;display:grid;place-items:center;font-size:12px;color:var(--muted)}
 .fchip{position:relative;display:inline-flex;align-items:center;gap:8px;max-width:100%;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:8px 12px;font-size:13.5px;color:var(--ink);text-align:left;min-width:0}
 .fchip b{flex:none;font-size:11px;font-weight:800;color:#fff;background:#D64545;border-radius:5px;padding:2px 5px}.fchip span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fchip small{flex:none;color:var(--muted);font-size:12px}
-.frm{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--card);display:grid;place-items:center;font-size:14px;line-height:1;cursor:pointer}
+.frm{position:absolute;top:4px;right:4px;box-shadow:0 0 0 2px var(--card);width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--card);display:grid;place-items:center;font-size:14px;line-height:1;cursor:pointer}
 .fadd{border:1.5px dashed var(--line);background:none;border-radius:12px;padding:10px 14px;font-size:13.5px;font-weight:600;color:var(--sub)}
 .fview img{display:block;max-width:100%;max-height:70vh;margin:0 auto 12px;border-radius:12px}
 .lnbar{height:6px;border-radius:4px;background:var(--fill);overflow:hidden;margin:4px 0 2px}.lnbar i{display:block;height:100%;background:var(--accent);border-radius:4px}.lnbar.big{height:10px;margin:14px 0 6px}
@@ -1086,7 +1086,7 @@ body.reo-lock{touch-action:none;overscroll-behavior:none}
 .pcard .counts{margin-left:16px;margin-right:16px;padding-left:0;padding-right:0}
 .cfbox{text-align:center;padding:4px 0 2px}
 .cfbox h3{margin:0 0 8px;font-size:19px;font-weight:800}
-.cfbox p{margin:0 0 20px;font-size:14px;color:var(--sub)}
+.cfbox p{line-height:1.6;margin:0 0 20px;font-size:14px;color:var(--sub)}
 .cfbox h3:last-of-type{margin-bottom:20px}
 .cfbox .btnrow{display:flex;gap:10px}
 .cfbox .btnrow .btn{flex:1}
@@ -2878,9 +2878,8 @@ function noteSheet(c){
   const area = c.area || ntArea({...(n || {}), kind:"note", cat:c.cat, f:{}, area:null, projectId:c.projectId})[0] || null;
   return sheetWrap(n ? "자료 수정" : "자료 추가", "", `
     <div class="chips ntkinds" role="group" aria-label="서랍">${noteDrawers(S).filter(d => !d.hidden || d.k === c.cat).map(K => `<button class="chip" data-act="nt-kind" data-v="${K.k}" aria-pressed="${c.cat === K.k}">${nic(K.ic)}${esc(K.l)}</button>`).join("")}</div>
-    ${C.f.map(field).join("")}
+    ${C.f.map(x => field(x) + (C.k === "ref" && x.k === "url" ? `<div class="field"><span class="lab">파일 첨부</span><div class="flist">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < F_MAX ? `<button class="fadd" data-act="nf-pick">+ 파일 선택</button>` : ""}</div></div>` : "")).join("")}
     ${C.pt ? `<div class="field"><span class="lab">영역 <span class="hint">선택 · 비우면 ${area ? "연결한 퀘스트나 서랍 기본값을 따라요" : "영역 점수 없이 XP · 코인만 받아요"}</span></span><div class="chips">${AREAS.map(([k,,,l]) => `<button class="chip achip" data-act="nt-area" data-v="${k}" aria-pressed="${c.area === k}">${aIcon(k)}${l}</button>`).join("")}</div></div>` : ""}
-    ${C.k === "ref" ? `<div class="field"><span class="lab">파일 첨부 <span class="hint">PDF · 워드 · 엑셀 · 한글 · 이미지 · 최대 5개, 개당 20MB</span></span><div class="flist">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < 5 ? `<button class="fadd" data-act="nf-pick">+ 파일 선택</button>` : ""}</div></div>` : ""}
     ${gs.length ? `<div class="field"><span class="lab">연결할 퀘스트 <span class="hint">선택</span></span><div class="chips">${gs.map(p => `<button class="chip" data-act="cset" data-f="projectId" data-v="${p.id}" aria-pressed="${c.projectId === p.id}">${nic(p.parentId ? "link" : "target")}${esc(p.title)}</button>`).join("")}</div></div>` : ""}
     ${n && noteComplete(S, n) ? `<p class="ntreward done">${nic("check")}완성한 자료예요. 보상은 이미 받았어요.</p>` : ntRewardLine(C, area)}
     <button class="btn big full" data-act="submit-note" ${S.busy ? "disabled" : ""}>저장</button>
@@ -3075,11 +3074,18 @@ async function openFile(id){ const meta = mineOf("note").flatMap(n => n.files ||
   if (meta && fKind(meta) === "img"){ openSheet({type:"fview", id, name:meta.name, back:S.compose && S.compose.type === "note" ? S.compose : null}); return; }
   const w = window.open(u, "_blank", "noopener"); if (w) return;
   const a = document.createElement("a"); a.href = u; a.download = meta ? meta.name : "file"; document.body.appendChild(a); a.click(); a.remove(); }
-async function addFiles(c, list){ const files = [...(list || [])]; c.files = c.files || []; c.newFiles = c.newFiles || [];
-  for (const f of files){ if (c.files.length >= 5){ toast("파일은 자료 하나에 5개까지 첨부할 수 있어요"); break; } if (f.size > 20 * 1048576){ toast(`${esc(f.name)}: 20MB 이하 파일만 첨부할 수 있어요`); continue; }
+const F_MAX = 5, F_MB = 20, F_EXT = /\.(jpe?g|png|gif|webp|heic|heif|bmp|svg|pdf|docx?|xlsx?|csv|pptx?|hwpx?|txt|md|rtf)$/i;
+function notice(t, lines){ if (S.compose && S.compose.type !== "confirm"){ preserveSheetDrafts(); S.parentSheet = S.compose; } S.compose = {type:"confirm", alert:true, t:esc(t), d:lines.map(esc).join("<br>"), ok:"확인"}; renderSheet(); }
+async function addFiles(c, list){ const files = [...(list || [])]; c.files = c.files || []; c.newFiles = c.newFiles || []; const bad = [], big = [], over = [];
+  for (const f of files){ if (!(F_EXT.test(f.name) || /^image\//.test(f.type))){ bad.push(f.name); continue; } if (f.size > F_MB * 1048576){ big.push(f.name); continue; } if (c.files.length >= F_MAX){ over.push(f.name); continue; }
     const id = "f" + uid8(); try { await FDB.put(id, f); } catch (e) { toast(esc(e.message || "파일을 저장하지 못했어요")); continue; }
     c.files.push({id, name:f.name.slice(0, 120), type:f.type || "", size:f.size}); c.newFiles.push(id); }
-  if (S.compose === c){ preserveSheetDrafts(); renderSheet(); } }
+  if (S.compose === c){ preserveSheetDrafts(); renderSheet(); }
+  const msg = [];
+  if (bad.length) msg.push(`첨부할 수 없는 형식이에요: ${bad.join(", ")}`, "PDF, 워드, 엑셀, PPT, 한글, 이미지, 텍스트 파일만 첨부할 수 있어요.");
+  if (big.length) msg.push(`${F_MB}MB를 넘는 파일이에요: ${big.join(", ")}`);
+  if (over.length) msg.push(`파일은 자료 하나에 ${F_MAX}개까지 첨부할 수 있어요. 첨부하지 못한 파일: ${over.join(", ")}`);
+  if (msg.length && S.compose === c) notice("일부 파일을 첨부하지 못했어요", msg); }
 
 /* ================= quest management (nav › 퀘스트) ================= */
 const QM = () => S.qm || (S.qm = {tab:"goal", sel:[], q:""});
@@ -3920,7 +3926,7 @@ function renderSheet(){ IXC = null;
   if (c.type === "flist"){ const fol = c.kind === "followers", ids = Object.values(S.follows).filter(f => fol ? f.to === c.uid : f.from === c.uid).sort((a,b) => (b.at||0) - (a.at||0)).map(f => fol ? f.from : f.to).filter(x => x !== c.uid);
     return sheetWrap(fol ? `팔로워 ${ids.length}` : `팔로잉 ${ids.length}`, "", ids.length ? `<div class="fl-list">${ids.map(u => { const p = prof(u), me0 = u === S.me, f = isFollowing(S.me, u);
       return `<div class="fl-row">${av(u, 44)}<button class="t" data-act="profile" data-u="${esc(u)}"><b>${esc(nameOf(u))}${me0 ? " (나)" : ""}</b><small>Lv.${statsOf(u).L}${p.bio ? " · " + esc(p.bio) : ""}</small></button>${!me0 && hasProfile() && S.canWrite ? `<button class="btn ${f ? "sec" : "soft"} sm" data-act="follow" data-u="${esc(u)}">${f ? "팔로잉" : "팔로우"}</button>` : ""}</div>`; }).join("")}</div>` : `<p class="empty-row">${fol ? "아직 팔로워가 없어요." : "아직 팔로잉하는 사람이 없어요."}</p>`); }
-  if (c.type === "confirm") return sheetWrap("", "", `<div class="cfbox"><h3>${c.t}</h3>${c.d ? `<p>${c.d}</p>` : ""}<div class="btnrow"><button class="btn sec big" data-act="cfno">취소</button><button class="btn big cfdel" data-act="cfok">${c.ok}</button></div></div>`);
+  if (c.type === "confirm") return sheetWrap("", "", `<div class="cfbox"><h3>${c.t}</h3>${c.d ? `<p>${c.d}</p>` : ""}<div class="btnrow">${c.alert ? `<button class="btn big full" data-act="cfno">확인</button>` : `<button class="btn sec big" data-act="cfno">취소</button><button class="btn big cfdel" data-act="cfok">${c.ok}</button>`}</div></div>`);
   if (c.type === "mlog"){ const pj = S.projects[c.pid]; if (!pj || !pj.metric){ closeSheet(); return; } const m = pj.metric, lv = lastVal(pj), u = esc(m.unit);
     return sheetWrap(`수치 기록`, "", `<p class="mlog-t">${esc(pj.title)}</p>
       <div class="field"><label class="lab" for="ml-val">오늘의 수치 <span class="hint">지난 기록 ${numFmt(lv)}${u} · 목표 ${numFmt(m.target)}${u}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ml-val" placeholder="${numFmt(lv)}" value="${D("ml-val")}"><span>${u}</span></div></div>
