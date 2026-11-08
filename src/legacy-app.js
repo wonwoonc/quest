@@ -1012,10 +1012,10 @@ function bdGuide(d){
 function brainDump(){
   if (LS.get("bdOff", false)) return `<button class="bdshow" data-act="bd-area" data-v="on">${nic("inbox")}브레인 덤프 열기</button>`;
   const vis = mineOf("dump").sort((a,b) => (a.createdAt||0) - (b.createdAt||0)), MAX = 3, shown = S.bdAll ? vis : vis.slice(0, MAX);
-  const row = d => `<div class="bdr"><span>${esc(d.text)}</span><button class="btn sec xs" data-act="bd-sort" data-id="${d.id}">분류</button></div>`;
+  const row = d => `<div class="bdr"><span>${esc(d.text)}</span><button class="btn sec xs" data-act="bd-sort" data-id="${d.id}">분류</button><button class="bdx" data-act="bd-rm" data-id="${d.id}" aria-label="삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-12M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/></svg></button></div>`;
   return `<section class="card bdump"><div class="ch"><h2>브레인 덤프</h2>${vis.length ? `<span class="side num">${vis.length}</span>` : ""}<button class="link bdhelp" data-act="bd-area" data-v="off">숨기기</button></div>
     <div class="bdin"><input type="text" id="bd-in" maxlength="200" enterkeyhint="done" autocomplete="off" placeholder="떠오르는 생각을 적고 엔터" value="${D("bd-in")}" aria-label="브레인 덤프"><button class="bdgo" data-act="bd-add" aria-label="털어 넣기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
-    ${vis.length ? `<div class="bdlist">${shown.map(row).join("")}</div>${vis.length > MAX ? `<button class="morebtn" data-act="toggle" data-k="bdall">${S.bdAll ? "접기" : `${vis.length - MAX}개 더 보기`}</button>` : ""}` : `<p class="empty-row">적은 생각은 「분류」를 눌러 메인 · 서브 · 데일리 · 태스크로 보내요.</p>`}
+    ${vis.length ? `<div class="bdlist">${shown.map(row).join("")}</div>${vis.length > MAX ? `<button class="morebtn" data-act="toggle" data-k="bdall">${S.bdAll ? "접기" : `${vis.length - MAX}개 더 보기`}</button>` : ""}` : ""}
   </section>`;
 }
 function bdSortSheet(c){
@@ -1924,7 +1924,7 @@ const UNDO_ASK = {t:"완료를 취소할까요?", d:"받은 경험치와 코인�
 function ask(o, cb){ S.parentSheet = S.compose && S.compose.type !== "confirm" ? S.compose : null; S.compose = {type:"confirm", t:esc(o.t), d:esc(o.d || ""), ok:esc(o.ok || "확인"), cb}; renderSheet(); }
 function askAsync(text){ return new Promise(res => { let done = false; ask({t:text, ok:"확인"}, () => { done = true; res(true); }); const c0 = S.compose; const iv = setInterval(() => { if (S.compose !== c0 && !done){ clearInterval(iv); res(false); } else if (done) clearInterval(iv); }, 200); }); }
 let tt = 0;
-function toast(html){ const t = $("#toast"); t.innerHTML = html; t.classList.toggle("mid", !!($("#overlay").innerHTML || "").trim()); t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), 2200); }
+function toast(html, ms = 2200){ const t = $("#toast"); t.innerHTML = html; t.classList.toggle("act", /data-act=/.test(html)); t.classList.toggle("mid", !!($("#overlay").innerHTML || "").trim()); t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), ms); }
 function levelUp(L){ toast(`Lv.${L} 달성! 성장 꾸미기 보상은 상점 내역에서 확인해요.`); }
 function burstAt(el){ if (!el) return; const t = (el.parentElement && el.parentElement.querySelector(":scope > .burst")) || el.querySelector(".burst"); if (!t) return; t.classList.remove("go"); void t.offsetWidth; t.classList.add("go"); }
 
@@ -2171,6 +2171,8 @@ document.addEventListener("click", e => {
     case "pl-tab": QM().ptab = b.dataset.v; break;
     case "bd-add": { const el = $("#bd-in"); if (!bdAdd(el && el.value)){ toast("생각을 적어 주세요"); el && el.focus && el.focus(); } return; }
     case "bd-sort": openSheet({type:"bdsort", id}); return;
+    case "bd-rm": { const d = S.mine[id]; if (!d) return; run(() => api.delMine(id), () => { S.bdUndo = {id, rec:{...d}}; toast(`삭제했어요 <button class="tundo" data-act="bd-undo">되돌리기</button>`, 4500); }); return; }
+    case "bd-undo": { const u = S.bdUndo; if (!u || S.mine[u.id]) return; S.bdUndo = null; const {id:_, ...rec} = u.rec; run(() => api.putMine(u.id, rec), () => { const t = $("#toast"); t.classList.remove("show"); }); return; }
     case "bd-step": (S.bdStep || (S.bdStep = {}))[id] = +b.dataset.v; if (c && c.type === "bdsort"){ renderSheet(); return; } break;
     case "nt-cat": S.ntCat = b.dataset.v; break;
     case "nt-new": { ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => !d.hidden) || DR[0]).k;
