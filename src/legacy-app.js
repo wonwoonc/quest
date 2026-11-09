@@ -2031,8 +2031,8 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
   if (c.type === "stats") return sheetWrap("능력치", "", statCard());
   if (c.type === "welcome") return sheetWrap(`${esc(nameOf(S.me))}님, 퀘스트에 오신 걸 환영합니다!`, "", `<div class="welc"><p class="welc-lead">퀘스트는 목표와 습관을 게임처럼 하나씩 깨 나가는 앱이에요.</p>
     <ol class="welc-steps">
-      <li><b>메인 퀘스트</b><span>이루고 싶은 큰 목표예요. 목표 수치와 기한을 정해요. 예) 토익 850점 받기</span></li>
-      <li><b>스테이지</b><span>큰 목표를 나눈 스테이지예요. 예) 파트5 문법 정복</span></li>
+      <li><b>메인 퀘스트</b><span>이루고 싶은 큰 목표예요. 예) 토익 850점 받기</span></li>
+      <li><b>스테이지</b><span>큰 목표를 나눈 중간 단계예요. 예) 파트5 문법 정복</span></li>
       <li><b>미션</b><span>목표를 달성하기 위해 해야 하는 할 일이에요. 예) 모의고사 1회 풀기</span></li>
       <li><b>일일 퀘스트</b><span>매일 또는 정한 요일마다 반복하는 습관이에요. 예) 물 2리터 마시기</span></li>
     </ol>
