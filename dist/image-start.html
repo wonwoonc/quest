@@ -4064,7 +4064,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
       <li><b>일일 퀘스트</b><span>매일 또는 정한 요일마다 반복하는 습관이에요. 예) 물 2리터 마시기</span></li>
     </ol>
     <p class="welc-note">하나를 끝낼 때마다 경험치와 코인이 들어와요. 경험치가 쌓이면 레벨이 오르고, 코인은 상점에서 내가 정한 보상으로 바꿀 수 있어요.</p>
-    <div class="lvup-btns"><button class="btn sec" data-act="sheet-close">둘러보기</button><button class="btn primary" data-act="sheet" data-k="add" data-v="big">첫 메인 퀘스트 만들기</button></div></div>`);
+    <div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
   if (c.type === "levelup") return sheetWrap(`Lv.${c.L} 달성`, "", `<div class="lvup"><p class="lvup-msg">레벨이 올랐어요</p>${viewStats()}<div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
   if (c.type === "areainfo"){ const A = AREAS.find(a => a[0] === c.k); if (!A){ closeSheet(); return; } const [k, n, , l] = A;
     const gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done" && areasOf(p).includes(k)), qs = mineOf("quest").filter(q => q.active !== false && areasOf(q).includes(k));
