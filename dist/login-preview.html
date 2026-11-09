@@ -1199,6 +1199,7 @@ a.goldchip{text-decoration:none}
 .wdp .bar{background:color-mix(in srgb,var(--card) 70%,transparent)}
 .wdp .editp{background:color-mix(in srgb,var(--card) 70%,transparent)}
 .lvup .lvup-msg{margin:0 0 12px;font-size:14px;color:var(--sub)}
+.lvup .card{padding:0;margin:0 0 18px;border:0;box-shadow:none;background:none}
 .lvup .wdp{margin:0}
 .lvup .wdp-cv{aspect-ratio:16/9}
 .lvup .hint{display:block;margin:12px 2px 0}
@@ -3645,7 +3646,7 @@ function viewProfile(){
   const mine = uid === S.me, p = prof(uid);
   const posts = feedSorted().filter(x => x.author === uid), goals = goalsOf(uid);
   const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
-  let h = profHead(uid);
+  let h = mine ? profHead(uid).replace('<div class="stage">', '<div class="stage" data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기">') : profHead(uid);
   if (!mine && (isBlocked(uid) || (p.private && !isFollowing(S.me, uid)))) return h + `<div class="card empty"><strong>${isBlocked(uid) ? "차단한 계정이에요" : "🔒 비공개 계정이에요"}</strong>${isBlocked(uid) ? "차단을 해제하면 다시 볼 수 있어요." : "팔로우하면 게시물과 퀘스트를 볼 수 있어요."}</div>`;
   h += `<div class="segwrap"><button class="helpdot" data-act="ptabhelp" data-v="${mine ? 1 : ""}" aria-label="탭 설명 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r="1.3" fill="currentColor" stroke="none"/></svg></button><div class="seg" role="group" aria-label="보기"><button data-act="ptab" data-t="posts" aria-pressed="${S.profTab==="posts"}">스토리</button><button data-act="ptab" data-t="goals" aria-pressed="${S.profTab==="goals"}">퀘스트</button>${mine ? `<button data-act="ptab" data-t="diary" aria-pressed="${S.profTab==="diary"}">저널</button>` : ""}</div></div>`;
   if (S.profTab === "diary" && mine) return h + diaryList();
@@ -4013,7 +4014,7 @@ function renderSheet(){ IXC = null;
     <div class="btnrow"><button class="btn sec big" data-act="sheet-close">취소</button><button class="btn big" data-act="addtask">추가</button></div>`);
   if (c.type === "plan") return planSheet(c);
   if (c.type === "stats") return sheetWrap("능력치", "", statCard());
-  if (c.type === "levelup") return sheetWrap(`Lv.${c.L} 달성`, "", `<div class="lvup"><p class="lvup-msg">레벨이 올랐어요. 지금까지 쌓은 능력치를 확인해 보세요.</p>${statCard()}<div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
+  if (c.type === "levelup") return sheetWrap(`Lv.${c.L} 달성`, "", `<div class="lvup"><p class="lvup-msg">레벨이 올랐어요</p>${viewStats()}<div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
   if (c.type === "areainfo"){ const A = AREAS.find(a => a[0] === c.k); if (!A){ closeSheet(); return; } const [k, n, , l] = A;
     const gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done" && areasOf(p).includes(k)), qs = mineOf("quest").filter(q => q.active !== false && areasOf(q).includes(k));
     const rows = [...gs.map(p => `<button class="row" data-act="project" data-p="${p.id}"><span class="ic sq ok">${p.parentId ? "🔗" : "🎯"}</span><span class="t"><b>${esc(p.title)}</b><small>${p.parentId ? "서브 퀘스트" : "메인 퀘스트"}</small></span>${I.chev}</button>`), ...qs.map(q => `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq"><svg class="rpic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2.5l3 3-3 3"/><path d="M4 11v-1.5a4 4 0 0 1 4-4h12"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 13v1.5a4 4 0 0 1-4 4H4"/></svg></span><span class="t"><b>${esc(q.name)}</b><small>데일리 퀘스트</small></span>${I.chev}</button>`)].join("");

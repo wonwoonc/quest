@@ -1288,7 +1288,12 @@ test('level up opens the profile popup',async()=>{
   }
   assert.ok(hit, 'level-up popup should open');
   const html = h.nodes.get('overlay').innerHTML;
-  assert.match(html, /Lv\.\d+ 달성/); assert.match(html, /능력치/); assert.doesNotMatch(html, /class="card wdp"|꾸미기|lvshop/);
+  assert.match(html, /Lv\.\d+ 달성/); assert.match(html, /레벨이 올랐어요</); assert.match(html, /class="card stprof"/); assert.match(html, /능력치/); assert.doesNotMatch(html, /class="card wdp"|꾸미기|lvshop/);
   h.click('sheet-close'); await h.settle();
   assert.equal(h.nodes.get('overlay').innerHTML, '');
+});
+test('own story page avatar opens the stats screen',async()=>{
+  const h = await profileUI(); h.route('me'); await h.settle();
+  assert.match(h.nodes.get('app').innerHTML, /class="stage" data-act="statsheet"/);
+  h.click('statsheet'); assert.equal(h.context.location.hash, '#stats');
 });
