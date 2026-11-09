@@ -2900,6 +2900,7 @@ const NIP = {
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.3"/>',
   trash:'<path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-12M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/>',
   eraser:'<path d="M7 21h13M5.5 15.5l9-9.5a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L11 19.5H8.5l-3-3a.7.7 0 0 1 0-1Z"/><path d="m9.5 11 4.5 4.5"/>',
+  journal:'<path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6Z"/><path d="M6 3v18M10 8h5M10 12h5"/>',
   inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1Z"/>'};
 const DR_ICONS = ["folder","dumbbell","heart","wallet","briefcase","users","music","camera","code","globe","coffee","leaf","calendar","target"];
 const nic = (k, cls = "") => `<svg class="nic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NIP[k] || NIP.folder}</svg>`;
@@ -2916,6 +2917,10 @@ function ntRewardLine(d, area){
   if (!d.pt) return "";
   const A = AREAS.find(a => a[0] === area);
   return `<p class="ntreward">완성하면 <b>+${d.pt * 10} XP · +${d.pt * 10} 코인</b>${A ? ` · ${A[3]} 영역(${A[1]}) +${d.pt}` : ""}<span>완성 조건: ${esc(d.need)}</span></p>`;
+}
+function jCard(d){
+  const [y, m, dd] = d.date.split("-").map(Number), wd = "일월화수목금토"[new Date(y, m-1, dd).getDay()];
+  return `<article class="card ntcard jcard" data-act="journal-view" data-id="${d.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic("journal")}저널</span><small class="num">${m}.${dd}</small></div><h3>${m}월 ${dd}일 ${wd}요일</h3><p class="ntsub">컨디션 ${d.cond ?? "-"}%${d.emo ? ` · ${esc(d.emo)}` : ""}</p>${d.text ? `<p class="ntbody">${clip(d.text, 140)}</p>` : ""}</article>`;
 }
 function ntCard(n){
   const {cat, f} = ntN(n), C = noteDrawer(S, cat), pj = n.projectId && S.projects[n.projectId], d = new Date(n.updatedAt || n.createdAt || Date.now());
@@ -2936,13 +2941,16 @@ function ntCard(n){
 }
 function viewNotes(){
   if (!hasProfile()) return viewToday();
-  const DR = noteDrawers(S), all = mineOf("note").sort((a,b) => (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0)), cat = DR.some(d => d.k === S.ntCat) ? S.ntCat : "all", q = (S.ntQ || "").trim().toLowerCase();
+  const DR = noteDrawers(S), all = mineOf("note").sort((a,b) => (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0)), cat = S.ntCat === "journal" || DR.some(d => d.k === S.ntCat) ? S.ntCat : "all", q = (S.ntQ || "").trim().toLowerCase();
+  const jAll = mineOf("diary").filter(d => d.date && isOwnPrivateEntry(d, S.me)).sort((a,b) => b.date.localeCompare(a.date)), jList = q ? jAll.filter(d => ((d.text || "") + " " + (d.emo || "")).toLowerCase().includes(q)) : jAll;
   const inCat = all.filter(n => cat === "all" || ntN(n).cat === cat);
   const list = q ? inCat.filter(n => (ntText(n) + " " + (n.projectId && S.projects[n.projectId] ? S.projects[n.projectId].title : "")).toLowerCase().includes(q)) : inCat;
   const chip = (k, l, n) => `<button class="chip" data-act="nt-cat" data-v="${k}" aria-pressed="${cat === k}">${l}${n ? ` <span class="num">${n}</span>` : ""}</button>`;
-  return `<div class="nttools"><input type="search" id="nt-q" placeholder="자료 검색" value="${esc(S.ntQ || "")}" aria-label="자료 검색"><button class="btn" data-act="nt-new">+ 자료 추가</button></div>
-    <div class="chips ntcats" role="group" aria-label="서랍">${chip("all", "전체", all.length)}${DR.filter(d => !d.hidden || d.k === cat).map(d => chip(d.k, `${nic(d.ic)}${esc(d.l)}`, all.filter(n => ntN(n).cat === d.k).length)).join("")}<button class="chip ntmng" data-act="dr-manage">+ 서랍</button></div>
-    ${list.length ? `<div class="ntgrid">${list.map(ntCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : cat !== "all" ? `${esc(noteDrawer(S, cat).l)} 서랍이 비어 있어요` : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 자료 추가」로 첫 자료를 담아 보세요."}</section>`}`;
+  const jToday = S.mine["d-"+today()], jBtn = `<button class="btn" data-act="sheet" data-k="diary">${jToday ? "오늘의 저널 수정" : "+ 오늘의 저널 쓰기"}</button>`;
+  return `<div class="nttools"><input type="search" id="nt-q" placeholder="${cat === "journal" ? "저널 검색" : "자료 검색"}" value="${esc(S.ntQ || "")}" aria-label="자료 검색">${cat === "journal" ? jBtn : `<button class="btn" data-act="nt-new">+ 자료 추가</button>`}</div>
+    <div class="chips ntcats" role="group" aria-label="서랍">${chip("all", "전체", all.length)}${DR.filter(d => !d.hidden || d.k === cat).map(d => chip(d.k, `${nic(d.ic)}${esc(d.l)}`, all.filter(n => ntN(n).cat === d.k).length)).join("")}${chip("journal", `${nic("journal")}저널`, jAll.length)}<button class="chip ntmng" data-act="dr-manage">+ 서랍</button></div>
+    ${cat === "journal" ? (jList.length ? `<div class="ntgrid">${jList.map(jCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 저널이 없어요" : "저널 서랍이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 오늘의 저널 쓰기」로 오늘 하루를 남겨 보세요."}</section>`) : ""}
+    ${cat === "journal" ? "" : list.length ? `<div class="ntgrid">${list.map(ntCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : cat !== "all" ? `${esc(noteDrawer(S, cat).l)} 서랍이 비어 있어요` : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 자료 추가」로 첫 자료를 담아 보세요."}</section>`}`;
 }
 function noteSheet(c){
   const n = c.id && S.mine[c.id], C = noteDrawer(S, c.cat), gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done").sort((a,b) => (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0) || (a.createdAt||0) - (b.createdAt||0));

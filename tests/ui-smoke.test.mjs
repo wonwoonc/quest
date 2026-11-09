@@ -1298,3 +1298,13 @@ test('own story page avatar opens the stats screen',async()=>{
   assert.match(h.nodes.get('app').innerHTML, /class="stage" data-act="statsheet"/);
   h.click('statsheet'); assert.equal(h.context.location.hash, '#stats');
 });
+test('자료실 저널 서랍: lists own journals only, escaped, opens detail',async()=>{
+  const base = await profileUI(), saved = base.snapshot();
+  saved.mine = {...saved.mine, 'd-2026-11-02':{id:'d-2026-11-02',kind:'diary',date:'2026-11-02',at:1,cond:80,emo:'평온',text:'스쿼트 <img src=x> 완료'}, foreign:{id:'foreign',kind:'diary',date:'2026-11-03',owner:'other',text:'다른 사용자 저널'}};
+  const h = await profileUI(saved); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); await h.settle();
+  const html = h.nodes.get('app').innerHTML;
+  assert.match(html, /data-v="journal"/); assert.match(html, /class="card ntcard jcard" data-act="journal-view" data-id="d-2026-11-02"/);
+  assert.match(html, /11월 2일 월요일/); assert.match(html, /컨디션 80% · 평온/); assert.doesNotMatch(html, /<img src=x>|다른 사용자 저널/);
+  assert.match(html, /data-k="diary"/);
+  h.click('journal-view',{id:'d-2026-11-02'}); assert.match(h.nodes.get('overlay').innerHTML, /스쿼트/);
+});
