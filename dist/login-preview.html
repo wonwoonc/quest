@@ -1206,6 +1206,8 @@ a.goldchip{text-decoration:none}
 .welc-steps b{font-size:15px}
 .welc-steps span{font-size:13px;color:var(--sub);line-height:1.45}
 .welc .lvup-btns{margin-top:16px}
+.welc{word-break:keep-all}
+.welc-note{margin:14px 2px 0;font-size:13px;color:var(--sub);line-height:1.5}
 .lvup .card{padding:0;margin:0 0 18px;border:0;box-shadow:none;background:none}
 .lvup .wdp{margin:0}
 .lvup .wdp-cv{aspect-ratio:16/9}
@@ -3176,7 +3178,7 @@ function viewPlan(){
   const tab = Q.ptab || "all", subs = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId && p.status !== "done" && S.projects[p.parentId] && S.projects[p.parentId].status !== "done").sort((a,b) => isPlanned(a) - isPlanned(b) || ((a.end || "9") < (b.end || "9") ? -1 : (a.end || "9") > (b.end || "9") ? 1 : 0));
   const qs = chainSort(mineOf("quest").filter(q => q.active !== false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0)));
   let h = `<div class="seg pltabs" role="group" aria-label="퀘스트 종류">${[["all","전체",act.length + later.length + subs.length + qs.length],["main","메인",act.length + later.length],["sub","서브",subs.length],["daily","데일리",qs.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
-  h = brainDump() + h;
+  if (BD_ON) h = brainDump() + h;
   const T = t => tab === "all" || tab === t;
   if (T("main")){
     h += head("메인 퀘스트", act.length) + `<div class="plgrid hsc">${act.map(plCard).join("")}${addC("big", "메인 퀘스트 생성")}</div>`;
@@ -3208,6 +3210,7 @@ function bdGuide(d){
   if (k === "act") return q(1, steps.length, t, step(1), step(9));
   return q(i + 1, steps.length, t, ask(k), i === steps.length - 1 ? ask("drop") : step(i + 1));
 }
+const BD_ON = false; /* 브레인 덤프 숨김: 다시 켜려면 true */
 function brainDump(){
   if (LS.get("bdOff", false)) return `<button class="bdshow" data-act="bd-area" data-v="on">${nic("inbox")}브레인 덤프 열기</button>`;
   const vis = mineOf("dump").sort((a,b) => (a.createdAt||0) - (b.createdAt||0)), MAX = 3, shown = S.bdAll ? vis : vis.slice(0, MAX);
@@ -4034,13 +4037,15 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     <div class="btnrow"><button class="btn sec big" data-act="sheet-close">취소</button><button class="btn big" data-act="addtask">추가</button></div>`);
   if (c.type === "plan") return planSheet(c);
   if (c.type === "stats") return sheetWrap("능력치", "", statCard());
-  if (c.type === "welcome") return sheetWrap(`환영해요, ${esc(nameOf(S.me))}님!`, "", `<div class="welc"><p class="welc-lead">모험이 시작됐어요. 머릿속에 있는 일부터 꺼내 퀘스트로 바꿔 볼까요?</p>
+  if (c.type === "welcome") return sheetWrap(`환영해요, ${esc(nameOf(S.me))}님!`, "", `<div class="welc"><p class="welc-lead">퀘스트는 목표와 습관을 게임처럼 하나씩 깨 나가는 앱이에요. 할 일은 네 가지 퀘스트로 나뉘어요.</p>
     <ol class="welc-steps">
-      <li><b>브레인 덤프에 적기</b><span>떠오르는 일을 판단하지 말고 적어요. '영어 공부', '치과 예약', '운동'처럼요.</span></li>
-      <li><b>분류 누르기</b><span>적은 일 옆의 '분류'를 누르면 질문 몇 개가 나와요.</span></li>
-      <li><b>답하면 퀘스트 완성</b><span>답에 따라 메인 퀘스트, 태스크, 데일리 퀘스트가 되거나 자료실로 가요.</span></li>
+      <li><b>메인 퀘스트</b><span>이루고 싶은 큰 목표예요. 목표 수치와 기한을 정해요. 예) 토익 850점 받기</span></li>
+      <li><b>서브 퀘스트</b><span>메인 퀘스트로 가는 중간 단계예요. 예) 파트5 문법 정복</span></li>
+      <li><b>태스크</b><span>날짜와 시간을 정해 한 번 하면 끝나는 일이에요. 예) 모의고사 1회 풀기</span></li>
+      <li><b>데일리 퀘스트</b><span>매일 또는 정한 요일마다 반복하는 습관이에요. 예) 물 2리터 마시기</span></li>
     </ol>
-    <div class="lvup-btns"><button class="btn primary" data-act="welc-go">브레인 덤프 시작하기</button></div></div>`);
+    <p class="welc-note">하나를 끝낼 때마다 경험치와 코인이 들어와요. 경험치가 쌓이면 레벨이 오르고, 코인은 상점에서 내가 정한 보상으로 바꿀 수 있어요.</p>
+    <div class="lvup-btns"><button class="btn sec" data-act="sheet-close">둘러보기</button><button class="btn primary" data-act="sheet" data-k="add" data-v="big">첫 메인 퀘스트 만들기</button></div></div>`);
   if (c.type === "levelup") return sheetWrap(`Lv.${c.L} 달성`, "", `<div class="lvup"><p class="lvup-msg">레벨이 올랐어요</p>${viewStats()}<div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
   if (c.type === "areainfo"){ const A = AREAS.find(a => a[0] === c.k); if (!A){ closeSheet(); return; } const [k, n, , l] = A;
     const gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done" && areasOf(p).includes(k)), qs = mineOf("quest").filter(q => q.active !== false && areasOf(q).includes(k));
@@ -4504,7 +4509,6 @@ document.addEventListener("click", e => {
         () => { if (S.ntCat === k) S.ntCat = "all"; openSheet({type:"drawers"}); toast(moved.length ? `서랍을 삭제하고 자료 ${moved.length}개를 메모로 옮겼어요` : "서랍을 삭제했어요"); }); return; }
     case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; { const fs0 = (S.mine[id] && S.mine[id].files) || []; run(() => api.delMine(id), () => fs0.forEach(x => FDB.del(x.id))); } return; run(() => api.delMine(id), () => { closeSheet(); toast("자료를 삭제했어요"); }); return;
     case "bd-area": LS.set("bdOff", b.dataset.v === "off"); break;
-    case "welc-go": LS.set("bdOff", false); closeSheet(); if (location.hash !== "#qmanage") go("qmanage"); schedule(); setTimeout(() => { const el = $("#bd-in"); if (el && el.focus) el.focus(); }, 60); return;
     case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); if (c && c.type === "bdsort") renderSheet(); break; } S.armed = null; run(() => api.delMine(id), () => { if (S.compose && S.compose.type === "bdsort") closeSheet(); toast("삭제했어요"); }); return;
     case "bd-send": bdSend(id, b.dataset.v); return;
     case "bd-ask": { const v = b.dataset.v, L = {big:"메인 퀘스트", task:"태스크", daily:"데일리 퀘스트", note:"자료실"}[v];

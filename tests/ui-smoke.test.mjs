@@ -88,7 +88,7 @@ test('actual empty UI submit handlers create local profile and quick task, persi
   const submit = name => { for (const fn of h.events.submit) fn({preventDefault(){},target:{dataset:{form:name}}}); };
   submit('profile'); await new Promise(resolve => setImmediate(resolve)); h.flush();
   let snap = JSON.parse(h.data.get('quest:foundation:empty:v2'));
-  assert.equal(snap.profiles.me.nick,'직접 만든 로컬 프로필'); assert.equal(snap.profiles.me.private,true); assert.equal(h.context.location.hash,'#qmanage'); assert.match(h.nodes.get('overlay').innerHTML,/환영해요/); assert.match(h.nodes.get('overlay').innerHTML,/브레인 덤프/); h.click('welc-go'); assert.equal(h.nodes.get('overlay').innerHTML,'');
+  assert.equal(snap.profiles.me.nick,'직접 만든 로컬 프로필'); assert.equal(snap.profiles.me.private,true); assert.equal(h.context.location.hash,'#qmanage'); assert.match(h.nodes.get('overlay').innerHTML,/환영해요/); assert.match(h.nodes.get('overlay').innerHTML,/메인 퀘스트/); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/브레인 덤프/); h.click('sheet',{k:'add',v:'big'}); assert.match(h.nodes.get('overlay').innerHTML,/id="ad-name"/);
   h.nodes.set('qm-name',{value:'직접 추가한 태스크'});
   submit('quicktask'); await new Promise(resolve => setImmediate(resolve)); h.flush();
   snap = JSON.parse(h.data.get('quest:foundation:empty:v2'));
@@ -341,7 +341,7 @@ test('taskadd sheet orders date/time, area, quest, difficulty and saves task are
   const task = Object.values(h.snapshot().mine).find(m => m.name === '영역 태스크');
   assert.ok(task); assert.deepEqual(task.area,['health']);
 });
-test('brain dump: pour lines in, inline guide, hide area, send one to task, delete one',async () => {
+test.skip('brain dump (UI hidden: BD_ON=false): pour lines in, inline guide, hide area, send one to task, delete one',async () => {
   const h = await linkedUI(); h.route('qmanage');
   assert.ok(h.nodes.get('app').innerHTML.indexOf('브레인 덤프') < h.nodes.get('app').innerHTML.indexOf('pltabs'));
   h.nodes.set('bd-in',{value:'세탁소 들르기\n\n이상한 생각'}); h.click('bd-add'); await h.settle();
