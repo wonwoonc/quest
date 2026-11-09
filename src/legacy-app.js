@@ -2031,10 +2031,10 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
   if (c.type === "stats") return sheetWrap("능력치", "", statCard());
   if (c.type === "welcome") return sheetWrap(`${esc(nameOf(S.me))}님, 퀘스트에 오신 걸 환영합니다!`, "", `<div class="welc"><p class="welc-lead">퀘스트는 목표와 습관을 게임처럼 하나씩 깨 나가는 앱이에요.</p>
     <ol class="welc-steps">
-      <li><b>메인 퀘스트</b><span>달성하고 싶은 큰 목표예요. 예) 토익 850점 받기</span></li>
-      <li><b>스테이지</b><span>큰 목표를 나눈 중간 단계예요. 예) 파트5 문법 정복</span></li>
-      <li><b>미션</b><span>목표 달성을 위한 할 일이에요. 예) 모의고사 1회 풀기</span></li>
-      <li><b>일일 퀘스트</b><span>주기적으로 반복하는 습관이에요. 예) 물 2리터 마시기</span></li>
+      <li><b>메인 퀘스트</b><span>달성하고 싶은 큰 목표예요.<br>예) 토익 850점 받기</span></li>
+      <li><b>스테이지</b><span>큰 목표를 나눈 중간 단계예요.<br>예) 파트5 문법 정복</span></li>
+      <li><b>미션</b><span>목표 달성을 위한 할 일이에요.<br>예) 모의고사 1회 풀기</span></li>
+      <li><b>일일 퀘스트</b><span>주기적으로 반복하는 습관이에요.<br>예) 물 2리터 마시기</span></li>
     </ol>
     <div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
   if (c.type === "levelup") return sheetWrap(`Lv.${c.L} 달성`, "", `<div class="lvup"><p class="lvup-msg">레벨이 올랐어요</p>${viewStats()}<div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
