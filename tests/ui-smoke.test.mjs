@@ -88,7 +88,7 @@ test('actual empty UI submit handlers create local profile and quick task, persi
   const submit = name => { for (const fn of h.events.submit) fn({preventDefault(){},target:{dataset:{form:name}}}); };
   submit('profile'); await new Promise(resolve => setImmediate(resolve)); h.flush();
   let snap = JSON.parse(h.data.get('quest:foundation:empty:v2'));
-  assert.equal(snap.profiles.me.nick,'직접 만든 로컬 프로필'); assert.equal(snap.profiles.me.private,true);
+  assert.equal(snap.profiles.me.nick,'직접 만든 로컬 프로필'); assert.equal(snap.profiles.me.private,true); assert.equal(h.context.location.hash,'#qmanage');
   h.nodes.set('qm-name',{value:'직접 추가한 태스크'});
   submit('quicktask'); await new Promise(resolve => setImmediate(resolve)); h.flush();
   snap = JSON.parse(h.data.get('quest:foundation:empty:v2'));
@@ -1289,7 +1289,7 @@ test('level up opens the profile popup',async()=>{
   assert.ok(hit, 'level-up popup should open');
   const html = h.nodes.get('overlay').innerHTML;
   assert.match(html, /Lv\.\d+ 달성/); assert.match(html, /class="card wdp"/);
-  assert.doesNotMatch(html, /꾸미기|lvshop|data-act="statsheet"/);
-  h.click('sheet-close'); await h.settle();
-  assert.equal(h.nodes.get('overlay').innerHTML, '');
+  assert.doesNotMatch(html, /꾸미기|lvshop|data-act="statsheet"/); assert.match(html, /data-act="lvstats"/);
+  h.click('lvstats'); await h.settle();
+  assert.equal(h.nodes.get('overlay').innerHTML, ''); assert.equal(h.context.location.hash, '#stats');
 });
