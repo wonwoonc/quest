@@ -2029,11 +2029,11 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     <div class="btnrow"><button class="btn sec big" data-act="sheet-close">취소</button><button class="btn big" data-act="addtask">추가</button></div>`);
   if (c.type === "plan") return planSheet(c);
   if (c.type === "stats") return sheetWrap("능력치", "", statCard());
-  if (c.type === "welcome") return sheetWrap(`환영해요, ${esc(nameOf(S.me))}님!`, "", `<div class="welc"><p class="welc-lead">퀘스트는 목표와 습관을 게임처럼 하나씩 깨 나가는 앱이에요. 할 일은 네 가지 퀘스트로 나뉘어요.</p>
+  if (c.type === "welcome") return sheetWrap(`${esc(nameOf(S.me))}님, 퀘스트에 오신 걸 환영합니다!`, "", `<div class="welc"><p class="welc-lead">퀘스트는 목표와 습관을 게임처럼 하나씩 깨 나가는 앱이에요.</p>
     <ol class="welc-steps">
       <li><b>메인 퀘스트</b><span>이루고 싶은 큰 목표예요. 목표 수치와 기한을 정해요. 예) 토익 850점 받기</span></li>
-      <li><b>서브 퀘스트</b><span>메인 퀘스트로 가는 중간 단계예요. 예) 파트5 문법 정복</span></li>
-      <li><b>태스크</b><span>날짜와 시간을 정해 한 번 하면 끝나는 일이에요. 예) 모의고사 1회 풀기</span></li>
+      <li><b>서브 퀘스트</b><span>큰 목표를 나눈 스테이지예요. 예) 파트5 문법 정복</span></li>
+      <li><b>태스크</b><span>목표를 달성하기 위해 해야 하는 할 일이에요. 예) 모의고사 1회 풀기</span></li>
       <li><b>데일리 퀘스트</b><span>매일 또는 정한 요일마다 반복하는 습관이에요. 예) 물 2리터 마시기</span></li>
     </ol>
     <p class="welc-note">하나를 끝낼 때마다 경험치와 코인이 들어와요. 경험치가 쌓이면 레벨이 오르고, 코인은 상점에서 내가 정한 보상으로 바꿀 수 있어요.</p>
