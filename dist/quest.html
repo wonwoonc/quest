@@ -1199,12 +1199,19 @@ a.goldchip{text-decoration:none}
 .wdp .bar{background:color-mix(in srgb,var(--card) 70%,transparent)}
 .wdp .editp{background:color-mix(in srgb,var(--card) 70%,transparent)}
 .lvup .lvup-msg{margin:0 0 12px;font-size:14px;color:var(--sub)}
+.welc-lead{margin:0 0 14px;font-size:15px;color:var(--sub);line-height:1.5}
+.welc-steps{list-style:none;margin:0;padding:0;counter-reset:w;display:grid;gap:10px}
+.welc-steps li{counter-increment:w;display:grid;grid-template-columns:28px 1fr;column-gap:10px;row-gap:2px;background:var(--fill);border-radius:14px;padding:12px 14px}
+.welc-steps li::before{content:counter(w);grid-row:span 2;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center}
+.welc-steps b{font-size:15px}
+.welc-steps span{font-size:13px;color:var(--sub);line-height:1.45}
+.welc .lvup-btns{margin-top:16px}
 .lvup .card{padding:0;margin:0 0 18px;border:0;box-shadow:none;background:none}
 .lvup .wdp{margin:0}
 .lvup .wdp-cv{aspect-ratio:16/9}
 .lvup .hint{display:block;margin:12px 2px 0}
 .lvup-btns{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
-body:has(.lvup) #toast{visibility:hidden}
+body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
 .wdp .barmeta{margin-top:2px}
 .wd-top{display:grid;grid-template-columns:minmax(210px,236px) minmax(0,1fr);gap:24px 24px;align-items:start}
 .wd-top > .wd-sec{margin-top:0}
@@ -4014,6 +4021,13 @@ function renderSheet(){ IXC = null;
     <div class="btnrow"><button class="btn sec big" data-act="sheet-close">취소</button><button class="btn big" data-act="addtask">추가</button></div>`);
   if (c.type === "plan") return planSheet(c);
   if (c.type === "stats") return sheetWrap("능력치", "", statCard());
+  if (c.type === "welcome") return sheetWrap(`환영해요, ${esc(nameOf(S.me))}님!`, "", `<div class="welc"><p class="welc-lead">모험이 시작됐어요. 머릿속에 있는 일부터 꺼내 퀘스트로 바꿔 볼까요?</p>
+    <ol class="welc-steps">
+      <li><b>브레인 덤프에 적기</b><span>떠오르는 일을 판단하지 말고 적어요. '영어 공부', '치과 예약', '운동'처럼요.</span></li>
+      <li><b>분류 누르기</b><span>적은 일 옆의 '분류'를 누르면 질문 몇 개가 나와요.</span></li>
+      <li><b>답하면 퀘스트 완성</b><span>답에 따라 메인 퀘스트, 태스크, 데일리 퀘스트가 되거나 자료실로 가요.</span></li>
+    </ol>
+    <div class="lvup-btns"><button class="btn primary" data-act="welc-go">브레인 덤프 시작하기</button></div></div>`);
   if (c.type === "levelup") return sheetWrap(`Lv.${c.L} 달성`, "", `<div class="lvup"><p class="lvup-msg">레벨이 올랐어요</p>${viewStats()}<div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
   if (c.type === "areainfo"){ const A = AREAS.find(a => a[0] === c.k); if (!A){ closeSheet(); return; } const [k, n, , l] = A;
     const gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done" && areasOf(p).includes(k)), qs = mineOf("quest").filter(q => q.active !== false && areasOf(q).includes(k));
@@ -4477,6 +4491,7 @@ document.addEventListener("click", e => {
         () => { if (S.ntCat === k) S.ntCat = "all"; openSheet({type:"drawers"}); toast(moved.length ? `서랍을 삭제하고 자료 ${moved.length}개를 메모로 옮겼어요` : "서랍을 삭제했어요"); }); return; }
     case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; { const fs0 = (S.mine[id] && S.mine[id].files) || []; run(() => api.delMine(id), () => fs0.forEach(x => FDB.del(x.id))); } return; run(() => api.delMine(id), () => { closeSheet(); toast("자료를 삭제했어요"); }); return;
     case "bd-area": LS.set("bdOff", b.dataset.v === "off"); break;
+    case "welc-go": LS.set("bdOff", false); closeSheet(); if (location.hash !== "#qmanage") go("qmanage"); schedule(); setTimeout(() => { const el = $("#bd-in"); if (el && el.focus) el.focus(); }, 60); return;
     case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); if (c && c.type === "bdsort") renderSheet(); break; } S.armed = null; run(() => api.delMine(id), () => { if (S.compose && S.compose.type === "bdsort") closeSheet(); toast("삭제했어요"); }); return;
     case "bd-send": bdSend(id, b.dataset.v); return;
     case "bd-ask": { const v = b.dataset.v, L = {big:"메인 퀘스트", task:"태스크", daily:"데일리 퀘스트", note:"자료실"}[v];
@@ -4694,7 +4709,7 @@ document.addEventListener("change", e => { if (e.target.id === "ml-share" && S.c
 document.addEventListener("submit", e => {
   e.preventDefault(); if (!S.canWrite) return; const f = e.target;
   if (f.dataset.form === "profile"){ if (entryScreen === 'login' || S.ob.making) return; const nick = $("#nick").value.trim(); if (!nick) return;
-    run(async () => { const fk = await storeFace(S.ob.face); await api.saveProfile({nick, color:S.swatch, bio:"", face:fk || null, avatarStyle:S.ob.avatarStyle || null}); }, () => { entryScreen = null; delete S.drafts.nick; S.ob = {face:"", making:false}; go('qmanage'); toast("모험을 시작했어요!"); }); }
+    run(async () => { const fk = await storeFace(S.ob.face); await api.saveProfile({nick, color:S.swatch, bio:"", face:fk || null, avatarStyle:S.ob.avatarStyle || null}); }, () => { entryScreen = null; delete S.drafts.nick; S.ob = {face:"", making:false}; go('qmanage'); openSheet({type:"welcome"}); }); }
   else if (f.dataset.form === "hide"){ const w = ($("#set-hide").value||"").trim(); if (!w) return; const st = getSet();
     run(() => api.putMine("settings", {kind:"settings", ...st, hidden:[...new Set([...st.hidden, w])]}), () => { delete S.drafts["set-hide"]; }); }
   else if (f.dataset.form === "quicktask"){ const name = ($("#qm-name").value||"").trim(); if (!name) return;

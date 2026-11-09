@@ -88,7 +88,7 @@ test('actual empty UI submit handlers create local profile and quick task, persi
   const submit = name => { for (const fn of h.events.submit) fn({preventDefault(){},target:{dataset:{form:name}}}); };
   submit('profile'); await new Promise(resolve => setImmediate(resolve)); h.flush();
   let snap = JSON.parse(h.data.get('quest:foundation:empty:v2'));
-  assert.equal(snap.profiles.me.nick,'직접 만든 로컬 프로필'); assert.equal(snap.profiles.me.private,true); assert.equal(h.context.location.hash,'#qmanage');
+  assert.equal(snap.profiles.me.nick,'직접 만든 로컬 프로필'); assert.equal(snap.profiles.me.private,true); assert.equal(h.context.location.hash,'#qmanage'); assert.match(h.nodes.get('overlay').innerHTML,/환영해요/); assert.match(h.nodes.get('overlay').innerHTML,/브레인 덤프/); h.click('welc-go'); assert.equal(h.nodes.get('overlay').innerHTML,'');
   h.nodes.set('qm-name',{value:'직접 추가한 태스크'});
   submit('quicktask'); await new Promise(resolve => setImmediate(resolve)); h.flush();
   snap = JSON.parse(h.data.get('quest:foundation:empty:v2'));
@@ -105,6 +105,7 @@ async function profileUI(snapshot, search = '') {
     h.nodes.set('nick',{value:'마감일 회귀 테스트'});
     for (const fn of h.events.submit) fn({preventDefault(){},target:{dataset:{form:'profile'}}});
     await h.settle();
+    if (h.nodes.get('overlay').innerHTML.includes('환영해요')) h.click('sheet-close');
   }
   return h;
 }

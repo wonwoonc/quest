@@ -1199,12 +1199,19 @@ a.goldchip{text-decoration:none}
 .wdp .bar{background:color-mix(in srgb,var(--card) 70%,transparent)}
 .wdp .editp{background:color-mix(in srgb,var(--card) 70%,transparent)}
 .lvup .lvup-msg{margin:0 0 12px;font-size:14px;color:var(--sub)}
+.welc-lead{margin:0 0 14px;font-size:15px;color:var(--sub);line-height:1.5}
+.welc-steps{list-style:none;margin:0;padding:0;counter-reset:w;display:grid;gap:10px}
+.welc-steps li{counter-increment:w;display:grid;grid-template-columns:28px 1fr;column-gap:10px;row-gap:2px;background:var(--fill);border-radius:14px;padding:12px 14px}
+.welc-steps li::before{content:counter(w);grid-row:span 2;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center}
+.welc-steps b{font-size:15px}
+.welc-steps span{font-size:13px;color:var(--sub);line-height:1.45}
+.welc .lvup-btns{margin-top:16px}
 .lvup .card{padding:0;margin:0 0 18px;border:0;box-shadow:none;background:none}
 .lvup .wdp{margin:0}
 .lvup .wdp-cv{aspect-ratio:16/9}
 .lvup .hint{display:block;margin:12px 2px 0}
 .lvup-btns{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
-body:has(.lvup) #toast{visibility:hidden}
+body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
 .wdp .barmeta{margin-top:2px}
 .wd-top{display:grid;grid-template-columns:minmax(210px,236px) minmax(0,1fr);gap:24px 24px;align-items:start}
 .wd-top > .wd-sec{margin-top:0}
