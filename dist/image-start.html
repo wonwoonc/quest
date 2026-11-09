@@ -3974,7 +3974,8 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
         ${difficultySelector(c,'quest','hlv')}`; }
       else more = `${datePick(c, "end", "마감일", false, true)}${statusField(c)}${areaField(c)}${metricFields(c)}${coverField(c)}`;
     }
-    return sheetWrap(({daily:"일일 퀘스트 생성", once:"미션 추가", sub:"스테이지 생성", big:"메인 퀘스트 생성"})[K] || "퀘스트 생성", "", `
+    const noMain = K === "sub" && !goalsOf(S.me).some(g => g.status !== "done");
+    return sheetWrap(({daily:"일일 퀘스트 생성", once:"미션 추가", sub:"스테이지 생성", big:"메인 퀘스트 생성"})[K] || "퀘스트 생성", "", noMain ? more : `
     <div class="field"><input type="text" id="ad-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("ad-name")}" aria-label="퀘스트 이름"></div>
     ${more}
     <button class="btn big full" data-act="submit-add" ${S.busy?"disabled":""}>추가</button>`); }
