@@ -120,11 +120,11 @@ function readTime(c){ const el = $("#tm-in"); if (!el) return true; const v = pa
 const TSLOTS = Array.from({length:48}, (_, i) => `${pad(Math.floor(i/2))}:${i % 2 ? "30" : "00"}`);
 const tmLabel = v => { if (!v) return ""; const [h, mi] = v.split(":").map(Number); return `${h || 24}:${pad(mi)}`; };
 const fmtD = v => { const x = new Date(v+"T00:00"); return `${x.getFullYear() !== new Date().getFullYear() ? x.getFullYear()+"년 " : ""}${x.getMonth()+1}월 ${x.getDate()}일 (${WD[x.getDay()]})`; };
-function miniCal(c, key){
+function miniCal(c, key, max = ""){
   const v = c[key] || "", base = c._dpm || (v || today()).slice(0,8) + "01", f0 = new Date(base+"T00:00"), y = f0.getFullYear(), mo = f0.getMonth(), t = today();
   const off = (f0.getDay()+6)%7, days = new Date(y, mo+1, 0).getDate();
   let cells = ""; for (let i = 0; i < off; i++) cells += `<span></span>`;
-  for (let d = 1; d <= days; d++){ const ds = `${y}-${pad(mo+1)}-${pad(d)}`; cells += `<button class="${ds === v ? "sel" : ""} ${ds === t ? "tdy" : ""}" data-act="dppick" data-k="${key}" data-v="${ds}">${d}</button>`; }
+  for (let d = 1; d <= days; d++){ const ds = `${y}-${pad(mo+1)}-${pad(d)}`; cells += `<button class="${ds === v ? "sel" : ""} ${ds === t ? "tdy" : ""}" data-act="dppick" data-k="${key}" data-v="${ds}"${max && ds > max ? " disabled" : ""}>${d}</button>`; }
   return `<div class="dpcal"><div class="dphead"><button data-act="dpnav" data-v="-1" aria-label="이전 달">${I.back}</button><b>${y}년 ${mo+1}월</b><button class="fwd" data-act="dpnav" data-v="1" aria-label="다음 달">${I.back}</button></div>
     <div class="dpgrid wk">${["월","화","수","목","금","토","일"].map(w => `<span>${w}</span>`).join("")}</div><div class="dpgrid">${cells}</div></div>`;
 }
@@ -542,10 +542,9 @@ function jLoad(dt){ if (!dt || dt > today()) return; const P = S.planner, d = S.
   if (d){ S.planner = {...P, date:dt, cond:d.cond ?? 70, emo:d.emo || null, share:!!diaryPost("d-"+dt), edit:true}; S.drafts["pl-text"] = d.text || ""; }
   else { if (P.edit){ S.drafts["pl-text"] = ""; S.planner = {...P, date:dt, cond:70, emo:null, share:false, edit:false}; } else S.planner = {...P, date:dt}; }
   renderSheet(); }
-function diaryForm(d, P){ const dt = P.date || today(), t0 = today(), past = dt !== t0;
+function diaryForm(d, P, sheet = false){ const dt = P.date || today(), t0 = today(), past = dt !== t0, c = S.compose;
   return `
-    <div class="field jdate"><span class="lab">날짜</span><div class="chips"><button class="chip jdchip" data-act="jdpick" aria-pressed="true">${nic("calendar")}${past ? `${pd(dt).getMonth()+1}월 ${pd(dt).getDate()}일 ${WD[pd(dt).getDay()]}요일` : "오늘"}</button>
-      <input type="date" id="pl-date" class="jdin" max="${t0}" value="${dt}" aria-label="날짜 고르기" tabindex="-1"></div></div>
+    ${sheet ? `<div class="field jdate"><span class="lab">날짜</span><div class="chips"><button class="chip jdchip" data-act="jdpick" aria-pressed="true">${nic("calendar")}${past ? `${pd(dt).getMonth()+1}월 ${pd(dt).getDate()}일 ${WD[pd(dt).getDay()]}요일` : "오늘"}</button></div>${c && c._dp === "jd" ? ppWrap("날짜 선택", "jdclose", miniCal({jd:dt, _dpm:c._dpm}, "jd", t0) + (past ? `<div class="ppbtns"><button class="btn ghost" data-act="jdate" data-v="${t0}">오늘로</button></div>` : "")) : ""}</div>` : ""}
     <div class="cond"><span class="lab">컨디션</span><input type="range" id="pl-cond" min="0" max="100" step="5" value="${P.cond}" style="--p:${P.cond}%" aria-label="컨디션"><b class="num" id="pl-cond-v">${P.cond}%</b></div>
     <div class="emos" role="group" aria-label="감정">${EMOS.map(([n,e]) => `<button data-act="pemo" data-v="${n}" aria-pressed="${P.emo===n}">${e} ${n}</button>`).join("")}${myEmos().map(n => `<button data-act="pemo" data-v="${esc(n)}" aria-pressed="${P.emo===n}">💭 ${esc(n)}</button>`).join("")}${P.custom ? "" : `<button class="emoadd" data-act="emocustom">+ 직접 입력</button>`}</div>
     ${P.custom ? `<div class="addline" style="padding:0;margin:-4px 0 14px"><input type="text" id="pl-emo" maxlength="10" placeholder="감정 (예: 뿌듯함)" value="${D("pl-emo")}" aria-label="감정 직접 입력"><button class="btn sm sec" data-act="emoadd">추가</button></div>` : ""}
@@ -2017,7 +2016,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     <button class="btn big full" data-act="submit-tedit" ${S.busy?"disabled":""}>저장</button>
     <button class="btn full sec" style="margin-top:10px;color:var(--warn)" data-act="tdel">${S.armed === "td"+c.id ? "한 번 더 누르면 삭제" : "삭제"}</button>`); }
   if (c.type === "diary"){ const P = S.planner, dt = P.date || today(), d = S.mine["d-"+dt], x0 = pd(dt);
-    return sheetWrap(dt === today() ? "오늘의 저널" : `${x0.getMonth()+1}월 ${x0.getDate()}일 ${WD[x0.getDay()]}요일 저널`, "", diaryForm(d, P)); }
+    return sheetWrap(dt === today() ? "오늘의 저널" : `${x0.getMonth()+1}월 ${x0.getDate()}일 ${WD[x0.getDay()]}요일 저널`, "", diaryForm(d, P, true)); }
   if (c.type === "pmenu"){ const p = S.feed[c.pid]; if (!p){ closeSheet(); return; } const mine = p.author === S.me, a = p.author, f = isFollowing(S.me, a);
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-p="${p.id}" data-u="${esc(a)}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
     return sheetWrap(mine ? "내 스토리" : esc(nameOf(a)) + "님의 스토리", "", `<div class="sheetlist mlist">${mine
@@ -2432,8 +2431,8 @@ document.addEventListener("click", e => {
       run(async () => { await api.putMine(uid8(), q); await api.join(pid); }, () => toast(`🔥 '${esc(p.ref.label)}'을 내 데일리 퀘스트에 추가했어요`)); return; }
     case "delpost": e.stopPropagation(); if (S.armed === "dp"+pid){ S.armed = null; const inPost = S.view.name === "post"; run(() => api.delPost(pid), () => { closeSheet(); toast("스토리를 삭제했어요"); if (inPost) history.back(); }); } else { arm("dp"+pid); if (S.compose) renderSheet(); } return;
     case "dpopen": c._dp = c._dp === b.dataset.k ? null : b.dataset.k; c._dpm = null; if (c._dp) c._tw = false; renderSheet(); return;
-    case "dpnav": { const base = new Date((c._dpm || (c[c._dp] || today()).slice(0,8) + "01")+"T00:00"); base.setMonth(base.getMonth() + +b.dataset.v); c._dpm = dk(base.getTime()).slice(0,8) + "01"; renderSheet(); return; }
-    case "dppick": ["ta-name","te-name","te-note","ad-name","nt-name"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); c[b.dataset.k] = b.dataset.v; if (b.dataset.k === "due"){ c.period = ""; if (!c.time) c.time = "09:00"; c._tw = true; } c._dp = null; c._dpm = null; renderSheet(); return;
+    case "dpnav": { const base = new Date((c._dpm || ((c._dp === "jd" ? S.planner.date : c[c._dp]) || today()).slice(0,8) + "01")+"T00:00"); base.setMonth(base.getMonth() + +b.dataset.v); c._dpm = dk(base.getTime()).slice(0,8) + "01"; renderSheet(); return; }
+    case "dppick": if (b.dataset.k === "jd"){ c._dp = null; c._dpm = null; jLoad(b.dataset.v); return; } ["ta-name","te-name","te-note","ad-name","nt-name"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); c[b.dataset.k] = b.dataset.v; if (b.dataset.k === "due"){ c.period = ""; if (!c.time) c.time = "09:00"; c._tw = true; } c._dp = null; c._dpm = null; renderSheet(); return;
     case "dpclear": c[b.dataset.k] = ""; c._dp = null; renderSheet(); return;
     case "taskadd": { delete S.drafts["tm-in"]; if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"taskadd", lv:"normal", due:b.dataset.d || "", time:b.dataset.tm || "", period:"", projectId:pid || null}); setTimeout(() => { const x = $("#ta-name"); x && x.focus(); }, 50); return; }
     case "submit-taskadd": { if (!readTime(c)) return; const name = ($("#ta-name").value||"").trim(); if (!name){ toast("태스크 이름을 적어 주세요"); $("#ta-name").focus(); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } const pj = c.projectId || null;
@@ -2577,8 +2576,9 @@ document.addEventListener("click", e => {
         else if (share && post) await api.editPost(post.id, {text, ref:{...post.ref, extra:{cond, emo:P.emo}}});
         else if (!share && post) await api.delPost(post.id); },
         () => { S.planner = {cond:70, emo:null, share:false}; delete S.drafts["pl-text"]; if (S.compose && S.compose.type === "diary") closeSheet(); const cl=S.economy.claims[JSON.stringify(['journal',dt])];if(!existed)toast(dt === today() ? `저널 저장 · 지급 ${cl?.xp||0} XP / ${cl?.coins||0} 코인` : '지난 저널을 저장했어요');else toast('저널을 수정했어요'); if (from === "logs") openSheet({type:"logs"}); }); return; }
-    case "jdate": jLoad(b.dataset.v); return;
-    case "jdpick": { const el = $("#pl-date"); if (!el) return; try { el.showPicker(); } catch(_){ el.focus(); el.click && el.click(); } return; }
+    case "jdate": if (c) { c._dp = null; c._dpm = null; } jLoad(b.dataset.v); return;
+    case "jdpick": { const el = $("#pl-text"); if (el) S.drafts["pl-text"] = el.value; c._dp = c._dp === "jd" ? null : "jd"; c._dpm = null; renderSheet(); return; }
+    case "jdclose": { const el = $("#pl-text"); if (el) S.drafts["pl-text"] = el.value; c._dp = null; renderSheet(); return; }
     case "dedit": { e.stopPropagation(); const d = S.mine[id]; if (!d) return; const from = S.compose && S.compose.type === "logs" ? "logs" : null;
       S.planner = {cond:d.cond ?? 70, emo:d.emo || null, share:!!diaryPost(id), date:d.date, edit:true, from}; S.drafts["pl-text"] = d.text || ""; openSheet({type:"diary"}); return; }
     case "ldel": { if (S.armed !== "ld"+id){ arm("ld"+id); return; } S.armed = null; const post = diaryPost(id), from = S.planner.from;
@@ -2715,7 +2715,7 @@ document.addEventListener("input", e => {
   if (e.target.id === "pj-unit") document.querySelectorAll(".uval").forEach(x => x.textContent = e.target.value);
   if (e.target.id === "pl-cond"){ S.planner.cond = +e.target.value; e.target.style.setProperty("--p", e.target.value + "%"); const v = e.target.parentNode.querySelector("#pl-cond-v"); if (v) v.textContent = e.target.value + "%"; }
 });
-document.addEventListener("change", e => { if (e.target.id === "pl-date"){ jLoad(e.target.value); return; } if (e.target.id === "ml-share" && S.compose && S.compose.type === "mlog"){ const v = ($("#ml-val")||{}).value; if (v != null) S.drafts["ml-val"] = v; S.compose.share = e.target.checked; renderSheet(); return; } if (e.target.id === "pl-share") S.planner.share = e.target.checked;
+document.addEventListener("change", e => { if (e.target.id === "ml-share" && S.compose && S.compose.type === "mlog"){ const v = ($("#ml-val")||{}).value; if (v != null) S.drafts["ml-val"] = v; S.compose.share = e.target.checked; renderSheet(); return; } if (e.target.id === "pl-share") S.planner.share = e.target.checked;
   if (e.target.id === "tm-in" && S.compose){ const v = parseTime(e.target.value); if (v !== null){ S.compose.time = v; S.drafts["tm-in"] = v ? tmLabel(v) : ""; e.target.value = S.drafts["tm-in"]; } }
  });
 document.addEventListener("submit", e => {
