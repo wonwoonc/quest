@@ -89,10 +89,10 @@ test('actual empty UI submit handlers create local profile and quick task, persi
   submit('profile'); await new Promise(resolve => setImmediate(resolve)); h.flush();
   let snap = JSON.parse(h.data.get('quest:foundation:empty:v2'));
   assert.equal(snap.profiles.me.nick,'직접 만든 로컬 프로필'); assert.equal(snap.profiles.me.private,true); assert.equal(h.context.location.hash,'#qmanage'); assert.match(h.nodes.get('overlay').innerHTML,/퀘스트에 오신 걸 환영합니다/); assert.match(h.nodes.get('overlay').innerHTML,/메인 퀘스트/); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/브레인 덤프/); h.click('sheet',{k:'add',v:'big'}); assert.match(h.nodes.get('overlay').innerHTML,/id="ad-name"/);
-  h.nodes.set('qm-name',{value:'직접 추가한 태스크'});
+  h.nodes.set('qm-name',{value:'직접 추가한 미션'});
   submit('quicktask'); await new Promise(resolve => setImmediate(resolve)); h.flush();
   snap = JSON.parse(h.data.get('quest:foundation:empty:v2'));
-  assert.equal(Object.values(snap.mine)[0].name,'직접 추가한 태스크');
+  assert.equal(Object.values(snap.mine)[0].name,'직접 추가한 미션');
   assert.deepEqual(h.alerts,[]);
 });
 
@@ -247,21 +247,21 @@ test('daily quest time is required, saved on edit and shown on its calendar days
 test('sub-quest edit retains optional deadline and clear control',async () => {
   let h = await profileUI(); const snapshot = h.snapshot();
   snapshot.projects.main = {id:'main',owner:'me',title:'메인',end:'2099-12-31',status:'active'};
-  snapshot.projects.sub = {id:'sub',owner:'me',parentId:'main',title:'서브',end:'2099-11-30',status:'active'};
+  snapshot.projects.sub = {id:'sub',owner:'me',parentId:'main',title:'스테이지',end:'2099-11-30',status:'active'};
   h = await profileUI(snapshot);
   h.click('gedit',{p:'sub'});
   assert.match(h.nodes.get('overlay').innerHTML,/마감일 <span class="hint">선택<\/span>/);
   assert.match(h.nodes.get('overlay').innerHTML,/data-act="dpclear" data-k="end"/);
   h.click('dpclear',{k:'end'});
-  h.nodes.set('ge-title',{value:'수정한 서브'});
+  h.nodes.set('ge-title',{value:'수정한 스테이지'});
   h.click('submit-gedit'); await h.settle();
   assert.equal(h.snapshot().projects.sub.end,'');
-  assert.equal(h.snapshot().projects.sub.title,'수정한 서브');
+  assert.equal(h.snapshot().projects.sub.title,'수정한 스테이지');
 });
 test('task creation still requires its own date/time, not a main-goal deadline',async () => {
   const h = await profileUI();
   h.click('sheet',{k:'add',v:'once'});
-  h.nodes.set('ad-name',{value:'태스크'});
+  h.nodes.set('ad-name',{value:'미션'});
   h.click('submit-add'); await h.settle();
   assert.equal(h.nodes.get('toast').innerHTML,'날짜를 골라 주세요');
   assert.deepEqual(h.snapshot().mine,{});
@@ -274,7 +274,7 @@ test('task creation still requires its own date/time, not a main-goal deadline',
 test('legacy main goal without deadline still accepts task progress and stats updates',async () => {
   let h = await profileUI(); const snapshot = h.snapshot();
   snapshot.projects.legacy = {id:'legacy',owner:'me',title:'기존 목표',end:'',status:'active',progress:{done:0,total:1}};
-  snapshot.mine.task = {id:'task',kind:'mission',name:'연결된 태스크',projectId:'legacy',lv:'normal',done:false};
+  snapshot.mine.task = {id:'task',kind:'mission',name:'연결된 미션',projectId:'legacy',lv:'normal',done:false};
   h = await profileUI(snapshot);
   h.route('me');
   assert.match(h.nodes.get('app').innerHTML,/0 \/ 100 XP/);
@@ -291,9 +291,9 @@ async function linkedUI() {
   const base = await profileUI(), snapshot = base.snapshot();
   const now = new Date(), date = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   snapshot.projects.main = {id:'main',owner:'me',title:'메인 연결 대상',end:'2099-12-31',status:'active'};
-  snapshot.projects.sub = {id:'sub',owner:'me',parentId:'main',title:'서브 연결 대상',status:'active'};
+  snapshot.projects.sub = {id:'sub',owner:'me',parentId:'main',title:'스테이지 연결 대상',status:'active'};
   for (const [id,projectId] of [['tm','main'],['ts','sub'],['plain',null],['dangling','missing']]) {
-    snapshot.mine[id] = {id,kind:'mission',name:`태스크 ${id}`,projectId,lv:'normal',today:true,due:date,done:false,createdAt:1,time:id === 'tm' ? '09:00' : id === 'ts' ? '00:05' : ''};
+    snapshot.mine[id] = {id,kind:'mission',name:`미션 ${id}`,projectId,lv:'normal',today:true,due:date,done:false,createdAt:1,time:id === 'tm' ? '09:00' : id === 'ts' ? '00:05' : ''};
   }
   return profileUI(snapshot);
 }
@@ -304,16 +304,16 @@ for (const kind of ['once','sub','big','daily']) {
     h.click('sheet',{k:'add',v:kind,p:'main'});
     const html = h.nodes.get('overlay').innerHTML;
     noKindSwitch(html);
-    const titles = {once:'태스크 추가',sub:'서브 퀘스트 생성',big:'메인 퀘스트 생성',daily:'데일리 퀘스트 생성'};
+    const titles = {once:'미션 추가',sub:'스테이지 생성',big:'메인 퀘스트 생성',daily:'일일 퀘스트 생성'};
     assert.ok(html.includes(titles[kind]));
     if (kind === 'once') {
       assert.match(html,/data-act="tqpick"/);
       h.click('tqpick'); assert.match(h.nodes.get('overlay').innerHTML,/data-act="tqset" data-v="sub"/);
-      h.click('tqset',{v:'sub'}); assert.match(h.nodes.get('overlay').innerHTML,/서브 연결 대상/);
+      h.click('tqset',{v:'sub'}); assert.match(h.nodes.get('overlay').innerHTML,/스테이지 연결 대상/);
     } else if (kind === 'sub') {
       assert.match(html,/data-act="ppick"/);
       h.click('ppick'); assert.match(h.nodes.get('overlay').innerHTML,/data-act="ppset" data-v="main"/);
-      h.click('ppset',{v:'main'}); assert.match(h.nodes.get('overlay').innerHTML,/서브 퀘스트 생성/);
+      h.click('ppset',{v:'main'}); assert.match(h.nodes.get('overlay').innerHTML,/스테이지 생성/);
     } else if (kind === 'big') deadlineRequired(h);
     else { assert.match(html,/data-act="rptopen"/); assert.doesNotMatch(html,/data-act="rpt"/); h.click("rptopen"); assert.match(h.nodes.get("overlay").innerHTML,/반복 선택[\s\S]*data-act="rpt" data-v="weekly"/); h.click("rpt",{v:"weekly"}); assert.doesNotMatch(h.nodes.get("overlay").innerHTML,/반복 선택/); assert.match(h.nodes.get("overlay").innerHTML,/data-act="qday"/); }
   });
@@ -323,11 +323,11 @@ for (const projectId of [null,'main','sub']) {
     const h = await linkedUI(); h.click('taskadd',projectId ? {p:projectId} : {});
     noKindSwitch(h.nodes.get('overlay').innerHTML);
     assert.match(h.nodes.get('overlay').innerHTML,/data-act="tqpick"/);
-    h.nodes.set('ta-name',{value:'선택기로 연결한 태스크'});
+    h.nodes.set('ta-name',{value:'선택기로 연결한 미션'});
     h.click('tqpick'); h.click('tqset',{v:'sub'});
-    assert.match(h.nodes.get('overlay').innerHTML,/서브 연결 대상/);
+    assert.match(h.nodes.get('overlay').innerHTML,/스테이지 연결 대상/);
     h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
-    const task = Object.values(h.snapshot().mine).find(m => m.name === '선택기로 연결한 태스크');
+    const task = Object.values(h.snapshot().mine).find(m => m.name === '선택기로 연결한 미션');
     assert.ok(task); assert.equal(task.kind,'mission'); assert.equal(task.projectId,'sub');
   });
 }
@@ -336,9 +336,9 @@ test('taskadd sheet orders date/time, area, quest, difficulty and saves task are
   const html = h.nodes.get('overlay').innerHTML;
   const at = [html.indexOf('날짜'), html.indexOf('data-act="aset"'), html.indexOf('data-act="tqpick"'), html.indexOf('난이도')];
   assert.ok(at.every(i => i >= 0), String(at)); assert.deepEqual([...at].sort((a,b)=>a-b), at);
-  h.nodes.set('ta-name',{value:'영역 태스크'}); h.click('aset',{v:'health'});
+  h.nodes.set('ta-name',{value:'영역 미션'}); h.click('aset',{v:'health'});
   h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
-  const task = Object.values(h.snapshot().mine).find(m => m.name === '영역 태스크');
+  const task = Object.values(h.snapshot().mine).find(m => m.name === '영역 미션');
   assert.ok(task); assert.deepEqual(task.area,['health']);
 });
 test.skip('brain dump (UI hidden: BD_ON=false): pour lines in, inline guide, hide area, send one to task, delete one',async () => {
@@ -352,8 +352,8 @@ test.skip('brain dump (UI hidden: BD_ON=false): pour lines in, inline guide, hid
   h.click('bd-step',{id:first.id,v:'9'}); assert.match(h.nodes.get('overlay').innerHTML,/저장할 자료인가요\?/); assert.match(h.nodes.get('overlay').innerHTML,/data-v="note">예.*data-v="drop">아니요/s);
   h.click('bd-step',{id:first.id,v:'1'}); assert.match(h.nodes.get('overlay').innerHTML,/몇 주 이상 걸리는 목표인가요\?/);
   h.click('bd-step',{id:first.id,v:'3'}); assert.match(h.nodes.get('overlay').innerHTML,/꾸준히 반복해야 하나요\?/); assert.match(h.nodes.get('overlay').innerHTML,/data-v="drop">아니요/);
-  h.click('bd-step',{id:first.id,v:'2'}); h.click('bd-ask',{id:first.id,v:'task'}); assert.match(h.nodes.get('overlay').innerHTML,/태스크로 분류할게요/);
-  h.click('cfok'); assert.match(h.nodes.get('overlay').innerHTML,/태스크 추가/); h.click('sheet-close');
+  h.click('bd-step',{id:first.id,v:'2'}); h.click('bd-ask',{id:first.id,v:'task'}); assert.match(h.nodes.get('overlay').innerHTML,/미션으로 분류할게요/);
+  h.click('cfok'); assert.match(h.nodes.get('overlay').innerHTML,/미션 추가/); h.click('sheet-close');
   h.click('bd-area',{v:'off'}); assert.ok(!h.nodes.get('app').innerHTML.includes('id="bd-in"')); assert.match(h.nodes.get('app').innerHTML,/브레인 덤프 열기/);
   h.click('bd-area',{v:'on'}); assert.ok(h.nodes.get('app').innerHTML.includes('id="bd-in"'));
   const wash = dumps().find(d => d.text === '세탁소 들르기'); h.click('bd-send',{id:wash.id,v:'task'});
@@ -381,7 +381,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   h.click('nt-edit',{id:n0.id}); h.click('nt-task',{f:'next'}); await h.settle();
   assert.match(ov(),/어디로 보낼까요/); assert.match(ov(),/ntsendo rec" data-act="nt-send" data-v="daily"/); h.click('nt-send',{v:'task'});
   h.nodes.set('ta-name',{value:'매일 아침 서비스 조사'}); h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
-  assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.noteId === n0.id)); assert.match(app(),/태스크 진행 중/);
+  assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.noteId === n0.id)); assert.match(app(),/미션 진행 중/);
   h.click('nt-edit',{id:n0.id}); h.click('nt-del',{id:n0.id}); h.click('nt-del',{id:n0.id}); await h.settle();
   assert.equal(notes().length,0); assert.equal(xp(),x0,'deleting reverses the reward');
   // learning: detail screen with chapters (Cornell notes per chapter) and wrap-up
@@ -417,7 +417,7 @@ for (const page of ['today','today-main','dash','me','me-main','cal','main-detai
       show(); const row = taskMarkup(h.nodes.get('app').innerHTML,id);
       assert.deepEqual(timeBadges(row),page === 'cal' ? [] : [label]);
       assert.equal(row.split(label).length-1,page === 'cal' ? 0 : 1,'no raw duplicate time');
-      assert.doesNotMatch(row,/task-quest-tag|data-act="project"|메인|서브|연결 대상|title=/);
+      assert.doesNotMatch(row,/task-quest-tag|data-act="project"|메인|스테이지|연결 대상|title=/);
       if (page === 'cal') assert.doesNotMatch(row,/<span class="tday\b/);
       else assert.match(row,/<small class="task-meta">/);
     }
@@ -449,7 +449,7 @@ test('all taskRow flags including noTime/bare/nested/completed/ghost show only s
     assert.deepEqual(timeBadges(row),time ? [time === '09:00' ? '9:00' : '24:05'] : []);
     if (time) assert.equal(row.split(time === '09:00' ? '9:00' : '24:05').length-1,1);
     assert.ok(row.includes(escape(title)),'task title stays escaped text');
-    assert.doesNotMatch(row,/<img|onerror="bad"|task-quest-tag|data-act="project"|>메인<|>서브</);
+    assert.doesNotMatch(row,/<img|onerror="bad"|task-quest-tag|data-act="project"|>메인<|>스테이지</);
     if (!ghost) { assert.match(row,/마감일 텍스트/); assert.match(row,/📝 메모/); }
     else assert.match(row,/오늘로 넘어갔어요/);
   }
@@ -475,14 +475,14 @@ async function calendarActivityUI() {
   saved.mine = {
     oddJournal:{id:'oddJournal',kind:'diary',date,at:1,cond:80,emo:'평온',text:'첫 저널 <img src=x> & 안전'},
     second:{id:'second',kind:'diary',date,at:1,text:'두 번째 저널'},
-    daily:{id:'daily',kind:'quest',name:'완료 데일리',days:[1],done:{[date]:at}},
-    done:{id:'done',kind:'mission',name:'실제 완료 태스크',done:true,doneAt:at,due:'2026-11-01',time:'09:00'},
-    period:{id:'period',kind:'mission',name:'기간 완료 태스크',period:'month',done:true,doneAt:at,due:'2026-11-01'},
-    legacy:{id:'legacy',kind:'mission',name:'과거 완료 태스크',done:true,due:date},
-    planned:{id:'planned',kind:'mission',name:'예정 태스크',done:false,due:'2099-11-02',time:'13:00'},
+    daily:{id:'daily',kind:'quest',name:'완료 일일',days:[1],done:{[date]:at}},
+    done:{id:'done',kind:'mission',name:'실제 완료 미션',done:true,doneAt:at,due:'2026-11-01',time:'09:00'},
+    period:{id:'period',kind:'mission',name:'기간 완료 미션',period:'month',done:true,doneAt:at,due:'2026-11-01'},
+    legacy:{id:'legacy',kind:'mission',name:'과거 완료 미션',done:true,due:date},
+    planned:{id:'planned',kind:'mission',name:'예정 미션',done:false,due:'2099-11-02',time:'13:00'},
     foreign:{id:'foreign',kind:'diary',date,owner:'other',text:'다른 사용자 저널'}
   };
-  saved.projects = {main:{id:'main',owner:'me',title:'완료 메인',status:'done',doneAt:at},sub:{id:'sub',owner:'me',parentId:'main',title:'완료 서브',status:'done',doneAt:at},unknown:{id:'unknown',owner:'me',title:'과거 목표',status:'done'},other:{id:'other',owner:'other',title:'다른 사용자 목표',status:'done',doneAt:at}};
+  saved.projects = {main:{id:'main',owner:'me',title:'완료 메인',status:'done',doneAt:at},sub:{id:'sub',owner:'me',parentId:'main',title:'완료 스테이지',status:'done',doneAt:at},unknown:{id:'unknown',owner:'me',title:'과거 목표',status:'done'},other:{id:'other',owner:'other',title:'다른 사용자 목표',status:'done',doneAt:at}};
   saved.feed = {minePost:{id:'minePost',author:'me',createdAt:at,text:'공유 스토리',imgs:0,ref:{type:'diary',id:'oddJournal',extra:{}}},secondPost:{id:'secondPost',author:'me',createdAt:at+1,text:'두 번째 스토리',imgs:0},otherPost:{id:'otherPost',author:'other',createdAt:at,text:'다른 사용자 스토리',imgs:0}};
   const h = await profileUI(saved); h.route('cal'); h.click('cpick',{v:date,m:'month'});
   return h;
@@ -495,7 +495,7 @@ test('past month date buttons open the day records page; back returns to the sam
   assert.equal(h.context.location.hash,'#calday'); assert.equal(h.nodes.get('overlay').innerHTML,'');
   assert.match(h.nodes.get('topbar').innerHTML,/data-act="back"/);
   const sheet = h.nodes.get('app').innerHTML;
-  for (const text of ['첫 저널','두 번째 저널','공유 스토리','두 번째 스토리','완료 데일리','실제 완료 태스크','기간 완료 태스크','완료 메인','완료 서브','완료</h3>','예정 · 태스크','날짜 미확인','과거 완료 태스크']) assert.ok(sheet.includes(text),text);
+  for (const text of ['첫 저널','두 번째 저널','공유 스토리','두 번째 스토리','완료 일일','실제 완료 미션','기간 완료 미션','완료 메인','완료 스테이지','완료</h3>','예정 · 미션','날짜 미확인','과거 완료 미션']) assert.ok(sheet.includes(text),text);
   assert.match(sheet,/data-date="2026-11-02"/); assert.match(sheet,/&lt;img src=x&gt; &amp; 안전/);
   assert.doesNotMatch(sheet,/다른 사용자|<img src=x>|class="tday\b|id="pl-text"|data-act="psave"/);
   assertNoNestedButtons(sheet); assert.deepEqual(h.snapshot(),before);
@@ -513,7 +513,7 @@ test('day records page journal view never initializes editor; story and goals na
   h.click('cdate',{v:'2026-11-02'}); h.click('day-post',{p:'minePost'});
   assert.equal(h.context.location.hash,'#post'); assert.match(h.nodes.get('app').innerHTML,/공유 스토리/); assert.equal(h.nodes.get('overlay').innerHTML,'');
   h.route('cal'); h.click('cdate',{v:'2026-11-02'}); h.click('day-project',{p:'sub'});
-  assert.equal(h.context.location.hash,'#goal'); assert.match(h.nodes.get('app').innerHTML,/완료 서브/);
+  assert.equal(h.context.location.hash,'#goal'); assert.match(h.nodes.get('app').innerHTML,/완료 스테이지/);
   h.route('cal'); h.click('cdate',{v:'2026-01-15'}); assert.match(h.nodes.get('app').innerHTML,/이 날의 기록이나 완료한 항목이 없어요/);
   assert.doesNotMatch(h.nodes.get('app').innerHTML,/data-act="journal-view"|data-act="day-post"/);
   h.click('day-schedule',{v:'2026-01-15'}); assert.equal(h.context.location.hash,'#cal'); h.route('cal'); assert.match(h.nodes.get('app').innerHTML,/1월 15일/);
@@ -526,7 +526,7 @@ test('completion timestamp survives edits/viewing, undo clears and recomplete st
   const h = await calendarActivityUI();
   h.context.confirm = () => true;
   const previous = h.snapshot().mine.done.doneAt;
-  h.click('tedit',{id:'done'}); h.nodes.set('te-name',{value:'수정한 완료 태스크'}); h.nodes.set('te-note',{value:'메모'});
+  h.click('tedit',{id:'done'}); h.nodes.set('te-name',{value:'수정한 완료 미션'}); h.nodes.set('te-note',{value:'메모'});
   h.click('submit-tedit'); await h.settle(); assert.equal(h.snapshot().mine.done.doneAt,previous);
   h.click('mcheck',{id:'done'}); h.click('cfok'); await h.settle(); assert.equal(h.snapshot().mine.done.doneAt,null);
   h.click('mcheck',{id:'done'}); await h.settle(); assert.ok(h.snapshot().mine.done.doneAt >= previous);
@@ -578,7 +578,7 @@ for (const mode of ['day','week','month','year']) {
     assert.doesNotMatch(html,/task-quest-tag|퀘스트 상세 보기/);
     if (mode === 'year') {
       assert.equal(badges.length,0,'year is a counts-only heatmap with no task names');
-      assert.doesNotMatch(html,/태스크 tm|태스크 ts/);
+      assert.doesNotMatch(html,/미션 tm|미션 ts/);
       h.click('cpick',{v:h.snapshot().mine.tm.due.slice(0,7)+'-01',m:'month'});
       assert.deepEqual(timeBadges(h.nodes.get('app').innerHTML),[],'year drill-down month has no badges');
       h.click('cpick',{v:before.mine.tm.due,m:'day'});
@@ -586,7 +586,7 @@ for (const mode of ['day','week','month','year']) {
       assert.doesNotMatch(h.nodes.get('app').innerHTML,/<span class="tday\b/);
     } else {
       assert.deepEqual(badges,[]);
-      assert.match(html,/태스크 tm/);
+      assert.match(html,/미션 tm/);
       if (mode !== 'month') {
         for (let hr=1;hr<=24;hr++) assert.match(html,new RegExp(`data-h="${hr}"`));
         assert.match(html,/>9시</); assert.match(html,/>24시</);
@@ -612,7 +612,7 @@ for (const mode of ['day','week','month']) {
     const next = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,'0')}-${String(tomorrow.getDate()).padStart(2,'0')}`;
     snapshot.mine.tm.time = '09:00';
     snapshot.mine.ts.done = true; snapshot.mine.ts.doneAt = Date.now();
-    snapshot.mine.ghost = {id:'ghost',kind:'mission',name:'넘겨진 태스크',projectId:'missing',lv:'normal',due:next,origDue:date,done:false,time:'13:15'};
+    snapshot.mine.ghost = {id:'ghost',kind:'mission',name:'넘겨진 미션',projectId:'missing',lv:'normal',due:next,origDue:date,done:false,time:'13:15'};
     // Keep the month cell within its existing three-item display limit.
     delete snapshot.mine.plain; delete snapshot.mine.dangling;
     h = await profileUI(snapshot); h.route('cal'); h.click('cmode',{v:mode});
@@ -620,7 +620,7 @@ for (const mode of ['day','week','month']) {
     assert.doesNotMatch(html,/<span class="tday\b/);
     const badges = timeBadges(html);
     assert.deepEqual(badges,[]);
-    assert.match(html,/넘겨진 태스크/); assert.match(html,/태스크 ts/);
+    assert.match(html,/넘겨진 미션/); assert.match(html,/미션 ts/);
     assert.doesNotMatch(visibleText(html),/9:00|24:05|13:15/);
     if (mode !== 'month') assert.deepEqual(timeBadges(taskMarkup(html,'ghost')),[]);
     assert.doesNotMatch(html,/task-quest-tag|퀘스트 상세 보기/);
@@ -642,11 +642,11 @@ test('custom drafts and mission references show only supplied time and preserve 
   assert.match(draft,/<b>시간 없음<\/b><button/);
   assert.equal(draft.split('9:00').length-1,1);
   for (const projectId of ['main','sub','missing']) {
-    const html = ctx.refHtml({ref:{type:'mission',id:projectId,mission:'완료 태스크'}});
+    const html = ctx.refHtml({ref:{type:'mission',id:projectId,mission:'완료 미션'}});
     assert.deepEqual(timeBadges(html),[],'do not invent a task time from a project ID');
     assert.doesNotMatch(html,/비공개 제목/); assertNoNestedButtons(html);
-    assert.match(html,/태스크 완료 · 완료 태스크/);
-    assert.deepEqual(timeBadges(ctx.refHtml({ref:{type:'mission',id:projectId,mission:'완료 태스크',time:'09:00'}})),['9:00']);
+    assert.match(html,/미션 완료 · 완료 미션/);
+    assert.deepEqual(timeBadges(ctx.refHtml({ref:{type:'mission',id:projectId,mission:'완료 미션',time:'09:00'}})),['9:00']);
   }
   assert.doesNotMatch(js,/taskQuestTag|task-quest-tag/);
 });
@@ -673,8 +673,8 @@ for (const mode of ['day','week','month']) {
 }
 test('calendar detail and all period helpers suppress only date/time badges including ghosts',async () => {
   const js = await readFile(root+'/src/legacy-app.js','utf8');
-  const task = {id:'period',name:'기간 태스크',time:'09:00',period:'week',due:'2026-11-01',note:'메모'};
-  const ghost = {...task,id:'ghost',name:'넘겨진 태스크',_ghost:true};
+  const task = {id:'period',name:'기간 미션',time:'09:00',period:'week',due:'2026-11-01',note:'메모'};
+  const ghost = {...task,id:'ghost',name:'넘겨진 미션',_ghost:true};
   const ctx = vm.createContext({by:{'2026-11-01':[task,ghost]},mineOf:()=>[task,ghost],esc:String,lateDays:()=>3,
     dueLabel:()=> '<span class="tday soft">11월 1일</span>',xpFloat:()=>'',I:{check:''},tmLabel:timeFormatter(js)});
   vm.runInContext(js.slice(js.indexOf('function taskTimeTag('),js.indexOf('\nfunction ring(')),ctx);
@@ -685,8 +685,8 @@ test('calendar detail and all period helpers suppress only date/time badges incl
     for (const html of [ctx.details(),ctx.period(per)]) {
     assert.deepEqual(timeBadges(html),[]);
     assert.doesNotMatch(html,/<span class="tday\b|11월 1일/);
-    assert.match(html,/기간 태스크/); assert.match(html,/📝 메모/); assert.match(html,/3일째 미룸/);
-    assert.match(html,/넘겨진 태스크/); assert.match(html,/오늘로 넘어갔어요/);
+    assert.match(html,/기간 미션/); assert.match(html,/📝 메모/); assert.match(html,/3일째 미룸/);
+    assert.match(html,/넘겨진 미션/); assert.match(html,/오늘로 넘어갔어요/);
     assert.match(html,/data-act="tedit"/); assert.match(html,/data-act="mcheck"/);
     }
   }
@@ -728,16 +728,16 @@ test('story image/text captions and compose mission references never invent time
   vm.runInContext('var SV = {users:[{uid:"other",items:[{}]}],ui:0,ii:0};',ctx);
   for (const time of [undefined,'09:00']) {
     for (const imgs of [0,1]) {
-      post = {id:'post',imgs,text:'본문',ref:{type:'mission',id:'main',mission:'태스크 제목',time}};
+      post = {id:'post',imgs,text:'본문',ref:{type:'mission',id:'main',mission:'미션 제목',time}};
       if (imgs) ctx.S.media['post~0'] = 'test-image';
       ctx.svRender();
       assert.deepEqual(timeBadges(overlay.innerHTML),time ? ['9:00'] : []);
-      assert.match(overlay.innerHTML,/태스크 제목/);
+      assert.match(overlay.innerHTML,/미션 제목/);
       assert.doesNotMatch(overlay.innerHTML,/task-quest-tag|퀘스트 상세 보기/);
     }
     ctx.S.compose = {ref:post.ref,photos:[]}; ctx.postSheet('');
     assert.deepEqual(timeBadges(sheet),time ? ['9:00'] : []);
-    assert.match(sheet,/태스크 제목/);
+    assert.match(sheet,/미션 제목/);
     assert.doesNotMatch(sheet,/task-quest-tag|퀘스트 상세 보기/);
   }
 });
@@ -804,7 +804,7 @@ function assertDifficultySelector(html,kind){
 for(const [route,kind] of [['add-daily','quest'],['quest','quest'],['hedit','quest'],['add-once','mission'],['mission','mission'],['taskadd','mission'],['tedit','mission']]){
   test(`${route}: shared five labels/icons and correct kind-specific selected tier`,async()=>{
     let h=await linkedUI();const saved=h.snapshot();
-    saved.mine.daily={id:'daily',kind:'quest',name:'기존 데일리',lv:'epic',days:[1,2,3,4,5,6,0],done:{}};
+    saved.mine.daily={id:'daily',kind:'quest',name:'기존 일일',lv:'epic',days:[1,2,3,4,5,6,0],done:{}};
     h=await profileUI(saved);const before=h.snapshot();
     if(route.startsWith('add-'))h.click('sheet',{k:'add',v:route.slice(4)});
     else if(route==='hedit'||route==='tedit')h.click(route,{id:route==='hedit'?'daily':'tm'});
@@ -897,7 +897,7 @@ for(const [route,kind,field,input] of [
   ['tedit','mission','lv','te-name'],['nttask','mission','lv','nt-name']
 ])test(`${route}: every tier has no below-selector details, keeps button payouts and drafts, never issues rewards`,async()=>{
   let h=await linkedUI(),saved=h.snapshot();
-  saved.mine.daily={id:'daily',kind:'quest',name:'데일리',lv:'easy',days:[0,1,2,3,4,5,6],done:{}};
+  saved.mine.daily={id:'daily',kind:'quest',name:'일일',lv:'easy',days:[0,1,2,3,4,5,6],done:{}};
   h=await profileUI(saved);
   if(route.startsWith('add-'))h.click('sheet',{k:'add',v:route.slice(4)});
   else if(route==='hedit'||route==='tedit')h.click(route,{id:route==='hedit'?'daily':'tm'});
@@ -1094,8 +1094,8 @@ test('rewards tab keeps per-reward purchase history with use and refund actions'
 test('month view: daily quests show past completions, today with a checkbox, and only the next occurrence once today is done',async()=>{
   const base = await profileUI(), saved = base.snapshot(), DAYMS = 86400000, kd = t => new Date(t+9*3600000).toISOString().slice(0,10);
   const T = kd(Date.now()), Y = kd(Date.now()-DAYMS), TM = kd(Date.now()+DAYMS), old = Date.now()-30*DAYMS;
-  saved.mine.qa = {id:'qa',kind:'quest',name:'안 한 데일리',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{[Y]:Date.now()-DAYMS},createdAt:old};
-  saved.mine.qb = {id:'qb',kind:'quest',name:'한 데일리',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{[T]:Date.now()},createdAt:old};
+  saved.mine.qa = {id:'qa',kind:'quest',name:'안 한 일일',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{[Y]:Date.now()-DAYMS},createdAt:old};
+  saved.mine.qb = {id:'qb',kind:'quest',name:'한 일일',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{[T]:Date.now()},createdAt:old};
   const h = await profileUI(saved); h.route('cal'); h.click('cpick',{v:T.slice(0,8)+'01',m:'month'});
   const html = h.nodes.get('app').innerHTML, cells = id => [...html.matchAll(new RegExp(`data-act="hcheckd" data-id="${id}" data-d="([^"]+)"`,'g'))].map(m => m[1]);
   const inMonth = d => d.slice(0,7) === T.slice(0,7);
@@ -1109,8 +1109,8 @@ test('month view: daily quests show past completions, today with a checkbox, and
 test('week view: daily quests follow the same today/next-occurrence rule as month',async()=>{
   const base = await profileUI(), saved = base.snapshot(), DAYMS = 86400000, kd = t => new Date(t+9*3600000).toISOString().slice(0,10);
   const T = kd(Date.now()), TM = kd(Date.now()+DAYMS), D2 = kd(Date.now()+2*DAYMS), old = Date.now()-30*DAYMS;
-  saved.mine.qa = {id:'qa',kind:'quest',name:'안 한 데일리',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{},createdAt:old};
-  saved.mine.qb = {id:'qb',kind:'quest',name:'한 데일리',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{[T]:Date.now()},createdAt:old};
+  saved.mine.qa = {id:'qa',kind:'quest',name:'안 한 일일',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{},createdAt:old};
+  saved.mine.qb = {id:'qb',kind:'quest',name:'한 일일',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{[T]:Date.now()},createdAt:old};
   const h = await profileUI(saved); h.route('cal'); h.click('cmode',{v:'week'});
   const html = h.nodes.get('app').innerHTML, ds = id => [...html.matchAll(new RegExp(`data-act="hcheckd" data-id="${id}" data-d="([^"]+)"`,'g'))].map(m => m[1]);
   const wk = d => html.includes(`data-v="${d}"`);
@@ -1138,9 +1138,9 @@ test('main and sub quests can be created as planned (시작 전) and toggled to 
 });
 test('nav › 퀘스트: bulk status change, archive, task move and confirmed delete',async()=>{
   const base=await profileUI(),saved=base.snapshot(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
-  saved.projects={m1:{id:'m1',owner:'me',title:'메인 하나',end:'2099-12-31',status:'active'},m2:{id:'m2',owner:'me',title:'메인 둘',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'서브',end:'2099-12-31',status:'active'}};
-  saved.mine.qa={id:'qa',kind:'quest',name:'관리 데일리',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{},createdAt:1};
-  saved.mine.t1={id:'t1',kind:'mission',name:'관리 태스크',due:'2099-01-01',time:'10:00',projectId:'s1',lv:'normal',done:false,createdAt:1};
+  saved.projects={m1:{id:'m1',owner:'me',title:'메인 하나',end:'2099-12-31',status:'active'},m2:{id:'m2',owner:'me',title:'메인 둘',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'스테이지',end:'2099-12-31',status:'active'}};
+  saved.mine.qa={id:'qa',kind:'quest',name:'관리 일일',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{},createdAt:1};
+  saved.mine.t1={id:'t1',kind:'mission',name:'관리 미션',due:'2099-01-01',time:'10:00',projectId:'s1',lv:'normal',done:false,createdAt:1};
   const h=await profileUI(saved);assert.match(h.nodes.get('nav').innerHTML,/href="#qmanage"[^>]*>[\s\S]*?<span>퀘스트<\/span>/);
   h.route('qmanage');assert.match(h.nodes.get('topbar').innerHTML,/퀘스트/);assert.match(h.nodes.get('app').innerHTML,/data-act="pl-tab" data-v="sub"[\s\S]*data-k="add" data-v="big"><span class="wd-plus">\+<\/span><b>메인 퀘스트 생성/);h.click('pl-mode',{v:'tidy'});assert.match(h.nodes.get('app').innerHTML,/메인 하나/);
   h.click('qm-sel',{id:'m1'});h.click('qm-sel',{id:'m2'});assert.match(h.nodes.get('app').innerHTML,/<b>2<\/b>개 선택/);
@@ -1153,19 +1153,19 @@ test('nav › 퀘스트: bulk status change, archive, task move and confirmed de
 test('nav › 퀘스트: plan sheet creates main, sub, a timed first task and a daily; quest without next task is flagged',async()=>{
   const h=await profileUI(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);h.route('qmanage');assert.match(h.nodes.get('app').innerHTML,/data-act="pl-tab" data-v="sub"[\s\S]*data-k="add" data-v="big"><span class="wd-plus">\+<\/span><b>메인 퀘스트 생성/);
   h.click('pl-new');assert.match(h.nodes.get('overlay').innerHTML,/메인 퀘스트 설계[\s\S]*data-act="dpopen" data-k="end"/);
-  h.nodes.set('pw-name',{value:'마라톤'});h.click('pw-go',{v:'1'});assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/어떤 서브 퀘스트/,'deadline required');
-  h.click('dppick',{k:'end',v:'2099-12-31'});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/어떤 서브 퀘스트/);
+  h.nodes.set('pw-name',{value:'마라톤'});h.click('pw-go',{v:'1'});assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/어떤 스테이지/,'deadline required');
+  h.click('dppick',{k:'end',v:'2099-12-31'});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/어떤 스테이지/);
   h.nodes.set('pw-s0',{value:'기초 체력'});h.nodes.set('pw-s1',{value:''});h.click('pw-go',{v:'1'});
   assert.match(h.nodes.get('overlay').innerHTML,/data-act="tmset"/,'same time picker as the dashboard');
-  h.nodes.set('pw-act',{value:'러닝화 사기'});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/어떤 태스크부터/,'time is required');
-  h.click('cdue1',{v:T});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/데일리 퀘스트가 있나요/);
+  h.nodes.set('pw-act',{value:'러닝화 사기'});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/어떤 미션부터/,'time is required');
+  h.click('cdue1',{v:T});h.click('pw-go',{v:'1'});assert.match(h.nodes.get('overlay').innerHTML,/일일 퀘스트가 있나요/);
   h.nodes.set('pw-hab',{value:'매일 달리기'});h.click('tmset');h.click('pw-go',{v:'1'});await h.settle();
   const s=h.snapshot(),g=Object.values(s.projects).find(p=>p.title==='마라톤'),subs=Object.values(s.projects).filter(p=>p.parentId===g.id);
   assert.equal(g.status,'active');assert.equal(subs.length,1);assert.equal(subs[0].title,'기초 체력');
   const t=Object.values(s.mine).find(m=>m.name==='러닝화 사기');assert.equal(t.projectId,subs[0].id);assert.equal(t.due,T);assert.equal(t.time,'09:00');
   assert.ok(Object.values(s.mine).find(m=>m.kind==='quest'&&m.name==='매일 달리기'&&m.time==='09:00'));
-  assert.doesNotMatch(h.nodes.get('app').innerHTML,/지금 할 태스크/);
-  h.click('mcheck',{id:t.id});await h.settle();assert.match(h.nodes.get('app').innerHTML,/class="card pgc[^"]*" data-act="project" data-p="[^"]+"[\s\S]*?마라톤/);assert.doesNotMatch(h.nodes.get('app').innerHTML,/다음 태스크 없음|<em>다음<\/em>/);
+  assert.doesNotMatch(h.nodes.get('app').innerHTML,/지금 할 미션/);
+  h.click('mcheck',{id:t.id});await h.settle();assert.match(h.nodes.get('app').innerHTML,/class="card pgc[^"]*" data-act="project" data-p="[^"]+"[\s\S]*?마라톤/);assert.doesNotMatch(h.nodes.get('app').innerHTML,/다음 미션 없음|<em>다음<\/em>/);
 });
 test('stats: single life-area chip on main/daily feeds numeric area XP; sub tasks inherit; undo removes it',async()=>{
   const base=await profileUI(),saved=base.snapshot(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
@@ -1189,17 +1189,17 @@ test('main quest page shows sub quests as cards with progress and next task',asy
   assert.match(html,/class="card pgc[^"]*" data-act="project" data-p="s1"[\s\S]*?기초 체력/);
   assert.match(html,/data-p="s2"[\s\S]*?시작 전/);assert.match(html,/subadd/);assert.doesNotMatch(html,/<em>다음<\/em>/);
 });
-test('nav › 퀘스트: 전체 / 메인 / 서브 / 데일리 tabs each show their own list and create button',async()=>{
+test('nav › 퀘스트: 전체 / 메인 / 스테이지 / 일일 tabs each show their own list and create button',async()=>{
   const base=await profileUI(),saved=base.snapshot();
-  saved.projects={m1:{id:'m1',owner:'me',title:'메인 A',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'서브 B',end:'2099-12-31',status:'active'}};
-  saved.mine.qa={id:'qa',kind:'quest',name:'데일리 C',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:true,done:{},createdAt:1};
+  saved.projects={m1:{id:'m1',owner:'me',title:'메인 A',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'스테이지 B',end:'2099-12-31',status:'active'}};
+  saved.mine.qa={id:'qa',kind:'quest',name:'일일 C',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:true,done:{},createdAt:1};
   const h=await profileUI(saved);h.route('qmanage');let html=h.nodes.get('app').innerHTML;
-  assert.match(html,/data-act="pl-tab" data-v="all" aria-pressed="true"/);assert.match(html,/메인 A[\s\S]*서브 B[\s\S]*데일리 C/);
-  h.click('pl-tab',{v:'main'});html=h.nodes.get('app').innerHTML;assert.match(html,/메인 A/);assert.doesNotMatch(html,/데일리 C/);
-  h.click('pl-tab',{v:'sub'});html=h.nodes.get('app').innerHTML;assert.match(html,/서브 B/);assert.match(html,/data-v="sub"><span class="wd-plus">/);assert.doesNotMatch(html,/데일리 C/);
-  h.click('pl-tab',{v:'daily'});html=h.nodes.get('app').innerHTML;assert.match(html,/데일리 C/);assert.match(html,/data-v="daily"><span class="wd-plus">/);assert.doesNotMatch(html,/메인 A/);
+  assert.match(html,/data-act="pl-tab" data-v="all" aria-pressed="true"/);assert.match(html,/메인 A[\s\S]*스테이지 B[\s\S]*일일 C/);
+  h.click('pl-tab',{v:'main'});html=h.nodes.get('app').innerHTML;assert.match(html,/메인 A/);assert.doesNotMatch(html,/일일 C/);
+  h.click('pl-tab',{v:'sub'});html=h.nodes.get('app').innerHTML;assert.match(html,/스테이지 B/);assert.match(html,/data-v="sub"><span class="wd-plus">/);assert.doesNotMatch(html,/일일 C/);
+  h.click('pl-tab',{v:'daily'});html=h.nodes.get('app').innerHTML;assert.match(html,/일일 C/);assert.match(html,/data-v="daily"><span class="wd-plus">/);assert.doesNotMatch(html,/메인 A/);
 });
-test('nav › 퀘스트 › 데일리: archived dailies listed under 보관 and can be restored',async()=>{
+test('nav › 퀘스트 › 일일: archived dailies listed under 보관 and can be restored',async()=>{
   const base=await profileUI(),saved=base.snapshot();
   saved.mine.qz={id:'qz',kind:'quest',name:'쉬는 습관',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:false,done:{},createdAt:1};
   const h=await profileUI(saved);h.route('qmanage');h.click('pl-tab',{v:'daily'});
@@ -1216,19 +1216,19 @@ test('sub quest create is one sheet everywhere, with 속성; sub area overrides 
   const base=await profileUI(),saved=base.snapshot(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
   saved.projects={m1:{id:'m1',owner:'me',title:'마라톤',end:'2099-12-31',status:'active',area:['health']}};
   const h=await profileUI(saved);h.click('project',{p:'m1'});h.click('sheet',{k:'sub',p:'m1'});
-  const ov=h.nodes.get('overlay').innerHTML;assert.match(ov,/서브 퀘스트 생성/);assert.match(ov,/data-act="aset" data-v="money"/);assert.doesNotMatch(ov,/최초 생성|data-act="ntopen"/);
+  const ov=h.nodes.get('overlay').innerHTML;assert.match(ov,/스테이지 생성/);assert.match(ov,/data-act="aset" data-v="money"/);assert.doesNotMatch(ov,/최초 생성|data-act="ntopen"/);
   h.nodes.set('ad-name',{value:'장비 구입'});h.click('dppick',{k:'end',v:'2099-06-01'});h.click('aset',{v:'money'});h.click('submit-add');await h.settle();
   const sub=Object.values(h.snapshot().projects).find(p=>p.title==='장비 구입');assert.equal(sub.parentId,'m1');assert.deepEqual(sub.area,['money']);
 });
-test('nav › 퀘스트 › 서브: planned sub quests sit under their own 나중에 시작 group',async()=>{
+test('nav › 퀘스트 › 스테이지: planned sub quests sit under their own 나중에 시작 group',async()=>{
   const base=await profileUI(),saved=base.snapshot();
-  saved.projects={m1:{id:'m1',owner:'me',title:'메인',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'지금 서브',end:'2099-12-31',status:'active'},s2:{id:'s2',owner:'me',parentId:'m1',title:'나중 서브',end:'2099-12-31',status:'planned'}};
+  saved.projects={m1:{id:'m1',owner:'me',title:'메인',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'지금 스테이지',end:'2099-12-31',status:'active'},s2:{id:'s2',owner:'me',parentId:'m1',title:'나중 스테이지',end:'2099-12-31',status:'planned'}};
   const h=await profileUI(saved);h.route('qmanage');assert.doesNotMatch(h.nodes.get('app').innerHTML,/나중에 시작 <span/,'hidden on 전체');h.click('pl-tab',{v:'sub'});const html=h.nodes.get('app').innerHTML;
-  assert.match(html,/서브 퀘스트 <span class="num">1[\s\S]*지금 서브[\s\S]*서브 퀘스트 생성[\s\S]*나중에 시작 <span class="num">1[\s\S]*나중 서브/);
+  assert.match(html,/스테이지 <span class="num">1[\s\S]*지금 스테이지[\s\S]*스테이지 생성[\s\S]*나중에 시작 <span class="num">1[\s\S]*나중 스테이지/);
 });
 test('main / sub quest page shows selected 속성 tags; sub without its own shows the inherited one',async()=>{
   const base=await profileUI(),saved=base.snapshot();
-  saved.projects={m1:{id:'m1',owner:'me',title:'메인',end:'2099-12-31',status:'active',area:['health','growth']},s1:{id:'s1',owner:'me',parentId:'m1',title:'서브',end:'2099-12-31',status:'active'},s2:{id:'s2',owner:'me',parentId:'m1',title:'서브2',end:'2099-12-31',status:'active',area:['money']}};
+  saved.projects={m1:{id:'m1',owner:'me',title:'메인',end:'2099-12-31',status:'active',area:['health','growth']},s1:{id:'s1',owner:'me',parentId:'m1',title:'스테이지',end:'2099-12-31',status:'active'},s2:{id:'s2',owner:'me',parentId:'m1',title:'스테이지2',end:'2099-12-31',status:'active',area:['money']}};
   const h=await profileUI(saved);h.click('project',{p:'m1'});let html=h.nodes.get('app').innerHTML;
   assert.match(html,/class="tag atag "[^>]*>[\s\S]*?건강<\/span>[\s\S]*?배움<\/span>/);
   h.click('project',{p:'s1'});html=h.nodes.get('app').innerHTML;assert.match(html,/class="tag atag inh"[\s\S]*?건강/);
@@ -1250,7 +1250,7 @@ test('story menu opens on the 스토리 tab after visiting another menu',async()
 });
 test('overdue main/sub quests show a red "N일 지남" badge and no end-date tag',async()=>{
   const base=await profileUI(),saved=base.snapshot(),past=new Date(Date.now()+9*3600000-3*86400000).toISOString().slice(0,10);
-  saved.projects={m1:{id:'m1',owner:'me',title:'늦은 메인',end:past,status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'늦은 서브',end:past,status:'active'}};
+  saved.projects={m1:{id:'m1',owner:'me',title:'늦은 메인',end:past,status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'늦은 스테이지',end:past,status:'active'}};
   const h=await profileUI(saved);for(const id of ['m1','s1']){h.click('project',{p:id});const html=h.nodes.get('app').innerHTML;
     assert.match(html,/<span class="tag dd"><span class="ddlate">3일 지남<\/span><\/span>/);assert.doesNotMatch(html,/까지<\/span>|D\+3/);}
 });
