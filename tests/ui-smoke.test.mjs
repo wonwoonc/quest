@@ -508,7 +508,7 @@ test('past month date buttons open the day records page; back returns to the sam
 test('day records page journal view never initializes editor; story and goals navigate; today/future open the day tab',async()=>{
   const h = await calendarActivityUI(), before = h.snapshot();
   h.click('cdate',{v:'2026-11-02'}); assert.equal(h.context.location.hash,'#calday'); h.click('journal-view',{id:'oddJournal'});
-  assert.match(h.nodes.get('overlay').innerHTML,/읽기 전용/); assert.match(h.nodes.get('overlay').innerHTML,/첫 저널 &lt;img/);
+  assert.match(h.nodes.get('overlay').innerHTML,/data-act="dedit"/); assert.match(h.nodes.get('overlay').innerHTML,/첫 저널 &lt;img/);
   assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/textarea|data-act="psave"/); assert.deepEqual(h.snapshot(),before);
   h.click('cdate',{v:'2026-11-02'}); h.click('day-post',{p:'minePost'});
   assert.equal(h.context.location.hash,'#post'); assert.match(h.nodes.get('app').innerHTML,/공유 스토리/); assert.equal(h.nodes.get('overlay').innerHTML,'');
@@ -1307,4 +1307,16 @@ test('자료실 저널 서랍: lists own journals only, escaped, opens detail',a
   assert.match(html, /11월 2일 월요일/); assert.match(html, /컨디션 80% · 평온/); assert.doesNotMatch(html, /<img src=x>|다른 사용자 저널/);
   assert.match(html, /data-k="diary"/);
   h.click('journal-view',{id:'d-2026-11-02'}); assert.match(h.nodes.get('overlay').innerHTML, /스쿼트/);
+});
+test('저널: 지난 날짜로 쓰기 (보상 없음), 카드에서 수정',async()=>{
+  const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); await h.settle();
+  assert.match(h.nodes.get('app').innerHTML, />저널 쓰기</);
+  h.click('sheet',{k:'diary'}); const t = h.snapshot && Object.keys(h.snapshot().mine).length;
+  const o = h.nodes.get('overlay').innerHTML, y = o.match(/data-act="jdate" data-v="([\d-]+)" aria-pressed="false">어제/)[1];
+  h.click('jdate',{v:y}); assert.match(h.nodes.get('overlay').innerHTML, /보상 없이 기록만/);
+  h.click('pemo',{v:'평온'}); h.nodes.set('pl-text',{value:'어제 쓴 저널'}); h.nodes.set('pl-cond',{value:'60'}); h.click('psave'); await h.settle();
+  const d = h.snapshot().mine['d-'+y]; assert.ok(d); assert.equal(d.text,'어제 쓴 저널'); assert.equal(d.date,y);
+  h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); await h.settle();
+  assert.match(h.nodes.get('app').innerHTML, new RegExp('data-act="dedit" data-id="d-'+y+'"'));
+  h.click('dedit',{id:'d-'+y}); assert.match(h.nodes.get('overlay').innerHTML, /어제 쓴 저널/); assert.match(h.nodes.get('overlay').innerHTML, /data-act="psave"[^>]*>수정/);
 });

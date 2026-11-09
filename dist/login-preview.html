@@ -1207,6 +1207,8 @@ a.goldchip{text-decoration:none}
 .welc-steps span{font-size:13px;color:var(--sub);line-height:1.45}
 .welc .lvup-btns{margin-top:16px}
 .welc{word-break:keep-all}
+.jcard{position:relative}.jcard .jedit{position:absolute;right:14px;top:44px}
+.jdate .chips{align-items:center}.jdate .jdin{border:0;background:var(--fill);border-radius:999px;padding:7px 12px;font:inherit;font-size:14px;color:var(--ink)}
 .welc-note{margin:14px 2px 0;font-size:13px;color:var(--sub);line-height:1.5}
 .lvup .card{padding:0;margin:0 0 18px;border:0;box-shadow:none;background:none}
 .lvup .wdp{margin:0}
@@ -2560,14 +2562,24 @@ function ring(done, total){
   return `<svg class="pring" viewBox="0 0 64 64" width="64" height="64" aria-hidden="true"><circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--track)" stroke-width="7"/>${pct > 0 ? `<circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${(C*pct).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 32 32)"/>` : ""}</svg>`;
 }
 const myEmos = () => [...new Set([...mineOf("diary").map(d => d.emo).filter(e => e && !EMOI[e]), ...(S.planner.extra||[])])].slice(0, 8);
-function diaryForm(d, P){ return `
+/* 저널 날짜 바꾸기: 그 날 저널이 있으면 불러와 수정, 없으면 새로 쓰기 (오늘 이후는 막음) */
+function jLoad(dt){ if (!dt || dt > today()) return; const P = S.planner, d = S.mine["d-"+dt], el = $("#pl-text");
+  if (el) S.drafts["pl-text"] = el.value;
+  if (d){ S.planner = {...P, date:dt, cond:d.cond ?? 70, emo:d.emo || null, share:!!diaryPost("d-"+dt), edit:true}; S.drafts["pl-text"] = d.text || ""; }
+  else { if (P.edit){ S.drafts["pl-text"] = ""; S.planner = {...P, date:dt, cond:70, emo:null, share:false, edit:false}; } else S.planner = {...P, date:dt}; }
+  renderSheet(); }
+function diaryForm(d, P){ const dt = P.date || today(), t0 = today(), y0 = addD(t0, -1), past = dt !== t0;
+  return `
+    <div class="field jdate"><span class="lab">날짜 <span class="hint">깜빡한 날도 쓸 수 있어요</span></span><div class="chips">
+      <button class="chip" data-act="jdate" data-v="${t0}" aria-pressed="${dt === t0}">오늘</button><button class="chip" data-act="jdate" data-v="${y0}" aria-pressed="${dt === y0}">어제</button>
+      <input type="date" id="pl-date" class="jdin" max="${t0}" value="${dt}" aria-label="날짜 고르기"></div></div>
     <div class="cond"><span class="lab">컨디션</span><input type="range" id="pl-cond" min="0" max="100" step="5" value="${P.cond}" style="--p:${P.cond}%" aria-label="컨디션"><b class="num" id="pl-cond-v">${P.cond}%</b></div>
     <div class="emos" role="group" aria-label="감정">${EMOS.map(([n,e]) => `<button data-act="pemo" data-v="${n}" aria-pressed="${P.emo===n}">${e} ${n}</button>`).join("")}${myEmos().map(n => `<button data-act="pemo" data-v="${esc(n)}" aria-pressed="${P.emo===n}">💭 ${esc(n)}</button>`).join("")}${P.custom ? "" : `<button class="emoadd" data-act="emocustom">+ 직접 입력</button>`}</div>
     ${P.custom ? `<div class="addline" style="padding:0;margin:-4px 0 14px"><input type="text" id="pl-emo" maxlength="10" placeholder="감정 (예: 뿌듯함)" value="${D("pl-emo")}" aria-label="감정 직접 입력"><button class="btn sm sec" data-act="emoadd">추가</button></div>` : ""}
     <label class="lab" for="pl-text">일기</label>
     <textarea id="pl-text" rows="8" maxlength="5000" placeholder="오늘 있었던 일, 떠오른 생각을 자유롭게 적어 보세요">${esc(S.drafts["pl-text"] ?? (d && d.text) ?? "")}</textarea>
     <label class="toggle"><input type="checkbox" id="pl-share" ${P.share?"checked":""}> 커뮤니티에도 공유하기</label>
-    <button class="btn big full" data-act="psave" ${S.busy?"disabled":""}>${d ? "수정" : "저장"}${d ? "" : `<span class="x">최대 ${DIARY.xp} XP · ${DIARY.c} 코인</span>`}</button>
+    <button class="btn big full" data-act="psave" ${S.busy?"disabled":""}>${d ? "수정" : "저장"}${d ? "" : past ? `<span class="x">지난 날짜는 보상 없이 기록만 남아요</span>` : `<span class="x">최대 ${DIARY.xp} XP · ${DIARY.c} 코인</span>`}</button>
     ${d ? `<button class="btn big full sec" style="margin-top:10px;color:var(--warn)" data-act="ldel" data-id="d-${d.date}">저널 삭제</button>` : ""}`; }
 const diaryPost = key => Object.values(S.feed).find(p => p.author === S.me && p.ref && p.ref.type === "diary" && p.ref.id === key);
 function logToday(){ return S.mine["d-"+today()] || S.planner.edit ? diaryCard() : `<section class="card wd-lognew"><div class="ch"><h2>오늘의 저널</h2><span class="side">+${DIARY.xp} XP · +${DIARY.c} 코인</span></div><p class="hint">오늘 컨디션과 감정, 하루를 짧게 남겨 보세요.</p><button class="btn soft full" data-act="sheet" data-k="diary">오늘 저널 쓰기</button></section>`; }
@@ -2919,7 +2931,7 @@ function ntRewardLine(d, area){
 }
 function jCard(d){
   const [y, m, dd] = d.date.split("-").map(Number), wd = "일월화수목금토"[new Date(y, m-1, dd).getDay()];
-  return `<article class="card ntcard jcard" data-act="journal-view" data-id="${d.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic("journal")}저널</span><small class="num">${m}.${dd}</small></div><h3>${m}월 ${dd}일 ${wd}요일</h3><p class="ntsub">컨디션 ${d.cond ?? "-"}%${d.emo ? ` · ${esc(d.emo)}` : ""}</p>${d.text ? `<p class="ntbody">${clip(d.text, 140)}</p>` : ""}</article>`;
+  return `<article class="card ntcard jcard" data-act="journal-view" data-id="${d.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic("journal")}저널</span><small class="num">${m}.${dd}</small></div><h3>${m}월 ${dd}일 ${wd}요일</h3><button class="btn sec xs jedit" data-act="dedit" data-id="${d.id}">수정</button><p class="ntsub">컨디션 ${d.cond ?? "-"}%${d.emo ? ` · ${esc(d.emo)}` : ""}</p>${d.text ? `<p class="ntbody">${clip(d.text, 140)}</p>` : ""}</article>`;
 }
 function ntCard(n){
   const {cat, f} = ntN(n), C = noteDrawer(S, cat), pj = n.projectId && S.projects[n.projectId], d = new Date(n.updatedAt || n.createdAt || Date.now());
@@ -2945,10 +2957,10 @@ function viewNotes(){
   const inCat = all.filter(n => cat === "all" || ntN(n).cat === cat);
   const list = q ? inCat.filter(n => (ntText(n) + " " + (n.projectId && S.projects[n.projectId] ? S.projects[n.projectId].title : "")).toLowerCase().includes(q)) : inCat;
   const chip = (k, l, n) => `<button class="chip" data-act="nt-cat" data-v="${k}" aria-pressed="${cat === k}">${l}${n ? ` <span class="num">${n}</span>` : ""}</button>`;
-  const jToday = S.mine["d-"+today()], jBtn = `<button class="btn" data-act="sheet" data-k="diary">${jToday ? "오늘의 저널 수정" : "+ 오늘의 저널 쓰기"}</button>`;
+  const jBtn = `<button class="btn" data-act="sheet" data-k="diary">저널 쓰기</button>`;
   return `<div class="nttools"><input type="search" id="nt-q" placeholder="${cat === "journal" ? "저널 검색" : "자료 검색"}" value="${esc(S.ntQ || "")}" aria-label="자료 검색">${cat === "journal" ? jBtn : `<button class="btn" data-act="nt-new">+ 자료 추가</button>`}</div>
     <div class="chips ntcats" role="group" aria-label="서랍">${chip("all", "전체", all.length)}${DR.filter(d => !d.hidden || d.k === cat).map(d => chip(d.k, `${nic(d.ic)}${esc(d.l)}`, all.filter(n => ntN(n).cat === d.k).length)).join("")}${chip("journal", `${nic("journal")}저널`, jAll.length)}<button class="chip ntmng" data-act="dr-manage">+ 서랍</button></div>
-    ${cat === "journal" ? (jList.length ? `<div class="ntgrid">${jList.map(jCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 저널이 없어요" : "저널 서랍이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 오늘의 저널 쓰기」로 오늘 하루를 남겨 보세요."}</section>`) : ""}
+    ${cat === "journal" ? (jList.length ? `<div class="ntgrid">${jList.map(jCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 저널이 없어요" : "저널 서랍이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「저널 쓰기」로 오늘 하루를 남겨 보세요."}</section>`) : ""}
     ${cat === "journal" ? "" : list.length ? `<div class="ntgrid">${list.map(ntCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : cat !== "all" ? `${esc(noteDrawer(S, cat).l)} 서랍이 비어 있어요` : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 자료 추가」로 첫 자료를 담아 보세요."}</section>`}`;
 }
 function noteSheet(c){
@@ -3945,7 +3957,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
   if (c.type === 'journal-detail'){
     const d = S.mine[c.id];
     if (!d || d.kind !== 'diary' || !isOwnPrivateEntry(d,S.me)) return sheetWrap('저널', '', '<p class="empty-row">저널을 찾을 수 없어요.</p>');
-    return sheetWrap('저널', '', `<div class="day-activities"><p>${esc(d.date)} · 컨디션 ${esc(d.cond ?? '-')}% · ${esc(d.emo || '')}</p><p class="journal-content">${esc(d.text || '내용이 없어요.')}</p><p class="hint">저장된 저널 보기 · 읽기 전용</p></div>`);
+    return sheetWrap('저널', '', `<div class="day-activities"><p>${esc(d.date)} · 컨디션 ${esc(d.cond ?? '-')}% · ${esc(d.emo || '')}</p><p class="journal-content">${esc(d.text || '내용이 없어요.')}</p></div><button class="btn big full sec" data-act="dedit" data-id="${d.id}">수정</button>`);
   }
   const quick = `<div class="quick two" role="group" aria-label="기록 종류">${[["post","📝","스토리"],["add","🏁","퀘스트"]].map(([k,e,l]) => `<button data-act="sheet" data-k="${k}" aria-pressed="${c.type===k}"><span>${e}</span>${l}</button>`).join("")}</div>`;
   if (c.type === "add"){ const K = c.kind;
@@ -4401,7 +4413,7 @@ document.addEventListener("click", e => {
       if (k === "sub") return openSheet({type:"add", kind:"sub", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:"", period:"", projectId:null, parentId:pid || null, unit:null, tasks:[], area:[]});
       if (k === "profile") S.swatch = prof(S.me).color || S.swatch;
        if (k === "reward"){delete S.drafts["rw-name"];delete S.drafts['rw-cost'];}
-      if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:false}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
+      if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:d ? !!diaryPost(d.id) : false, date:today(), edit:!!d}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
        const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : "", period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null, tasks:[]}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:300}, profile:{}}[k] || {};
       openSheet({type:k, ...base}); return; }
     case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary","note","drawers","ntsend","fview"].includes(c.type)))) closeSheet(); return;
@@ -4591,7 +4603,8 @@ document.addEventListener("click", e => {
         if (share && !post) await api.addPost({ref:{type:"diary", id:key, label, extra:{cond, emo:P.emo}}, text, mood:null}, []);
         else if (share && post) await api.editPost(post.id, {text, ref:{...post.ref, extra:{cond, emo:P.emo}}});
         else if (!share && post) await api.delPost(post.id); },
-        () => { S.planner = {cond:70, emo:null, share:false}; delete S.drafts["pl-text"]; if (S.compose && S.compose.type === "diary") closeSheet(); const cl=S.economy.claims[JSON.stringify(['journal',dt])];if(!existed)toast(`저널 저장 · 지급 ${cl?.xp||0} XP / ${cl?.coins||0} 코인`);else toast('저널을 수정했어요'); if (from === "logs") openSheet({type:"logs"}); }); return; }
+        () => { S.planner = {cond:70, emo:null, share:false}; delete S.drafts["pl-text"]; if (S.compose && S.compose.type === "diary") closeSheet(); const cl=S.economy.claims[JSON.stringify(['journal',dt])];if(!existed)toast(dt === today() ? `저널 저장 · 지급 ${cl?.xp||0} XP / ${cl?.coins||0} 코인` : '지난 저널을 저장했어요');else toast('저널을 수정했어요'); if (from === "logs") openSheet({type:"logs"}); }); return; }
+    case "jdate": jLoad(b.dataset.v); return;
     case "dedit": { e.stopPropagation(); const d = S.mine[id]; if (!d) return; const from = S.compose && S.compose.type === "logs" ? "logs" : null;
       S.planner = {cond:d.cond ?? 70, emo:d.emo || null, share:!!diaryPost(id), date:d.date, edit:true, from}; S.drafts["pl-text"] = d.text || ""; openSheet({type:"diary"}); return; }
     case "ldel": { if (S.armed !== "ld"+id){ arm("ld"+id); return; } S.armed = null; const post = diaryPost(id), from = S.planner.from;
@@ -4728,7 +4741,7 @@ document.addEventListener("input", e => {
   if (e.target.id === "pj-unit") document.querySelectorAll(".uval").forEach(x => x.textContent = e.target.value);
   if (e.target.id === "pl-cond"){ S.planner.cond = +e.target.value; e.target.style.setProperty("--p", e.target.value + "%"); const v = e.target.parentNode.querySelector("#pl-cond-v"); if (v) v.textContent = e.target.value + "%"; }
 });
-document.addEventListener("change", e => { if (e.target.id === "ml-share" && S.compose && S.compose.type === "mlog"){ const v = ($("#ml-val")||{}).value; if (v != null) S.drafts["ml-val"] = v; S.compose.share = e.target.checked; renderSheet(); return; } if (e.target.id === "pl-share") S.planner.share = e.target.checked;
+document.addEventListener("change", e => { if (e.target.id === "pl-date"){ jLoad(e.target.value); return; } if (e.target.id === "ml-share" && S.compose && S.compose.type === "mlog"){ const v = ($("#ml-val")||{}).value; if (v != null) S.drafts["ml-val"] = v; S.compose.share = e.target.checked; renderSheet(); return; } if (e.target.id === "pl-share") S.planner.share = e.target.checked;
   if (e.target.id === "tm-in" && S.compose){ const v = parseTime(e.target.value); if (v !== null){ S.compose.time = v; S.drafts["tm-in"] = v ? tmLabel(v) : ""; e.target.value = S.drafts["tm-in"]; } }
  });
 document.addEventListener("submit", e => {
