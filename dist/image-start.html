@@ -1208,7 +1208,7 @@ a.goldchip{text-decoration:none}
 .welc .lvup-btns{margin-top:16px}
 .welc{word-break:keep-all}
 .jcard{position:relative}.jcard .jedit{position:absolute;right:14px;top:44px}
-.jdate .chips{align-items:center}.jdate .jdin{border:0;background:var(--fill);border-radius:999px;padding:7px 12px;font:inherit;font-size:14px;color:var(--ink)}
+.jdate .chips{position:relative;align-items:center}.jdate .jdchip{display:inline-flex;align-items:center;gap:6px}.jdate .jdchip .nic{width:15px;height:15px}.jdate .jdin{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
 .welc-note{margin:14px 2px 0;font-size:13px;color:var(--sub);line-height:1.5}
 .lvup .card{padding:0;margin:0 0 18px;border:0;box-shadow:none;background:none}
 .lvup .wdp{margin:0}
@@ -2568,11 +2568,10 @@ function jLoad(dt){ if (!dt || dt > today()) return; const P = S.planner, d = S.
   if (d){ S.planner = {...P, date:dt, cond:d.cond ?? 70, emo:d.emo || null, share:!!diaryPost("d-"+dt), edit:true}; S.drafts["pl-text"] = d.text || ""; }
   else { if (P.edit){ S.drafts["pl-text"] = ""; S.planner = {...P, date:dt, cond:70, emo:null, share:false, edit:false}; } else S.planner = {...P, date:dt}; }
   renderSheet(); }
-function diaryForm(d, P){ const dt = P.date || today(), t0 = today(), y0 = addD(t0, -1), past = dt !== t0;
+function diaryForm(d, P){ const dt = P.date || today(), t0 = today(), past = dt !== t0;
   return `
-    <div class="field jdate"><span class="lab">날짜 <span class="hint">깜빡한 날도 쓸 수 있어요</span></span><div class="chips">
-      <button class="chip" data-act="jdate" data-v="${t0}" aria-pressed="${dt === t0}">오늘</button><button class="chip" data-act="jdate" data-v="${y0}" aria-pressed="${dt === y0}">어제</button>
-      <input type="date" id="pl-date" class="jdin" max="${t0}" value="${dt}" aria-label="날짜 고르기"></div></div>
+    <div class="field jdate"><span class="lab">날짜</span><div class="chips"><button class="chip jdchip" data-act="jdpick" aria-pressed="true">${nic("calendar")}${past ? `${pd(dt).getMonth()+1}월 ${pd(dt).getDate()}일 ${WD[pd(dt).getDay()]}요일` : "오늘"}</button>
+      <input type="date" id="pl-date" class="jdin" max="${t0}" value="${dt}" aria-label="날짜 고르기" tabindex="-1"></div></div>
     <div class="cond"><span class="lab">컨디션</span><input type="range" id="pl-cond" min="0" max="100" step="5" value="${P.cond}" style="--p:${P.cond}%" aria-label="컨디션"><b class="num" id="pl-cond-v">${P.cond}%</b></div>
     <div class="emos" role="group" aria-label="감정">${EMOS.map(([n,e]) => `<button data-act="pemo" data-v="${n}" aria-pressed="${P.emo===n}">${e} ${n}</button>`).join("")}${myEmos().map(n => `<button data-act="pemo" data-v="${esc(n)}" aria-pressed="${P.emo===n}">💭 ${esc(n)}</button>`).join("")}${P.custom ? "" : `<button class="emoadd" data-act="emocustom">+ 직접 입력</button>`}</div>
     ${P.custom ? `<div class="addline" style="padding:0;margin:-4px 0 14px"><input type="text" id="pl-emo" maxlength="10" placeholder="감정 (예: 뿌듯함)" value="${D("pl-emo")}" aria-label="감정 직접 입력"><button class="btn sm sec" data-act="emoadd">추가</button></div>` : ""}
@@ -2957,10 +2956,10 @@ function viewNotes(){
   const inCat = all.filter(n => cat === "all" || ntN(n).cat === cat);
   const list = q ? inCat.filter(n => (ntText(n) + " " + (n.projectId && S.projects[n.projectId] ? S.projects[n.projectId].title : "")).toLowerCase().includes(q)) : inCat;
   const chip = (k, l, n) => `<button class="chip" data-act="nt-cat" data-v="${k}" aria-pressed="${cat === k}">${l}${n ? ` <span class="num">${n}</span>` : ""}</button>`;
-  const jBtn = `<button class="btn" data-act="sheet" data-k="diary">저널 쓰기</button>`;
+  const jBtn = `<button class="btn" data-act="sheet" data-k="diary">+ 저널 추가</button>`;
   return `<div class="nttools"><input type="search" id="nt-q" placeholder="${cat === "journal" ? "저널 검색" : "자료 검색"}" value="${esc(S.ntQ || "")}" aria-label="자료 검색">${cat === "journal" ? jBtn : `<button class="btn" data-act="nt-new">+ 자료 추가</button>`}</div>
     <div class="chips ntcats" role="group" aria-label="서랍">${chip("all", "전체", all.length)}${DR.filter(d => !d.hidden || d.k === cat).map(d => chip(d.k, `${nic(d.ic)}${esc(d.l)}`, all.filter(n => ntN(n).cat === d.k).length)).join("")}${chip("journal", `${nic("journal")}저널`, jAll.length)}<button class="chip ntmng" data-act="dr-manage">+ 서랍</button></div>
-    ${cat === "journal" ? (jList.length ? `<div class="ntgrid">${jList.map(jCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 저널이 없어요" : "저널 서랍이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「저널 쓰기」로 오늘 하루를 남겨 보세요."}</section>`) : ""}
+    ${cat === "journal" ? (jList.length ? `<div class="ntgrid">${jList.map(jCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 저널이 없어요" : "저널 서랍이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 저널 추가」로 오늘 하루를 남겨 보세요."}</section>`) : ""}
     ${cat === "journal" ? "" : list.length ? `<div class="ntgrid">${list.map(ntCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : cat !== "all" ? `${esc(noteDrawer(S, cat).l)} 서랍이 비어 있어요` : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 자료 추가」로 첫 자료를 담아 보세요."}</section>`}`;
 }
 function noteSheet(c){
@@ -4605,6 +4604,7 @@ document.addEventListener("click", e => {
         else if (!share && post) await api.delPost(post.id); },
         () => { S.planner = {cond:70, emo:null, share:false}; delete S.drafts["pl-text"]; if (S.compose && S.compose.type === "diary") closeSheet(); const cl=S.economy.claims[JSON.stringify(['journal',dt])];if(!existed)toast(dt === today() ? `저널 저장 · 지급 ${cl?.xp||0} XP / ${cl?.coins||0} 코인` : '지난 저널을 저장했어요');else toast('저널을 수정했어요'); if (from === "logs") openSheet({type:"logs"}); }); return; }
     case "jdate": jLoad(b.dataset.v); return;
+    case "jdpick": { const el = $("#pl-date"); if (!el) return; try { el.showPicker(); } catch(_){ el.focus(); el.click && el.click(); } return; }
     case "dedit": { e.stopPropagation(); const d = S.mine[id]; if (!d) return; const from = S.compose && S.compose.type === "logs" ? "logs" : null;
       S.planner = {cond:d.cond ?? 70, emo:d.emo || null, share:!!diaryPost(id), date:d.date, edit:true, from}; S.drafts["pl-text"] = d.text || ""; openSheet({type:"diary"}); return; }
     case "ldel": { if (S.armed !== "ld"+id){ arm("ld"+id); return; } S.armed = null; const post = diaryPost(id), from = S.planner.from;

@@ -1310,10 +1310,12 @@ test('자료실 저널 서랍: lists own journals only, escaped, opens detail',a
 });
 test('저널: 지난 날짜로 쓰기 (보상 없음), 카드에서 수정',async()=>{
   const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); await h.settle();
-  assert.match(h.nodes.get('app').innerHTML, />저널 쓰기</);
-  h.click('sheet',{k:'diary'}); const t = h.snapshot && Object.keys(h.snapshot().mine).length;
-  const o = h.nodes.get('overlay').innerHTML, y = o.match(/data-act="jdate" data-v="([\d-]+)" aria-pressed="false">어제/)[1];
-  h.click('jdate',{v:y}); assert.match(h.nodes.get('overlay').innerHTML, /보상 없이 기록만/);
+  assert.match(h.nodes.get('app').innerHTML, />\+ 저널 추가</);
+  h.click('sheet',{k:'diary'}); const o = h.nodes.get('overlay').innerHTML;
+  assert.match(o, /data-act="jdpick"[^>]*>.*오늘/); assert.doesNotMatch(o, /어제|깜빡한 날/);
+  const t0 = o.match(/id="pl-date"[^>]*max="([\d-]+)"/)[1], d0 = new Date(t0+'T00:00:00'); d0.setDate(d0.getDate()-1);
+  const y = d0.getFullYear()+'-'+String(d0.getMonth()+1).padStart(2,'0')+'-'+String(d0.getDate()).padStart(2,'0');
+  h.click('jdate',{v:y}); assert.match(h.nodes.get('overlay').innerHTML, /보상 없이 기록만/); assert.match(h.nodes.get('overlay').innerHTML, new RegExp((d0.getMonth()+1)+'월 '+d0.getDate()+'일'));
   h.click('pemo',{v:'평온'}); h.nodes.set('pl-text',{value:'어제 쓴 저널'}); h.nodes.set('pl-cond',{value:'60'}); h.click('psave'); await h.settle();
   const d = h.snapshot().mine['d-'+y]; assert.ok(d); assert.equal(d.text,'어제 쓴 저널'); assert.equal(d.date,y);
   h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); await h.settle();
