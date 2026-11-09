@@ -8,7 +8,7 @@ test('real HTTP serves four current bundles and economy module without invoking 
   const server=http.createServer(serveStatic);await new Promise(r=>server.listen(0,'127.0.0.1',r));
   try{const base=`http://127.0.0.1:${server.address().port}`;
     for(const file of ['quest','quest-demo','login-preview','image-start']){
-      const r=await fetch(`${base}/dist/${file}.html`);assert.equal(r.status,200);assert.equal(r.headers.get('cache-control'),'no-store');const html=await r.text();assert.equal(html,await readFile(`${root}/dist/${file}.html`,'utf8'));assert.ok(html.includes('function processEconomy('));assert.ok(html.includes('purchaseAction'));assert.ok(html.includes('data-eco-cardtheme'));
+      const r=await fetch(`${base}/dist/${file}.html`);assert.equal(r.status,200);assert.equal(r.headers.get('cache-control'),'no-store');const html=await r.text();assert.equal(html,await readFile(`${root}/dist/${file}.html`,'utf8'));assert.ok(html.includes('function processEconomy('));assert.ok(html.includes('purchaseAction'));
     }
     const esm=await fetch(base+'/src/economy.js');assert.equal(esm.status,200);assert.match(esm.headers.get('content-type'),/javascript/);
     assert.equal((await fetch(base+'/ECONOMY.md')).status,404,'docs not exposed by restricted dev service');

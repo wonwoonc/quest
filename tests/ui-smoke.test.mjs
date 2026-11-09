@@ -1278,7 +1278,7 @@ test('plan: place on tasks, place + after-habit on dailies, chained next-habit p
   h.nodes.set('ta-name',{value:'스쿼트 5개'}); h.click('ppopen',{v:'place'}); h.nodes.set('pp-in',{value:'거실'}); h.click('ppok'); h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   const t = Object.values(h.snapshot().mine).find(x => x.name === '스쿼트 5개'); assert.equal(t.place,'거실');
 });
-test('level up opens the profile popup with a shop-history shortcut',async()=>{
+test('level up opens the profile popup',async()=>{
   const h = await profileUI(); let hit = false;
   for (let i = 0; i < 30 && !hit; i++){
     h.click('sheet',{k:'add',v:'daily'}); h.nodes.set('ad-name',{value:'습관 '+i}); h.click('rpt',{v:'daily'}); h.click('tmset'); h.click('submit-add'); await h.settle();
@@ -1288,8 +1288,8 @@ test('level up opens the profile popup with a shop-history shortcut',async()=>{
   }
   assert.ok(hit, 'level-up popup should open');
   const html = h.nodes.get('overlay').innerHTML;
-  assert.match(html, /Lv\.\d+ 달성/); assert.match(html, /class="card wdp"/); assert.match(html, /data-act="lvshop"/);
-  assert.doesNotMatch(html, /data-act="statsheet"/);
-  h.click('lvshop'); await h.settle();
+  assert.match(html, /Lv\.\d+ 달성/); assert.match(html, /class="card wdp"/);
+  assert.doesNotMatch(html, /꾸미기|lvshop|data-act="statsheet"/);
+  h.click('sheet-close'); await h.settle();
   assert.equal(h.nodes.get('overlay').innerHTML, '');
 });

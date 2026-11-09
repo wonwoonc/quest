@@ -1,4 +1,4 @@
-import {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, levelStart, koreaDate, economySummary, goalEligibility, CATALOG, migrateEconomy} from './economy.js';
+import {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, levelStart, koreaDate, economySummary, goalEligibility, migrateEconomy} from './economy.js';
 import {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete, noteReward} from './notes.js';
 import {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} from './day-activities.js';
 export function startLegacyApp({runtime, storage, seed = null}) {
@@ -389,7 +389,6 @@ S.navMini = !!LS.get("navMini", false);
 WEB.addEventListener && WEB.addEventListener("change", () => schedule());
 function render(){ { const a = document.activeElement; if (S.view.name === "learn" && a && a.closest && a.closest("#nted")){ S.lpPending = true; return; } } IXC = null;
   MY = S.me ? computeMine() : null;
-  applyCosmetics();
   const setup = !!entryScreen || !hasProfile();
   document.body.classList.toggle('onboarding', setup);
   if (setup && S.mode !== 'loading'){
@@ -504,7 +503,7 @@ function charCard(uid, extra = "", nameExtra = ""){
   const s = statsOf(uid);
   return `<section class="card pcard" style="--pc:${colorOf(uid)}">
     <div class="char"><div class="stage">${fig(uid, 80, 60)}</div>
-      <div style="min-width:0;flex:1"><h2 class="cname">${esc(nameOf(uid))}${nameExtra}</h2><p>Lv.${s.L} ${rankOf(s.L)} ${uid===S.me?esc(equippedTitle()):''}</p>
+      <div style="min-width:0;flex:1"><h2 class="cname">${esc(nameOf(uid))}${nameExtra}</h2><p>Lv.${s.L} ${rankOf(s.L)}</p>
         <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
         <div class="barmeta lft"><span class="num">${s.need===0?'MAX':`${fmt(s.cur)} / ${fmt(s.need)} XP`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div></div></div>
     ${extra}</section>`;
@@ -656,7 +655,7 @@ function viewStats(){
   if (!hasProfile()) return viewToday();
   const s = statsOf(S.me), p = prof(S.me);
   const tiles = [["레벨", `Lv.${s.L}`], ["총 경험치", `${fmt(s.xp)} XP`], ["보유 코인", `🪙 ${fmt(s.gold)}`]];
-  return `<section class="card stprof"><div class="stpf">${av(S.me, 120, false)}</div><div class="stpi"><h2>${esc(nameOf(S.me))}</h2><p>Lv.${s.L} ${rankOf(s.L)} ${esc(equippedTitle())}</p>
+  return `<section class="card stprof"><div class="stpf">${av(S.me, 120, false)}</div><div class="stpi"><h2>${esc(nameOf(S.me))}</h2><p>Lv.${s.L} ${rankOf(s.L)}</p>
       <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
       <div class="barmeta lft"><span class="num">${s.need === 0 ? "MAX" : `Lv.${s.L + 1}까지 ${fmt(s.cur)} / ${fmt(s.need)} XP`}</span></div></div>
     ${p.bio ? `<p class="bio stbio">${esc(p.bio)}</p>` : ""}
@@ -1344,8 +1343,6 @@ function viewSettings(){
 
 /* ================= shop ================= */
 const hueOf = t => [...String(t)].reduce((a,ch) => (a*31 + ch.charCodeAt(0)) % 360, 7);
-function equippedTitle(){const e=S.economy?.equipped||{};return CATALOG.find(x=>x.id===e.title)?.style||'';}
-function applyCosmetics(){const e=S.economy?.equipped||{};for(const type of ['frame','background','cardtheme'])document.documentElement.setAttribute('data-eco-'+type,CATALOG.find(x=>x.id===e[type])?.style||'');}
 function purchaseHistory(){const e=S.economy,rows=Object.values(e.purchases).filter(p=>!p.hidden&&!S.mine[p.id]?.hidden).sort((a,b)=>b.at-a.at);return rows.map(p=>`<div class="row"><span class="t"><b>${esc(p.name)}</b><small>${fmt(p.cost||0)} 코인 · ${p.legacy?'이전 구매':({planned:'사용 예정',used:'사용 완료',owned:'보유',cancelled:'취소'})[p.state]}</small></span><span class="eco-actions">${p.state==='planned'&&!p.legacy?`<button class="btn sec sm" data-act="purchase-use" data-id="${esc(p.id)}">사용 완료</button><button class="btn sec sm" data-act="purchase-cancel" data-id="${esc(p.id)}">취소·환불</button>`:''}${p.kind==='style'&&p.state==='owned'?`<button class="btn sec sm" data-act="purchase-cancel" data-id="${esc(p.id)}">10분 이내 취소</button>`:''}<button class="link" data-act="purchase-hide" data-id="${esc(p.id)}">기록 숨김</button></span></div>`).join('')||'<p class="empty-row">구매 기록이 없어요.</p>';}
 const PURCHASE_LABEL = {planned:'사용 예정',used:'사용 완료',owned:'보유',cancelled:'취소 완료'};
 function purchaseRows(){ const e=S.economy; return Object.values(e.purchases).filter(p=>!p.hidden&&!S.mine[p.id]?.hidden).sort((a,b)=>b.at-a.at); }
@@ -1354,7 +1351,6 @@ function purchaseActions(p){ return `${p.state==='planned'&&!p.legacy?`<button c
 function viewShop(){
   if(!hasProfile())return viewToday();const q=economySummary(S),e=S.economy,tab=S.shopTab&&S.shopTab!=='items'?S.shopTab:'personal';
   let h=`<section class="card shophero"><span>사용 가능 코인</span><b class="num">🪙 ${fmt(q.gold)}</b></section><div class="chips eco-tabs">${[['personal','보상'],['inventory','내역']].map(([k,n])=>`<button class="chip" data-act="shop-tab" data-v="${k}" aria-pressed="${tab===k}">${n}</button>`).join('')}</div>`;
-  if(false){const items=CATALOG.filter(x=>x.cost);h+=items.length?`<div class="rgrid">${items.map(x=>`<div class="rcard"><div class="eco-sample sample-${x.style}">${esc(x.name)}</div><div class="rbody"><b>${esc(x.name)}</b><div class="rprice"><span>${x.cost} 코인</span><button class="btn sec sm" data-act="style-buy" data-id="${x.id}" ${e.inventory[x.id]||q.gold<x.cost?'disabled':''}>${e.inventory[x.id]?'보유':'구매'}</button></div></div></div>`).join('')}</div>`:`<div class="card empty"><strong>아직 아이템이 없어요</strong></div>`;}
   if(tab==='personal')h+=`<div class="rgrid">${mineOf('reward').sort((a,b)=>priceOf(a)-priceOf(b)).map(r=>`<div class="rcard"><div class="rbody"><b>${esc(r.name)}</b><small>${r.repeat==='once'?'1회':'반복'} · ${priceOf(r)} 코인${r.dailyLimit?` · 일 ${r.dailyLimit}회`:''}${r.weeklyLimit?` · 주 ${r.weeklyLimit}회`:''}</small><div class="eco-actions"><button class="btn sm" data-act="buy" data-id="${r.id}" ${q.gold<priceOf(r)?'disabled':''}>구매</button><button class="link" data-act="redit" data-id="${r.id}">수정</button><button class="link" data-act="wishlist" data-id="${r.id}">${r.wishlist?'찜 해제':'찜'}</button></div>${(() => { const hr = rewardHistory(r.id).slice(0,3);
         return hr.length ? `<div class="rhist">${hr.map(p => `<div class="rhrow"><span class="rhstate ${p.state}">${PURCHASE_LABEL[p.state] || '보유'}</span><span class="rhtime num">${p.at ? new Date(p.at + 9*3600000).toISOString().slice(5,10).replace('-','.') : ''}</span><span class="eco-actions">${purchaseActions(p)}</span></div>`).join('')}</div>` : ''; })()}</div></div>`).join('')}<button class="rcard radd" data-act="sheet" data-k="reward"><b>＋ 보상 추가</b><small>하고 싶은 거 / 갖고 싶은 거</small></button></div>`;
   if(tab==='inventory'){ const rows=purchaseRows().filter(p=>p.kind!=='style'); const dt=t=>{const d=new Date(t);return `${d.getMonth()+1}월 ${d.getDate()}일`;};
@@ -1594,7 +1590,7 @@ function webProfCard(uid){
   const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
   return `<section class="card wdp" style="--pc:${c};background:color-mix(in srgb,${c} 11%,var(--card))"><div class="wdp-cv" ${uid === S.me ? `data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기"` : ""} style="background:linear-gradient(160deg,color-mix(in srgb,${c} 22%,var(--card)),color-mix(in srgb,${c} 55%,var(--card)))"><div class="wdp-fig">${fig(uid, 150, 104)}</div></div>
     <div class="wdp-name"><h3>${esc(nameOf(uid))}</h3>${uid === S.me && S.canWrite ? `<button class="editp" data-act="sheet" data-k="profile">프로필 편집</button>` : ""}</div>
-     <p class="wdp-lv">Lv.${s.L} ${rankOf(s.L)} ${uid===S.me?esc(equippedTitle()):''}</p>
+     <p class="wdp-lv">Lv.${s.L} ${rankOf(s.L)}</p>
     <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
     <div class="barmeta lft"><span class="num">${s.need===0?'MAX':`${fmt(s.cur)} / ${fmt(s.need)} XP`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div>
     ${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ""}
@@ -2003,7 +1999,7 @@ function renderSheet(){ IXC = null;
     <div class="btnrow"><button class="btn sec big" data-act="sheet-close">취소</button><button class="btn big" data-act="addtask">추가</button></div>`);
   if (c.type === "plan") return planSheet(c);
   if (c.type === "stats") return sheetWrap("능력치", "", statCard());
-  if (c.type === "levelup") return sheetWrap(`Lv.${c.L} 달성`, "", `<div class="lvup"><p class="lvup-msg">레벨이 올랐어요. 지금까지 쌓은 성장을 확인해 보세요.</p>${webProfCard(S.me).replace(/<button class="editp"[^>]*>[^<]*<\/button>/, "").replace(/ data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기"/, "")}<p class="hint">성장 꾸미기 보상은 상점 내역에서 확인해요.</p><div class="lvup-btns"><button class="btn sec" data-act="lvshop">상점 내역 보기</button><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
+  if (c.type === "levelup") return sheetWrap(`Lv.${c.L} 달성`, "", `<div class="lvup"><p class="lvup-msg">레벨이 올랐어요. 지금까지 쌓은 성장을 확인해 보세요.</p>${webProfCard(S.me).replace(/<button class="editp"[^>]*>[^<]*<\/button>/, "").replace(/ data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기"/, "")}<div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
   if (c.type === "areainfo"){ const A = AREAS.find(a => a[0] === c.k); if (!A){ closeSheet(); return; } const [k, n, , l] = A;
     const gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done" && areasOf(p).includes(k)), qs = mineOf("quest").filter(q => q.active !== false && areasOf(q).includes(k));
     const rows = [...gs.map(p => `<button class="row" data-act="project" data-p="${p.id}"><span class="ic sq ok">${p.parentId ? "🔗" : "🎯"}</span><span class="t"><b>${esc(p.title)}</b><small>${p.parentId ? "서브 퀘스트" : "메인 퀘스트"}</small></span>${I.chev}</button>`), ...qs.map(q => `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq"><svg class="rpic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2.5l3 3-3 3"/><path d="M4 11v-1.5a4 4 0 0 1 4-4h12"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 13v1.5a4 4 0 0 1-4 4H4"/></svg></span><span class="t"><b>${esc(q.name)}</b><small>데일리 퀘스트</small></span>${I.chev}</button>`)].join("");
@@ -2157,7 +2153,7 @@ function ask(o, cb){ S.parentSheet = S.compose && S.compose.type !== "confirm" ?
 function askAsync(text){ return new Promise(res => { let done = false; ask({t:text, ok:"확인"}, () => { done = true; res(true); }); const c0 = S.compose; const iv = setInterval(() => { if (S.compose !== c0 && !done){ clearInterval(iv); res(false); } else if (done) clearInterval(iv); }, 200); }); }
 let tt = 0;
 function toast(html, ms = 2200){ const t = $("#toast"); t.innerHTML = html; t.classList.toggle("act", /data-act=/.test(html)); t.classList.toggle("mid", !!($("#overlay").innerHTML || "").trim()); t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), ms); }
-function levelUp(L){ if (S.compose || !hasProfile()){ toast(`Lv.${L} 달성! 성장 꾸미기 보상은 상점 내역에서 확인해요.`); return; } openSheet({type:"levelup", L}); }
+function levelUp(L){ if (S.compose || !hasProfile()){ toast(`<b>Lv.${L} 달성!</b>`); return; } openSheet({type:"levelup", L}); }
 function burstAt(el){ if (!el) return; const t = (el.parentElement && el.parentElement.querySelector(":scope > .burst")) || el.querySelector(".burst"); if (!t) return; t.classList.remove("go"); void t.offsetWidth; t.classList.add("go"); }
 
 /* ================= navigation ================= */
@@ -2271,8 +2267,6 @@ document.addEventListener("click", e => {
   switch (a){
     case "shop-tab": S.shopTab=b.dataset.v; break;
     case "wishlist": {const r=S.mine[id];if(r)run(()=>api.putMine(id,{...r,wishlist:!r.wishlist}));return;}
-    case "style-buy": ask({t:'꾸미기를 구매할까요?',d:'구매 후 10분 이내, 상품당 한 번만 취소할 수 있어요.',ok:'구매'},()=>run(()=>api.buyStyle(id),()=>toast('꾸미기를 구매했어요. 보관함에서 적용하세요.')));return;
-    case "style-equip": run(()=>api.equip(id),()=>toast('꾸미기 적용을 바꿨어요'));return;
     case "milestone-pick": run(()=>api.chooseMilestone(+b.dataset.v,id),()=>toast('성장 보상을 선택했어요'));return;
     case "purchase-use": ask({t:'사용 완료로 처리할까요?',d:'사용 완료로 처리하면 환불할 수 없어요.',ok:'사용 완료'},()=>run(()=>api.purchaseAction(id,'use'),()=>{toast('사용 완료로 기록했어요');if(S.compose)renderSheet();}));return;
     case "purchase-cancel": ask({t:'구매를 취소할까요?',d:'사용한 코인을 돌려받아요.',ok:'취소·환불'},()=>run(()=>api.purchaseAction(id,'cancel'),()=>{toast('취소·환불했어요');if(S.compose)renderSheet();}));return;
@@ -2476,7 +2470,6 @@ document.addEventListener("click", e => {
     case "pl-new": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } ["pw-name","pw-act","pw-hab"].forEach(k => delete S.drafts[k]); openSheet({type:"plan", step:0, steps:[], due:today(), time:"", lv:"normal"}); return;
     case "aset": { preserveSheetDrafts(); const a = (c.area || []).slice(), v = b.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else { if (a.length >= 2){ toast("영역은 2개까지 고를 수 있어요"); return; } a.push(v); } c.area = a; renderSheet(); return; }
     case "statsheet": go("stats"); return;
-    case "lvshop": S.shopTab = "inventory"; closeSheet(); go("shop"); return;
     case "areainfo": openSheet({type:"areainfo", k:b.dataset.v}); return;
     case "pw-go": pwGo(c, b.dataset.v); return;
     case "pw-sadd": pwRead(c); c.steps.push(""); renderSheet(); return;
