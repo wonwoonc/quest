@@ -482,13 +482,14 @@ function renderNav(){
     <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`);
   document.body.classList.toggle("navmini", !!S.navMini);
 }
-/* 첫 게임: 전자책 마지막의 5단계를 그대로 따라가는 체크리스트. 퀘스트·대시보드 맨 위에 보이고, 다 끝내거나 닫으면 사라진다. */
+/* 첫 게임: 전자책 마지막의 6단계를 그대로 따라가는 체크리스트(본판·테스트판 공통). 퀘스트·대시보드 맨 위에 보이고, 닫으면 사라진다. */
 function firstGame(){
-  if (!TRIAL || !hasProfile() || LS.get("fgOff", 0)) return "";
+  if (!hasProfile() || LS.get("fgOff", 0)) return "";
   const gs = goalsOf(S.me), ms = mineOf("mission"), g0 = gs.find(g => g.status !== "done");
   const steps = [
     ["메인 퀘스트 하나 만들기", "올해 꼭 깨고 싶은 큰 목표", !!gs.length, `data-act="sheet" data-k="add" data-v="big"`, "만들기"],
     ["가장 작은 미션 넣기", "오늘 바로 할 수 있을 만큼 작게", !!ms.length, `data-act="taskadd"${g0 ? ` data-p="${esc(g0.id)}"` : ""}`, "추가하기"],
+    ["일일 퀘스트 하나 만들기", "매일 이어 갈 습관을 '아주 쉬움'으로", !!mineOf("quest").length, `data-act="sheet" data-k="add" data-v="daily"`, "만들기"],
     ["상점에 나를 위한 보상 등록하기", "좋아하는 간식, 게임 1시간처럼", !!mineOf("reward").length, `data-act="sheet" data-k="reward"`, "등록하기"],
     ["미션 끝내고 첫 경험치·코인 받기", "대시보드에서 미션을 체크해요", ms.some(m => m.done), `data-act="go" data-v="dash"`, "체크하러 가기"],
     ["모은 코인으로 보상 구매하기", "아주 작은 보상부터", Object.keys((S.economy && S.economy.purchases) || {}).length > 0, `data-act="go" data-v="shop"`, "상점 가기"]
@@ -496,7 +497,7 @@ function firstGame(){
   const n = steps.filter(x => x[2]).length, next = steps.findIndex(x => !x[2]);
   return `<section class="card fgame"><div class="fgh"><b>${n === steps.length ? "첫 게임 완료!" : "첫 게임 시작하기"}</b><span class="num">${n}/${steps.length}</span><button class="iconbtn fgx" data-act="fg-off" aria-label="첫 게임 안내 닫기">${I.close}</button></div>
     <span class="bar"><i style="width:${n / steps.length * 100}%"></i></span>
-    ${n === steps.length ? `<p class="fgdone">다섯 단계를 모두 해냈어요. 이제 같은 방식으로 다음 퀘스트를 깨 나가면 돼요.</p>` : `<ol class="fgl">${steps.map(([t, d, ok, act, btn], i) => `<li class="${ok ? "ok" : i === next ? "now" : ""}"><span class="fgc" aria-hidden="true">${ok ? I.check : i + 1}</span><span class="t"><b>${t}</b>${i === next ? `<small>${d}</small>` : ""}</span>${i === next ? `<button class="btn sm" ${act}>${btn}</button>` : ""}</li>`).join("")}</ol>`}</section>`;
+    ${n === steps.length ? `<p class="fgdone">여섯 단계를 모두 해냈어요. 이제 같은 방식으로 다음 퀘스트를 깨 나가면 돼요.</p>` : `<ol class="fgl">${steps.map(([t, d, ok, act, btn], i) => `<li class="${ok ? "ok" : i === next ? "now" : ""}"><span class="fgc" aria-hidden="true">${ok ? I.check : i + 1}</span><span class="t"><b>${t}</b>${i === next ? `<small>${d}</small>` : ""}</span>${i === next ? `<button class="btn sm" ${act}>${btn}</button>` : ""}</li>`).join("")}</ol>`}</section>`;
 }
 function renderReplyBar(){
   const p = S.view.name === "post" && S.feed[S.view.pid], show = p && canAct() && !p.noReply;

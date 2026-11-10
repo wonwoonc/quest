@@ -1268,14 +1268,14 @@ test('저널: 지난 날짜로 쓰기 (보상 없음), 카드에서 수정',asyn
   assert.match(h.nodes.get('app').innerHTML, new RegExp('data-act="dedit" data-id="d-'+y+'"'));
   h.click('dedit',{id:'d-'+y}); assert.match(h.nodes.get('overlay').innerHTML, /어제 쓴 저널/); assert.match(h.nodes.get('overlay').innerHTML, /data-act="psave"[^>]*>수정/);
 });
-test('trial: first-game checklist tracks the five ebook steps and can be closed',async()=>{
+test('first-game checklist (main and trial) tracks the six ebook steps and can be closed',async()=>{
   const T={trial:true},h=await profileUI(undefined,'',T);h.route('qmanage');let app=h.nodes.get('app').innerHTML;
-  assert.match(app,/첫 게임 시작하기[\s\S]*0\/5/);assert.match(app,/data-act="sheet" data-k="add" data-v="big">만들기/);
+  assert.match(app,/첫 게임 시작하기[\s\S]*0\/6/);assert.match(app,/data-act="sheet" data-k="add" data-v="big">만들기/);
   const s=h.snapshot();s.projects.g={id:'g',owner:'me',title:'목표',end:'2099-12-31',status:'active',createdAt:1};
   s.mine.m={id:'m',kind:'mission',name:'작은 일',due:'2099-01-01',time:'09:00',projectId:'g',done:false,createdAt:1};
   s.mine.r={id:'r',kind:'reward',name:'디저트',cost:100,createdAt:1};
   const h2=await profileUI(s,'',T);h2.route('dash');app=h2.nodes.get('app').innerHTML;
-  assert.match(app,/첫 게임 시작하기[\s\S]*3\/5/);assert.match(app,/data-act="go" data-v="dash">체크하러 가기/);
+  assert.match(app,/첫 게임 시작하기[\s\S]*3\/6/);assert.match(app,/data-k="add" data-v="daily">만들기/);
   h2.click('fg-off');assert.doesNotMatch(h2.nodes.get('app').innerHTML,/첫 게임/);
   h2.route('qmanage');assert.doesNotMatch(h2.nodes.get('app').innerHTML,/첫 게임/);
 });
@@ -1285,8 +1285,8 @@ test('trial: community notice, no report, no social notification settings, no de
   assert.doesNotMatch(set,/data-act="setn"|data-act="setpriv"|차단한 계정|로컬|서버|프로토타입/);assert.match(set,/체험판/);assert.match(set,/아직 백업한 적이 없어요/);
   h.route('feed');assert.doesNotMatch(h.nodes.get('topbar').innerHTML,/data-v="activity"/);
 });
-test('main edition keeps the development app unchanged: no trial notice, checklist, or reminder; social settings stay',async()=>{
-  const h=await profileUI();h.route('qmanage');assert.doesNotMatch(h.nodes.get('app').innerHTML,/첫 게임/);
+test('main edition keeps the development app: checklist yes, but no trial notice or reminder; social settings stay',async()=>{
+  const h=await profileUI();h.route('qmanage');assert.match(h.nodes.get('app').innerHTML,/첫 게임 시작하기[\s\S]*일일 퀘스트 하나 만들기/,'main edition also shows the checklist');
   h.route('feed');assert.doesNotMatch(h.nodes.get('app').innerHTML,/정식 버전에서 열려요/);
   h.route('settings');const set=h.nodes.get('app').innerHTML;
   assert.match(set,/data-act="setn"/);assert.match(set,/로컬 비공개 표시/);assert.match(set,/로컬 테스트 프로필/);assert.match(set,/프로토타입 0\.1/);assert.match(set,/지금까지 기록을 JSON 파일로 저장/);
