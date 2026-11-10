@@ -39,6 +39,8 @@ export async function build() {
   for (const [file,key,screen] of [['login-preview','login','login'],['image-start','image-start','character']]) {
     await writeFile(path.join(root,'dist',file+'.html'),source.replaceAll('quest:foundation:empty:v2',`quest:preview:${key}:20261101`).replace('<html lang="ko"',`<html lang="ko" data-entry-screen="${screen}"`));
   }
+  // Public trial for ebook readers: same bundle, trial edition switched on (wording, onboarding, hidden social parts).
+  await writeFile(path.join(root,'dist/quest-tester.html'),source.replace('<title>퀘스트 v3</title>','<title>퀘스트 테스트판</title>').replace('<html lang="ko"','<html lang="ko" data-edition="trial"'));
   console.log('Built dist/quest.html + dist/quest-demo.html; dev index.html + demo.html');
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await build();

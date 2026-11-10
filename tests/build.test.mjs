@@ -20,7 +20,7 @@ test('empty dependency graph excludes entire fixture module and unique sample st
 test('provider capabilities, archive scheduling, artificial reactions and prior removals absent', async () => {
   const prod = await readFile(root+'/dist/quest.html','utf8');
   for (const marker of [/claude\.(db|room|self|artifact)\b/,/use\(['"](db|room|self|artifact)['"]\)/,/userCap/,/resolveNames/,/initLive/,/archiveOld/,/wrapArch/,/r-live/,/weekRange/,/weekStats/,/data-act="more-settings"/,/share:true/]) assert.doesNotMatch(prod,marker);
-  assert.doesNotMatch(prod,/개발 미리보기|실제 인증 미연결|서버 접근 제어|로컬 테스트 프로필/);
+  assert.match(prod,/개발 미리보기 · 실제 인증 미연결/);
   assert.doesNotMatch(prod,/setTimeout\([^\n]+(?:15000|30000)/);
 });
 test('both build products contain one self-contained syntactically valid script, no split JS/CSS', async () => {

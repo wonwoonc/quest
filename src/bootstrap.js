@@ -7,7 +7,10 @@ export function bootstrap({mode = 'empty', seed = null, host = window} = {}) {
   try {
     // Access can itself fail for file:// or disabled persistence. Do not pretend success.
     const storage = createStorage({driver:host.localStorage, mode, onError:error => host.alert('로컬 저장 실패: '+error.message)});
-    if (mode === 'demo') { const label = host.document.querySelector('#demo-label'); label.textContent = '가상 데이터로 둘러보는 데모예요'; if (label.parentNode) label.parentNode.hidden = false; }
+    // Editions: the main build is the in-development app; the tester build (data-edition="trial") is the public trial for readers.
+    const label = host.document.querySelector('#demo-label');
+    if (host.document.documentElement.dataset.edition === 'trial') { if (label && label.parentNode) label.parentNode.hidden = true; }
+    else if (mode === 'demo' && label) label.textContent = ' · 가상 데이터 데모';
     const app = startLegacyApp({runtime:{createAPI}, storage, seed});
     installBackups({document:host.document, storage, getState:() => app.state,
       confirm:app.confirm || host.confirm.bind(host), alert:app.notify || host.alert.bind(host), reload:() => host.location.reload(), URL:host.URL, Blob:host.Blob,

@@ -17,10 +17,10 @@ async function walk(dir) {
 }
 let count = 0;
 for (const dir of ['src','scripts','tests']) count += await walk(root+'/'+dir);
-for (const file of ['quest.html','quest-demo.html','login-preview.html','image-start.html']) {
+for (const file of ['quest.html','quest-tester.html','quest-demo.html','login-preview.html','image-start.html']) {
   const html = await readFile(root+'/dist/'+file,'utf8');
   const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
   if (scripts.length !== 1) throw new Error('Expected exactly one inline script');
   new Script(scripts[0][1],{filename:file});
 }
-console.log(`Syntax OK: ${count} source/script/test modules + 4 inline bundles`);
+console.log(`Syntax OK: ${count} source/script/test modules + 5 inline bundles`);

@@ -1201,10 +1201,18 @@ body.onboarding #app[data-v="login"]{max-width:440px;margin:clamp(24px,8vh,88px)
 .pmeta{display:inline-flex;align-items:center;gap:3px;font-size:12px;color:var(--sub);white-space:nowrap;margin-left:6px}
 .task-meta .pmeta{margin-left:0}
 .pgplan{display:flex;flex-wrap:wrap;gap:4px 10px;margin:2px 0 6px}.pgplan .pmeta{margin-left:0}
-/* 더보기 · 첫 게임 · 체험판 안내 · 백업 안내 */
+.login-divider{font-size:13px;color:var(--muted);margin:20px 0 10px}
+.btn.kakao-signup{background:#FEE500;color:#191919}
+/* 더보기 · 메뉴 순서 · 첫 게임 · 체험판 안내 · 백업 안내 */
 .navitem .nvic{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--fill);color:var(--sub);flex:none}
 .navitem .nvic svg{width:20px;height:20px}
 .navitem[aria-current="page"] .nvic{background:var(--accent-soft);color:var(--accent)}
+.navedit-hint{margin:0 0 12px;font-size:13px;color:var(--sub);line-height:1.5;word-break:keep-all}
+.navedit{margin:0 -20px 16px}.navedit-sec{margin:10px 20px 4px;font-size:12px;font-weight:700;color:var(--muted)}
+.navedit-row{padding:8px 12px 8px 20px;gap:12px}.navedit-row .t b{font-weight:600}
+.navedit-row .iconbtn{width:38px;height:38px;color:var(--sub)}.navedit-row .iconbtn:disabled{opacity:.25}.navedit-row .iconbtn svg{width:20px;height:20px}
+.navedit-row .nvic{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--fill);color:var(--sub);flex:none}.navedit-row .nvic svg{width:20px;height:20px}
+.navedit-link{margin-top:-4px}
 .fgame{padding:16px 18px}
 .fgh{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .fgh b{font-size:16px;font-weight:800}.fgh .num{font-size:13px;color:var(--accent);font-weight:700}
@@ -1227,7 +1235,7 @@ body.onboarding #app[data-v="login"]{max-width:440px;margin:clamp(24px,8vh,88px)
 .fgame,.trialnote,.bknudge{word-break:keep-all}
 </style>
 
-<p class="col local-mode" role="note" hidden><span id="demo-label"></span></p>
+<p class="col local-mode" role="note">개발 미리보기 · 실제 인증 미연결<span id="demo-label"></span></p>
 <header class="top"><div class="col" id="topbar"></div></header>
 <main class="col stack" id="app"><p class="empty">불러오는 중…</p></main>
 <div id="replybar"></div>
@@ -1259,7 +1267,10 @@ function bootstrap({mode = 'empty', seed = null, host = window} = {}) {
   try {
     // Access can itself fail for file:// or disabled persistence. Do not pretend success.
     const storage = createStorage({driver:host.localStorage, mode, onError:error => host.alert('로컬 저장 실패: '+error.message)});
-    if (mode === 'demo') { const label = host.document.querySelector('#demo-label'); label.textContent = '가상 데이터로 둘러보는 데모예요'; if (label.parentNode) label.parentNode.hidden = false; }
+    // Editions: the main build is the in-development app; the tester build (data-edition="trial") is the public trial for readers.
+    const label = host.document.querySelector('#demo-label');
+    if (host.document.documentElement.dataset.edition === 'trial') { if (label && label.parentNode) label.parentNode.hidden = true; }
+    else if (mode === 'demo' && label) label.textContent = ' · 가상 데이터 데모';
     const app = startLegacyApp({runtime:{createAPI}, storage, seed});
     installBackups({document:host.document, storage, getState:() => app.state,
       confirm:app.confirm || host.confirm.bind(host), alert:app.notify || host.alert.bind(host), reload:() => host.location.reload(), URL:host.URL, Blob:host.Blob,
@@ -1805,8 +1816,9 @@ const S = {
 };
 let api = null, MY = null;
 const LS = storage.preferences;
-/* 체험판(빈 작업 공간): 혼자 쓰는 로컬 저장이라 커뮤니티·신고·소식 알림은 아직 동작하지 않는다. 데모는 가상 이웃이 있어 그대로 둔다. */
-const TRIAL = storage.mode !== "demo";
+/* 테스트판(전자책 독자용 체험판, <html data-edition="trial">): 혼자 쓰는 로컬 저장이라 커뮤니티·신고·소식 알림은 숨기고,
+   개발용 문구 대신 체험판 안내를 보여 준다. 본판(퀘스트 v3)과 데모는 이 분기와 무관하게 개발 화면 그대로다. */
+const TRIAL = document.documentElement.dataset.edition === "trial" && storage.mode !== "demo";
 S.qTab = LS.get("qTab", "daily");
 let actSeen = LS.get("actSeen", 0);
 S.feedSeen = LS.get("feedSeen", 0); LS.set("feedSeen", Date.now());
@@ -2233,20 +2245,23 @@ function renderTop(){
     ${S.me && !TRIAL && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
     ${hasProfile() && !sub ? `<button class="iconbtn" data-act="go" data-v="settings" aria-label="설정">${I.gear}</button>` : ""}`);
 }
-/* 메뉴: 데스크탑은 전부 세로로, 휴대폰은 자주 쓰는 4개 + 더보기 (class "nm" = 더보기로 들어가는 메뉴) */
-const NAV = [
-  ["#qmanage", "퀘스트", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4.5h11.5l-2.2 3.75 2.2 3.75H5"/></svg>`, v => v === "qmanage", false],
-  ["#dash", "대시보드", `${I.dash}`, v => v === "dash", false],
-  ["#me", "스토리", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5.5C9 3.5 5.5 3.5 2.5 4.5v15c3-1 6.5-1 9.5 1 3-2 6.5-2 9.5-1v-15c-3-1-6.5-1-9.5 1Z"/><path d="M12 5.5v15M5.5 8.5c1.2-.2 2.4 0 3.5.5M5.5 12c1.2-.2 2.4 0 3.5.5M15 9c1.1-.5 2.3-.7 3.5-.5M15 12.5c1.1-.5 2.3-.7 3.5-.5"/></svg>`, () => isMine(), true],
-  ["#feed", "커뮤니티", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7.5" r="3"/><path d="M2.5 20v-2a6.5 6.5 0 0 1 13 0v2M16 4.7a3 3 0 0 1 0 5.6M18 12a6 6 0 0 1 3.5 5.5V20"/></svg>`, v => v === "feed", true],
-  ["#notes", "자료실", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5h-7L10 5H5a1.5 1.5 0 0 0-1.5 1.5Z"/><path d="M8 12.5h8M8 15.5h5"/></svg>`, v => v === "notes" || v === "learn", true],
-  ["#shop", "상점", `${I.bag}`, v => v === "shop", false],
-  ["#cal", "캘린더", `${I.cal}`, v => v === "cal", false]
-];
+/* 메뉴: 사용자가 순서를 정한다(설정 › 메뉴 순서). 데스크탑은 전부 세로로, 휴대폰은 앞의 4개 + 더보기. */
+const NAV = {
+  "#qmanage": ["퀘스트", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4.5h11.5l-2.2 3.75 2.2 3.75H5"/></svg>`, v => v === "qmanage"],
+  "#dash": ["대시보드", `${I.dash}`, v => v === "dash"],
+  "#me": ["스토리", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5.5C9 3.5 5.5 3.5 2.5 4.5v15c3-1 6.5-1 9.5 1 3-2 6.5-2 9.5-1v-15c-3-1-6.5-1-9.5 1Z"/><path d="M12 5.5v15M5.5 8.5c1.2-.2 2.4 0 3.5.5M5.5 12c1.2-.2 2.4 0 3.5.5M15 9c1.1-.5 2.3-.7 3.5-.5M15 12.5c1.1-.5 2.3-.7 3.5-.5"/></svg>`, () => isMine()],
+  "#feed": ["커뮤니티", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7.5" r="3"/><path d="M2.5 20v-2a6.5 6.5 0 0 1 13 0v2M16 4.7a3 3 0 0 1 0 5.6M18 12a6 6 0 0 1 3.5 5.5V20"/></svg>`, v => v === "feed"],
+  "#notes": ["자료실", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5h-7L10 5H5a1.5 1.5 0 0 0-1.5 1.5Z"/><path d="M8 12.5h8M8 15.5h5"/></svg>`, v => v === "notes" || v === "learn"],
+  "#shop": ["상점", `${I.bag}`, v => v === "shop"],
+  "#cal": ["캘린더", `${I.cal}`, v => v === "cal"]
+};
+const NAV_DEFAULT = ["#qmanage", "#dash", "#me", "#feed", "#notes", "#shop", "#cal"], NAV_BAR = 4;
+const navOrder = () => { const saved = LS.get("navOrder", []), list = (Array.isArray(saved) ? saved : []).filter((h, i, a) => Object.hasOwn(NAV, h) && a.indexOf(h) === i);
+  return [...list, ...NAV_DEFAULT.filter(h => !list.includes(h))]; };
 const MORE_SVG = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>`;
 function renderNav(){
-  const v = S.view.name, cur = c => c ? 'aria-current="page"' : "", moreOn = NAV.some(([, , , on, more]) => more && on(v));
-  setHtml($("#nav"), `${NAV.map(([h, l, svg, on, more]) => `<a href="${h}"${more ? ' class="nm"' : ""} ${cur(on(v))}>${svg}<span>${l}</span></a>`).join("")}
+  const v = S.view.name, cur = c => c ? 'aria-current="page"' : "", order = navOrder(), moreOn = order.slice(NAV_BAR).some(h => NAV[h][2](v));
+  setHtml($("#nav"), `${order.map((h, i) => { const [l, svg, on] = NAV[h]; return `<a href="${h}"${i >= NAV_BAR ? ' class="nm"' : ""} ${cur(on(v))}>${svg}<span>${l}</span></a>`; }).join("")}
     <button class="nmore" data-act="navmore" aria-haspopup="dialog" ${cur(moreOn)}>${MORE_SVG}<span>더보기</span></button>
     <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`);
   document.body.classList.toggle("navmini", !!S.navMini);
@@ -3066,8 +3081,9 @@ function viewSettings(){
   const st = getSet(), me = prof(S.me), th = LS.get("theme", "system");
   let h = `<p class="sect3">계정</p><section class="card tight">
     <button class="row" data-act="sheet" data-k="profile"><span class="t"><b>프로필 편집</b><small>닉네임 · 소개 · 프로필 사진</small></span>${I.chev}</button>
-    ${TRIAL ? "" : `<div class="row"><span class="t"><b>비공개 계정</b><small>팔로우하지 않은 사람에게 스토리를 숨겨요</small></span>${sw("setpriv", !!me.private)}</div>`}</section>`;
+    ${TRIAL ? "" : `<div class="row"><span class="t"><b>로컬 비공개 표시</b><small>화면 필터만 적용 · 서버 접근 제어/승인 기능 없음</small></span>${sw("setpriv", !!me.private)}</div>`}</section>`;
   if (!TRIAL) h += `<p class="sect3">알림</p><section class="card tight">${[["like","공감","내 글과 답글에 공감했을 때"],["reply","답글","내 글에 답글이 달렸을 때"],["follow","팔로우","새 팔로워가 생겼을 때"],["join","함께하기","내 일일 퀘스트를 함께 시작했을 때"]].map(([k,l,d]) => `<div class="row"><span class="t"><b>${l}</b><small>${d}</small></span>${sw("setn", st.notif[k], `data-k="${k}"`)}</div>`).join("")}</section>`;
+  h += `<p class="sect3">메뉴</p><section class="card tight"><button class="row" data-act="navedit"><span class="t"><b>메뉴 순서</b><small>${navOrder().slice(0, NAV_BAR).map(h0 => NAV[h0][0]).join(" · ")} · 더보기</small></span>${I.chev}</button></section>`;
   h += `<p class="sect3">화면</p><section class="card"><div class="ch" style="margin-bottom:10px"><h2 style="font-size:16px">화면 모드</h2></div><div class="seg sm">${[["system","시스템"],["light","라이트"],["dark","다크"]].map(([k,l]) => `<button data-act="theme" data-v="${k}" aria-pressed="${th===k}">${l}</button>`).join("")}</div></section>`;
   if (!TRIAL) h += `<p class="sect3">개인정보 보호</p><section class="card tight">
     <button class="row" data-act="toggle" data-k="blk"><span class="t"><b>차단한 계정</b><small>${st.blocked.length ? `${st.blocked.length}명` : "없음"}</small></span><span class="chev2 ${S.openBlk?"open":""}">${I.chev}</span></button>
@@ -3076,10 +3092,10 @@ function viewSettings(){
     <form class="addline" data-form="hide" style="padding-top:0"><input type="text" id="set-hide" placeholder="단어 입력 후 추가" value="${D("set-hide")}" aria-label="숨길 단어"><button class="btn sm sec" type="submit">추가</button></form>
     ${st.hidden.length ? `<div class="chips" style="padding:0 20px 14px">${st.hidden.map((w,i) => `<button class="chip" data-act="unhide" data-i="${i}">${esc(w)} ✕</button>`).join("")}</div>` : ""}</section>`;
   h += `<p class="sect3">데이터</p><section class="card tight">
-    <button class="row" data-act="bkexp"><span class="t"><b>백업 내보내기</b><small>${LS.get("lastBackup", 0) ? `마지막 백업 ${fmtD(koreaDate(LS.get("lastBackup", 0)))}` : "아직 백업한 적이 없어요"}</small></span>${I.chev}</button>
+    <button class="row" data-act="bkexp"><span class="t"><b>백업 내보내기</b><small>${!TRIAL ? "지금까지 기록을 JSON 파일로 저장" : LS.get("lastBackup", 0) ? `마지막 백업 ${fmtD(koreaDate(LS.get("lastBackup", 0)))}` : "아직 백업한 적이 없어요"}</small></span>${I.chev}</button>
     <button class="row" data-act="bkimp"><span class="t"><b>백업 불러오기</b><small>저장한 JSON 파일로 복원</small></span>${I.chev}</button>
     <button class="row" data-act="bkreset"><span class="t"><b>전체 초기화</b><small>모든 기록을 지우고 처음부터</small></span>${I.chev}</button></section>`;
-  h += `<p class="sect3">정보</p><section class="card tight"><div class="row"><span class="t"><b>${TRIAL ? "체험판" : "데모"}</b><small>${TRIAL ? "기록은 이 기기의 이 브라우저에만 저장돼요" : "가상 데이터로 둘러보는 데모예요"}</small></span></div><button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
+  h += `<p class="sect3">정보</p><section class="card tight">${TRIAL ? `<div class="row"><span class="t"><b>체험판</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>` : `<div class="row"><span class="t"><b>로컬 테스트 프로필</b><small>로그인/서버 미연결 · 이 브라우저에만 저장</small></span></div><div class="row"><span class="t"><b>앱 버전</b><small>프로토타입 0.1</small></span></div>`}<button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
   return h;
 }
 
@@ -3366,8 +3382,10 @@ function loginScreen(){
   return `<section class="card login-card" aria-labelledby="login-title">
     <p class="login-brand">퀘스트</p><div class="login-avatar" aria-hidden="true">${sprite(COLORS[0], 1, 96)}</div>
     <h1 id="login-title">작은 실천으로<br>시작하는 나의 모험</h1><p class="login-copy">나만의 캐릭터와 함께 하루의 퀘스트를 쌓아 보세요.</p>
-    <button type="button" class="btn big full" data-act="preview-login">바로 시작하기</button>
-    <p class="facehint login-note">회원가입 없이 바로 쓸 수 있는 체험판이에요.<br>기록은 이 기기의 이 브라우저에만 저장돼요.</p></section>`;
+    ${TRIAL ? `<button type="button" class="btn big full" data-act="preview-login">바로 시작하기</button>
+    <p class="facehint login-note">회원가입 없이 바로 쓸 수 있는 체험판이에요.<br>기록은 이 기기의 이 브라우저에만 저장돼요.</p>` : `<button type="button" class="btn big full" data-act="preview-login">로그인</button>
+    <p class="login-divider">처음 오셨나요?</p><button type="button" class="btn big full kakao-signup" data-act="preview-kakao">카카오톡으로 가입하기</button>
+    <p class="facehint login-note">개발 미리보기 · 실제 인증 미연결<br>두 버튼 모두 계정 생성 없이 캐릭터 만들기로 이동해요.</p>`}</section>`;
 }
 function onboarding(){
   return `<h1 class="hello">캐릭터 만들기</h1><p class="setup-copy">어떤 모험가로 시작할까요?</p>
@@ -3645,7 +3663,12 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     return sheetWrap(mine ? "내 스토리" : esc(nameOf(a)) + "님의 스토리", "", `<div class="sheetlist mlist">${mine
       ? item("editpost", "수정", "글과 수치 기록을 고쳐요") + item("ptoggle-reply", p.noReply ? "답글 기능 켜기" : "답글 기능 끄기", p.noReply ? "지금은 답글을 받을 수 없어요" : "") + item("ptoggle-likes", p.hideLikes ? "공감 수 보이기" : "공감 수 숨기기", p.hideLikes ? "다른 사람에게 공감 수가 안 보여요" : "") + item("delpost", S.armed === "dp"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", "", true)
       : item("follow", f ? "팔로우 취소" : "팔로우", "") + item("phide", "이 스토리 숨기기", "커뮤니티에서 다시 보이지 않아요") + item("block", S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true)}</div>`); }
-  if (c.type === "navmore") return sheetWrap("더보기", "", `<div class="sheetlist mlist">${NAV.filter(x => x[4]).map(([h, l, svg, on]) => `<button class="row mitem navitem" data-act="navgo" data-v="${h.slice(1)}" ${on(S.view.name) ? 'aria-current="page"' : ""}><span class="nvic">${svg}</span><span class="t"><b>${l}</b></span>${I.chev}</button>`).join("")}</div>`);
+  if (c.type === "navmore") return sheetWrap("더보기", "", `<div class="sheetlist mlist">${navOrder().slice(NAV_BAR).map(h => { const [l, svg, on] = NAV[h]; return `<button class="row mitem navitem" data-act="navgo" data-v="${h.slice(1)}" ${on(S.view.name) ? 'aria-current="page"' : ""}><span class="nvic">${svg}</span><span class="t"><b>${l}</b></span>${I.chev}</button>`; }).join("")}</div><button class="btn ghost full navedit-link" data-act="navedit">메뉴 순서 바꾸기</button>`);
+  if (c.type === "navedit"){ const order = navOrder(), up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>`, dn = up.replace("M6 15l6-6 6 6", "M6 9l6 6 6-6");
+    const row = (h, i) => { const [l, svg] = NAV[h]; return `<div class="row navedit-row"><span class="nvic">${svg}</span><span class="t"><b>${l}</b></span><button class="iconbtn" data-act="nav-mv" data-v="${h}" data-d="-1" aria-label="${l} 위로" ${i ? "" : "disabled"}>${up}</button><button class="iconbtn" data-act="nav-mv" data-v="${h}" data-d="1" aria-label="${l} 아래로" ${i < order.length - 1 ? "" : "disabled"}>${dn}</button></div>`; };
+    return sheetWrap("메뉴 순서", "", `<p class="navedit-hint">화살표로 순서를 바꿔요. 휴대폰에서는 위의 ${NAV_BAR}개가 하단 메뉴에 보이고, 나머지는 더보기에 들어가요.</p>
+      <div class="navedit"><p class="navedit-sec">하단 메뉴</p>${order.slice(0, NAV_BAR).map(row).join("")}<p class="navedit-sec">더보기</p>${order.slice(NAV_BAR).map((h, i) => row(h, i + NAV_BAR)).join("")}</div>
+      <div class="btnrow"><button class="btn sec big" data-act="nav-reset">기본 순서로</button><button class="btn big" data-act="sheet-close">완료</button></div>`); }
   if (c.type === "bknudge") return sheetWrap("기록을 백업해 두세요", "", `<div class="bknudge"><p>체험판 기록은 이 기기의 이 브라우저에만 저장돼요. 브라우저의 방문 기록을 지우거나 다른 기기에서 열면 지금까지의 기록을 볼 수 없어요.</p><p>백업 파일을 저장해 두면 설정 › 데이터에서 언제든 다시 불러올 수 있어요.</p></div>
     <div class="btnrow"><button class="btn sec big" data-act="sheet-close">나중에</button><button class="btn big" data-act="bkexp">지금 백업하기</button></div>`);
   if (c.type === "welcome") return sheetWrap(`${esc(nameOf(S.me))}님, 퀘스트에 오신 걸 환영합니다!`, "", `<div class="welc"><p class="welc-lead">퀘스트는 목표와 습관을 게임처럼 하나씩 깨 나가는 앱이에요.</p>
@@ -3908,7 +3931,8 @@ document.addEventListener("click", e => {
     case "purchase-use": ask({t:'사용 완료로 처리할까요?',d:'사용 완료로 처리하면 환불할 수 없어요.',ok:'사용 완료'},()=>run(()=>api.purchaseAction(id,'use'),()=>{toast('사용 완료로 기록했어요');if(S.compose)renderSheet();}));return;
     case "purchase-cancel": ask({t:'구매를 취소할까요?',d:'사용한 코인을 돌려받아요.',ok:'취소·환불'},()=>run(()=>api.purchaseAction(id,'cancel'),()=>{toast('취소·환불했어요');if(S.compose)renderSheet();}));return;
     case "purchase-hide": ask({t:'기록을 숨길까요?',d:'기록만 숨기고 환불되지 않아요.',ok:'숨기기'},()=>run(()=>api.purchaseAction(id,'hide'),()=>{toast('기록을 숨겼어요');if(S.compose)renderSheet();}));return;
-    case "preview-login": entryScreen = 'character'; S.compose = null; $('#overlay').innerHTML = ''; schedule(); scrollTo(0,0); return;
+    case "preview-login":
+    case "preview-kakao": entryScreen = 'character'; S.compose = null; $('#overlay').innerHTML = ''; schedule(); scrollTo(0,0); if (!TRIAL) toast(a === 'preview-kakao' ? '실제 카카오 가입은 연결되지 않았어요. 캐릭터 만들기를 미리 볼 수 있어요.' : '인증 없이 캐릭터 만들기로 이동했어요.'); return;
     case "cfok": { if (c && c.cb){ const cb = c.cb; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); cb(); return; } const P = S.pend; S.pend = null; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); if (!P) return; S.armed = P.key;
       const fb = document.createElement("button"); fb.hidden = true; Object.assign(fb.dataset, P.data, {confirmed:"1"}); document.body.appendChild(fb); fb.click(); fb.remove(); return; }
     case "cfno": closeSheet(); return;
@@ -3916,6 +3940,9 @@ document.addEventListener("click", e => {
     case "go": go(b.dataset.v); return;
     case "navmore": openSheet({type:"navmore"}); return;
     case "navgo": closeSheet(); go(b.dataset.v); return;
+    case "navedit": openSheet({type:"navedit"}); return;
+    case "nav-mv": { const o = navOrder(), i = o.indexOf(b.dataset.v), j = i + +b.dataset.d; if (i < 0 || j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; LS.set("navOrder", o); renderNav(); renderSheet(); return; }
+    case "nav-reset": LS.set("navOrder", []); renderNav(); renderSheet(); return;
     case "bkexp": if (c && c.type === "bknudge") closeSheet(); return;
     case "fg-off": LS.set("fgOff", 1); break;
     case "inphoto": choosePhotos(true, list => { S.inPhotos = (S.inPhotos || []).concat(list).slice(0, MAX_IMGS); schedule(); }); return;
@@ -3964,7 +3991,7 @@ document.addEventListener("click", e => {
     case "dopen": S.openDiary = S.openDiary === id ? null : id; if (S.compose && S.compose.type === "logs") renderSheet(); break;
     case "theme": LS.set("theme", b.dataset.v); applyTheme(); break;
     case "setn": { const st = getSet(); st.notif[b.dataset.k] = !st.notif[b.dataset.k]; run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
-    case "setpriv": { const pr = !prof(S.me).private; run(() => api.saveProfile({private:pr}), () => toast(pr ? "🔒 비공개 계정으로 바꿨어요" : "공개 계정으로 바꿨어요")); return; }
+    case "setpriv": { const pr = !prof(S.me).private; run(() => api.saveProfile({private:pr}), () => toast(pr ? "🔒 로컬 비공개 표시를 켰어요 (서버 접근 제어 없음)" : "로컬 비공개 표시를 껐어요 (서버 접근 제어 없음)")); return; }
     case "block": { if (S.armed !== "bl"+u){ arm("bl"+u); if (S.compose) renderSheet(); return; } S.armed = null; const st = getSet(); if (S.compose && (S.compose.type === "pmenu" || S.compose.type === "umenu")) closeSheet();
       run(async () => { await api.putMine("settings", {kind:"settings", ...st, blocked:[...new Set([...st.blocked, u])]}); if (isFollowing(S.me, u)) await api.follow(u, false); }, () => toast(`${esc(nameOf(u))}님을 차단했어요`)); return; }
     case "umenu": openSheet({type:"umenu", u}); return;

@@ -1201,10 +1201,18 @@ body.onboarding #app[data-v="login"]{max-width:440px;margin:clamp(24px,8vh,88px)
 .pmeta{display:inline-flex;align-items:center;gap:3px;font-size:12px;color:var(--sub);white-space:nowrap;margin-left:6px}
 .task-meta .pmeta{margin-left:0}
 .pgplan{display:flex;flex-wrap:wrap;gap:4px 10px;margin:2px 0 6px}.pgplan .pmeta{margin-left:0}
-/* 더보기 · 첫 게임 · 체험판 안내 · 백업 안내 */
+.login-divider{font-size:13px;color:var(--muted);margin:20px 0 10px}
+.btn.kakao-signup{background:#FEE500;color:#191919}
+/* 더보기 · 메뉴 순서 · 첫 게임 · 체험판 안내 · 백업 안내 */
 .navitem .nvic{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--fill);color:var(--sub);flex:none}
 .navitem .nvic svg{width:20px;height:20px}
 .navitem[aria-current="page"] .nvic{background:var(--accent-soft);color:var(--accent)}
+.navedit-hint{margin:0 0 12px;font-size:13px;color:var(--sub);line-height:1.5;word-break:keep-all}
+.navedit{margin:0 -20px 16px}.navedit-sec{margin:10px 20px 4px;font-size:12px;font-weight:700;color:var(--muted)}
+.navedit-row{padding:8px 12px 8px 20px;gap:12px}.navedit-row .t b{font-weight:600}
+.navedit-row .iconbtn{width:38px;height:38px;color:var(--sub)}.navedit-row .iconbtn:disabled{opacity:.25}.navedit-row .iconbtn svg{width:20px;height:20px}
+.navedit-row .nvic{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--fill);color:var(--sub);flex:none}.navedit-row .nvic svg{width:20px;height:20px}
+.navedit-link{margin-top:-4px}
 .fgame{padding:16px 18px}
 .fgh{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .fgh b{font-size:16px;font-weight:800}.fgh .num{font-size:13px;color:var(--accent);font-weight:700}
@@ -1227,7 +1235,7 @@ body.onboarding #app[data-v="login"]{max-width:440px;margin:clamp(24px,8vh,88px)
 .fgame,.trialnote,.bknudge{word-break:keep-all}
 </style>
 
-<p class="col local-mode" role="note" hidden><span id="demo-label"></span></p>
+<p class="col local-mode" role="note">개발 미리보기 · 실제 인증 미연결<span id="demo-label"></span></p>
 <header class="top"><div class="col" id="topbar"></div></header>
 <main class="col stack" id="app"><p class="empty">불러오는 중…</p></main>
 <div id="replybar"></div>
