@@ -1,5 +1,5 @@
-import {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, levelStart, koreaDate, economySummary, goalEligibility, migrateEconomy} from './economy.js';
-import {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete, noteReward} from './notes.js';
+import {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, koreaDate, economySummary, migrateEconomy} from './economy.js';
+import {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete} from './notes.js';
 import {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} from './day-activities.js';
 export function startLegacyApp({runtime, storage, seed = null}) {
 const entryParams = new URLSearchParams(location.search || '');
@@ -7,12 +7,11 @@ const entryParams = new URLSearchParams(location.search || '');
 const requestedScreen = entryParams.get('screen') || document.documentElement.dataset.entryScreen;
 let entryScreen = requestedScreen === 'login' ? 'login' : requestedScreen === 'character' ? 'character' : null;
 /* ================= rules ================= */
-const DAY = 86400000, MAX_IMGS = 4, DAILY_CAP = 10;
+const DAY = 86400000, MAX_IMGS = 4;
 const COLORS = ["#3DBE8B","#F29B4B","#5B9CEB","#EB6E93","#9C7CE6"];
 const levels = kind => Object.fromEntries(TIERS.map(k => { const r=activityReward(kind,k), meta=(kind==='quest'?DAILY_DIFFICULTY:TASK_DIFFICULTY)[k]; return [k,{...meta,xp:r.xp,c:r.coins}]; }));
 const HLV = levels('quest'), TLV = levels('mission');
 const lvKey = tierKey;
-const tlv = m => TLV[m.lv] || TLV.normal;
 const GOAL = {xp:200, c:100}, PROJ = {xp:60, c:30}, DIARY = {xp:10, c:5};
 const OLD_TIER = {light:150, basic:800, special:1500, deluxe:3000, ultimate:8000};
 const EMOS = [["기쁨","😄"],["평온","😌"],["설렘","🤩"],["피곤","😪"],["불안","😟"],["우울","😢"],["화남","😤"]];
@@ -28,12 +27,12 @@ const S = {
   view:{name:"feed"}, openHabits:false, openLater:false, openDone:false, qTab:"daily", feedTab:"all", profTab:"posts",
   drafts:{}, media:{}, mediaLoading:new Set(), compose:null, busy:false, swatch:COLORS[0],
   planner:{cond:70, emo:null, share:false}, lastXp:null, lastLv:null, armed:null, scrolls:{}, actSeenView:0,
-  feedSeen:0, ackAt:Date.now(), notifiedAt:null, statSig:""
+  feedSeen:0, ackAt:Date.now(), notifiedAt:null
 };
 let api = null, MY = null;
 const LS = storage.preferences;
 S.qTab = LS.get("qTab", "daily");
-let actSeen = LS.get("actSeen", 0), seenStories = new Set(LS.get("seen", []));
+let actSeen = LS.get("actSeen", 0);
 S.feedSeen = LS.get("feedSeen", 0); LS.set("feedSeen", Date.now());
 
 /* ================= helpers ================= */
@@ -71,8 +70,6 @@ function perName(per, a){ const t = today(), x = pd(a);
   if (per === "month") return a === perAnchor("month", t) ? "이번 달" : `${x.getMonth()+1}월`;
   return a === perAnchor("year", t) ? "올해" : `${x.getFullYear()}년`; }
 const tomorrow = () => dk(Date.now() + DAY);
-const hintBar = (k, text) => true ? "" : `<div class="hintbar" data-hint="${k}"><span>💡 ${text}</span><button class="hint-x" data-act="hintx" data-k="${k}" aria-label="안내 닫기">${I.close}</button></div>`;
-const hintDone = k => { if (!LS.get("hint_" + k, 0)){ LS.set("hint_" + k, 1); document.querySelectorAll(`[data-hint="${k}"]`).forEach(x => x.remove()); } };
 const restDays = () => (S.mine.rest && S.mine.rest.days) || {};
 function dueLabel(m){ if (m.period && m.due){ if (m.done) return ""; return perEnd(m.period, m.due) < today() ? `<span class="tday late">기한 지남</span>` : `<span class="tday soft">${perName(m.period, m.due)}</span>`; }
   const d = dueOf(m); if (!d || m.done) return ""; const t = today(); if (d < t) return `<span class="tday late">기한 지남</span>`; if (d === t) return S._noToday ? "" : `<span class="tday">오늘</span>`; if (d === tomorrow()) return `<span class="tday soft">내일</span>`; const x = new Date(d+"T00:00"); return `<span class="tday soft">${x.getMonth()+1}/${x.getDate()}</span>`; }
@@ -81,14 +78,14 @@ const dueField = (c, extra = "", bare = false) => { const t = today(), tm = tomo
 const TW_H = 36;
 function timeWheel(c){ const [h, m] = (c.time || "09:00").split(":").map(Number), mi = Math.round(m/5) % 12;
   const col = (k, n, step, sel) => `<div class="twc" data-tw="${k}" data-sel="${sel}"><i></i><i></i>${Array.from({length:n}, (_, i) => `<span>${pad(i*step)}</span>`).join("")}<i></i><i></i></div>`;
-  return `<div class="tw"><div class="twwrap"><div class="twband"></div>${col("h", 24, 1, h)}<b>:</b>${col("m", 12, 5, mi)}</div>${hintBar("tw", "가운데 숫자를 누르면 직접 입력할 수 있어요")}<button class="tw-ok" data-act="tmdone">완료</button></div>`; }
+  return `<div class="tw"><div class="twwrap"><div class="twband"></div>${col("h", 24, 1, h)}<b>:</b>${col("m", 12, 5, mi)}</div><button class="tw-ok" data-act="tmdone">완료</button></div>`; }
 function initTW(){ document.querySelectorAll("#overlay .twc").forEach(el => { el.scrollTop = (+el.dataset.sel) * TW_H; el.querySelectorAll("span").forEach((x, i) => x.classList.toggle("on", i === +el.dataset.sel)); }); }
 document.addEventListener("input", e => { if (e.target.id !== "rday-in" || !S.compose) return; const n = parseInt(e.target.value, 10);
   if (!n || n < 1 || n > 31) return; const c = S.compose; c.rday = n; document.querySelectorAll("#overlay .chips.day31 .chip").forEach(el => el.setAttribute("aria-pressed", String(+el.dataset.v === n))); });
 document.addEventListener("input", e => { if (e.target.id !== "tw-in" || !S.compose) return; const v = parseTime(e.target.value); if (!v) return; const c = S.compose; c.time = v; S._twQuiet = Date.now();
   const [h, m] = v.split(":").map(Number); const box = e.target.closest(".tw"); const hs = box.querySelector('[data-tw="h"]'), ms = box.querySelector('[data-tw="m"]');
   hs.scrollTop = h * TW_H; ms.scrollTop = (Math.round(m/5) % 12) * TW_H; const t = document.querySelector("#overlay .tmval"); if (t) t.textContent = tmLabel(v); });
-function twCommit(inp){ hintDone("tw"); const c = S.compose; if (!c || inp._done || !inp.isConnected) return; inp._done = true; const k = inp.dataset.tw, n = parseInt(inp.value, 10), box = inp.closest(".tw"); inp.remove(); if (isNaN(n)) return;
+function twCommit(inp){ const c = S.compose; if (!c || inp._done || !inp.isConnected) return; inp._done = true; const k = inp.dataset.tw, n = parseInt(inp.value, 10), box = inp.closest(".tw"); inp.remove(); if (isNaN(n)) return;
   let [h, m] = (c.time || "09:00").split(":").map(Number); if (k === "h") h = Math.max(0, Math.min(23, n)); else m = Math.max(0, Math.min(59, n));
   c.time = `${pad(h)}:${pad(m)}`; S._twQuiet = Date.now(); const hs = box.querySelector('[data-tw="h"]'), ms = box.querySelector('[data-tw="m"]');
   hs.scrollTop = h * TW_H; ms.scrollTop = (Math.round(m/5) % 12) * TW_H;
@@ -113,7 +110,6 @@ function parseTime(str){ let t0 = String(str||"").trim().toUpperCase().replace(/
   return `${pad(h)}:${pad(mi)}`; }
 function readMetric(c){ if (!c.unit) return null; const s0 = parseNum(($("#pj-ms")||{}).value), t0 = parseNum(($("#pj-mt")||{}).value); if (s0 == null || t0 == null || s0 === t0){ toast("지금 숫자와 목표 숫자를 넣어 주세요"); return false; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return false; } return {unit, start:s0, target:t0}; }
 function readTime(c){ const el = $("#tm-in"); if (!el) return true; const v = parseTime(el.value); if (v === null){ toast("시간을 확인해 주세요. 예: 9:30, 21:00"); el.focus(); return false; } c.time = v; delete S.drafts["tm-in"]; return true; }
-const TSLOTS = Array.from({length:48}, (_, i) => `${pad(Math.floor(i/2))}:${i % 2 ? "30" : "00"}`);
 const tmLabel = v => { if (!v) return ""; const [h, mi] = v.split(":").map(Number); return `${h || 24}:${pad(mi)}`; };
 const fmtD = v => { const x = new Date(v+"T00:00"); return `${x.getFullYear() !== new Date().getFullYear() ? x.getFullYear()+"년 " : ""}${x.getMonth()+1}월 ${x.getDate()}일 (${WD[x.getDay()]})`; };
 function miniCal(c, key, max = ""){
@@ -320,7 +316,7 @@ function computeMine(){
   for (const q of mineOf("quest")) best = Math.max(best, streakOf(q).best);
   for (const m of mineOf("mission")) if (m.done) td++;
   const doneMine = Object.values(S.projects).filter(p => p.owner === S.me && p.status === "done");
-  const gd = doneMine.filter(p => !p.parentId).length, sd = doneMine.length - gd;
+  const gd = doneMine.filter(p => !p.parentId).length;
   return {...economySummary(S), best, md:td, pd:gd};
 }
 function statsOf(uid){
@@ -401,10 +397,9 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   const sel = fid && a.selectionStart != null ? [a.selectionStart, a.selectionEnd] : null;
   const v = S.view.name;
   if (v === "profile" && !S.view.uid) S.view.uid = S.me;
-  if (S.liveWin){ const wu = v === "profile" && S.view.uid !== S.me ? S.view.uid : null, wp = v === "post" ? S.view.pid : null; queueMicrotask(() => S.liveWin.watch(wu, wp)); }
   rollOver();
    const dash = v === "dash" && hasProfile();
-  $("#app").innerHTML = bannerHtml() + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, learn:viewLearn, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
+  $("#app").innerHTML = (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, learn:viewLearn, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
   { const gg = dash && $(".wd-goals .wd-ggrid"); if (gg && S.wdGs) gg.scrollLeft = S.wdGs; }
   $("#app").dataset.v = S.me && !hasProfile() && S.canWrite ? "profile" : dash ? "dash" : v; $("#app").dataset.pt = v === "profile" || v === "today" ? (S.profTab || "") : "";
   renderReplyBar(); renderPill();
@@ -412,7 +407,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   loadMedia(document);
   { const fm = document.getElementById("feedmore"); if (fm){ if (S._feedIO) S._feedIO.disconnect();
       S._feedIO = new IntersectionObserver(es => { if (!es.some(e => e.isIntersecting)) return; S._feedIO.disconnect(); const shown = S.feedN || 20, total = feedSorted().length;
-        if (shown < total) S.feedN = shown + 20; else if (S.liveWin && !S.liveWin.done()){ S.feedN = shown + 20; S.liveWin.more(); return; } schedule(); }, {rootMargin:"600px 0px"});
+        if (shown < total) S.feedN = shown + 20; schedule(); }, {rootMargin:"600px 0px"});
       S._feedIO.observe(fm); } }
   { const pm = document.getElementById("profmore"); if (pm){ if (S._profIO) S._profIO.disconnect();
       S._profIO = new IntersectionObserver(es => { if (!es.some(e => e.isIntersecting)) return; S._profIO.disconnect(); S.profN = (S.profN || 20) + 20; schedule(); }, {rootMargin:"600px 0px"}); S._profIO.observe(pm); } }
@@ -444,17 +439,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   if (MY && hasProfile()){
     if (S.lastXp != null && MY.xp > S.lastXp){ if (MY.L > S.lastLv) levelUp(MY.L); else if (!announced && !S.quietXp) toast(`경험치 <b>+${MY.xp - S.lastXp} XP</b>`); S.quietXp = false; }
     S.lastXp = MY.xp; S.lastLv = MY.L;
-    publishStats();
   }
-}
-let statT = 0;
-function publishStats(){
-  if (S.mode !== "live" || !S.canWrite || !MY) return;
-  const st = {xp:MY.xp, gold:MY.gold, best:MY.best, md:MY.md, pd:MY.pd};
-  const sig = JSON.stringify(st); if (sig === JSON.stringify((prof(S.me).stats)||{}) || sig === S.statSig) return;
-  S.statSig = sig; clearTimeout(statT); statT = setTimeout(() => { api.saveStats(st).catch(() => { S.statSig = ""; }); }, 1500);
-}
-function bannerHtml(){ return "";
 }
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
@@ -504,14 +489,13 @@ function charCard(uid, extra = "", nameExtra = ""){
         <div class="barmeta lft"><span class="num">${s.need===0?'MAX':`${fmt(s.cur)} / ${fmt(s.need)} XP`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div></div></div>
     ${extra}</section>`;
 }
-function xpFloat(){ return ""; }
 function xpPop(el, xp, c){ if (!el || !el.getBoundingClientRect) return; const r0 = el.getBoundingClientRect(), sp = document.createElement("span");
   sp.className = "xpop"; sp.textContent = `+${xp} XP · +${c}🪙`; sp.style.left = (r0.right + 8) + "px"; sp.style.top = (r0.top + r0.height / 2) + "px";
   document.body.appendChild(sp); setTimeout(() => sp.remove(), 1000); }
 function habitRow(q){
-  const lv = HLV[lvKey(q.lv)], done = !!(q.done||{})[today()], st = streakOf(q);
+  const done = !!(q.done||{})[today()], st = streakOf(q);
   return `<div class="row qrow" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><button class="check ${done?"on":""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button>
-    <span class="t"><b class="${done?"done":""}">${esc(q.name)}</b><small><span class="fire">🔥 ${st.cur || 0}${streakUnit(q)}</span>${q.active === false ? " · 보관" : ""}${afterOf(q) ? `<span class="pmeta">${AFT}${esc(afterOf(q))}</span>` : ""}${q.place ? `<span class="pmeta">${PIN}${esc(q.place)}</span>` : ""}</small></span>${xpFloat(q.id)}</div>`;
+    <span class="t"><b class="${done?"done":""}">${esc(q.name)}</b><small><span class="fire">🔥 ${st.cur || 0}${streakUnit(q)}</span>${q.active === false ? " · 보관" : ""}${afterOf(q) ? `<span class="pmeta">${AFT}${esc(afterOf(q))}</span>` : ""}${q.place ? `<span class="pmeta">${PIN}${esc(q.place)}</span>` : ""}</small></span></div>`;
 }
 const lateDays = m => !m.done && m.origDue && m.origDue < (m.due || today()) ? Math.round((pd(today()) - pd(m.origDue)) / DAY) : 0;
 function taskTimeTag(m){
@@ -525,7 +509,7 @@ function taskRow(m, showGoal = true, nested = false, {showTime = true, showDate 
   if (m.place) meta.push(`<span class="pmeta">${PIN}${esc(m.place)}</span>`);
   if (m.note) meta.push("📝 메모");
   return `<div class="row qrow ${nested ? "sq2" : ""}" data-act="tedit" data-id="${esc(m.id)}" role="button" tabindex="0"><button class="check ${m.done?"on":""}" data-act="mcheck" data-id="${esc(m.id)}" aria-pressed="${!!m.done}" aria-label="${esc(m.name)} 완료">${I.check}</button>
-    <span class="t"><b class="${m.done?"done":""}">${esc(m.name)}</b>${ld ? `<span class="tlate">${ld}일째 미룸</span>` : ""}${meta.length ? `<small class="task-meta">${meta.join(" ")}</small>` : ""}</span>${xpFloat(m.id)}</div>`;
+    <span class="t"><b class="${m.done?"done":""}">${esc(m.name)}</b>${ld ? `<span class="tlate">${ld}일째 미룸</span>` : ""}${meta.length ? `<small class="task-meta">${meta.join(" ")}</small>` : ""}</span></div>`;
 }
 function ring(done, total){
   const r = 26, C = 2*Math.PI*r, pct = total ? done/total : 0;
@@ -587,7 +571,7 @@ function taskTab(o = {}){
   const doneT = ms.filter(m => m.done && m.doneAt && dk(m.doneAt) === k), left = tod.length + late.length;
   const rolled = open.filter(m => m.origDue && m.origDue < k && m.due === k);
   let h = rolled.length >= 5 && LS.get("rolldis", "") !== k ? `<section class="card rollcard"><div class="rc-t"><b>지난 미션 ${rolled.length}개가 오늘로 넘어왔어요</b><small>안 할 미션은 한 번에 정리할 수 있어요</small></div><div class="rc-b"><button class="btn sm sec" data-act="rolldis">그대로 두기</button><button class="btn sm" style="background:var(--warn)" data-act="rolldel">모두 삭제</button></div></section>` : "";
-  h += `<section class="card today"><div class="ringwrap">${ring(doneT.length, doneT.length + left)}<b class="num">${doneT.length}/${doneT.length + left}</b></div>${xpFloat("*")}
+  h += `<section class="card today"><div class="ringwrap">${ring(doneT.length, doneT.length + left)}<b class="num">${doneT.length}/${doneT.length + left}</b></div>
     <div class="tinfo"><small>오늘의 미션</small><h2>${left ? `${left}개 남았어요` : doneT.length ? "오늘 미션 완료! 🎉" : "오늘 할 미션이 없어요"}</h2><p>${up.length && !o.noUp ? `다가오는 미션 ${up.length}개` : ""}</p></div></section>`;
   const block = (title, l, cls = "") => l.length ? `<p class="grp ${cls}">${title} <span class="num">${l.length}</span></p>${l.map(m => taskRow(m)).join("")}` : "";
   h += `<section class="card tight qlist">${block("⚠️ 기한 지남", late, "warn")}${block("오늘", tod)}${o.noUp ? "" : block("다가오는", up)}${o.noNone ? "" : block("미지정", none)}${!ms.length || (!open.length && !doneT.length) ? `<p class="empty-row">아직 미션이 없어요.</p>` : !(late.length + tod.length + (o.noUp ? 0 : up.length) + (o.noNone ? 0 : none.length)) && !doneT.length ? `<p class="empty-row">오늘 할 미션이 없어요.</p>` : ""}
@@ -608,7 +592,7 @@ function subTab(){
       <span class="mtop"><b>${esc(g.title)}</b>${I.chev}</span>
       <span class="bar green"><i style="width:${pct}%"></i></span>
       <small>미션 ${pr.done}/${pr.total}</small></button>
-      <button class="tfold" data-act="tfold" data-k="${g.id}" aria-expanded="${!shut}"><span>미션 ${ts.length ? `<em class="num">${left ? `${left}개 남음` : "모두 완료"}</em>` : ""}</span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : ts.map(m => { S._bare = true; try{ return taskRow(m, false); } finally { S._bare = false; } }).join("") + `<button class="morebtn add" data-act="taskadd" data-p="${g.id}">+ 미션 추가</button>`}</section>`;
+      <button class="tfold" data-act="tfold" data-k="${g.id}" aria-expanded="${!shut}"><span>미션 ${ts.length ? `<em class="num">${left ? `${left}개 남음` : "모두 완료"}</em>` : ""}</span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : ts.map(m => taskRow(m, false)).join("") + `<button class="morebtn add" data-act="taskadd" data-p="${g.id}">+ 미션 추가</button>`}</section>`;
   }
   h += `<button class="btn soft full" data-act="sheet" data-k="add" data-v="sub">+ 스테이지 생성</button>`;
   if (dn.length) h += `<section class="card tight"><button class="row" data-act="toggle" data-k="subdone"><span class="t"><b>✓ 완료한 스테이지 ${dn.length}개</b></span><span class="chev2 ${S.openSubDone?"open":""}">${I.chev}</span></button>${S.openSubDone ? dn.map(g => goalRow(g)).join("") : ""}</section>`;
@@ -666,7 +650,7 @@ function viewStats(){
     <section class="card stcard2"><div class="ch"><h2>능력치</h2></div>${statCard()}</section>`;
 }
 function statCard(){
-  const xp = areaXp(), vals = AREAS.map(([k]) => Math.floor(xp[k])), mx = Math.max(1, ...vals), tagged = Object.values(S.projects).some(p => p.owner === S.me && areasOf(p).length) || mineOf("quest").some(q => areasOf(q).length);
+  const xp = areaXp(), vals = AREAS.map(([k]) => Math.floor(xp[k]));
   const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><button class="stn" data-act="areainfo" data-v="${k}" aria-label="${n} 정보 보기"><b>${n}</b></button><b class="stl num">${fmt(vals[i])}</b></div>`).join("");
   const top = Math.max(...vals), low = Math.min(...vals), best = AREAS[vals.indexOf(top)], weak = AREAS[vals.indexOf(low)];
   return `<section class="statcard">${top > 0 ? `<p class="stsum">강점 <b>${best[1]}</b> · 보완 <b>${weak[1]}</b></p>` : ""}
@@ -680,19 +664,15 @@ function mainTab(){
   const subsFor = id => mineOf("mission").filter(m => m.projectId === id && vis(m)).sort((a,b) => a.done - b.done || isToday(b) - isToday(a) || (a.createdAt||0) - (b.createdAt||0));
   let h = `<section class="card today"><div class="ringwrap">${ring(ach.length, all.length)}<b class="num">${ach.length}/${all.length}</b></div>
     <div class="tinfo"><small>메인 퀘스트</small><h2>${act.length ? `${act.length}개 남았어요` : all.length ? "모두 달성했어요 🎉" : "아직 메인 퀘스트가 없어요"}</h2></div></section>`;
-  if (act.length >= 2) h += hintBar("reo", "카드를 길게 눌러 끌면 순서를 바꿀 수 있어요");
   if (!act.length) h += `<div class="card empty"><strong>진행 중인 메인 퀘스트가 없어요</strong>목표를 세우고 스테이지 또는 미션으로 나눠 보세요.</div>`;
   for (const g of act){
-    const pr = goalProgress(g), pct = pr.total ? pr.done/pr.total*100 : 0, links = subsOf(g.id).filter(x => x.status !== "done");
-    const latest = valLatest(g.id);
-    const mv = g.metric ? `📈 ${numFmt(latest ? latest.value : g.metric.start)} → ${numFmt(g.metric.target)}${esc(g.metric.unit)}` : "";
+    const links = subsOf(g.id).filter(x => x.status !== "done");
     const cvF = !(LS.get("cvopen", [])).includes(g.id), up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`;
     h += `<section class="card tight mq qlist" data-reo="${g.id}">${cvF ? `<button class="cvopen" data-act="cvfold" data-p="${g.id}">표지 펴기 <span style="display:inline-flex;transform:rotate(180deg)">${up}</span></button>` : `<div class="cvwrap">${coverHtml(g, {badge:false})}<button class="cvtog" data-act="cvfold" data-p="${g.id}" aria-label="표지 접기">${up}</button></div>`}<div class="mqh mqh2" data-act="project" data-p="${g.id}" role="button" tabindex="0">${qHead(g)}</div>
       ${(() => { const all = subsOf(g.id); const sk = "s:" + g.id, shut = !mOpen(sk); return `<div class="mqsubs"><button class="tfold" data-act="mfold" data-k="${sk}" aria-expanded="${!shut}"><span>스테이지 <em class="num">${all.filter(x => x.status === "done").length}/${all.length}</em></span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : all.map(x => goalRow(x, true)).join("") + `<button class="tadd-pill" data-act="sheet" data-k="sub" data-p="${g.id}">+ 스테이지 생성</button>`}</div>`; })()}
       ${(() => { const ts = [g.id, ...links.map(x => x.id)].flatMap(id => subsFor(id)).sort((a,b) => a.done - b.done || isToday(b) - isToday(a) || (a.createdAt||0) - (b.createdAt||0)), shut = !mOpen(g.id), left = ts.filter(m => !m.done).length;
-        return `<button class="tfold" data-act="mfold" data-k="${g.id}" aria-expanded="${!shut}"><span>미션 ${ts.length ? `<em class="num">${left ? `${left}개 남음` : "모두 완료"}</em>` : ""}</span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : ts.map(m => { S._bare = true; try{ return taskRow(m, false); } finally { S._bare = false; } }).join("") + `<button class="tadd-pill" data-act="taskadd" data-p="${g.id}">+ 미션 추가</button>`}`; })()}</section>`;
+        return `<button class="tfold" data-act="mfold" data-k="${g.id}" aria-expanded="${!shut}"><span>미션 ${ts.length ? `<em class="num">${left ? `${left}개 남음` : "모두 완료"}</em>` : ""}</span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : ts.map(m => taskRow(m, false)).join("") + `<button class="tadd-pill" data-act="taskadd" data-p="${g.id}">+ 미션 추가</button>`}`; })()}</section>`;
   }
-  const loose = mineOf("mission").filter(m => (!m.projectId || !S.projects[m.projectId]) && vis(m)).sort((a,b) => a.done - b.done || isToday(b) - isToday(a));
   // 개별 미션 카드는 메인 탭에서 표시하지 않음
   h += `<button class="btn soft full" data-act="sheet" data-k="add" data-v="big">+ 메인 퀘스트 생성</button>`;
   if (ach.length) h += `<section class="card tight"><button class="row" data-act="toggle" data-k="ach"><span class="t"><b>🏆 업적 ${ach.length}개</b></span><span class="chev2 ${S.openAch?"open":""}">${I.chev}</span></button>${S.openAch ? ach.map(g => goalRow(g)).join("") : ""}</section>`;
@@ -701,18 +681,18 @@ function mainTab(){
 function viewToday(){
   if (!S.me) return `<div class="card empty"><strong>로컬 프로필이 필요해요</strong>로컬 개발 모드에서 테스트 캐릭터를 만들어 주세요.</div>`;
   if (!hasProfile()) return S.canWrite ? onboarding() : `<div class="card empty"><strong>보기 전용이에요</strong>커뮤니티에서 다른 모험가의 기록을 볼 수 있어요.</div>`;
-  const k = today(), d = new Date();
-  const hs = todayHabits(), ms = mineOf("mission");
+  const k = today();
+  const hs = todayHabits();
   const items = hs.map(q => ({q, done:!!(q.done||{})[k], xp:HLV[lvKey(q.lv)].xp}));
   const todo = items.filter(x => !x.done), done = items.filter(x => x.done), total = items.length;
-  const left = todo.reduce((a,x) => a + x.xp, 0), all = total > 0 && !todo.length, s = MY;
+  const all = total > 0 && !todo.length;
   const tab = S.qTab === "sub" ? "main" : (S.qTab || "daily");
   let h = `<div class="seg" role="group" aria-label="퀘스트 종류"><button data-act="qtab" data-t="daily" aria-pressed="${tab==="daily"}">일일</button><button data-act="qtab" data-t="task" aria-pressed="${tab==="task"}">미션</button><button data-act="qtab" data-t="main" aria-pressed="${tab==="main"}">메인</button></div>`;
   if (tab === "main"){ S._noToday = true; try{ return h + mainTab(); } finally { S._noToday = false; } }
   if (tab === "sub"){ S._noToday = true; try{ return h + subTab(); } finally { S._noToday = false; } }
   if (tab === "task"){ S._noToday = true; try{ return h + taskTab({noUp:true, noNone:true}); } finally { S._noToday = false; } }
   h += `<section class="card today"><button class="iconbtn gear wd-cgear" data-act="hset" aria-label="일일 퀘스트 설정">${I.menu}</button>
-    <div class="ringwrap">${ring(done.length, total)}<b class="num">${done.length}/${total}</b></div>${xpFloat("*")}
+    <div class="ringwrap">${ring(done.length, total)}<b class="num">${done.length}/${total}</b></div>
     <div class="tinfo"><small>일일 퀘스트</small>
       <h2>${restDays()[today()] && !all ? "🛡️ 오늘은 쉬는 날이에요" : all ? "일일 퀘스트 완료! 🎉" : total ? `${todo.length}개 남았어요` : "오늘의 일일 퀘스트"}</h2>
       ${all ? `<p><button class="btn soft xs" data-act="shareday">오늘 공유하기</button></p>` : ""}</div></section>`;
@@ -788,10 +768,7 @@ function viewCal(){
   const title = mode === "day" ? `${D0.getMonth()+1}월 ${D0.getDate()}일 ${WD[D0.getDay()]}요일` : mode === "week" ? (() => { const a = pd(monStart(date)), b2 = pd(addD(monStart(date), 6)); return `${a.getMonth()+1}.${a.getDate()} – ${b2.getMonth()+1}.${b2.getDate()}`; })() : mode === "month" ? `${D0.getFullYear()}년 ${D0.getMonth()+1}월` : `${D0.getFullYear()}년`;
   h += `<div class="calnav"><button class="iconbtn" data-act="cstep" data-v="-1" aria-label="이전">${I.back}</button><b>${title}</b><button class="iconbtn fwd" data-act="cstep" data-v="1" aria-label="다음">${I.back}</button>${date !== t ? `<button class="btn sec xs" data-act="ctoday">오늘</button>` : ""}</div>`;
   const calTaskRow = m => taskRow(m, true, false, {showTime:false, showDate:false});
-  const dayList = d => { const l = (by[d] || []).sort((a,b) => a.done - b.done); return l.length ? l.map(calTaskRow).join("") : `<p class="empty-row">미션이 없어요.</p>`; };
   const addBtn = d => `<button class="morebtn add" data-act="taskadd" data-d="${d}">+ 미션 추가</button>`;
-  const perCard = (per, a, label) => { const l = mineOf("mission").filter(m => m.period === per && m.due === a).sort((x,y) => x.done - y.done || (x.createdAt||0) - (y.createdAt||0)), dn = l.filter(m => m.done).length;
-    return `<section class="card tight percard"><div class="ch"><h2>${label}</h2>${l.length ? `<span class="side num">${dn}/${l.length}</span>` : ""}</div>${l.length ? l.map(calTaskRow).join("") : `<p class="empty-row">아직 없어요.</p>`}<button class="morebtn add" data-act="sheet" data-k="add" data-v="once" data-d="${a}" data-per="${per}">+ ${label}</button></section>`; };
   const byTime = l => l.slice().sort((a,b) => (a.time||"99") < (b.time||"99") ? -1 : (a.time||"99") > (b.time||"99") ? 1 : a.done - b.done);
   if (mode === "day"){
     const l = by[date] || [], untimed = l.filter(m => !m.time), timed = l.filter(m => m.time);
@@ -804,7 +781,6 @@ function viewCal(){
       h += `<div class="tlrow ${now ? "now" : ""}" data-h="${hr}"><span class="tlh num">${hl(hr)}</span><div class="tlc">${items.map(calTaskRow).join("")}${hItems.map(q => calHabitChip(q, date)).join("")}${(!items.length && !hItems.length) ? `<button class="tlempty" data-act="taskadd" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 미션 추가"></button>` : ""}</div></div>`; }
     h += `</div>`;
     h += `${addBtn(date)}</section>`;
-    const none = mineOf("mission").filter(m => !m.done && !dueOf(m));
   } else if (mode === "week"){
     const s0 = monStart(date), days = Array.from({length:7}, (_, i) => addD(s0, i)), hl = hr => `${hr}시`;
     const hourOf = m => +m.time.slice(0,2) || 24, nowH = new Date().getHours() || 24;
@@ -959,7 +935,7 @@ function saveNote(c, after){
 }
 /* drawer manager + editor */
 function drawerSheet(c){
-  const cfg = S.mine.drawers || {}, DR = noteDrawers(S);
+  const DR = noteDrawers(S);
   if (c.edit != null){ const sel = c.fields || [];
     return sheetWrap(c.edit ? "서랍 수정" : "새 서랍", "", `
       <div class="field"><input type="text" id="dr-l" maxlength="12" placeholder="서랍 이름 · 예: 운동 기록" value="${D("dr-l")}" aria-label="서랍 이름"></div>
@@ -1136,8 +1112,6 @@ function viewQManage(){
   return `<div class="plback"><button class="link" data-act="pl-mode" data-v="plan">${I.back}<span>퀘스트로 돌아가기</span></button></div>` + viewTidy();
 }
 /* next open task across a main quest and its sub quests */
-const tOrd = (a,b) => (dueOf(a) || "9") < (dueOf(b) || "9") ? -1 : (dueOf(a) || "9") > (dueOf(b) || "9") ? 1 : (a.time || "99") < (b.time || "99") ? -1 : (a.time || "99") > (b.time || "99") ? 1 : (a.createdAt||0) - (b.createdAt||0);
-const nextOf = g => { const ids = famIds(g); return mineOf("mission").filter(m => !m.done && ids.includes(m.projectId)).sort(tOrd)[0] || null; };
 function dailyCard(q){
   const st = streakOf(q), lv = HLV[lvKey(q.lv)], t = today(), dn = !!(q.done || {})[t], sch = isSched(q, Date.now());
   const chip = dn ? `<span class="st">✓ 오늘 완료</span>` : sch ? `<span class="st plan">오늘 할 일</span>` : `<span class="st plan">오늘 쉬는 날</span>`;
@@ -1314,7 +1288,7 @@ function purchaseRows(){ const e=S.economy; return Object.values(e.purchases).fi
 function rewardHistory(rewardId){ return purchaseRows().filter(p => (p.rewardId || p.id) === rewardId || S.mine[p.id]?.rewardId === rewardId); }
 function purchaseActions(p){ return `${p.state==='planned'&&!p.legacy?`<button class="btn sec sm" data-act="purchase-use" data-id="${esc(p.id)}">사용 완료</button><button class="btn sec sm" data-act="purchase-cancel" data-id="${esc(p.id)}">취소·환불</button>`:''}${p.kind==='style'&&p.state==='owned'?`<button class="btn sec sm" data-act="purchase-cancel" data-id="${esc(p.id)}">10분 이내 취소</button>`:''}<button class="link" data-act="purchase-hide" data-id="${esc(p.id)}">기록 숨김</button>`; }
 function viewShop(){
-  if(!hasProfile())return viewToday();const q=economySummary(S),e=S.economy,tab=S.shopTab&&S.shopTab!=='items'?S.shopTab:'personal';
+  if(!hasProfile())return viewToday();const q=economySummary(S),tab=S.shopTab&&S.shopTab!=='items'?S.shopTab:'personal';
   let h=`<section class="card shophero"><span>사용 가능 코인</span><b class="num">🪙 ${fmt(q.gold)}</b></section><div class="chips eco-tabs">${[['personal','보상'],['inventory','내역']].map(([k,n])=>`<button class="chip" data-act="shop-tab" data-v="${k}" aria-pressed="${tab===k}">${n}</button>`).join('')}</div>`;
   if(tab==='personal')h+=`<div class="rgrid">${mineOf('reward').sort((a,b)=>priceOf(a)-priceOf(b)).map(r=>`<div class="rcard"><div class="rbody"><b>${esc(r.name)}</b><small>${r.repeat==='once'?'1회':'반복'} · ${priceOf(r)} 코인${r.dailyLimit?` · 일 ${r.dailyLimit}회`:''}${r.weeklyLimit?` · 주 ${r.weeklyLimit}회`:''}</small><div class="eco-actions"><button class="btn sm" data-act="buy" data-id="${r.id}" ${q.gold<priceOf(r)?'disabled':''}>구매</button><button class="link" data-act="redit" data-id="${r.id}">수정</button><button class="link" data-act="wishlist" data-id="${r.id}">${r.wishlist?'찜 해제':'찜'}</button></div>${(() => { const hr = rewardHistory(r.id).slice(0,3);
         return hr.length ? `<div class="rhist">${hr.map(p => `<div class="rhrow"><span class="rhstate ${p.state}">${PURCHASE_LABEL[p.state] || '보유'}</span><span class="rhtime num">${p.at ? new Date(p.at + 9*3600000).toISOString().slice(5,10).replace('-','.') : ''}</span><span class="eco-actions">${purchaseActions(p)}</span></div>`).join('')}</div>` : ''; })()}</div></div>`).join('')}<button class="rcard radd" data-act="sheet" data-k="reward"><b>＋ 보상 추가</b><small>하고 싶은 거 / 갖고 싶은 거</small></button></div>`;
@@ -1397,7 +1371,7 @@ function viewFeed(){
   if (fresh.length){ h += `<p class="sect">새 스토리 ${fresh.length}개</p>`; fresh.forEach(emit); h += `<div class="caught"><b><span>${I.check}</span>새 스토리를 모두 봤어요</b>지난 스토리를 이어서 보여드릴게요</div>`; }
   const n = S.feedN || 20; rest.slice(0, n).forEach(emit);
   if (count < 3) h += suggestCard();
-  const more = rest.length > n || (S.liveWin && !S.liveWin.done());
+  const more = rest.length > n;
   if (more) h += `<div class="feedmore" id="feedmore">${S.loadingMore ? "불러오는 중…" : "스토리를 더 불러오고 있어요"}</div>`;
   else if (rest.length > 20) h += `<p class="feedend">모든 스토리를 다 봤어요</p>`;
   return h;
@@ -1458,7 +1432,7 @@ function viewGoal(){
     const subT = sp ? [] : subs.map(x => ({x, l:mineOf("mission").filter(m => m.projectId === x.id).sort((a,b) => a.done - b.done)})).filter(o => o.l.length);
     const allT = ms.concat(...subT.map(o => o.l));
     const tkey = m => (dueOf(m) || "9999-99-99") + " " + (m.time || "99:99"); const srt = allT.sort((a,b) => a.done - b.done || (tkey(a) < tkey(b) ? -1 : tkey(a) > tkey(b) ? 1 : 0) || (a.createdAt||0) - (b.createdAt||0));
-    const bare = m => { S._bare = true; try{ return taskRow(m, false); } finally { S._bare = false; } };
+    const bare = m => taskRow(m, false);
     const openT = srt.filter(m => !m.done), doneT = srt.filter(m => m.done), gN = (S.gtN && S.gtN.pid === p.id) ? S.gtN.n : 10, dOpen = S.gDone === p.id;
     const trows = openT.slice(0, gN).map(bare).join("") + (openT.length > gN ? `<button class="morebtn more10" data-act="gtmore" data-p="${p.id}">더 보기 <em class="num">${openT.length - gN}</em></button>` : "")
       + (doneT.length ? `<button class="tfold" data-act="gdone" data-p="${p.id}" aria-expanded="${dOpen}"><span>완료 <em class="num">${doneT.length}개</em></span><span class="chev2 ${dOpen ? "open" : ""}">${I.chev}</span></button>${dOpen ? doneT.map(bare).join("") : ""}` : ""); 
@@ -1504,7 +1478,7 @@ function pgCard(g){
 
 /* ================= profile ================= */
 function storyComposer(){
-  const ph = S.inPhotos || [], ps = goalsOf(S.me).filter(g => g.status !== "done"), selQ = S.inRef && S.inRef.startsWith("q:") && S.mine[S.inRef.slice(2)], sel = selQ ? null : S.inRef && S.projects[S.inRef];
+  const ph = S.inPhotos || [], selQ = S.inRef && S.inRef.startsWith("q:") && S.mine[S.inRef.slice(2)], sel = selQ ? null : S.inRef && S.projects[S.inRef];
   return `<section class="card scomp">
     <div class="srow">${av(S.me, 36, false)}<textarea id="ps-text" rows="${S.drafts["ps-text"] ? 4 : 2}" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("ps-text")}</textarea></div>
     ${ph.length ? `<div class="thumbs">${ph.map((src,i) => `<div><img src="${src}" alt="첨부 사진 ${i+1}"><button data-act="inunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
@@ -1534,19 +1508,16 @@ function webProfCard(uid){
 }
 function viewWebDash(){
   const uid = S.me, gs = goalsOf(uid).filter(g => g.status !== "done" && !isPlanned(g)).sort(gOrder);
-  const head = (t, side = "") => `<div class="wd-gh"><h2>${t}</h2>${side}</div>`;
   const save = S.qTab; S.qTab = "daily"; let d = viewToday(); S.qTab = save;
   d = d.replace(/<button class="iconbtn gear wd-cgear"[^>]*>[\s\S]*?<\/button>/, "");
   d = d.replace(/^<div class="seg"[\s\S]*?<\/div>/, "");
-  const cnt = (d.match(/<span class="cnt num">([^<]*)<\/span>/) || [])[1] || "";
   d = d.replace(/<div class="ch"><h2>일일 퀘스트[\s\S]*?<\/button><\/div>/, "");
   const strip = (list, key, act, nm, n, kind, empty) => { n = Math.max(list.length, 1); const off = 0;
     const nav = WEB.matches && list.length > 2 ? `<button class="wd-rnav" data-act="wdgs" data-v="-1" aria-label="이전 ${nm}">${I.back}</button><button class="wd-rnav fwd" data-act="wdgs" data-v="1" aria-label="다음 ${nm}">${I.back}</button>` : "";
     return `${nav ? `<div class="wd-ovnav">${nav}</div>` : ""}
-      ${(() => { const k = Math.min(n, list.length), addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 생성"><span class="wd-plus">+</span><b>${nm} 생성</b>${list.length ? "" : `<small>${empty}</small>`}</button>`;
+      ${(() => { const addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 생성"><span class="wd-plus">+</span><b>${nm} 생성</b>${list.length ? "" : `<small>${empty}</small>`}</button>`;
         return `<div class="wd-ggrid hs">${list.slice(off, off + n).map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(<span class="bar green big">[\s\S]*?<\/span>)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; return `<div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">미션 ${pr.done}/${pr.total}</span></div>` + wdMetric(x); }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
-  const subs = Object.values(S.projects).filter(p => p.owner === uid && p.parentId && p.status !== "done" && S.projects[p.parentId]).sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : 1);
-  const goals = (gs.length >= 2 ? hintBar("reo", "카드를 길게 눌러 끌면 순서를 바꿀 수 있어요") : "") + `${strip(gs, "wdGi", "wdgi", "메인 퀘스트", 2, "big", "이루고 싶은 큰 목표를 세워 보세요")}
+  const goals = `${strip(gs, "wdGi", "wdgi", "메인 퀘스트", 2, "big", "이루고 싶은 큰 목표를 세워 보세요")}
 `;
   let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}<div class="wd-mprof">${profHead(uid).replace('<div class="stage">', '<div class="stage" data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기">')}</div></div><div class="wd-goals">${goals}</div>
       <div class="wd-bot"><div class="wd-sec"><div class="wd-stack">${d}</div></div>
@@ -1562,7 +1533,6 @@ function viewProfile(){
   if (uid === S.me && !hasProfile()) return S.canWrite ? onboarding() : `<div class="card empty"><strong>보기 전용이에요</strong></div>`;
   const mine = uid === S.me, p = prof(uid);
   const posts = feedSorted().filter(x => x.author === uid), goals = goalsOf(uid);
-  const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
   let h = mine ? profHead(uid).replace('<div class="stage">', '<div class="stage" data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기">') : profHead(uid);
   if (!mine && (isBlocked(uid) || (p.private && !isFollowing(S.me, uid)))) return h + `<div class="card empty"><strong>${isBlocked(uid) ? "차단한 계정이에요" : "🔒 비공개 계정이에요"}</strong>${isBlocked(uid) ? "차단을 해제하면 다시 볼 수 있어요." : "팔로우하면 게시물과 퀘스트를 볼 수 있어요."}</div>`;
   h += `<div class="segwrap"><button class="helpdot" data-act="ptabhelp" data-v="${mine ? 1 : ""}" aria-label="탭 설명 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r="1.3" fill="currentColor" stroke="none"/></svg></button><div class="seg" role="group" aria-label="보기"><button data-act="ptab" data-t="posts" aria-pressed="${S.profTab==="posts"}">스토리</button><button data-act="ptab" data-t="goals" aria-pressed="${S.profTab==="goals"}">퀘스트</button>${mine ? `<button data-act="ptab" data-t="diary" aria-pressed="${S.profTab==="diary"}">저널</button>` : ""}</div></div>`;
@@ -1658,44 +1628,12 @@ function renderPill(){
   el.innerHTML = `<button data-act="newpill">↑ <span class="stackav">${who.map(u => av(u, 20, false)).join("")}</span>새 스토리 ${items.length}개</button>`;
 }
 let scT = 0; window.addEventListener("scroll", () => { clearTimeout(scT); scT = setTimeout(() => { if (S.view.name === "feed") renderPill(); }, 120); }, {passive:true});
-let SV = null;
-const svCur = () => SV.users[SV.ui].items[SV.ii];
-function svRender(){
-  if (!SV) return;
-  const u = SV.users[SV.ui], p = svCur(); seenStories.add(p.id); LS.set("seen", [...seenStories].slice(-500));
-  const imgs = p.imgs || 0, k = imgs ? p.id+"~0" : null, r = p.ref;
-  const head = !r ? "" : r.type === "quest" ? `🔥 ${r.label} ${(r.extra||{}).streak||0}일 연속` : r.type === "project_done" ? `🏆 ${r.label} 달성` : r.type === "diary" ? `${EMOI[(r.extra||{}).emo]||"📓"} 컨디션 ${(r.extra||{}).cond}%` : r.type === "mission" ? `✅ ${r.mission||""}` : (S.projects[r.id] ? goalLabel(S.projects[r.id]) : `🎯 ${r.label}`);
-  const lk = liked(p);
-  $("#overlay").innerHTML = `<div class="sv" role="dialog" aria-modal="true" aria-label="오늘의 기록"><div class="frame">
-    <div class="stage" style="background:${imgs ? "#000" : `linear-gradient(160deg, ${colorOf(u.uid)}, #111)`}">${imgs ? (S.media[k] ? `<img src="${S.media[k]}" alt="">` : `<span data-k="${k}"></span>`) : `<div class="tcard">${esc(head)}${head ? "\n\n" : ""}${esc(p.text||"")}</div>`}</div>
-    <span class="burst" aria-hidden="true">${I.burst}</span>
-    <div class="bars">${u.items.map((_,i) => `<i class="${i < SV.ii ? "full" : ""}"><b ${i===SV.ii?'id="svbar"':""}></b></i>`).join("")}</div>
-    <div class="sh"><span class="av" style="width:36px;height:36px">${fig(u.uid, 36)}</span><b>${esc(nameOf(u.uid))}</b><small>${ago(p.createdAt)}</small><button class="x" data-sv="close" aria-label="닫기">×</button></div>
-    <button class="tapL" data-sv="prev" aria-label="이전"></button><button class="tapR" data-sv="next" aria-label="다음"></button>
-    ${imgs && (p.text || head) ? `<div class="cap">${esc(head)}${head ? "\n" : ""}${esc(p.text||"")}${r && r.type === "mission" ? taskTimeTag(r) : ""}</div>` : `<div style="margin-top:auto">${r && r.type === "mission" ? taskTimeTag(r) : ""}</div>`}
-    <div class="foot">${canAct() && u.uid !== S.me ? `<input type="text" id="sv-reply" maxlength="300" placeholder="${esc(nameOf(u.uid))}님에게 답글 보내기" aria-label="답글"><button data-sv="heart" aria-label="공감">${lk ? "❤️" : "🤍"}</button>` : ""}</div>
-  </div></div>`;
-  if (k && !S.media[k]) loadMedia($("#overlay"));
-  const inp = $("#sv-reply");
-  if (inp){ inp.addEventListener("focus", () => SV && (SV.paused = true)); inp.addEventListener("blur", () => SV && (SV.paused = false));
-    inp.addEventListener("keydown", ev => { if (ev.key === "Enter" && inp.value.trim()){ const t = inp.value.trim(); inp.value = ""; inp.blur(); run(() => api.addReply(p.id, t, null)); toast("답글을 보냈어요"); } }); }
-}
-function svStart(){ if (!SV) return; cancelAnimationFrame(SV.raf); SV.elapsed = 0; let last = performance.now();
-  const tick = now => { if (!SV) return; if (!SV.paused) SV.elapsed += now - last; last = now; const b = document.getElementById("svbar"); if (b) b.style.width = Math.min(100, SV.elapsed/5000*100)+"%"; if (SV.elapsed >= 5000){ svStep(1); return; } SV.raf = requestAnimationFrame(tick); };
-  SV.raf = requestAnimationFrame(tick); }
-function svStep(d){ if (!SV) return; SV.ii += d;
-  if (SV.ii >= SV.users[SV.ui].items.length){ SV.ui++; SV.ii = 0; if (SV.ui >= SV.users.length){ svClose(); return; } }
-  if (SV.ii < 0){ SV.ui--; if (SV.ui < 0){ SV.ui = 0; SV.ii = 0; } else SV.ii = SV.users[SV.ui].items.length-1; }
-  svRender(); svStart(); }
-function svClose(){ if (SV) cancelAnimationFrame(SV.raf); SV = null; $("#overlay").innerHTML = ""; schedule(); }
-document.addEventListener("pointerdown", ev => { if (SV && ev.target.closest(".sv .stage, .sv .tapL, .sv .tapR")) SV.paused = true; });
-document.addEventListener("pointerup", () => { if (SV && document.activeElement?.id !== "sv-reply") SV.paused = false; });
 function loadMedia(root){
   root.querySelectorAll("[data-k]").forEach(el => {
     const k = el.dataset.k;
     if (S.media[k]){ if (!el.querySelector("img")) el.innerHTML = `<img src="${S.media[k]}" alt="" draggable="false">`; return; }
     if (S.mediaLoading.has(k) || !api) return; S.mediaLoading.add(k);
-    api.getMedia(k).then(src => { if (src){ S.media[k] = src; schedule(); if (SV) svRender(); } }).catch(() => {});
+    api.getMedia(k).then(src => { if (src){ S.media[k] = src; schedule(); } }).catch(() => {});
   });
 }
 function shrinkImg(src, max, target){
@@ -1965,9 +1903,8 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="tqset" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${par.projectId === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
     const body = gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphan.map(x => it(x, true)).join("");
     return sheetWrap("어떤 퀘스트의 미션인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 퀘스트가 없어요.</p>`}</div>${par.projectId ? `<button class="btn sec full" data-act="tqset" data-v="">연결 안 함</button>` : ""}`); }
-  if (c.type === "qpick"){ const gs = goalsOf(S.me).filter(g => g.status !== "done"), orphanSubs = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId)), qs = mineOf("quest").filter(q => q.active !== false);
+  if (c.type === "qpick"){ const gs = goalsOf(S.me).filter(g => g.status !== "done"), orphanSubs = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId));
     const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="inref" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${S.inRef === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
-    const iq = q => `<button class="row mitem" data-act="inref" data-v="q:${q.id}"><span class="t"><b>🔥 ${esc(q.name)}</b><small>일일 퀘스트 · ${streakOf(q).cur}일 연속</small></span>${S.inRef === "q:"+q.id ? `<span class="pick">✓</span>` : ""}</button>`;
     const body = (gs.length || orphanSubs.length ? gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphanSubs.map(x => it(x, true)).join("") : "")
 ;
     return sheetWrap("어떤 퀘스트의 스토리인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 퀘스트가 없어요. 프로필의 퀘스트 탭에서 만들 수 있어요.</p>`}</div>${S.inRef ? `<button class="btn sec full" data-act="inref" data-v="">연결 안 함</button>` : ""}`); }
@@ -2098,8 +2035,7 @@ async function run(fn, after){
   if (S.busy) return; S.busy = true;
    try{ const result=await fn(); if (after) after(result); }
   catch(err){ const c = err && err.code;
-    if (c === "invalid_argument" && S.mode === "live"){ S.canWrite = false; toast("이 화면에서는 저장할 권한이 없어요"); }
-    else if (c === "quota_exceeded") toast("저장 공간이 가득 찼어요"); else toast(esc(err.message || "저장하지 못했어요. 다시 시도해 주세요")); }
+    if (c === "quota_exceeded") toast("저장 공간이 가득 찼어요"); else toast(esc(err.message || "저장하지 못했어요. 다시 시도해 주세요")); }
   finally{ S.busy = false; schedule(); if (S.compose && ["post","mission","quest","project"].includes(S.compose.type)) renderSheet(); }
 }
 const habitSnap = q => ({type:"quest", id:q.id, label:q.name, extra:{streak:streakOf(q).cur, lv:lvKey(q.lv), days:q.days, purpose:q.purpose||""}});
@@ -2122,7 +2058,7 @@ let tapT = null, tapKey = null;
   let t = null, st = null, drag = null, sx = 0, sy = 0;
   const end = save => { clearTimeout(t); t = null; st = null; if (!drag) return; const {el, box, gh} = drag; drag = null;
     if (gh) gh.remove(); el.classList.remove("reo-on"); box.classList.remove("reo-box"); document.body.classList.remove("reo-lock");
-    S._reoJust = Date.now(); hintDone("reo"); if (!save) { schedule(); return; }
+    S._reoJust = Date.now(); if (!save) { schedule(); return; }
     const ids = [...box.querySelectorAll(":scope > [data-reo]")].map(x => x.dataset.reo);
     const rest = goalsOf(S.me).filter(g => g.status !== "done" && !ids.includes(g.id)).sort(gOrder).map(g => g.id);
     const all = (box.closest(".wd-goals") ? [...ids, ...rest] : ids), ch = [];
@@ -2151,11 +2087,6 @@ let tapT = null, tapKey = null;
   document.addEventListener("click", e => { if (S._reoJust && Date.now() - S._reoJust < 400){ e.stopPropagation(); e.preventDefault(); S._reoJust = 0; } }, true);
 })();
 document.addEventListener("click", e => {
-  const svb = e.target.closest("[data-sv]");
-  if (svb && SV){ const a = svb.dataset.sv, p = svCur();
-    if (a === "close") svClose(); else if (a === "next") svStep(1); else if (a === "prev") svStep(-1);
-    else if (a === "heart"){ const was = liked(p); run(() => api.like(p.id, !was)); if (!was) burstAt($(".sv .frame")); svb.textContent = was ? "🤍" : "❤️"; }
-    return; }
   const dt = e.target.closest("[data-dt]");
   if (dt && !e.target.closest("button")){
     const key = dt.dataset.dt;
@@ -2355,7 +2286,7 @@ document.addEventListener("click", e => {
       run(async () => { for (const n of moved){ const {f} = ntN(n); await api.putMine(n.id, {...n, cat:"memo", f:{title:f.title || "", body:Object.entries(f).filter(([x]) => x !== "title").map(([, v]) => String(v)).join("\n")}}); }
         await api.putMine("drawers", {kind:"drawers", list:(cfg.list || []).filter(x => x.k !== k), hidden:cfg.hidden || []}); },
         () => { if (S.ntCat === k) S.ntCat = "all"; openSheet({type:"drawers"}); toast(moved.length ? `서랍을 삭제하고 자료 ${moved.length}개를 메모로 옮겼어요` : "서랍을 삭제했어요"); }); return; }
-    case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; { const fs0 = (S.mine[id] && S.mine[id].files) || []; run(() => api.delMine(id), () => fs0.forEach(x => FDB.del(x.id))); } return; run(() => api.delMine(id), () => { closeSheet(); toast("자료를 삭제했어요"); }); return;
+    case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; { const fs0 = (S.mine[id] && S.mine[id].files) || []; run(() => api.delMine(id), () => { fs0.forEach(x => FDB.del(x.id)); closeSheet(); toast("자료를 삭제했어요"); }); } return;
     case "bd-area": LS.set("bdOff", b.dataset.v === "off"); break;
     case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); if (c && c.type === "bdsort") renderSheet(); break; } S.armed = null; run(() => api.delMine(id), () => { if (S.compose && S.compose.type === "bdsort") closeSheet(); toast("삭제했어요"); }); return;
     case "bd-send": bdSend(id, b.dataset.v); return;
@@ -2432,7 +2363,7 @@ document.addEventListener("click", e => {
       S.planner = {cond:d.cond ?? 70, emo:d.emo || null, share:!!diaryPost(id), date:d.date, edit:true, from}; S.drafts["pl-text"] = d.text || ""; openSheet({type:"diary"}); return; }
     case "ldel": { if (S.armed !== "ld"+id){ arm("ld"+id); return; } S.armed = null; const post = diaryPost(id), from = S.planner.from;
       run(async () => { await api.delMine(id); if (post) await api.delPost(post.id); }, () => { S.planner = {cond:70, emo:null, share:false}; delete S.drafts["pl-text"]; if (S.compose) closeSheet(); toast("저널을 삭제했어요"); if (from === "logs") openSheet({type:"logs"}); }); return; }
-    case "pdone": { const p = S.projects[pid], sp = isProj(p), RW = sp ? PROJ : GOAL; if (S.armed !== "pd"+pid){ arm("pd"+pid); return; } S.armed = null;
+    case "pdone": { const p = S.projects[pid], sp = isProj(p); if (S.armed !== "pd"+pid){ arm("pd"+pid); return; } S.armed = null;
       run(() => api.putProject(pid, {...p, status:"done", doneAt:Date.now(), progress:goalProgress(p)}), r => { if (sp) syncProgress(p.parentId); rewardSheet({emoji:"🏆", title:sp ? "스테이지 완료!" : "메인 퀘스트 달성!", desc:esc(p.title)+(r.xp?'':' · 지급 조건 미달 또는 이미 지급 판정됨'), xp:r.xp, g:r.coins, share:{ref:{type:"project_done", id:pid, label:p.title, sub:sp}, title:sp ? "🔗 스테이지<br>완료!" : "🏆 메인 퀘스트<br>달성!"}}); }); return; }
     case "pdel": if (S.armed === "px"+pid){ S.armed = null; const sp = isProj(S.projects[pid]); run(async () => { const ids = [pid, ...subsOf(pid).map(x => x.id)]; for (const m of mineOf("mission").filter(m => ids.includes(m.projectId))) await api.delMine(m.id); for (const x of subsOf(pid)) await api.delProject(x.id); await api.delProject(pid); }, () => { closeSheet(); toast(sp ? "스테이지를 삭제했어요" : "메인 퀘스트를 삭제했어요"); history.back(); }); } else { arm("px"+pid); if (S.compose) renderSheet(); } return;
     case "alv": case "hlv": case "tlv": case "ntlv": preserveSheetDrafts(); c[a==='alv'||a==='tlv'?'lv':a] = lvKey(b.dataset.v); renderSheet(); return;
@@ -2442,7 +2373,6 @@ document.addEventListener("click", e => {
       if (c.share){ const text = (($("#ml-text")||{}).value||"").trim(); run(() => api.addPost({ref:{type:"project", id:pj.id, label:pj.title}, text, mood:null, value:v}, []), () => { delete S.drafts["ml-val"]; delete S.drafts["ml-text"]; closeSheet(); toast("기록하고 커뮤니티에 공유했어요"); }); return; }
       const key = "ml-" + pj.id, old = S.mine[key] || {kind:"mlog", projectId:pj.id, logs:[]}; const doc = {kind:"mlog", projectId:pj.id, logs:[...(old.logs||[]), {v, at:Date.now()}]};
       run(() => api.putMine(key, doc), () => { delete S.drafts["ml-val"]; closeSheet(); toast(`📈 ${numFmt(v)}${esc(pj.metric.unit)} 기록했어요`); }); return; }
-    case "hintx": hintDone(b.dataset.k); return;
     case "rolldis": LS.set("rolldis", today()); break;
     case "rolldel": { if (S.armed !== "rolldel") return; S.armed = null; const t0 = today(), ls = mineOf("mission").filter(m => !m.done && m.origDue && m.origDue < t0 && m.due === t0), pjs = new Set(ls.map(m => m.projectId).filter(Boolean));
       run(async () => { for (const m of ls) await api.delMine(m.id); }, () => { toast(`지난 미션 ${ls.length}개를 삭제했어요`); pjs.forEach(syncProgress); }); return; }
@@ -2520,8 +2450,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target.id === "nt-name" && !e.isComposing){ e.preventDefault(); const bt = document.querySelector('[data-act="addtask"]'); bt && bt.click(); return; }
   if (e.key === "Enter" && e.target.id === "pp-in" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); const bt = document.querySelector('[data-act="ppok"]'); bt && bt.click(); return; }
   if (e.key === "Escape" && S.compose && (S.compose._pp || S.compose._tw)){ S.compose._pp = null; S.compose._tw = false; renderSheet(); return; }
-  if (e.key === "Escape"){ if (SV) svClose(); else if (S.compose) closeSheet(); }
-  if (SV && document.activeElement?.id !== "sv-reply"){ if (e.key === "ArrowRight") svStep(1); if (e.key === "ArrowLeft") svStep(-1); }
+  if (e.key === "Escape" && S.compose) closeSheet();
   if ((e.key === "Enter" || e.key === " ") && e.target.getAttribute && e.target.getAttribute("role") === "button"){ e.preventDefault(); e.target.click(); }
 });
 document.addEventListener("paste", e => { if (e.target.id !== "bd-in") return; const t = (e.clipboardData || window.clipboardData)?.getData("text") || ""; if (/\n/.test(t.trim())){ e.preventDefault(); bdAdd(t); } });

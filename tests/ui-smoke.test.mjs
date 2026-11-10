@@ -665,7 +665,7 @@ for (const mode of ['day','week','month']) {
     }
   });
 }
-test('calendar detail and all period helpers suppress only date/time badges including ghosts',async () => {
+test('calendar detail rows suppress only date/time badges including ghosts',async () => {
   const js = await readFile(root+'/src/legacy-app.js','utf8');
   const task = {id:'period',name:'기간 미션',time:'09:00',period:'week',due:'2026-11-01',note:'메모'};
   const ghost = {...task,id:'ghost',name:'넘겨진 미션',_ghost:true};
@@ -673,10 +673,10 @@ test('calendar detail and all period helpers suppress only date/time badges incl
     dueLabel:()=> '<span class="tday soft">11월 1일</span>',xpFloat:()=>'',I:{check:''},tmLabel:timeFormatter(js)});
   vm.runInContext(js.slice(js.indexOf('function taskTimeTag('),js.indexOf('\nfunction ring(')),ctx);
   vm.runInContext(js.slice(js.indexOf('  const calTaskRow ='),js.indexOf('  const byTime ='))+
-    '\nthis.details = () => dayList("2026-11-01"); this.period = per => perCard(per,"2026-11-01","기간 목록");',ctx);
+    '\nthis.details = () => by["2026-11-01"].map(calTaskRow).join("");',ctx);
   for (const per of ['week','month','year']) {
     task.period = ghost.period = per;
-    for (const html of [ctx.details(),ctx.period(per)]) {
+    for (const html of [ctx.details()]) {
     assert.deepEqual(timeBadges(html),[]);
     assert.doesNotMatch(html,/<span class="tday\b|11월 1일/);
     assert.match(html,/기간 미션/); assert.match(html,/📝 메모/); assert.match(html,/3일째 미룸/);
@@ -709,26 +709,16 @@ test('showDate and showTime are independent row options for every real due badge
     assert.deepEqual(timeBadges(dateOnly),[]);
   }
 });
-test('story image/text captions and compose mission references never invent time or show quest tags',async () => {
+test('compose mission references never invent time or show quest tags',async () => {
   const js = await readFile(root+'/src/legacy-app.js','utf8');
-  const overlay = {innerHTML:''}; let post = {}, sheet = '';
+  let post = {}, sheet = '';
   const ctx = vm.createContext({S:{projects:{},media:{},compose:null},esc:String,tmLabel:timeFormatter(js),
-    seenStories:new Set(),LS:{set(){}},svCur:()=>post,liked:()=>false,$:s=>s === '#overlay' ? overlay : null,
-    colorOf:()=>'',fig:()=>'',nameOf:()=>'',ago:()=>'',canAct:()=>false,I:{burst:''},
     sheetWrap:(_title,_extra,html)=>{sheet=html;},D:()=>'',MAX_IMGS:4,SOCIAL:{post:1}});
-  for (const [start,end] of [['function taskTimeTag(','function taskRow('],['function svRender(','function svStart('],['function postSheet(','function replySheet(']]) {
+  for (const [start,end] of [['function taskTimeTag(','function taskRow('],['function postSheet(','function replySheet(']]) {
     vm.runInContext(js.slice(js.indexOf(start),js.indexOf(end)),ctx);
   }
-  vm.runInContext('var SV = {users:[{uid:"other",items:[{}]}],ui:0,ii:0};',ctx);
   for (const time of [undefined,'09:00']) {
-    for (const imgs of [0,1]) {
-      post = {id:'post',imgs,text:'본문',ref:{type:'mission',id:'main',mission:'미션 제목',time}};
-      if (imgs) ctx.S.media['post~0'] = 'test-image';
-      ctx.svRender();
-      assert.deepEqual(timeBadges(overlay.innerHTML),time ? ['9:00'] : []);
-      assert.match(overlay.innerHTML,/미션 제목/);
-      assert.doesNotMatch(overlay.innerHTML,/task-quest-tag|퀘스트 상세 보기/);
-    }
+    post = {id:'post',imgs:0,text:'본문',ref:{type:'mission',id:'main',mission:'미션 제목',time}};
     ctx.S.compose = {ref:post.ref,photos:[]}; ctx.postSheet('');
     assert.deepEqual(timeBadges(sheet),time ? ['9:00'] : []);
     assert.match(sheet,/미션 제목/);
