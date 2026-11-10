@@ -38,6 +38,9 @@ S.feedSeen = LS.get("feedSeen", 0); LS.set("feedSeen", Date.now());
 /* ================= helpers ================= */
 const $ = s => document.querySelector(s);
 const dq = s => (S.compose && S.compose.type === "diary" && document.querySelector("#overlay "+s)) || $(s);
+/* Shell regions (top bar, nav, reply bar, pill) are re-rendered on every frame but rarely change: writing the same
+   markup again forces a relayout and re-runs the icon/scroll observers, so only write when the markup differs. */
+const setHtml = (el, html) => { if (!el || el._html === html) return false; el.innerHTML = html; el._html = html; return true; };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 /* Values that reach attributes/markup straight from stored documents (a restored backup is untrusted input). */
 const num = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
@@ -65,7 +68,7 @@ const isToday = m => m.period ? perAnchor(m.period, today()) === m.due : m.due ?
 const dueOf = m => m.due || (!m.done && isToday(m) ? today() : "");
 function rollOver(){ if (!S.me || !S.canWrite || !api || S.mode === "loading") return; const t = today(), late = mineOf("mission").filter(m => !m.done && !m.period && m.due && m.due < t);
   if (!late.length || S.rolling) return; S.rolling = true;
-  (async () => { for (const m of late){ try{ const nm = {...m, due:t, origDue:m.origDue || m.due}; S.mine[m.id] = nm; await api.putMine(m.id, nm); }catch(e){} } S.rolling = false; schedule(); })(); }
+  (async () => { for (const m of late){ try{ const nm = {...m, due:t, origDue:m.origDue || m.due}; S.mine[m.id] = nm; MINE_KEY = null; await api.putMine(m.id, nm); }catch(e){} } S.rolling = false; schedule(); })(); }
 const dateOf = m => m.done ? activityDate(m.doneAt) : m.period ? "" : dueOf(m);
 const perAnchor = (per, d) => per === "week" ? monStart(d) : per === "month" ? d.slice(0,8) + "01" : per === "year" ? d.slice(0,5) + "01-01" : d;
 const perEnd = (per, a) => per === "week" ? addD(a, 6) : per === "month" ? (() => { const x = pd(a); return dk(new Date(x.getFullYear(), x.getMonth()+1, 0).getTime()); })() : per === "year" ? a.slice(0,5) + "12-31" : a;
@@ -242,7 +245,11 @@ new MutationObserver(ms => { for (const m of ms){ if (m.type === "characterData"
 iconize(document.body);
 
 /* ================= derived: my stats ================= */
-const mineOf = kind => Object.values(S.mine).filter(d => d.kind === kind);
+/* Records by kind, indexed once per saved state. Every save swaps S.mine for a new object, so its identity is the cache key.
+   Callers get their own array (many sort it in place). */
+let MINE_OF = null, MINE_KEY = null;
+const mineOf = kind => { if (MINE_KEY !== S.mine){ MINE_KEY = S.mine; MINE_OF = new Map(); }
+  let list = MINE_OF.get(kind); if (!list){ list = Object.values(S.mine).filter(d => d.kind === kind); MINE_OF.set(kind, list); } return list.slice(); };
 const WDORD = [1,2,3,4,5,6,0];
 const dayNum = d => Math.round(Date.UTC(+d.slice(0,4), +d.slice(5,7)-1, +d.slice(8,10)) / 86400000);
 const dimOf = (y,m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
@@ -287,19 +294,26 @@ function repeatLabel(q){
   return "매주";
 }
 const streakUnit = q => (qRepeat(q).type === "daily" || qRepeat(q).type === "weekly") ? "일" : "회";
+/* Walks up to ~400 days back and the whole history forward, and is asked for the same habit several times per frame
+   (rows, cards, totals), so the result is kept per record until the record, the rest days or the date changes. */
+const STREAKS = new WeakMap();
 function streakOf(q){
-  const done = q.done || {}, rd = restDays(); let cur = 0, t = Date.now();
+  const t0 = today(), rest = S.mine.rest, hit = STREAKS.get(q); if (hit && hit.t === t0 && hit.r === rest) return hit.v;
+  const done = q.done || {}, rd = restDays(), rep = qRepeat(q), now = Date.now(), from = dayStart(q.createdAt || 0); let cur = 0, t = now;
   for (let i = 0; i < 400; i++){
-    if (t < dayStart(q.createdAt || 0)) break;
-    if (isSched(q, t)){ if (rd[koreaDate(t)]){} else if (done[koreaDate(t)]) cur++; else if (i > 0) break; }
+    if (t < from) break;
+    const k = koreaDate(t);
+    if (occursOn(rep, k)){ if (rd[k]){} else if (done[k]) cur++; else if (i > 0) break; }
     t -= DAY;
   }
-   let best = 0, run = 0; t = new Date(koreaDate(q.createdAt || Date.now())+'T00:00:00+09:00').getTime();
-  while (t <= Date.now()){
-    if (isSched(q, t)){ if (rd[koreaDate(t)]){} else if (done[koreaDate(t)]){ run++; best = Math.max(best, run); } else if (koreaDate(t) !== today()) run = 0; }
+  let best = 0, run = 0; t = new Date(koreaDate(q.createdAt || now)+'T00:00:00+09:00').getTime();
+  while (t <= now){
+    const k = koreaDate(t);
+    if (occursOn(rep, k)){ if (rd[k]){} else if (done[k]){ run++; if (run > best) best = run; } else if (k !== t0) run = 0; }
     t += DAY;
   }
-  return {cur, best:Math.max(best, cur), total:Object.keys(done).length};
+  const v = {cur, best:Math.max(best, cur), total:Object.keys(done).length};
+  STREAKS.set(q, {t:t0, r:rest, v}); return v;
 }
 const normQ = n => String(n || "").replace(/\s+/g, " ").trim().toLowerCase();
 const dupQ = (name, except) => mineOf("quest").some(q => q.id !== except && normQ(q.name) === normQ(name));
@@ -377,7 +391,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   const setup = !!entryScreen || !hasProfile();
   document.body.classList.toggle('onboarding', setup);
   if (setup && S.mode !== 'loading'){
-    $('#topbar').innerHTML = ''; $('#nav').innerHTML = ''; $('#replybar').innerHTML = ''; $('#pill').innerHTML = '';
+    setHtml($('#topbar'), ''); setHtml($('#nav'), ''); setHtml($('#replybar'), ''); setHtml($('#pill'), '');
     $('#app').dataset.v = entryScreen === 'login' ? 'login' : 'profile';
     $('#app').dataset.pt = '';
     $('#app').innerHTML = entryScreen === 'login' ? loginScreen() : onboarding();
@@ -439,13 +453,13 @@ function renderTop(){
   const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || (v === "profile" && S.view.uid !== S.me);
   const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
   const n = activityItems().filter(x => x.at > actSeen).length;
-  $("#topbar").innerHTML = `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : ""}<h1>${title}</h1>
+  setHtml($("#topbar"), `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : ""}<h1>${title}</h1>
     ${S.me && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
-    ${hasProfile() && !sub ? `<button class="iconbtn" data-act="go" data-v="settings" aria-label="설정">${I.gear}</button>` : ""}`;
+    ${hasProfile() && !sub ? `<button class="iconbtn" data-act="go" data-v="settings" aria-label="설정">${I.gear}</button>` : ""}`);
 }
 function renderNav(){
   const v = S.view.name, cur = c => c ? 'aria-current="page"' : "";
-  $("#nav").innerHTML = `
+  const col = $("#nav"), fresh = setHtml(col, `
     <a href="#qmanage" ${cur(v==="qmanage")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4.5h11.5l-2.2 3.75 2.2 3.75H5"/></svg><span>퀘스트</span></a>
     <a href="#dash" ${cur(v==="dash")}>${I.dash}<span>대시보드</span></a>
     <a href="#me" ${cur(isMine())}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5.5C9 3.5 5.5 3.5 2.5 4.5v15c3-1 6.5-1 9.5 1 3-2 6.5-2 9.5-1v-15c-3-1-6.5-1-9.5 1Z"/><path d="M12 5.5v15M5.5 8.5c1.2-.2 2.4 0 3.5.5M5.5 12c1.2-.2 2.4 0 3.5.5M15 9c1.1-.5 2.3-.7 3.5-.5M15 12.5c1.1-.5 2.3-.7 3.5-.5"/></svg><span>스토리</span></a>
@@ -453,10 +467,11 @@ function renderNav(){
     <a href="#notes" ${cur(v==="notes" || v==="learn")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5h-7L10 5H5a1.5 1.5 0 0 0-1.5 1.5Z"/><path d="M8 12.5h8M8 15.5h5"/></svg><span>자료실</span></a>
     <a href="#shop" ${cur(v==="shop")}>${I.bag}<span>상점</span></a>
     <a href="#cal" ${cur(v==="cal")}>${I.cal}<span>캘린더</span></a>
-    <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`;
+    <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`);
   document.body.classList.toggle("navmini", !!S.navMini);
+  if (!fresh) return;
   /* mobile: the bottom bar scrolls sideways; keep the current menu in view */
-  const col = $("#nav"), on = col && col.querySelector('[aria-current="page"]');
+  const on = col && col.querySelector('[aria-current="page"]');
   if (on && col.scrollWidth > col.clientWidth){ const l = on.offsetLeft - col.offsetLeft, r = l + on.offsetWidth; if (r > col.scrollLeft + col.clientWidth) col.scrollLeft = r - col.clientWidth + 8; else if (l < col.scrollLeft) col.scrollLeft = Math.max(0, l - 8); }
 }
 /* mobile bottom bar: edge fades + arrows show there is more to the side; one gentle peek on first visit */
@@ -469,7 +484,7 @@ function navEdges(){ const col = $("#nav"), nav = col && col.closest(".nav"); if
 function renderReplyBar(){
   const p = S.view.name === "post" && S.feed[S.view.pid], show = p && canAct() && !p.noReply;
   document.body.classList.toggle("has-replybar", !!show);
-  $("#replybar").innerHTML = show ? `<div class="replybar"><button data-act="reply" data-p="${p.id}">${av(S.me, 30, false)}<span>${p.author === S.me ? "답글 남기기…" : esc(nameOf(p.author))+"님에게 답글 남기기…"}</span></button></div>` : "";
+  setHtml($("#replybar"), show ? `<div class="replybar"><button data-act="reply" data-p="${p.id}">${av(S.me, 30, false)}<span>${p.author === S.me ? "답글 남기기…" : esc(nameOf(p.author))+"님에게 답글 남기기…"}</span></button></div>` : "");
 }
 
 /* ================= 오늘 ================= */
@@ -1620,12 +1635,12 @@ function viewActivity(){
 function pendingNew(){ return feedSorted().filter(p => p.createdAt > S.ackAt && p.author !== S.me); }
 function renderPill(){
   const el = $("#pill");
-  if (S.view.name !== "feed" || S.mode === "loading"){ el.innerHTML = ""; return; }
+  if (S.view.name !== "feed" || S.mode === "loading"){ setHtml(el, ""); return; }
   const items = pendingNew();
-  if (items.length && scrollY < 120){ S.ackAt = Date.now(); el.innerHTML = ""; return; }
-  if (!items.length){ el.innerHTML = ""; return; }
+  if (items.length && scrollY < 120){ S.ackAt = Date.now(); setHtml(el, ""); return; }
+  if (!items.length){ setHtml(el, ""); return; }
   const who = [...new Set(items.map(i => i.author))].slice(0,3);
-  el.innerHTML = `<button data-act="newpill">↑ <span class="stackav">${who.map(u => av(u, 20, false)).join("")}</span>새 스토리 ${items.length}개</button>`;
+  setHtml(el, `<button data-act="newpill">↑ <span class="stackav">${who.map(u => av(u, 20, false)).join("")}</span>새 스토리 ${items.length}개</button>`);
 }
 let scT = 0; window.addEventListener("scroll", () => { clearTimeout(scT); scT = setTimeout(() => { if (S.view.name === "feed") renderPill(); }, 120); }, {passive:true});
 function loadMedia(root){
@@ -2203,7 +2218,7 @@ document.addEventListener("click", e => {
     case "cphoto": choosePhotos(true, list => { if (!S.compose || S.compose.type !== "post") return; S.compose.photos = S.compose.photos.concat(list).slice(0, MAX_IMGS); renderSheet(); }); return;
     case "cunphoto": c.photos.splice(+b.dataset.i, 1); renderSheet(); return;
     case "ptab": S.profTab = b.dataset.t; break;
-    case "newpill": S.ackAt = Date.now(); $("#pill").innerHTML = ""; scrollTo({top:0, behavior:"smooth"}); return;
+    case "newpill": S.ackAt = Date.now(); setHtml($("#pill"), ""); scrollTo({top:0, behavior:"smooth"}); return;
     case "open": e.stopPropagation(); openPost(pid); return;
     case "project": e.stopPropagation(); if (c && c.type === "areainfo") closeSheet(); openGoal(pid); return;
     case "profile": e.stopPropagation(); if (S.compose && S.compose.type === "flist") closeSheet(); openProfile(u); return;

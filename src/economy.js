@@ -29,7 +29,18 @@ export const TASK_COINS = [10,20,30,40,50];
 // 새 아이템은 {id,type,name,cost,style} 형태로 이 배열에 추가한다.
 export const CATALOG = [];
 
-export function koreaDate(at = Date.now()) { return new Date(at + 9*3600000).toISOString().slice(0,10); }
+/* Called once per day per habit while walking streaks (hundreds of thousands of calls on a long history), so the
+   formatted date is remembered per Korean calendar day instead of building a Date and an ISO string every time. */
+const KD = new Map();
+export function koreaDate(at = Date.now()) {
+  const day = Math.floor((at + 9*3600000) / 86400000);
+  let date = KD.get(day);
+  if (date === undefined) {
+    date = new Date(at + 9*3600000).toISOString().slice(0,10);
+    if (typeof at === 'number' && Number.isFinite(day)) { if (KD.size > 4096) KD.clear(); KD.set(day, date); }
+  }
+  return date;
+}
 export function weekOf(date) { const d = new Date(date+'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - (d.getUTCDay()+6)%7); return d.toISOString().slice(0,10); }
 export function levelStart(L) { return 100*(L-1)+10*(L-1)*(L-2); }
 export function economyLevel(xp) {
