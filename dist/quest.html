@@ -1,4 +1,4 @@
-<!doctype html><html lang="ko"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="ko"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="script-src-attr 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>퀘스트 v3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
@@ -1267,7 +1267,51 @@ const plain = v => v !== null && typeof v === 'object' && !Array.isArray(v) && (
 function emptySnapshot() {
   return {v:2, at:0, ...Object.fromEntries(COLLECTIONS.map(k => [k, {}]))};
 }
-function clone(v) { return JSON.parse(JSON.stringify(v)); }
+/** Deep copy of JSON data. Same result as JSON.parse(JSON.stringify(v)) for the values a snapshot may hold
+ * (undefined members are dropped, undefined array slots become null) but strings are shared, not re-encoded:
+ * a snapshot with several megabytes of images copies in microseconds instead of re-serialising every image. */
+function clone(v) {
+  if (v === null || typeof v !== 'object') return typeof v === 'number' && !Number.isFinite(v) ? null : v;
+  if (Array.isArray(v)) { const out = new Array(v.length); for (let i = 0; i < v.length; i++) out[i] = v[i] === undefined ? null : clone(v[i]); return out; }
+  if (typeof v.toJSON === 'function') return clone(v.toJSON());
+  const out = {};
+  for (const key of Object.keys(v)) { const child = v[key]; if (child !== undefined && typeof child !== 'function' && typeof child !== 'symbol') out[key] = clone(child); }
+  return out;
+}
+/* ---- import-only rules -------------------------------------------------------------------------------------
+ * A backup file is untrusted input. Besides the structural checks above, an imported file must not carry values
+ * that the UI places into HTML attributes (ids, image sources, colours, counters) in any shape other than the app
+ * itself writes. Text the user types (names, notes, journals) stays free-form; the UI escapes it when rendering. */
+const SAFE_ID = /^[\w.~:@+-]{1,128}$/;
+const SAFE_IMAGE = /^data:image\/(png|jpeg|jpg|gif|webp|svg\+xml)[;,][\w+/=%.,;:~!*'()-]*$/i;
+const SAFE_COLOR = /^#[0-9a-f]{3,8}$/i;
+const NUMERIC = /^-?\d+(\.\d+)?$/;
+const ID_KEYS = new Set(['id', 'projectId', 'parentId', 'postId', 'afterId', 'noteId', 'rewardId', 'author', 'owner', 'uid', 'from', 'to']);
+const IMAGE_KEYS = new Set(['face', 'cover', 'img']);
+const NUMBER_KEYS = new Set(['cond', 'streak', 'total', 'imgs', 'cost', 'dailyLimit', 'weeklyLimit', 'ind', 'size', 'order']);
+function inspectStrict(v, key) {
+  if (typeof v === 'string') {
+    if (!v) return;
+    if (ID_KEYS.has(key) && !SAFE_ID.test(v)) throw new Error(`백업의 ${key} 값에 허용되지 않는 문자가 있습니다.`);
+    if (IMAGE_KEYS.has(key) && !SAFE_ID.test(v) && !SAFE_IMAGE.test(v)) throw new Error('백업의 이미지 값이 올바르지 않습니다.');
+    if (key === 'color' && !SAFE_COLOR.test(v)) throw new Error('백업의 색상 값이 올바르지 않습니다.');
+    if (NUMBER_KEYS.has(key) && !NUMERIC.test(v)) throw new Error(`백업의 ${key} 값이 숫자가 아닙니다.`);
+    return;
+  }
+  if (v === null || typeof v !== 'object') return;
+  if (Array.isArray(v)) { for (const child of v) inspectStrict(child, key); return; }
+  for (const [k, child] of Object.entries(v)) inspectStrict(child, k);
+}
+function validateImport(snapshot) {
+  for (const name of COLLECTIONS) {
+    for (const [id, doc] of Object.entries(snapshot[name])) {
+      if (!SAFE_ID.test(id)) throw new Error('백업의 문서 ID에 허용되지 않는 문자가 있습니다.');
+      if (name === 'media') { if (doc && !SAFE_IMAGE.test(doc)) throw new Error('백업의 이미지 형식이 올바르지 않습니다.'); }
+      else inspectStrict(doc, '');
+    }
+  }
+  return snapshot;
+}
 function inspect(v, depth = 0) {
   if (depth > 32) throw new Error('백업 중첩 깊이가 너무 큽니다.');
   if (v === null || typeof v === 'string' || typeof v === 'boolean') return;
@@ -1336,7 +1380,7 @@ function parseBackup(text) {
   if (typeof text !== 'string' || text.length > 20 * 1024 * 1024) throw new Error('백업 파일이 너무 크거나 잘못되었습니다.');
   let parsed;
   try { parsed = JSON.parse(text); } catch { throw new Error('JSON 백업을 읽을 수 없습니다.'); }
-  return validateSnapshot(parsed, {allowLegacy:true});
+  return validateImport(validateSnapshot(parsed, {allowLegacy:true}));
 }
 function createStorage({driver, mode = 'empty', now = Date.now, onError = () => {}}) {
   if (!Object.hasOwn(NAMESPACES, mode)) throw new Error('잘못된 작업 공간입니다.');
@@ -1344,13 +1388,17 @@ function createStorage({driver, mode = 'empty', now = Date.now, onError = () => 
   const perform = fn => { try { return fn(); } catch (error) { onError(error); throw error; } };
   const capture = state => validateSnapshot({v:2, at:now(), ...Object.fromEntries(COLLECTIONS.map(k => [k, state[k]])), ...(state.economy ? {economy:state.economy} : {})});
   const persist = snapshot => perform(() => { const valid = validateSnapshot(snapshot); driver.setItem(key, JSON.stringify(valid)); return valid; });
-  const hydrate = (state, snapshot) => { const valid = validateSnapshot(snapshot); for (const k of COLLECTIONS) state[k] = valid[k]; if (valid.economy) state.economy = valid.economy; else delete state.economy; return state; };
+  // `valid` must already be a validated snapshot that nobody else holds (the return value of validateSnapshot/persist).
+  const adopt = (state, valid) => { for (const k of COLLECTIONS) state[k] = valid[k]; if (valid.economy) state.economy = valid.economy; else delete state.economy; return state; };
+  const hydrate = (state, snapshot) => adopt(state, validateSnapshot(snapshot));
   return {
     key, mode, identity:'me', empty:emptySnapshot, capture, hydrate,
     load:() => perform(() => { const text = driver.getItem(key); return text === null ? null : validateSnapshot(JSON.parse(text)); }),
     save:state => persist(capture(state)),
     commit(state, mutate) {
-      const next = capture(state); mutate(next); const valid = persist(next); hydrate(state, valid); return valid;
+      // capture = private validated copy; persist validates the mutated copy again before writing and returns
+      // a fresh copy that the state adopts directly (no third validation pass, no extra copy).
+      const next = capture(state); mutate(next); const valid = persist(next); adopt(state, valid); return valid;
     },
     export:state => JSON.stringify(capture(state), null, 2),
     import(text) { const valid = parseBackup(text); return persist(valid); },
@@ -1733,6 +1781,10 @@ S.feedSeen = LS.get("feedSeen", 0); LS.set("feedSeen", Date.now());
 const $ = s => document.querySelector(s);
 const dq = s => (S.compose && S.compose.type === "diary" && document.querySelector("#overlay "+s)) || $(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+/* Values that reach attributes/markup straight from stored documents (a restored backup is untrusted input). */
+const num = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+const safeColor = c => /^#[0-9a-f]{3,8}$/i.test(c || "") ? c : COLORS[2];
+const safeUrl = u => { const v = String(u || "").trim(); return /^https?:\/\//i.test(v) ? v : /^[\w-]+(\.[\w-]+)+([\/?#]\S*)?$/.test(v) ? "https://" + v : ""; };
 const uid8 = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 const keyOf = id => String(id).replace(/[^A-Za-z0-9_\-.~:@+]/g,"_");
 const pad = n => String(n).padStart(2,"0");
@@ -1805,7 +1857,7 @@ function miniCal(c, key, max = ""){
 }
 const datePick = (c, key, label, optional, required = false) => { const v = c[key] || "";
   return `<div class="field"><span class="lab">${label}${required ? ' <span class="hint">필수</span>' : optional ? ' <span class="hint">선택</span>' : ""}</span><div class="dprow"><button class="dpbtn ${v ? "" : "empty"}" data-act="dpopen" data-k="${key}">📅 ${v ? fmtD(v) : "날짜 선택"}</button>${v && !required ? `<button class="link" data-act="dpclear" data-k="${key}">지우기</button>` : ""}</div>${c._dp === key ? (key === "end" ? `<div class="dppop" data-act="dpstay"><div class="dppop-in" data-act="dpstay" role="dialog" aria-label="${label} 선택"><div class="dppop-h"><b class="dppop-t">${label} 선택</b><button class="iconbtn" data-act="dpopen" data-k="end" aria-label="닫기">${I.close}</button></div>${miniCal(c, key)}</div></div>` : miniCal(c, key)) : ""}</div>`; };
-const priceOf = r => r.cost || OLD_TIER[r.tier] || 150;
+const priceOf = r => num(r.cost) || OLD_TIER[r.tier] || 150;
 const isProj = p => !!(p && p.parentId);
 const goalsOf = uid => Object.values(S.projects).filter(p => p.owner === uid && !p.parentId);
 const subsOf = gid => Object.values(S.projects).filter(p => p.parentId === gid).sort((a,b) => (a.status === "done") - (b.status === "done") || (a.createdAt||0) - (b.createdAt||0));
@@ -2009,12 +2061,12 @@ function statsOf(uid){
 }
 const prof = id => S.profiles[id] || {};
 const nameOf = id => prof(id).nick || S.names[id] || "이름 없는 모험가";
-const colorOf = id => prof(id).color || COLORS[2];
+const colorOf = id => safeColor(prof(id).color);
 const hasProfile = () => !!(S.me && S.profiles[S.me]);
 const canAct = () => S.canWrite && hasProfile();
 const isFollowing = (a, b) => !!S.follows[keyOf(a)+"~"+keyOf(b)];
 function chibi(color, L, face, size){ const src = face && (face.startsWith("data:") ? face : S.media[face]);
-  const fc = src ? `<span class="cface"><img src="${src}" alt="" draggable="false"></span>` : `<span class="cface" data-k="${esc(face)}"></span>`;
+  const fc = src ? `<span class="cface"><img src="${esc(src)}" alt="" draggable="false"></span>` : `<span class="cface" data-k="${esc(face)}"></span>`;
   return `<span class="chibi" style="width:${size}px;height:${size}px" aria-hidden="true"><svg viewBox="0 0 100 100"><ellipse cx="50" cy="97" rx="20" ry="3" fill="#000" opacity=".12"/>
     <rect x="39" y="78" width="9" height="16" rx="4" fill="#2B3440"/><rect x="52" y="78" width="9" height="16" rx="4" fill="#2B3440"/>
     <ellipse cx="42.5" cy="94.5" rx="6.5" ry="3.2" fill="#1B2420"/><ellipse cx="57.5" cy="94.5" rx="6.5" ry="3.2" fill="#1B2420"/>
@@ -2052,7 +2104,7 @@ const feedSorted = () => Object.values(S.feed).filter(canSee).sort((a,b) => b.cr
 function applyTheme(){ const t = LS.get("theme", "system"), el = document.documentElement; if (t === "system") el.removeAttribute("data-theme"); else el.setAttribute("data-theme", t); }
 function goalProgress(p){
   if (p.owner === S.me){ const ids = famIds(p), ms = mineOf("mission").filter(m => ids.includes(m.projectId)); return {done:ms.filter(m => m.done).length, total:ms.length}; }
-  return p.progress || {done:0, total:0};
+  return {done:num(p.progress && p.progress.done), total:num(p.progress && p.progress.total)};
 }
 const todayHabits = () => chainSort(mineOf("quest").filter(q => q.active !== false && isSched(q, Date.now())).sort((a,b) => (a.createdAt||0) - (b.createdAt||0)));
 
@@ -2208,14 +2260,14 @@ function jLoad(dt){ if (!dt || dt > today()) return; const P = S.planner, d = S.
 function diaryForm(d, P, sheet = false){ const dt = P.date || today(), t0 = today(), past = dt !== t0, c = S.compose;
   return `
     ${sheet ? `<div class="field jdate"><span class="lab">날짜</span><div class="chips"><button class="chip jdchip" data-act="jdpick" aria-pressed="true">${nic("calendar")}${past ? `${pd(dt).getMonth()+1}월 ${pd(dt).getDate()}일 ${WD[pd(dt).getDay()]}요일` : "오늘"}</button></div>${c && c._dp === "jd" ? ppWrap("날짜 선택", "jdclose", miniCal({jd:dt, _dpm:c._dpm}, "jd", t0) + (past ? `<div class="ppbtns"><button class="btn ghost" data-act="jdate" data-v="${t0}">오늘로</button></div>` : "")) : ""}</div>` : ""}
-    <div class="cond"><span class="lab">컨디션</span><input type="range" id="pl-cond" min="0" max="100" step="5" value="${P.cond}" style="--p:${P.cond}%" aria-label="컨디션"><b class="num" id="pl-cond-v">${P.cond}%</b></div>
+    <div class="cond"><span class="lab">컨디션</span><input type="range" id="pl-cond" min="0" max="100" step="5" value="${num(P.cond)}" style="--p:${num(P.cond)}%" aria-label="컨디션"><b class="num" id="pl-cond-v">${num(P.cond)}%</b></div>
     <div class="emos" role="group" aria-label="감정">${EMOS.map(([n,e]) => `<button data-act="pemo" data-v="${n}" aria-pressed="${P.emo===n}">${e} ${n}</button>`).join("")}${myEmos().map(n => `<button data-act="pemo" data-v="${esc(n)}" aria-pressed="${P.emo===n}">💭 ${esc(n)}</button>`).join("")}${P.custom ? "" : `<button class="emoadd" data-act="emocustom">+ 직접 입력</button>`}</div>
     ${P.custom ? `<div class="addline" style="padding:0;margin:-4px 0 14px"><input type="text" id="pl-emo" maxlength="10" placeholder="감정 (예: 뿌듯함)" value="${D("pl-emo")}" aria-label="감정 직접 입력"><button class="btn sm sec" data-act="emoadd">추가</button></div>` : ""}
     <label class="lab" for="pl-text">일기</label>
     <textarea id="pl-text" rows="8" maxlength="5000" placeholder="오늘 있었던 일, 떠오른 생각을 자유롭게 적어 보세요">${esc(S.drafts["pl-text"] ?? (d && d.text) ?? "")}</textarea>
     <label class="toggle"><input type="checkbox" id="pl-share" ${P.share?"checked":""}> 커뮤니티에도 공유하기</label>
     <button class="btn big full" data-act="psave" ${S.busy?"disabled":""}>${d ? "수정" : "저장"}${d ? "" : past ? `<span class="x">지난 날짜는 보상 없이 기록만 남아요</span>` : `<span class="x">최대 ${DIARY.xp} XP · ${DIARY.c} 코인</span>`}</button>
-    ${d ? `<button class="btn big full sec" style="margin-top:10px;color:var(--warn)" data-act="ldel" data-id="d-${d.date}">저널 삭제</button>` : ""}`; }
+    ${d ? `<button class="btn big full sec" style="margin-top:10px;color:var(--warn)" data-act="ldel" data-id="d-${esc(d.date)}">저널 삭제</button>` : ""}`; }
 const diaryPost = key => Object.values(S.feed).find(p => p.author === S.me && p.ref && p.ref.type === "diary" && p.ref.id === key);
 function logToday(){ return S.mine["d-"+today()] || S.planner.edit ? diaryCard() : `<section class="card wd-lognew"><div class="ch"><h2>오늘의 저널</h2><span class="side">+${DIARY.xp} XP · +${DIARY.c} 코인</span></div><p class="hint">오늘 컨디션과 감정, 하루를 짧게 남겨 보세요.</p><button class="btn soft full" data-act="sheet" data-k="diary">오늘 저널 쓰기</button></section>`; }
 function diaryList(){ return diaryCard() + diaryList0(); }
@@ -2234,7 +2286,7 @@ function diaryList0(){
     if (!op) continue;
     const open = S.openDiary === d.id, long = (d.text||"").length > 90 || (d.text||"").includes("\n");
     h += `<section class="card dentry" ${long ? `data-act="dopen" data-id="${d.id}" role="button" tabindex="0"` : ""}>
-      <div class="dh"><span class="em">${EMOI[d.emo] || "💭"}</span><div><b>${x.getMonth()+1}월 ${x.getDate()}일 ${WD[x.getDay()]}요일</b><small>${esc(d.emo||"")} · 컨디션 ${d.cond ?? "-"}%</small></div>${S.canWrite ? `<button class="dedit" data-act="dedit" data-id="${d.id}">수정</button>` : ""}</div>
+      <div class="dh"><span class="em">${EMOI[d.emo] || "💭"}</span><div><b>${x.getMonth()+1}월 ${x.getDate()}일 ${WD[x.getDay()]}요일</b><small>${esc(d.emo||"")} · 컨디션 ${esc(d.cond ?? "-")}%</small></div>${S.canWrite ? `<button class="dedit" data-act="dedit" data-id="${d.id}">수정</button>` : ""}</div>
       ${d.text ? `<p class="dtext ${open || !long ? "" : "clamp"}">${esc(d.text)}</p>${long ? `<span class="dmore">${open ? "접기" : "더 보기"}</span>` : ""}` : `<p class="dtext muted">일기 없이 기록만 남겼어요.</p>`}</section>`;
   }
   return h;
@@ -2242,7 +2294,7 @@ function diaryList0(){
 function diaryCard(){
   const d = S.mine["d-"+today()], P = S.planner;
   if (d && !P.edit) return `<section class="card"><div class="ch"><h2>오늘의 저널</h2><button class="side btnlink" data-act="pedit">수정</button></div>
-    <div class="diary-done"><span class="em">${EMOI[d.emo]||"💭"}</span><div><b>컨디션 ${d.cond}% · ${esc(d.emo||"")}</b>${d.text ? `<p class="dtext">${esc(d.text)}</p>` : ""}</div></div></section>`;
+    <div class="diary-done"><span class="em">${EMOI[d.emo]||"💭"}</span><div><b>컨디션 ${esc(d.cond)}% · ${esc(d.emo||"")}</b>${d.text ? `<p class="dtext">${esc(d.text)}</p>` : ""}</div></div></section>`;
   return `<section class="card diaryc"><div class="ch"><h2>오늘의 저널</h2>${d ? "" : `<span class="side">+${DIARY.xp} XP · +${DIARY.c} 코인</span>`}</div>${diaryForm(d, P)}</section>`;
 }
 const SUGGEST = [["물 2리터 마시기","easy"],["스트레칭 10분","easy"],["10분 독서","normal"],["자기 전 하루 정리","easy"]];
@@ -2414,7 +2466,7 @@ function calendarDaySheet(date, asPage = false){
   const row = (entry, act, key, label, text = '') => `<button class="row" data-act="${act}" data-${key}="${esc(entry.id)}"><span class="t"><b>${esc(label)}</b>${text ? `<small>${esc(text)}</small>` : ''}</span>${I.chev}</button>`;
   const section = (title, entries, render) => `<section class="day-section"><h3>${title} <span class="num">${entries.length}</span></h3>${entries.length ? entries.map(render).join('') : '<p class="empty-row">기록이 없어요.</p>'}</section>`;
   let body = `<div class="day-activities" data-date="${esc(date)}"><p class="hint">기록·완료 · 한국 시간 기준</p>${!day.count ? '<p class="empty-row">이 날의 기록이나 완료한 항목이 없어요.</p>' : ''}`;
-  body += section('저널', day.journals, d => row(d,'journal-view','id',`컨디션 ${d.cond ?? '-'}% · ${d.emo || '저널'}`,d.text || '내용 없는 저널'));
+  body += section('저널', day.journals, d => row(d,'journal-view','id',`컨디션 ${esc(d.cond ?? "-")}% · ${d.emo || '저널'}`,d.text || '내용 없는 저널'));
   body += section('스토리', day.stories, p => row(p,'day-post','p',p.text || p.ref?.label || '사진 스토리',p.ref?.type === 'diary' ? '이 날 게시한 저널 공유 스토리 · 저널 완료와 별개' : '이 날 게시한 내 스토리 · 완료 여부와 별개'));
   body += `<h3 class="day-group">완료</h3>`;
   body += section('일일 퀘스트', day.daily, q => row(q,'hedit','id',q.name));
@@ -2550,7 +2602,7 @@ function ntRewardLine(d, area){
 }
 function jCard(d){
   const [y, m, dd] = d.date.split("-").map(Number), wd = "일월화수목금토"[new Date(y, m-1, dd).getDay()];
-  return `<article class="card ntcard jcard" data-act="journal-view" data-id="${d.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic("journal")}저널</span><small class="num">${m}.${dd}</small></div><h3>${m}월 ${dd}일 ${wd}요일</h3><button class="btn sec xs jedit" data-act="dedit" data-id="${d.id}">수정</button><p class="ntsub">컨디션 ${d.cond ?? "-"}%${d.emo ? ` · ${esc(d.emo)}` : ""}</p>${d.text ? `<p class="ntbody">${clip(d.text, 140)}</p>` : ""}</article>`;
+  return `<article class="card ntcard jcard" data-act="journal-view" data-id="${d.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic("journal")}저널</span><small class="num">${m}.${dd}</small></div><h3>${m}월 ${dd}일 ${wd}요일</h3><button class="btn sec xs jedit" data-act="dedit" data-id="${d.id}">수정</button><p class="ntsub">컨디션 ${esc(d.cond ?? "-")}%${d.emo ? ` · ${esc(d.emo)}` : ""}</p>${d.text ? `<p class="ntbody">${clip(d.text, 140)}</p>` : ""}</article>`;
 }
 function ntCard(n){
   const {cat, f} = ntN(n), C = noteDrawer(S, cat), pj = n.projectId && S.projects[n.projectId], d = new Date(n.updatedAt || n.createdAt || Date.now());
@@ -2567,7 +2619,7 @@ function ntCard(n){
   else mid = h3(f.title) + sub(f.status && esc(f.status), f.date && fmtD(f.date), stars(f.rating)) + p(f.summary || f.body) + p(f.think) + act(f.apply);
   const done = noteComplete(S, n), A = AREAS.find(a => a[0] === ntArea(n)[0]);
   return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic(C.ic)}${esc(C.l)}</span>${done ? `<span class="ntdone">${nic("check")}완성${A ? ` · ${A[3]}` : ""}</span>` : ""}<small class="num">${d.getMonth()+1}.${d.getDate()}</small></div>${mid}
-    ${(f.url) || pj ? `<div class="ntmeta">${f.url ? `<a class="ntlink" href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">${nic("link")}${esc(ntHost(f.url))}</a>` : ""}${pj ? `<span>${nic("target")}${esc(pj.title)}</span>` : ""}</div>` : ""}</article>`;
+    ${(f.url) || pj ? `<div class="ntmeta">${f.url ? (safeUrl(f.url) ? `<a class="ntlink" href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener noreferrer">${nic("link")}${esc(ntHost(safeUrl(f.url)))}</a>` : `<span>${nic("link")}${esc(f.url)}</span>`) : ""}${pj ? `<span>${nic("target")}${esc(pj.title)}</span>` : ""}</div>` : ""}</article>`;
 }
 function viewNotes(){
   if (!hasProfile()) return viewToday();
@@ -2647,8 +2699,8 @@ const CALLOUT = {g:["핵심","check"], r:["주의","alert"], y:["팁","idea"], b
 function viewLearn(){
   const n = S.mine[S.view.id]; if (!n || !hasProfile()) return viewNotes();
   const {f} = ntN(n), pj = n.projectId && S.projects[n.projectId], A = AREAS.find(a => a[0] === ntArea(n)[0]), done = noteComplete(S, n), D0 = noteDrawer(S, "learn");
-  if (!LP || LP.id !== n.id) LP = {id:n.id, blocks:noteBlocks(n).map(b => ({...b}))};
-  const rows = [["강사·저자", f.author && esc(f.author)], ["별점", f.rating && stars(f.rating)], ["영역", A && `${aIcon(A[0])}${A[3]}`], ["퀘스트", pj && `${nic("target")}${esc(pj.title)}`], ["링크", f.url && `<a class="ntlink" href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">${esc(ntHost(f.url))}</a>`], ["학습 목표", f.goal && esc(f.goal), "goal"]].filter(r => r[1]);
+  if (!LP || LP.id !== n.id) LP = {id:n.id, blocks:noteBlocks(n).map(bkNorm)};
+  const rows = [["강사·저자", f.author && esc(f.author)], ["별점", f.rating && stars(f.rating)], ["영역", A && `${aIcon(A[0])}${A[3]}`], ["퀘스트", pj && `${nic("target")}${esc(pj.title)}`], ["링크", f.url && (safeUrl(f.url) ? `<a class="ntlink" href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener noreferrer">${esc(ntHost(safeUrl(f.url)))}</a>` : esc(f.url))], ["학습 목표", f.goal && esc(f.goal), "goal"]].filter(r => r[1]);
   const st = f.status || "예정", rd = !!S.lnRead, fs = S.lnFs || LS.get("lnFs", "m");
   let h = `<section class="card lnhead"><div class="lntop"><span class="ntcat">${nic("book")}${esc(f.type || "학습")}</span>${done ? `<span class="ntdone">${nic("check")}완성</span>` : ""}<button class="link lnedit" data-act="nt-edit" data-id="${n.id}" data-info="1">정보 수정</button></div>
     <h2 class="lntitle">${esc(f.title || "제목 없음")}</h2>
@@ -2672,6 +2724,9 @@ function bkSan(html){ const t = document.createElement("template"); t.innerHTML 
     if (tg === "mark"){ const c = (x.className.match(/hl-[ygp]/) || ["hl-y"])[0]; return `<mark class="${c}">${inner}</mark>`; }
     if (tg === "a"){ const href = x.getAttribute("href") || ""; return /^https?:\/\//i.test(href) ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${inner}</a>` : inner; } return `<${tg}>${inner}</${tg}>`; }).join("");
   return walk(t.content).replace(/^<br>/, ""); }
+/* Stored blocks are re-checked when a page opens: type/colour from fixed lists, id attribute-safe, body through the same allowlist as typing. */
+const BK_OK = new Set(["p","h1","h2","h3","ul","ol","todo","callout","code","quote","divider"]);
+function bkNorm(b){ const o = {...b, id:/^[\w.~:-]{1,64}$/.test(b.id || "") ? b.id : uid8(), t:BK_OK.has(b.t) ? b.t : "p", h:/</.test(b.h || "") ? bkSan(b.h) : String(b.h || "")}; if (!Object.hasOwn(CALLOUT, o.c || "g")) delete o.c; return o; }
 function bkHtml(blocks, ro){ let ol = {}, hide = 0;
   return blocks.map(b => { const lv = /^h[123]$/.test(b.t) ? +b.t[1] : 0; if (lv && hide && lv <= hide) hide = 0; const hidden = !!hide && !(lv && lv <= hide); if (lv && b.fold && !hide) hide = lv;
     const ind = Math.max(0, Math.min(3, b.ind || 0)); if (b.t !== "ol") ol = Object.fromEntries(Object.entries(ol).filter(([k]) => +k < ind)); else { ol[ind] = (ol[ind] || 0) + 1; Object.keys(ol).forEach(k => { if (+k > ind) delete ol[k]; }); }
@@ -2762,17 +2817,22 @@ const FDB = (() => { let p = null; const open = () => p || (p = new Promise((res
 const FURL = {};
 const fileUrl = async id => FURL[id] || (FURL[id] = (async () => { const b = await FDB.get(id); return b ? URL.createObjectURL(b) : ""; })());
 const fSize = n => n >= 1048576 ? (n / 1048576).toFixed(1) + "MB" : Math.max(1, Math.round(n / 1024)) + "KB";
-const fKind = f => /^image\//.test(f.type) ? "img" : /pdf/.test(f.type) || /\.pdf$/i.test(f.name) ? "PDF" : /\.(docx?|rtf)$/i.test(f.name) ? "워드" : /\.(xlsx?|csv)$/i.test(f.name) ? "엑셀" : /\.(pptx?)$/i.test(f.name) ? "PPT" : /\.hwpx?$/i.test(f.name) ? "한글" : (f.name.split(".").pop() || "파일").toUpperCase().slice(0, 4);
+const fKind = f => /^image\//.test(f.type || "") ? "img" : /pdf/.test(f.type) || /\.pdf$/i.test(f.name) ? "PDF" : /\.(docx?|rtf)$/i.test(f.name) ? "워드" : /\.(xlsx?|csv)$/i.test(f.name) ? "엑셀" : /\.(pptx?)$/i.test(f.name) ? "PPT" : /\.hwpx?$/i.test(f.name) ? "한글" : (f.name.split(".").pop() || "파일").toUpperCase().slice(0, 4);
 const F_ACCEPT = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.hwp,.hwpx,.txt,.md,.rtf";
-const fChip = (f, rm) => fKind(f) === "img" ? `<button class="fthumb" data-act="nt-file" data-v="${f.id}" aria-label="${esc(f.name)}"><img data-fid="${f.id}" alt="">${rm ? `<span class="frm" data-act="nf-rm" data-v="${f.id}" role="button" aria-label="첨부 삭제">×</span>` : ""}</button>`
-  : `<button class="fchip" data-act="nt-file" data-v="${f.id}"><b>${fKind(f)}</b><span>${esc(f.name)}</span><small>${fSize(f.size)}</small>${rm ? `<span class="frm" data-act="nf-rm" data-v="${f.id}" role="button" aria-label="첨부 삭제">×</span>` : ""}</button>`;
+const fChip = (f, rm) => fKind(f) === "img" ? `<button class="fthumb" data-act="nt-file" data-v="${esc(f.id)}" aria-label="${esc(f.name)}"><img data-fid="${esc(f.id)}" alt="">${rm ? `<span class="frm" data-act="nf-rm" data-v="${esc(f.id)}" role="button" aria-label="첨부 삭제">×</span>` : ""}</button>`
+  : `<button class="fchip" data-act="nt-file" data-v="${esc(f.id)}"><b>${esc(fKind(f))}</b><span>${esc(f.name)}</span><small>${fSize(num(f.size))}</small>${rm ? `<span class="frm" data-act="nf-rm" data-v="${esc(f.id)}" role="button" aria-label="첨부 삭제">×</span>` : ""}</button>`;
 function hydrateFiles(){ document.querySelectorAll("img[data-fid]:not([src])").forEach(img => { img.src = ""; fileUrl(img.dataset.fid).then(u => { if (u) img.src = u; else img.closest(".fthumb")?.classList.add("missing"); }); }); }
 new MutationObserver(() => { clearTimeout(hydrateFiles.t); hydrateFiles.t = setTimeout(hydrateFiles, 30); }).observe(document.body, {childList:true, subtree:true});
-async function openFile(id){ const meta = mineOf("note").flatMap(n => n.files || []).concat((S.compose && S.compose.files) || []).find(x => x.id === id); const u = await fileUrl(id).catch(() => "");
-  if (!u){ toast("파일을 찾을 수 없어요. 다른 기기나 브라우저에서 첨부한 파일일 수 있어요."); return; }
+/* Opening an attachment: the stored MIME type is never handed to the browser. A blob URL shares this app's origin, so an HTML/SVG
+   (or unlabelled, sniffed) file opened as a page could read every saved record. PDF and plain text open in a tab; the rest download. */
+async function openFile(id){ const meta = mineOf("note").flatMap(n => n.files || []).concat((S.compose && S.compose.files) || []).find(x => x.id === id);
+  const blob = await FDB.get(id).catch(() => null);
+  if (!blob){ toast("파일을 찾을 수 없어요. 다른 기기나 브라우저에서 첨부한 파일일 수 있어요."); return; }
   if (meta && fKind(meta) === "img"){ openSheet({type:"fview", id, name:meta.name, back:S.compose && S.compose.type === "note" ? S.compose : null}); return; }
-  const w = window.open(u, "_blank", "noopener"); if (w) return;
-  const a = document.createElement("a"); a.href = u; a.download = meta ? meta.name : "file"; document.body.appendChild(a); a.click(); a.remove(); }
+  const name = meta ? String(meta.name || "file") : "file", type = meta && fKind(meta) === "PDF" ? "application/pdf" : /\.(txt|md|csv)$/i.test(name) ? "text/plain;charset=utf-8" : "";
+  const u = URL.createObjectURL(new Blob([blob], {type:type || "application/octet-stream"})); setTimeout(() => URL.revokeObjectURL(u), 60000);
+  const a = document.createElement("a"); a.href = u; if (type){ a.target = "_blank"; a.rel = "noopener noreferrer"; } else a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); }
 const F_MAX = 5, F_MB = 20, F_EXT = /\.(jpe?g|png|gif|webp|heic|heif|bmp|svg|pdf|docx?|xlsx?|csv|pptx?|hwpx?|txt|md|rtf)$/i;
 function notice(t, lines){ if (S.compose && S.compose.type !== "confirm"){ preserveSheetDrafts(); S.parentSheet = S.compose; } S.compose = {type:"confirm", alert:true, t:esc(t), d:lines.map(esc).join("<br>"), ok:"확인"}; renderSheet(); }
 async function addFiles(c, list){ const files = [...(list || [])]; c.files = c.files || []; c.newFiles = c.newFiles || []; const bad = [], big = [], over = [];
@@ -2972,7 +3032,7 @@ function purchaseActions(p){ return `${p.state==='planned'&&!p.legacy?`<button c
 function viewShop(){
   if(!hasProfile())return viewToday();const q=economySummary(S),tab=S.shopTab&&S.shopTab!=='items'?S.shopTab:'personal';
   let h=`<section class="card shophero"><span>사용 가능 코인</span><b class="num">🪙 ${fmt(q.gold)}</b></section><div class="chips eco-tabs">${[['personal','보상'],['inventory','내역']].map(([k,n])=>`<button class="chip" data-act="shop-tab" data-v="${k}" aria-pressed="${tab===k}">${n}</button>`).join('')}</div>`;
-  if(tab==='personal')h+=`<div class="rgrid">${mineOf('reward').sort((a,b)=>priceOf(a)-priceOf(b)).map(r=>`<div class="rcard"><div class="rbody"><b>${esc(r.name)}</b><small>${r.repeat==='once'?'1회':'반복'} · ${priceOf(r)} 코인${r.dailyLimit?` · 일 ${r.dailyLimit}회`:''}${r.weeklyLimit?` · 주 ${r.weeklyLimit}회`:''}</small><div class="eco-actions"><button class="btn sm" data-act="buy" data-id="${r.id}" ${q.gold<priceOf(r)?'disabled':''}>구매</button><button class="link" data-act="redit" data-id="${r.id}">수정</button><button class="link" data-act="wishlist" data-id="${r.id}">${r.wishlist?'찜 해제':'찜'}</button></div>${(() => { const hr = rewardHistory(r.id).slice(0,3);
+  if(tab==='personal')h+=`<div class="rgrid">${mineOf('reward').sort((a,b)=>priceOf(a)-priceOf(b)).map(r=>`<div class="rcard"><div class="rbody"><b>${esc(r.name)}</b><small>${r.repeat==='once'?'1회':'반복'} · ${priceOf(r)} 코인${num(r.dailyLimit)?` · 일 ${num(r.dailyLimit)}회`:''}${num(r.weeklyLimit)?` · 주 ${num(r.weeklyLimit)}회`:''}</small><div class="eco-actions"><button class="btn sm" data-act="buy" data-id="${r.id}" ${q.gold<priceOf(r)?'disabled':''}>구매</button><button class="link" data-act="redit" data-id="${r.id}">수정</button><button class="link" data-act="wishlist" data-id="${r.id}">${r.wishlist?'찜 해제':'찜'}</button></div>${(() => { const hr = rewardHistory(r.id).slice(0,3);
         return hr.length ? `<div class="rhist">${hr.map(p => `<div class="rhrow"><span class="rhstate ${p.state}">${PURCHASE_LABEL[p.state] || '보유'}</span><span class="rhtime num">${p.at ? new Date(p.at + 9*3600000).toISOString().slice(5,10).replace('-','.') : ''}</span><span class="eco-actions">${purchaseActions(p)}</span></div>`).join('')}</div>` : ''; })()}</div></div>`).join('')}<button class="rcard radd" data-act="sheet" data-k="reward"><b>＋ 보상 추가</b><small>하고 싶은 거 / 갖고 싶은 거</small></button></div>`;
   if(tab==='inventory'){ const rows=purchaseRows().filter(p=>p.kind!=='style'); const dt=t=>{const d=new Date(t);return `${d.getMonth()+1}월 ${d.getDate()}일`;};
     h+=`<section class="card tight">${rows.map(p=>`<div class="row"><span class="t"><b>${esc(p.name)}</b><small>${p.at?dt(p.at)+' · ':''}${fmt(p.cost||0)} 코인 · ${p.legacy?'이전 구매':(PURCHASE_LABEL[p.state]||'구매')}</small></span><span class="eco-actions">${purchaseActions(p)}</span></div>`).join('')||'<p class="empty-row">아직 구매한 보상이 없어요.</p>'}</section>`; }
@@ -2991,10 +3051,10 @@ function refHtml(p){
   if (r.type === "project_done"){ const sp = isProj(S.projects[r.id]) || r.sub; return `<button class="ref done" data-act="project" data-p="${r.id}"><span class="ri">🏆</span><span class="rt"><b>${sp ? "스테이지 완료" : "메인 퀘스트 달성"} · ${esc(r.label)}</b><small>완료 기록 · 공유 자체는 무보상</small></span>${I.chev}</button>`; }
   if (r.type === "quest"){
     const x = r.extra || {}, lv = HLV[lvKey(x.lv)], n = Object.values(p.joiners||{}).filter(on).length, joined = on((p.joiners||{})[S.me]);
-    return `<div class="ref quest"><span class="ri">🔥</span><span class="rt"><b>${esc(r.label)} · ${x.streak||0}일 연속</b><small><span title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span> 일일 퀘스트${n ? ` · ${n}명이 함께해요` : ""}</small></span>
+    return `<div class="ref quest"><span class="ri">🔥</span><span class="rt"><b>${esc(r.label)} · ${num(x.streak)}일 연속</b><small><span title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span> 일일 퀘스트${n ? ` · ${n}명이 함께해요` : ""}</small></span>
       ${p.author !== S.me && canAct() ? `<button class="btn ${joined?"sec":"soft"} xs join" data-act="join" data-p="${p.id}" ${joined?"disabled":""}>${joined ? "함께하는 중" : "나도 하기"}</button>` : ""}</div>`;
   }
-  if (r.type === "diary"){ const x = r.extra || {}; return `<div class="ref diary"><span class="ri">${EMOI[x.emo]||"📓"}</span><span class="rt"><b>${r.label && r.label !== "오늘의 기록" ? esc(r.label) : "오늘의 저널"} · ${esc(x.emo||"")}</b><small>컨디션 ${x.cond ?? "-"}%</small></span></div>`; }
+  if (r.type === "diary"){ const x = r.extra || {}; return `<div class="ref diary"><span class="ri">${EMOI[x.emo]||"📓"}</span><span class="rt"><b>${r.label && r.label !== "오늘의 기록" ? esc(r.label) : "오늘의 저널"} · ${esc(x.emo||"")}</b><small>컨디션 ${esc(x.cond ?? "-")}%</small></span></div>`; }
   return "";
 }
 function metricFor(post){
@@ -3026,7 +3086,7 @@ function postRow(p, o = {}){
 
       ${metricFor(p)}
       ${p.text ? `<div class="txtwrap"><p class="txt" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}>${esc(p.text)}</p><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
-      ${imgs ? `<div class="media" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}><div class="car ${imgs>1?"multi":""}">${Array.from({length:imgs}, (_,i) => { const k = p.id+"~"+i; return `<div class="pimg" data-k="${k}">${S.media[k]?`<img src="${S.media[k]}" alt="" draggable="false">`:""}</div>`; }).join("")}</div><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
+      ${imgs ? `<div class="media" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}><div class="car ${imgs>1?"multi":""}">${Array.from({length:imgs}, (_,i) => { const k = p.id+"~"+i; return `<div class="pimg" data-k="${k}">${S.media[k]?`<img src="${esc(S.media[k])}" alt="" draggable="false">`:""}</div>`; }).join("")}</div><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
       <div class="acts">
         <button class="ab ${lk?"on":""}" data-act="like" data-p="${p.id}" ${canAct() && a !== S.me ? "" : "disabled"} aria-pressed="${lk}" aria-label="공감">${lk ? I.heartOn : I.heart}${n?`<span class="num">${n}</span>`:""}</button>
         <button class="ab" data-act="${o.focus && !p.noReply ? "reply" : "open"}" data-p="${p.id}" aria-label="답글" ${o.focus && p.noReply ? "disabled" : ""}>${I.reply}${reps.length?`<span class="num">${reps.length}</span>`:""}</button>
@@ -3128,11 +3188,11 @@ function viewGoal(){
 
 function coverHtml(g, o = {}){ const mine = g.owner === S.me && S.canWrite, k = g.cover, done = g.status === "done";
   let h0 = 0; for (const ch of g.id) h0 = (h0 * 31 + ch.charCodeAt(0)) % 360;
-  const img = k ? `<div class="qcimg" data-k="${esc(k)}">${S.media[k] ? `<img src="${S.media[k]}" alt="" draggable="false">` : ""}</div>` : `<div class="qcph" style="background:linear-gradient(135deg,hsl(${h0} 55% 70%),hsl(${(h0+40)%360} 45% 45%))">${g.parentId ? "🔗" : "🎯"}</div>`;
+  const img = k ? `<div class="qcimg" data-k="${esc(k)}">${S.media[k] ? `<img src="${esc(S.media[k])}" alt="" draggable="false">` : ""}</div>` : `<div class="qcph" style="background:linear-gradient(135deg,hsl(${h0} 55% 70%),hsl(${(h0+40)%360} 45% 45%))">${g.parentId ? "🔗" : "🎯"}</div>`;
   const badge = o.badge === false ? "" : done ? `<span class="qcbadge done">🏆 ${g.parentId ? "완료" : "달성"}</span>` : g.end ? `<span class="qcbadge">${dday(g.end)}</span>` : "";
   return `<div class="qcover" data-act="project" data-p="${g.id}" role="button" tabindex="0" aria-label="${esc(g.title)}">${img}${badge}${mine ? `<button class="qccam" data-act="gcover" data-p="${g.id}" aria-label="대표 사진 ${k ? "바꾸기" : "추가"}">${I.camera}</button>` : ""}</div>`; }
 function coverField(c){ const v = c.cover || "", src = v.startsWith("data:") ? v : (v && S.media[v]);
-  return `<div class="field cvfield"><span class="lab">대표 사진 <span class="hint">선택</span></span><button type="button" class="cvbox" data-act="cvpick">${v ? (src ? `<img src="${src}" alt="">` : `<span data-k="${esc(v)}"></span>`) + `<em>사진 바꾸기</em>` : `📷 사진 추가`}</button>${v ? `<button class="link" style="margin-top:6px" data-act="cvdel">사진 빼기</button>` : ""}</div>`; }
+  return `<div class="field cvfield"><span class="lab">대표 사진 <span class="hint">선택</span></span><button type="button" class="cvbox" data-act="cvpick">${v ? (src ? `<img src="${esc(src)}" alt="">` : `<span data-k="${esc(v)}"></span>`) + `<em>사진 바꾸기</em>` : `📷 사진 추가`}</button>${v ? `<button class="link" style="margin-top:6px" data-act="cvdel">사진 빼기</button>` : ""}</div>`; }
 async function saveCover(c){ const v = c.cover; if (!v) return null; if (v.startsWith("data:")){ const k = "cv-" + uid8(); await api.putMedia(k, v); return k; } return v; }
 function wdMetric(g){ const m = g.metric; if (!m) return `<div class="wdm none"><div class="wdm-t"><span class="wdm-l">📈</span><b>수치 기록 없음</b></div><span class="bar"><i style="width:0%"></i></span></div>`; const cur = lastVal(g), mp = m.target !== m.start ? Math.round(Math.max(0, Math.min(100, (cur - m.start)/(m.target - m.start)*100))) : 0, u = esc(m.unit);
   return `<div class="wdm"><div class="wdm-t"><span class="wdm-l">${I.trend || "📈"}</span><b class="num">${numFmt(cur)}${u}</b><small class="num">/ ${numFmt(m.target)}${u}</small></div><span class="bar"><i style="width:${mp}%"></i></span><div class="wdm-s num">시작 ${numFmt(m.start)}${u} · 남은 ${numFmt(Math.abs(Math.round((m.target - cur)*10)/10))}${u}</div></div>`; }
@@ -3163,7 +3223,7 @@ function storyComposer(){
   const ph = S.inPhotos || [], selQ = S.inRef && S.inRef.startsWith("q:") && S.mine[S.inRef.slice(2)], sel = selQ ? null : S.inRef && S.projects[S.inRef];
   return `<section class="card scomp">
     <div class="srow">${av(S.me, 36, false)}<textarea id="ps-text" rows="${S.drafts["ps-text"] ? 4 : 2}" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("ps-text")}</textarea></div>
-    ${ph.length ? `<div class="thumbs">${ph.map((src,i) => `<div><img src="${src}" alt="첨부 사진 ${i+1}"><button data-act="inunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
+    ${ph.length ? `<div class="thumbs">${ph.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="inunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
     ${sel || selQ ? `<span class="qsel"><button class="btn soft sm" data-act="qpick">${sel ? esc(goalLabel(sel)) : "🔥 " + esc(selQ.name)}</button><button class="qx" data-act="inref" data-v="" aria-label="퀘스트 연결 빼기">×</button></span>` : ""}
     ${sel && sel.metric ? (() => { const lv = lastVal(sel); return `<div class="field svalf"><label class="lab" for="ps-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lv)}${esc(sel.metric.unit)} · 목표 ${numFmt(sel.metric.target)}${esc(sel.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ps-val" placeholder="${numFmt(lv)}" value="${D("ps-val")}"><span>${esc(sel.metric.unit)}</span></div></div>`; })() : ""}
     <div class="sact"><div class="sbtns"><button class="btn sec sm ibtn" data-act="qpick">${I.target}퀘스트</button><button class="btn sec sm ibtn" data-act="inphoto" ${ph.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진</button></div><button class="btn sm" data-act="inpost" ${S.busy?"disabled":""}>공유하기</button></div></section>`;
@@ -3206,7 +3266,7 @@ function viewWebDash(){
       <div class="wd-tl"><div class="wd-sec"><div class="wd-merge wd-fix">${(() => { S._noToday = true; S._noTime = true; let tt; try{ tt = taskTab({noUp:true}); } finally { S._noToday = false; S._noTime = false; }
         return tt; })()}</div></div>
         <div class="wd-sec"><div class="wd-stack wd-logst">${logToday()}${(() => { const ds = mineOf("diary").filter(x => x.date !== today()).sort((a,b) => (b.date||"") < (a.date||"") ? -1 : 1).slice(0, 3);
-          return ds.length ? `<section class="card tight wd-logs"><div class="ch"><h2>최근 저널</h2><button class="side btnlink" data-act="wdlogs">전체 보기</button></div>${ds.map(x => { const t = pd(x.date); return `<div class="row wdlog"><span class="em">${EMOI[x.emo] || "💭"}</span><span class="t"><b>${t.getMonth()+1}월 ${t.getDate()}일 ${WD[t.getDay()]} · 컨디션 ${x.cond ?? "-"}%</b><small>${esc(x.text || "일기 없이 기록만 남겼어요.")}</small></span></div>`; }).join("")}</section>` : ""; })()}</div></div></div></div></div>`;
+          return ds.length ? `<section class="card tight wd-logs"><div class="ch"><h2>최근 저널</h2><button class="side btnlink" data-act="wdlogs">전체 보기</button></div>${ds.map(x => { const t = pd(x.date); return `<div class="row wdlog"><span class="em">${EMOI[x.emo] || "💭"}</span><span class="t"><b>${t.getMonth()+1}월 ${t.getDate()}일 ${WD[t.getDay()]} · 컨디션 ${esc(x.cond ?? "-")}%</b><small>${esc(x.text || "일기 없이 기록만 남겼어요.")}</small></span></div>`; }).join("")}</section>` : ""; })()}</div></div></div></div></div>`;
   return h;
 }
 function viewProfile(){
@@ -3313,7 +3373,7 @@ let scT = 0; window.addEventListener("scroll", () => { clearTimeout(scT); scT = 
 function loadMedia(root){
   root.querySelectorAll("[data-k]").forEach(el => {
     const k = el.dataset.k;
-    if (S.media[k]){ if (!el.querySelector("img")) el.innerHTML = `<img src="${S.media[k]}" alt="" draggable="false">`; return; }
+    if (S.media[k]){ if (!el.querySelector("img")) el.innerHTML = `<img src="${esc(S.media[k])}" alt="" draggable="false">`; return; }
     if (S.mediaLoading.has(k) || !api) return; S.mediaLoading.add(k);
     api.getMedia(k).then(src => { if (src){ S.media[k] = src; schedule(); } }).catch(() => {});
   });
@@ -3496,7 +3556,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
   if (c.type === "post") return postSheet(quick);
   if (c.type === "reward"){
     return sheetWrap(c.id ? "보상 수정" : "보상 추가", "", `
-    <button class="rpick" data-act="rimg">${c.img ? `<img src="${c.img}" alt="보상 이미지">` : `<span>🎁</span>`}<em>${c.img ? "이미지 바꾸기" : "📷 이미지 추가"}</em></button>
+    <button class="rpick" data-act="rimg">${c.img ? `<img src="${esc(c.img)}" alt="보상 이미지">` : `<span>🎁</span>`}<em>${c.img ? "이미지 바꾸기" : "📷 이미지 추가"}</em></button>
     ${c.img ? `<button class="link" style="margin:-6px 0 12px" data-act="rimgdel">이미지 빼기</button>` : ""}
     <div class="field"><input type="text" id="rw-name" maxlength="40" placeholder="예: 좋아하는 카페 디저트" value="${D("rw-name")}" aria-label="보상 이름"></div>
     <div class="field"><span class="lab">가격</span><div class="chips">${RW_PRICES.map(v => `<button class="chip" data-act="cset" data-f="cost" data-v="${v}" aria-pressed="${!rwCustom(c) && +c.cost === v}">🪙 ${fmt(v)}</button>`).join("")}</div>
@@ -3646,14 +3706,14 @@ function lastVal(pj){ const l = valLatest(pj.id); return l ? l.value : pj.metric
 function postSheet(quick){
   const c = S.compose;
   const r = c.ref, pj = r && (r.type === "project" || r.type === "mission") && S.projects[r.id];
-  const refLabel = !r ? "" : r.type === "quest" ? `🔥 ${esc(r.label)} · ${(r.extra||{}).streak||0}일 연속` : r.type === "project_done" ? `🏆 ${esc(r.label)} ${r.sub ? "완료" : "달성"}` : r.type === "diary" ? `${EMOI[(r.extra||{}).emo]||"📓"} ${r.label && r.label !== "오늘의 기록" ? esc(r.label) : "오늘의 저널"}` : r.type === "mission" ? `✅ ${esc(r.mission||"")}` : "";
+  const refLabel = !r ? "" : r.type === "quest" ? `🔥 ${esc(r.label)} · ${num((r.extra||{}).streak)}일 연속` : r.type === "project_done" ? `🏆 ${esc(r.label)} ${r.sub ? "완료" : "달성"}` : r.type === "diary" ? `${EMOI[(r.extra||{}).emo]||"📓"} ${r.label && r.label !== "오늘의 기록" ? esc(r.label) : "오늘의 저널"}` : r.type === "mission" ? `✅ ${esc(r.mission||"")}` : "";
   const lastV = pj && pj.metric ? lastVal(pj) : null;
   sheetWrap(c.title || "스토리 쓰기", "", (c.fixed ? "" : quick) + `
     ${refLabel ? `<div class="ref ${r.type==="quest"?"quest":r.type==="project_done"?"done":r.type==="diary"?"diary":""}" style="margin:0 0 16px"><span class="rt"><b>${refLabel}</b>${r.type === "mission" ? taskTimeTag(r) : ""}</span></div>` :
       linkChips(r ? r.id : null, "cref", "연결", false)}
     ${pj && pj.metric ? `<div class="field"><label class="lab" for="po-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lastV)}${esc(pj.metric.unit)} · 목표 ${numFmt(pj.metric.target)}${esc(pj.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="po-val" placeholder="${numFmt(lastV)}" value="${D("po-val")}"><span>${esc(pj.metric.unit)}</span></div></div>` : ""}
     <div class="field"><textarea id="po-text" rows="4" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("po-text")}</textarea></div>
-    <div class="field"><span class="lab">사진 <span class="hint">최대 ${MAX_IMGS}장</span></span><div class="thumbs">${c.photos.map((src,i) => `<div><img src="${src}" alt="첨부 사진 ${i+1}"><button data-act="cunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}${c.photos.length < MAX_IMGS ? `<button class="addph" data-act="cphoto">+ 사진</button>` : ""}</div></div>
+    <div class="field"><span class="lab">사진 <span class="hint">최대 ${MAX_IMGS}장</span></span><div class="thumbs">${c.photos.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="cunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}${c.photos.length < MAX_IMGS ? `<button class="addph" data-act="cphoto">+ 사진</button>` : ""}</div></div>
     <button class="btn big full" data-act="submit-post" ${S.busy?"disabled":""}>공유하기</button>`);
 }
 function replySheet(){

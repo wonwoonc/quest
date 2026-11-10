@@ -139,3 +139,44 @@ test('input documents are copied; missing targets reject without persistence dam
   await assert.rejects(api.editPost('none',{text:'x'})); await assert.rejects(api.like('none',true));
   await assert.rejects(api.putMine('__proto__',{kind:'mission'}));
 });
+test('import rejects values that could break out of HTML attributes; normal saves keep working', () => {
+  const base = () => ({...emptySnapshot(), profiles:{me:{uid:'me',nick:'<b>이름</b> & "따옴표"',color:'#3DBE8B'}}});
+  assert.equal(parseBackup(JSON.stringify(base())).profiles.me.nick,'<b>이름</b> & "따옴표"','free text stays free-form');
+  const bad = [
+    s => { s.mine['x" onerror="alert(1)'] = {kind:'mission',name:'a'}; },
+    s => { s.mine.a = {kind:'mission',name:'a',projectId:'p"><img src=x>'}; },
+    s => { s.mine.n = {kind:'note',blocks:[{id:'b" onclick="x',t:'p',h:''}]}; },
+    s => { s.media.k = 'data:image/png;base64,AA" onerror="alert(1)'; },
+    s => { s.media.k = 'data:image/svg+xml,<svg onload=alert(1)>'; },
+    s => { s.profiles.me.face = 'data:text/html,<script>alert(1)</script>'; },
+    s => { s.profiles.me.color = 'red;background:url(//evil)'; },
+    s => { s.mine.d = {kind:'diary',date:'2026-01-01',cond:'<img src=x onerror=alert(1)>'}; },
+    s => { s.projects.p = {owner:'other',title:'t',progress:{done:1,total:'"><svg onload=alert(1)>'}}; }
+  ];
+  for (const poison of bad) { const s = base(); poison(s); assert.throws(() => parseBackup(JSON.stringify(s)), /백업|이미지/); }
+  const ok = base();
+  ok.mine['d-2026-01-01'] = {kind:'diary',date:'2026-01-01',cond:'70'};
+  ok.media['post~0'] = 'data:image/jpeg;base64,/9j/4AAQ+abc=';
+  ok.media.cv = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg"><text>가\'</text></svg>');
+  ok.profiles.me.face = 'face-1';
+  assert.doesNotThrow(() => parseBackup(JSON.stringify(ok)));
+});
+test('clone matches a JSON round trip for snapshot data and shares large strings', async () => {
+  const {clone} = await import('../src/storage.js');
+  const big = 'data:image/png;base64,' + 'A'.repeat(100000);
+  const value = {a:1,b:[1,undefined,{c:null,d:undefined}],e:'x',f:false,g:{h:{i:[big]}},n:0.5};
+  assert.deepEqual(clone(value),JSON.parse(JSON.stringify(value)));
+  const copy = clone(value); copy.b[2].c = 1; copy.g.h.i.push('y');
+  assert.equal(value.b[2].c,null); assert.equal(value.g.h.i.length,1);
+  const fixture = createDemoFixture({now:1793491200000}); assert.deepEqual(clone(fixture),JSON.parse(JSON.stringify(fixture)));
+});
+test('commit leaves the live state untouched when the mutation or the write fails', () => {
+  const d = driver(), storage = createStorage({driver:d,now:() => 5});
+  const state = storage.empty(); storage.save(state);
+  assert.throws(() => storage.commit(state,next => { next.mine.a = {kind:'mission'}; throw new Error('stop'); }),/stop/);
+  assert.deepEqual(state.mine,{});
+  assert.throws(() => storage.commit(state,next => { next.mine.a = {id:'other'}; }));
+  assert.deepEqual(state.mine,{}); assert.deepEqual(storage.load().mine,{});
+  storage.commit(state,next => { next.mine.a = {kind:'mission',name:'ok'}; });
+  assert.equal(state.mine.a.name,'ok'); assert.equal(storage.load().mine.a.name,'ok');
+});
