@@ -2077,8 +2077,8 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
   if (c.type === "ptabhelp"){ const it = (k, t, body) => `<div class="helpitem ${S.profTab === k ? "on" : ""}"><b>${t}</b>${body}</div>`;
     return sheetWrap("스토리 탭 안내", "", `<div class="helplist">
       ${it("posts", "스토리", `<p>퀘스트를 하면서 남긴 기록을 다른 사람과 나누는 곳이에요. 사진과 수치 기록을 함께 올리고, 공감과 답글을 받을 수 있어요.</p>`)}
-      ${it("goals", "퀘스트", `<p>도전하고 있는 일을 네 가지로 나눠 관리해요.</p><ul><li><b style="display:inline;font-size:13px">메인 퀘스트</b> 이루고 싶은 큰 목표</li><li><b style="display:inline;font-size:13px">스테이지</b> 목표를 여러 단계로 나눈 프로젝트</li><li><b style="display:inline;font-size:13px">일일 퀘스트</b> 매일 반복하는 습관</li><li><b style="display:inline;font-size:13px">미션</b> 목표 달성을 위한 할 일</li></ul>`)}
-      ${c.mine ? it("diary", "저널", `<p>하루를 돌아보며 쓰는 나만의 일기예요. 그날의 컨디션과 감정을 함께 남길 수 있어요. 다른 사람에게는 보이지 않고, 원할 때만 커뮤니티에 공유할 수 있어요.</p>`) : ""}
+      ${it("goals", "퀘스트", `<p>도전하고 있는 일을 네 가지로 나눠 관리해요.</p><ul><li><b style="display:inline;font-size:13px">메인 퀘스트</b> 달성하고 싶은 큰 목표</li><li><b style="display:inline;font-size:13px">스테이지</b> 큰 목표를 나눈 중간 단계</li><li><b style="display:inline;font-size:13px">미션</b> 목표 달성을 위한 할 일</li><li><b style="display:inline;font-size:13px">일일 퀘스트</b> 주기적으로 반복하는 습관</li></ul>`)}
+      ${c.mine ? it("diary", "저널", `<p>하루를 돌아보며 쓰는 나만의 일기예요. 그날의 컨디션과 감정을 함께 남길 수 있고, 깜빡한 날은 날짜를 골라 나중에 써도 돼요. 다른 사람에게는 보이지 않고, 원할 때만 커뮤니티에 공유할 수 있어요.</p>`) : ""}
     </div><button class="btn big full" data-act="sheet-close">확인</button>`); }
   if (c.type === "ppick"){ const par = S.parentSheet || {}, gs = goalsOf(S.me).filter(g => g.status !== "done");
     return sheetWrap("어떤 메인 퀘스트의 스테이지인가요?", "", `<div class="sheetlist mlist">${gs.map(g => `<button class="row mitem" data-act="ppset" data-v="${g.id}"><span class="t"><b>🎯 ${esc(g.title)}</b><small>메인 퀘스트${g.end ? " · " + dday(g.end) : ""}</small></span>${par.parentId === g.id ? `<span class="pick">✓</span>` : ""}</button>`).join("") || `<p class="empty-row">진행 중인 메인 퀘스트가 없어요.</p>`}</div>`); }
