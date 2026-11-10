@@ -742,7 +742,7 @@ test('economy shop tabs and reward form omit guidance while price constraints st
   }
   h.nodes.set('rw-cost',{value:'65'});h.click('submit-reward');await h.settle();
   const r=Object.values(h.snapshot().mine).find(x=>x.kind==='reward');assert.equal(r.cost,65);
-  h.route('shop');h.click('shop-tab',{v:'personal'});h.click('wishlist',{id:r.id});await h.settle();assert.equal(h.snapshot().mine[r.id].wishlist,true);
+  h.route('shop');h.click('shop-tab',{v:'personal'});assert.doesNotMatch(h.nodes.get('app').innerHTML,/data-act="wishlist"|data-act="purchase-hide"|>찜<|기록 숨김/);
   h.click('redit',{id:r.id});markup=h.nodes.get('overlay').innerHTML;
   assert.doesNotMatch(markup,removedEconomyGuidance);assert.match(markup,/id="rw-cost"[^>]*value="65"/,'custom price shows in the custom field');
   h.nodes.set('rw-cost',{value:'5'});h.click('submit-reward');await h.settle();
