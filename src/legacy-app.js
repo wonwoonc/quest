@@ -1315,15 +1315,11 @@ function viewSettings(){
 }
 
 /* ================= shop ================= */
-const PURCHASE_LABEL = {planned:'사용 예정',used:'사용 완료',owned:'보유',cancelled:'취소 완료'};
-function purchaseRows(){ const e=S.economy; return Object.values(e.purchases).filter(p=>!p.hidden&&!S.mine[p.id]?.hidden).sort((a,b)=>b.at-a.at); }
-function purchaseActions(p){ return `${p.state==='planned'&&!p.legacy?`<button class="btn sec sm" data-act="purchase-use" data-id="${esc(p.id)}">사용 완료</button><button class="btn sec sm" data-act="purchase-cancel" data-id="${esc(p.id)}">취소·환불</button>`:''}${p.kind==='style'&&p.state==='owned'?`<button class="btn sec sm" data-act="purchase-cancel" data-id="${esc(p.id)}">10분 이내 취소</button>`:''}`; }
 function viewShop(){
-  if(!hasProfile())return viewToday();const q=economySummary(S),tab=S.shopTab&&S.shopTab!=='items'?S.shopTab:'personal';
-  let h=`<section class="card shophero"><span>사용 가능 코인</span><b class="num">🪙 ${fmt(q.gold)}</b></section><div class="chips eco-tabs">${[['personal','보상'],['inventory','내역']].map(([k,n])=>`<button class="chip" data-act="shop-tab" data-v="${k}" aria-pressed="${tab===k}">${n}</button>`).join('')}</div>`;
-  if(tab==='personal')h+=`<div class="rgrid">${mineOf('reward').sort((a,b)=>priceOf(a)-priceOf(b)).map(r=>`<div class="rcard" data-act="redit" data-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${esc(r.name)} 수정"><div class="rbody"><b>${esc(r.name)}</b><small>${r.repeat==='once'?'1회':'반복'} · ${priceOf(r)} 코인${num(r.dailyLimit)?` · 일 ${num(r.dailyLimit)}회`:''}${num(r.weeklyLimit)?` · 주 ${num(r.weeklyLimit)}회`:''}</small><div class="eco-actions"><button class="btn sm" data-act="buy" data-id="${esc(r.id)}" ${q.gold<priceOf(r)?'disabled':''}>구매</button></div></div></div>`).join('')}<button class="rcard radd" data-act="sheet" data-k="reward"><b>＋ 보상 추가</b><small>하고 싶은 거 / 갖고 싶은 거</small></button></div>`;
-  if(tab==='inventory'){ const rows=purchaseRows().filter(p=>p.kind!=='style'); const dt=t=>{const d=new Date(t);return `${d.getMonth()+1}월 ${d.getDate()}일`;};
-    h+=`<section class="card tight">${rows.map(p=>`<div class="row"><span class="t"><b>${esc(p.name)}</b><small>${p.at?dt(p.at)+' · ':''}${fmt(p.cost||0)} 코인 · ${p.legacy?'이전 구매':(PURCHASE_LABEL[p.state]||'구매')}</small></span><span class="eco-actions">${purchaseActions(p)}</span></div>`).join('')||'<p class="empty-row">아직 구매한 보상이 없어요.</p>'}</section>`; }
+  if(!hasProfile())return viewToday();const q=economySummary(S);
+  /* 보상은 구매하는 순간 사용 완료로 기록된다(사용 예정·내역 없음). */
+  let h=`<section class="card shophero"><span>사용 가능 코인</span><b class="num">🪙 ${fmt(q.gold)}</b></section>`;
+  h+=`<div class="rgrid">${mineOf('reward').sort((a,b)=>priceOf(a)-priceOf(b)).map(r=>`<div class="rcard" data-act="redit" data-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${esc(r.name)} 수정"><div class="rbody"><b>${esc(r.name)}</b><small>${r.repeat==='once'?'1회':'반복'} · ${priceOf(r)} 코인${num(r.dailyLimit)?` · 일 ${num(r.dailyLimit)}회`:''}${num(r.weeklyLimit)?` · 주 ${num(r.weeklyLimit)}회`:''}</small><div class="eco-actions"><button class="btn sm" data-act="buy" data-id="${esc(r.id)}" ${q.gold<priceOf(r)?'disabled':''}>구매</button></div></div></div>`).join('')}<button class="rcard radd" data-act="sheet" data-k="reward"><b>＋ 보상 추가</b><small>하고 싶은 거 / 갖고 싶은 거</small></button></div>`;
   return h;
 }
 
@@ -1948,6 +1944,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
   if (c.type === "buyconf"){ const r = S.mine[c.id]; if (!r){ closeSheet(); return; } const pr = priceOf(r), g = MY ? MY.gold : 0;
     return sheetWrap("", "", `<div class="reward"><div class="big">🎁</div><h2 style="justify-content:center">'${esc(r.name)}'<br>구매할까요?</h2>
       <div class="bconf"><div><span>보유 코인</span><b class="num">🪙 ${fmt(g)}</b></div><div><span>사용할 코인</span><b class="num minus">− ${fmt(pr)}</b></div><div class="tot"><span>남는 코인</span><b class="num">🪙 ${fmt(g - pr)}</b></div></div>
+      <p class="hint" style="text-align:center;margin:0 0 12px">구매하면 바로 사용한 것으로 기록되고, 되돌릴 수 없어요.</p>
       <div class="btnrow" style="margin-top:4px"><button class="btn sec big" data-act="sheet-close">취소</button><button class="btn big" data-act="buyok" ${S.busy?"disabled":""}>구매하기</button></div></div>`); }
   if (c.type === "gmenu"){ const p = S.projects[c.pid]; if (!p){ closeSheet(); return; } const sp = isProj(p), kind = sp ? "스테이지" : "메인 퀘스트";
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-p="${p.id}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
@@ -2139,9 +2136,6 @@ document.addEventListener("click", e => {
     const msg = {pdel:sp ? ["스테이지를 삭제할까요?", "연결된 미션도 함께 삭제돼요."] : ["메인 퀘스트를 삭제할까요?", "아래 스테이지와 연결된 미션도 함께 삭제돼요."], tdel:["미션을 삭제할까요?", ""], hdel:["일일 퀘스트를 삭제할까요?", "지금까지 쌓은 연속 기록도 함께 사라져요."], delpost:["스토리를 삭제할까요?", "공감과 답글도 함께 삭제돼요."], rdel:["보상을 삭제할까요?", ""], block:["이 사람을 차단할까요?", "이 사람의 스토리와 답글이 모두 안 보여요."], rolldel:[`지난 미션 ${mineOf("mission").filter(m => !m.done && m.origDue && m.origDue < today() && m.due === today()).length}개를 삭제할까요?`, "오늘로 넘어온 미션만 삭제돼요. 되돌릴 수 없어요."], ldel:["저널을 삭제할까요?", diaryPost(id) ? "커뮤니티에 공유한 스토리도 함께 삭제돼요." : ""]}[a];
     S.pend = {key, data:{...b.dataset}}; S.parentSheet = c || null; S.compose = {type:"confirm", t:msg[0], d:msg[1], ok:a === "block" ? "차단" : "삭제"}; renderSheet(); return; }
   switch (a){
-    case "shop-tab": S.shopTab=b.dataset.v; break;
-    case "purchase-use": ask({t:'사용 완료로 처리할까요?',d:'사용 완료로 처리하면 환불할 수 없어요.',ok:'사용 완료'},()=>run(()=>api.purchaseAction(id,'use'),()=>{toast('사용 완료로 기록했어요');if(S.compose)renderSheet();}));return;
-    case "purchase-cancel": ask({t:'구매를 취소할까요?',d:'사용한 코인을 돌려받아요.',ok:'취소·환불'},()=>run(()=>api.purchaseAction(id,'cancel'),()=>{toast('취소·환불했어요');if(S.compose)renderSheet();}));return;
     case "preview-login":
     case "preview-kakao": entryScreen = 'character'; S.compose = null; $('#overlay').innerHTML = ''; schedule(); scrollTo(0,0); if (!TRIAL) toast(a === 'preview-kakao' ? '실제 카카오 가입은 연결되지 않았어요. 캐릭터 만들기를 미리 볼 수 있어요.' : '인증 없이 캐릭터 만들기로 이동했어요.'); return;
     case "cfok": { if (c && c.cb){ const cb = c.cb; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); cb(); return; } const P = S.pend; S.pend = null; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); if (!P) return; S.armed = P.key;
@@ -2375,7 +2369,7 @@ document.addEventListener("click", e => {
     case "buy": { const r = S.mine[id], pr = priceOf(r); if ((MY ? MY.gold : 0) < pr) return;
       openSheet({type:"buyconf", id}); return; }
     case "buyok": { const r = S.mine[c.id]; if (!r) return closeSheet(); const pr = priceOf(r); if ((MY ? MY.gold : 0) < pr){ closeSheet(); toast("코인이 부족해요"); return; }
-      run(() => api.redeem(r.id), () => rewardSheet({emoji:"🎁", title:`'${esc(r.name)}' 구매 완료!`, desc:"사용 예정으로 기록했어요.", g:-pr})); return; }
+      const pid = uid8(); run(async () => { await api.redeem(r.id, pid); await api.purchaseAction(pid, "use"); }, () => rewardSheet({emoji:"🎁", title:`'${esc(r.name)}' 구매 완료!`, desc:"마음껏 즐기세요!", g:-pr})); return; }
     case "emocustom": S.planner.custom = true; reDiary(); setTimeout(() => { const x = $("#pl-emo"); x && x.focus(); }, 0); return;
     case "emoadd": { const v = (($("#pl-emo")||{}).value||"").trim(); if (!v){ toast("감정을 적어 주세요"); return; } S.planner.extra = [...new Set([...(S.planner.extra||[]), v])]; S.planner.emo = v; S.planner.custom = false; delete S.drafts["pl-emo"]; reDiary(); return; }
     case "hset": openSheet({type:"hset"}); return;

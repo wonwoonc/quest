@@ -726,8 +726,7 @@ const removedEconomyGuidance = /economy-help|price-help|restinfo|resttoday|restc
 const removedEconomySummary = /economyStrip|eco-strip|wd-economy|경제 요약|오늘 기본|일일 제한 없음|다음 레벨까지|이번 주 \d+\/5일|3일 \+60 XP·30 코인|5일 추가 \+40 XP·20 코인|자동 지급|찜:|코인 더 필요|<b>정산 조정|코인 · 다음 수입으로 상계/;
 test('economy shop tabs and reward form omit guidance while price constraints still validate',async()=>{
   const h=await profileUI();h.route('shop');
-  assert.match(h.nodes.get('app').innerHTML,/꾸미기|내역/);assert.doesNotMatch(h.nodes.get('app').innerHTML,/buyrest|휴식권 구매/);
-  for(const tab of ['personal','inventory','history','decorate']){h.click('shop-tab',{v:tab});assert.ok(h.nodes.get('app').innerHTML.length);assert.doesNotMatch(h.nodes.get('app').innerHTML,removedEconomyGuidance);}
+  assert.doesNotMatch(h.nodes.get('app').innerHTML,/buyrest|휴식권 구매|data-act="shop-tab"|>내역</);assert.doesNotMatch(h.nodes.get('app').innerHTML,removedEconomyGuidance);
   h.click('sheet',{k:'reward'});let markup=h.nodes.get('overlay').innerHTML;
   assert.match(markup,/id="rw-cost"[^>]*value=""/);for(const v of [100,300,500,1000,3000])assert.match(markup,new RegExp(`data-f="cost" data-v="${v}"`));
   assert.match(markup,/data-v="300" aria-pressed="true"/,'300 is the default preset');assert.doesNotMatch(markup,/rw-repeat|rw-daily|rw-weekly/);assert.doesNotMatch(markup,removedEconomyGuidance);
@@ -816,7 +815,7 @@ test('dashboard/profile/shop omit the entire economy summary and retain balances
     if(route==='shop'){
       assert.match(html,/사용 가능 코인/);
       assert.match(html,new RegExp(`🪙 ${balances(before).gold}`));
-      assert.deepEqual([...html.matchAll(/data-act="shop-tab" data-v="([^"]+)"/g)].map(m=>m[1]),['personal','inventory']);
+      assert.doesNotMatch(html,/data-act="shop-tab"/);
     }else{
       assert.match(html,/Lv\.\d+/);assert.match(html,/role="progressbar" aria-label="레벨 진행도"/);
       assert.match(html,/class="num coinm"/);assert.match(html,/\d+ \/ [\d,]+ XP/);
@@ -962,7 +961,6 @@ test('shop has no items tab; it opens on rewards and keeps add copy',async()=>{
   let html=h.nodes.get('app').innerHTML;
   assert.doesNotMatch(html,/아이템/);
   assert.doesNotMatch(html,/style-buy/);
-  h.click('shop-tab',{v:'personal'});html=h.nodes.get('app').innerHTML;
   assert.match(html,/하고 싶은 거 \/ 갖고 싶은 거/);
   assert.doesNotMatch(html,/data-v="history"/);
 });
@@ -1041,20 +1039,19 @@ test('repeat: monthly date opens a 1-31 popup and stores the exact day',async()=
   assert.deepEqual(q.repeat,{type:'monthly',day:31});
 });
 
-test('rewards tab shows only reward cards (tap to edit); purchase status and actions live in the history tab',async()=>{
+test('shop shows reward cards only (tap to edit); buying records the reward as used at once, no history tab',async()=>{
   const base=await profileUI(),saved=base.snapshot();
   saved.mine.rw={id:'rw',kind:'reward',name:'영화 보기',cost:30,repeat:'once'};
-  saved.economy.purchases={old:{id:'old',rewardId:'rw',name:'영화 보기',cost:30,state:'planned',at:Date.parse('2026-11-02T03:00:00Z')}};
-  const h=await profileUI(saved),before=h.snapshot();
-  h.route('shop');h.click('shop-tab',{v:'personal'});
+  saved.mine.tm={id:'tm',kind:'mission',name:'코인 벌기',lv:'epic',due:new Date(Date.now()+9*3600000).toISOString().slice(0,10),time:'09:00',done:false,createdAt:1};
+  const h=await profileUI(saved);h.route('dash');h.click('mcheck',{id:'tm'});await h.settle();h.route('shop');
   const html=h.nodes.get('app').innerHTML;
   assert.match(html,/<div class="rcard" data-act="redit" data-id="rw" role="button"/);
-  assert.doesNotMatch(html,/사용 예정|사용 완료|취소 완료|data-act="purchase-|>수정</);
-  assert.doesNotMatch(html,/data-v="history"/);
-  h.route('shop');h.click('shop-tab',{v:'inventory'});
-  const inv=h.nodes.get('app').innerHTML;assert.match(inv,/영화 보기<\/b><small>11월 2일 · 30 코인 · 사용 예정/);
-  assert.match(inv,/data-act="purchase-use" data-id="old"/);assert.match(inv,/data-act="purchase-cancel" data-id="old"/);assert.doesNotMatch(inv,/아이템|style-equip/);
-  assert.deepEqual(h.snapshot(),before);
+  assert.doesNotMatch(html,/사용 예정|사용 완료|취소 완료|data-act="purchase-|>수정<|data-act="shop-tab"/);
+  const gold=balances(h.snapshot()).gold;assert.ok(gold>=30,`earned ${gold} coins`);
+  h.click('buy',{id:'rw'});assert.match(h.nodes.get('overlay').innerHTML,/되돌릴 수 없어요/);
+  h.click('buyok');await h.settle();await h.settle();
+  const ps=Object.values(h.snapshot().economy.purchases);assert.equal(ps.length,1);assert.equal(ps[0].state,'used');assert.equal(ps[0].rewardId,'rw');
+  assert.equal(balances(h.snapshot()).gold,gold-30);
 });
 test('month view: daily quests show past completions, today with a checkbox, and only the next occurrence once today is done',async()=>{
   const base = await profileUI(), saved = base.snapshot(), DAYMS = 86400000, kd = t => new Date(t+9*3600000).toISOString().slice(0,10);
