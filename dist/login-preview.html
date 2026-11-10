@@ -2044,8 +2044,6 @@ const GOAL = {xp:200, c:100}, PROJ = {xp:60, c:30}, DIARY = {xp:10, c:5};
 const OLD_TIER = {light:150, basic:800, special:1500, deluxe:3000, ultimate:8000};
 const EMOS = [["기쁨","😄"],["평온","😌"],["설렘","🤩"],["피곤","😪"],["불안","😟"],["우울","😢"],["화남","😤"]];
 const EMOI = Object.fromEntries(EMOS);
-const MOODS = ["뿌듯해요","설레요","힘들어요","막막해요","포기하고 싶어요","다시 해볼게요"];
-const HARD = ["힘들어요","막막해요","포기하고 싶어요"];
 const UNITS = ["kg","개","만 원"];
 const WD = ["일","월","화","수","목","금","토"];
 const RANKS = [[30,"전설의 모험가"],[20,"마스터 모험가"],[10,"베테랑 모험가"],[5,"모험가"],[1,"견습 모험가"]];
@@ -2083,7 +2081,6 @@ function ago(t){
 const fmt = n => Number(n).toLocaleString("ko-KR");
 const numFmt = v => (Math.round(Number(v)*10)/10).toLocaleString("ko-KR", {maximumFractionDigits:1});
 const parseNum = s => { const v = parseFloat(String(s||"").replace(/,/g,"")); return isFinite(v) ? v : null; };
-const lvStart = levelStart;
 const levelOf = economyLevel;
 const rankOf = L => RANKS.find(r => L >= r[0])[1];
 const on = v => !!(v && (v.at || (typeof v === "number" && v > 0)));
@@ -2113,7 +2110,6 @@ function timeWheel(c){ const [h, m] = (c.time || "09:00").split(":").map(Number)
   const col = (k, n, step, sel) => `<div class="twc" data-tw="${k}" data-sel="${sel}"><i></i><i></i>${Array.from({length:n}, (_, i) => `<span>${pad(i*step)}</span>`).join("")}<i></i><i></i></div>`;
   return `<div class="tw"><div class="twwrap"><div class="twband"></div>${col("h", 24, 1, h)}<b>:</b>${col("m", 12, 5, mi)}</div>${hintBar("tw", "가운데 숫자를 누르면 직접 입력할 수 있어요")}<button class="tw-ok" data-act="tmdone">완료</button></div>`; }
 function initTW(){ document.querySelectorAll("#overlay .twc").forEach(el => { el.scrollTop = (+el.dataset.sel) * TW_H; el.querySelectorAll("span").forEach((x, i) => x.classList.toggle("on", i === +el.dataset.sel)); }); }
-let twT = null;
 document.addEventListener("input", e => { if (e.target.id !== "rday-in" || !S.compose) return; const n = parseInt(e.target.value, 10);
   if (!n || n < 1 || n > 31) return; const c = S.compose; c.rday = n; document.querySelectorAll("#overlay .chips.day31 .chip").forEach(el => el.setAttribute("aria-pressed", String(+el.dataset.v === n))); });
 document.addEventListener("input", e => { if (e.target.id !== "tw-in" || !S.compose) return; const v = parseTime(e.target.value); if (!v) return; const c = S.compose; c.time = v; S._twQuiet = Date.now();
@@ -2657,7 +2653,6 @@ const AREA_DESC = {health:"운동, 수면, 식단처럼 몸을 돌보는 퀘스�
 const AREA_KEYS = AREAS.map(a => a[0]);
 const areasOf = x => (x && Array.isArray(x.area) ? x.area : []).filter(k => AREA_KEYS.includes(k));
 const areaUp = pid => { let id = pid, n = 0; while (id && S.projects[id] && n++ < 6){ const a = areasOf(S.projects[id]); if (a.length) return a; id = S.projects[id].parentId; } return []; };
-const rootId = pid => { let id = pid, n = 0; while (id && S.projects[id] && S.projects[id].parentId && n++ < 5) id = S.projects[id].parentId; return id && S.projects[id] ? id : null; };
 function areaField(c){ const on = c.area || [];
   return `<div class="field"><span class="lab">영역</span><div class="chips">${AREAS.map(([k,n,e,l]) => `<button class="chip achip" data-act="aset" data-v="${k}" aria-pressed="${on.includes(k)}">${aIcon(k)}${l}</button>`).join("")}</div></div>`; }
 function areaXp(){
@@ -2757,13 +2752,6 @@ function viewToday(){
   const archived = mineOf("quest").filter(q => q.active === false).length;
   h += done.map(row).join("") + `<div class="qfoot2"><button class="tadd-pill" data-act="sheet" data-k="add" data-v="daily">+ 퀘스트 생성</button><button class="archbtn" data-act="archive" aria-label="보관한 일일 퀘스트 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4"/></svg>보관${archived ? ` <em class="num">${archived}</em>` : ""}</button></div></section>`;
   return h;
-}
-function subCard(x){
-  const pr = goalProgress(x), done = x.status === "done", pct = pr.total ? Math.round(pr.done / pr.total * 100) : (done ? 100 : 0), nx = done ? null : x.parentId ? mineOf("mission").filter(m => !m.done && m.projectId === x.id).sort(tOrd)[0] : nextOf(x), subs = x.parentId ? [] : subsOf(x.id);
-  const chip = done ? `<span class="st done">✓ 완료</span>` : isPlanned(x) ? `<span class="st plan">시작 전</span>` : `<span class="st">진행 중</span>`;
-  return `<button class="card subc ${done ? "ok" : ""}" data-act="project" data-p="${x.id}"><span class="subtop">${chip}${x.end && !done ? `<span class="st dd">${dday(x.end)}</span>` : ""}<b class="subpct num">${pct}%</b></span>
-    <b class="subt">${esc(x.title)}</b><span class="bar green"><i style="width:${pct}%"></i></span><small class="subm">${subs.length ? `스테이지 ${subs.filter(y => y.status === "done").length}/${subs.length} · ` : ""}미션 ${pr.done}/${pr.total}${x.metric ? ` · 📈 ${esc(x.metric.unit)}` : ""}</small>
-    ${done ? "" : `<span class="subnx">${nx ? `<em>다음</em>${esc(nx.name)}` : `<em class="w">다음 미션 없음</em>`}</span>`}</button>`;
 }
 function goalRow(p, nested = false){
   const pr = goalProgress(p), pct = pr.total ? pr.done/pr.total*100 : (p.status === "done" ? 100 : 0), sp = isProj(p);
@@ -3024,8 +3012,6 @@ function noteBlocks(n){ if (Array.isArray(n.blocks)) return n.blocks; const out 
   return out.length ? out : BK_TPL(); }
 const bkText = b => String(b.h || "").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 const CALLOUT = {g:["핵심","check"], r:["주의","alert"], y:["팁","idea"], b:["정보","info"]};
-function lnOutline(blocks){ const hs = blocks.filter(b => /^h[123]$/.test(b.t) && bkText(b).trim()); if (!hs.length) return "";
-  return `<div class="lnol"><b>개요</b>${hs.map(b => `<button class="ol${b.t[1]}" data-act="bk-jump" data-v="${b.id}">${esc(bkText(b))}</button>`).join("")}</div>`; }
 function viewLearn(){
   const n = S.mine[S.view.id]; if (!n || !hasProfile()) return viewNotes();
   const {f} = ntN(n), pj = n.projectId && S.projects[n.projectId], A = AREAS.find(a => a[0] === ntArea(n)[0]), done = noteComplete(S, n), D0 = noteDrawer(S, "learn");
@@ -3218,7 +3204,6 @@ function viewPlan(){
 /* brain dump: pour every thought in, then sort each into main / sub / daily / task, or hide it */
 const BD_KINDS = [["big","메인"],["sub","스테이지"],["task","미션"],["daily","일일"],["note","자료실"]];
 const BD_GUIDE = [["act","실행해야 하는 일인가요?"],["big","몇 주 이상 걸리는 목표인가요?"],["task","한 번 하면 끝나나요?"],["daily","꾸준히 반복해야 하나요?"]];
-const bdLabel = k => (BD_KINDS.find(x => x[0] === k) || [,""])[1];
 function bdGuide(d){
   const steps = BD_GUIDE, st = (S.bdStep || {})[d.id] || 0, yn = (yes, no) => `<div class="bdqa"><button class="btn xs" ${yes}>예</button><button class="btn sec xs" ${no}>아니요</button></div>`,
     q = (n, of, t, yes, no) => `<div class="bdq"><span class="bdqn num">${n}/${of}</span><div class="bdqt"><b>${t}</b></div>${yn(yes, no)}</div>`,
@@ -3256,42 +3241,7 @@ const bdAdd = text => { const lines = String(text || "").split(/\r?\n/).map(x =>
   const at = Date.now(); run(async () => { let i = 0; for (const t of lines) await api.putMine("bd"+uid8()+(i), {kind:"dump", text:t.slice(0,200), hidden:false, createdAt:at+(i++)}); }, () => { delete S.drafts["bd-in"]; const el = $("#bd-in"); if (el) el.value = ""; if (lines.length > 1) toast(`${lines.length}개를 털어 넣었어요`); }); return true; };
 const dumpDone = c => { if (c && c.dumpId && S.mine[c.dumpId]) api.delMine(c.dumpId).then(schedule, () => {}); };
 /* guided main quest → sub quests → first task → daily quest, in the app's own sheet */
-const PW_STEPS = ["메인 퀘스트", "스테이지", "미션", "일일 퀘스트"];
-function planSheet(c){
-  const st = c.step, dots = `<div class="pwdots">${PW_STEPS.map((l,i) => `<span class="${i === st ? "on" : i < st ? "ok" : ""}"><i>${i < st ? "✓" : i + 1}</i>${l}</span>`).join("")}</div>`;
-  let body = "";
-  if (st === 0) body = `<p class="pwq">어떤 메인 퀘스트에 도전할까요?</p><div class="field"><input type="text" id="pw-name" maxlength="60" placeholder="예: 하프 마라톤 완주하기" value="${D("pw-name")}" aria-label="메인 퀘스트 이름"></div>${datePick(c, "end", "마감일", false, true)}${areaField(c)}`;
-  else if (st === 1) body = `<p class="pwq">어떤 스테이지로 나눌까요?</p>
-    ${c.steps.map((x,i) => `<div class="pwstep"><span class="ic sq ok">🔗</span><input type="text" id="pw-s${i}" maxlength="60" placeholder="스테이지 ${i+1}" value="${esc(x)}" aria-label="스테이지 ${i+1}"><button class="iconbtn" data-act="pw-sdel" data-v="${i}" aria-label="스테이지 ${i+1} 지우기">${I.close}</button></div>`).join("")}
-    ${c.steps.length < 6 ? `<button class="tadd-pill pwadd" data-act="pw-sadd">+ 스테이지 생성</button>` : ""}`;
-  else if (st === 2){ const steps = c.steps.filter(x => x.trim());
-    body = `<p class="pwq">어떤 미션부터 할까요?</p><div class="field"><input type="text" id="pw-act" maxlength="80" placeholder="예: 러닝화 사러 가기" value="${D("pw-act")}" aria-label="미션"></div>${difficultySelector(c,'mission')}${dueField(c)}
-      ${steps.length ? `<div class="field"><span class="lab">어느 스테이지의 미션인가요?</span><div class="chips">${steps.map((x,i) => `<button class="chip" data-act="cset" data-f="link" data-v="${i}" aria-pressed="${String(c.link ?? 0) === String(i)}">🔗 ${esc(x)}</button>`).join("")}</div></div>` : ""}`; }
-  else body = `<p class="pwq">매일 할 일일 퀘스트가 있나요?</p><p class="hint pwh">꾸준히 쌓아야 하는 습관이 있으면 일일 퀘스트로 만들어 드려요. 없으면 건너뛰어도 돼요.</p><div class="field"><input type="text" id="pw-hab" maxlength="80" placeholder="예: 30분 달리기" value="${D("pw-hab")}" aria-label="일일 퀘스트 이름"></div>${timeOnlyField(c)}`;
-  const skip = st === 1 || st === 3;
-  return sheetWrap("메인 퀘스트 설계", "", dots + body + `<div class="btnrow pwnav">${st ? `<button class="btn sec big" data-act="pw-go" data-v="-1">이전</button>` : ""}${skip ? `<button class="btn sec big" data-act="pw-go" data-v="skip">건너뛰기</button>` : ""}<button class="btn big" data-act="pw-go" data-v="1" ${S.busy ? "disabled" : ""}>${st === 3 ? "퀘스트 시작" : "다음"}</button></div>`);
-}
 const pv = id => { const el = document.getElementById(id); return String((el && el.value != null ? el.value : S.drafts[id]) || ""); };
-function pwRead(c){ c.steps = c.steps.map((x,i) => document.getElementById("pw-s"+i) ? pv("pw-s"+i) : x); }
-function pwGo(c, v){
-  pwRead(c); const st = c.step, back = v === "-1";
-  const toDaily = () => { c.atime = c.time; c.time = c.htime || ""; c._tw = false; c._dp = null; }, fromDaily = () => { c.htime = c.time; c.time = c.atime || ""; c._tw = false; };
-  if (back){ if (st === 3) fromDaily(); c.step = Math.max(0, st - 1); renderSheet(); return; }
-  if (st === 0){ if (!pv("pw-name").trim()){ toast("메인 퀘스트 이름을 적어 주세요"); return; } if (!c.end){ toast("마감일을 골라 주세요"); return; } }
-  if (st === 1 && v === "skip") c.steps = [];
-  if (st === 2){ if (!pv("pw-act").trim()){ toast("미션을 적어 주세요"); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } }
-  if (st < 3){ c.step++; if (c.step === 1 && !c.steps.length) c.steps = ["", ""]; if (c.step === 3) toDaily(); c._dp = null; renderSheet(); return; }
-  const skipH = v === "skip", hab = skipH ? "" : pv("pw-hab").trim(), htime = c.time, atime = c.atime;
-  if (hab && !htime){ toast("일일 퀘스트 시간을 골라 주세요"); return; } if (hab && dupQ(hab)){ toast(DUPMSG); return; }
-  const gid = uid8(), steps = c.steps.map(x => x.trim()).filter(Boolean), sids = steps.map((_, i) => uid8() + "s" + i), now = Date.now(), end = c.end;
-  const link = steps.length ? sids[Math.min(+(c.link ?? 0), steps.length - 1)] : gid, name = pv("pw-name").trim(), act = pv("pw-act").trim();
-  run(async () => {
-    await api.putProject(gid, {cover:null, owner:S.me, title:name, start:today(), end, status:"active", area:c.area||[], metric:null, progress:{done:0,total:1}, createdAt:now});
-    for (let i = 0; i < steps.length; i++) await api.putProject(sids[i], {cover:null, owner:S.me, parentId:gid, title:steps[i], start:today(), end, status:"active", metric:null, progress:{done:0,total:sids[i] === link ? 1 : 0}, createdAt:now + i + 1});
-    await api.putMine(uid8(), {kind:"mission", name:act, lv:c.lv || "normal", due:c.due, time:atime, period:"", today:false, projectId:link, done:false, createdAt:now});
-    if (hab) await api.putMine(uid8(), {kind:"quest", name:hab, time:htime, repeat:{type:"daily"}, days:[], lv:"easy", area:c.area||[], active:true, done:{}, createdAt:now});
-  }, () => { ["pw-name","pw-act","pw-hab"].forEach(k => delete S.drafts[k]); c.steps.forEach((_, i) => delete S.drafts["pw-s"+i]); closeSheet(); syncProgress(link); if (link !== gid) syncProgress(gid); toast("🎯 메인 퀘스트를 시작했어요!"); });
-}
 function viewTidy(){
   const Q = QM(), sel = new Set(Q.sel), tab = Q.tab, q = (Q.q || "").trim().toLowerCase(), t = today();
   const match = (...xs) => !q || xs.some(x => String(x || "").toLowerCase().includes(q));
@@ -3386,8 +3336,6 @@ function viewSettings(){
 }
 
 /* ================= shop ================= */
-const hueOf = t => [...String(t)].reduce((a,ch) => (a*31 + ch.charCodeAt(0)) % 360, 7);
-function purchaseHistory(){const e=S.economy,rows=Object.values(e.purchases).filter(p=>!p.hidden&&!S.mine[p.id]?.hidden).sort((a,b)=>b.at-a.at);return rows.map(p=>`<div class="row"><span class="t"><b>${esc(p.name)}</b><small>${fmt(p.cost||0)} 코인 · ${p.legacy?'이전 구매':({planned:'사용 예정',used:'사용 완료',owned:'보유',cancelled:'취소'})[p.state]}</small></span><span class="eco-actions">${p.state==='planned'&&!p.legacy?`<button class="btn sec sm" data-act="purchase-use" data-id="${esc(p.id)}">사용 완료</button><button class="btn sec sm" data-act="purchase-cancel" data-id="${esc(p.id)}">취소·환불</button>`:''}${p.kind==='style'&&p.state==='owned'?`<button class="btn sec sm" data-act="purchase-cancel" data-id="${esc(p.id)}">10분 이내 취소</button>`:''}<button class="link" data-act="purchase-hide" data-id="${esc(p.id)}">기록 숨김</button></span></div>`).join('')||'<p class="empty-row">구매 기록이 없어요.</p>';}
 const PURCHASE_LABEL = {planned:'사용 예정',used:'사용 완료',owned:'보유',cancelled:'취소 완료'};
 function purchaseRows(){ const e=S.economy; return Object.values(e.purchases).filter(p=>!p.hidden&&!S.mine[p.id]?.hidden).sort((a,b)=>b.at-a.at); }
 function rewardHistory(rewardId){ return purchaseRows().filter(p => (p.rewardId || p.id) === rewardId || S.mine[p.id]?.rewardId === rewardId); }
@@ -3462,35 +3410,6 @@ function likersLine(p, n){
   const lead = likers.find(u => u !== S.me) || likers[0];
   const who = lead === S.me ? "내가" : `<b>${esc(nameOf(lead))}</b>님${n > 1 ? "" : "이"}`;
   return `<div class="likers"><span class="stackav">${likers.slice(0,3).map(u => av(u, 20, false)).join("")}</span><span>${who}${n > 1 ? ` 외 ${n-1}명이` : ""} 공감했어요</span></div>`;
-}
-function commentPreview(reps, pid){
-  const last = reps.filter(r => !r.parentId).slice(-1)[0] || reps[reps.length-1];
-  return `<button class="cprev" data-act="open" data-p="${pid}"><b>${esc(nameOf(last.author))}</b>${esc(last.text)}</button>${reps.length > 1 ? `<button class="cprev all" data-act="open" data-p="${pid}">답글 ${reps.length}개 모두 보기</button>` : ""}`;
-}
-function nudge(p, reps){
-  if (!canAct() || p.noReply || p.author === S.me || reps.some(r => r.author === S.me)) return "";
-  const t = p.ref && p.ref.type; let opts = null;
-  if (HARD.includes(p.mood) || (t === "diary" && ["우울","불안","피곤","화남"].includes((p.ref.extra||{}).emo))) opts = ["힘내요 💪","저도 그래요 🙋","토닥토닥 🤗"];
-  else if (t === "project_done") opts = ["축하해요 🎉","정말 대단해요 👏"];
-  else if (t === "quest") opts = ["연속 기록 대단해요 🔥","저도 자극받아요 💪"];
-  else if (t === "mission") opts = ["대단해요 👏","하나씩 해내는 중이네요 🙌"];
-  else if (p.mood === "설레요" || p.mood === "다시 해볼게요") opts = ["응원할게요 🔥","같이 해요 🙌"];
-  if (!opts) return "";
-  return `<div class="nudge"><span>한마디 보내기</span>${opts.map(x => `<button data-act="nudge" data-p="${p.id}" data-t="${x}">${x}</button>`).join("")}</div>`;
-}
-function storyUsers(){
-  const since = Date.now() - DAY, by = {};
-  for (const p of feedSorted()) if (p.createdAt >= since) (by[p.author] = by[p.author] || []).push(p);
-  return Object.entries(by).map(([uid, items]) => ({uid, items:items.sort((a,b) => a.createdAt - b.createdAt), unseen:items.some(i => !seenStories.has(i.id))}))
-    .sort((a,b) => (b.uid===S.me) - (a.uid===S.me) || b.unseen - a.unseen);
-}
-function storyRail(){
-  const users = storyUsers(), meHas = users.some(u => u.uid === S.me);
-  if (!users.length && !hasProfile()) return "";
-  let h = `<div class="stories" aria-label="오늘의 기록">`;
-  if (hasProfile() && !meHas) h += `<button class="story" data-act="compose"><span class="ring seen">${av(S.me, 58, false)}<span class="plus">+</span></span><span class="nm">내 기록</span></button>`;
-  for (const u of users) h += `<button class="story" data-act="story" data-u="${esc(u.uid)}"><span class="ring ${u.unseen?"":"seen"}">${av(u.uid, 58, false)}</span><span class="nm">${u.uid===S.me?"내 기록":esc(nameOf(u.uid))}</span></button>`;
-  return h + `</div>`;
 }
 function viewFeed(){
   if (S.me && !hasProfile() && S.canWrite && S.mode !== "loading") return onboarding();
@@ -3640,10 +3559,6 @@ function webProfCard(uid){
     ${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ""}
     <div class="counts ccl"><button data-act="dstory"><b class="num">${posts}</b><span>스토리</span></button><button data-act="flist" data-v="followers" data-u="${esc(uid)}"><b class="num">${followers}</b><span>팔로워</span></button><button data-act="flist" data-v="following" data-u="${esc(uid)}"><b class="num">${following}</b><span>팔로잉</span></button></div></section>`;
 }
-function nowStep(g, html){ if (g.parentId) return html; const cur = subsOf(g.id).filter(x => x.status !== "done").sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : 1)[0];
-  const i0 = html.lastIndexOf("</section>");
-  if (!cur) return html;
-  return html.slice(0, i0) + `<button class="pgnow" data-act="project" data-p="${cur.id}"><span class="lb">지금 단계</span><b>${esc(cur.title)}</b>${cur.end ? `<em>${dday(cur.end)}</em>` : ""}</button>` + html.slice(i0); }
 function viewWebDash(){
   const uid = S.me, gs = goalsOf(uid).filter(g => g.status !== "done" && !isPlanned(g)).sort(gOrder);
   const head = (t, side = "") => `<div class="wd-gh"><h2>${t}</h2>${side}</div>`;
@@ -3771,7 +3686,6 @@ function renderPill(){
 }
 let scT = 0; window.addEventListener("scroll", () => { clearTimeout(scT); scT = setTimeout(() => { if (S.view.name === "feed") renderPill(); }, 120); }, {passive:true});
 let SV = null;
-function openStories(uid){ const users = storyUsers(), ui = users.findIndex(u => u.uid === uid); if (ui < 0) return; let ii = users[ui].items.findIndex(i => !seenStories.has(i.id)); if (ii < 0) ii = 0; SV = {users, ui, ii, elapsed:0, paused:false, raf:0}; svRender(); svStart(); }
 const svCur = () => SV.users[SV.ui].items[SV.ii];
 function svRender(){
   if (!SV) return;
@@ -3929,7 +3843,6 @@ function chainSort(qs){ const ids = new Set(qs.map(q => q.id)), out = [], seen =
   const kids = id => qs.filter(q => q.afterId === id && !seen.has(q.id));
   const walk = q => { if (seen.has(q.id)) return; seen.add(q.id); out.push(q); kids(q.id).forEach(walk); };
   qs.filter(q => !q.afterId || !ids.has(q.afterId)).forEach(walk); qs.forEach(walk); return out; }
-function timeOnlyField(c){ return `<div class="field"><span class="lab">시간 <span class="hint">필수</span></span><div class="chips"><button class="chip" data-act="tmset" aria-pressed="${!!c.time}">🕒 <span class="tmval">${c.time ? tmLabel(c.time) : "시간"}</span></button></div>${c._tw ? timeWheel(c) : ""}</div>`; }
 function preserveSheetDrafts() {
   document.querySelectorAll('.sheet input[id], .sheet textarea[id]').forEach(el => { if(!['checkbox','radio','file'].includes(el.type)) S.drafts[el.id]=el.value; });
   const todayInput=$('#ms-today'); if(todayInput&&S.compose) S.compose.today=todayInput.checked;
@@ -3990,33 +3903,6 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     <button class="btn big full" data-act="submit-hedit" ${S.busy?"disabled":""}>저장</button>
     <div class="btnrow">${dn ? `<button class="btn soft" data-act="shareq" data-id="${q.id}">공유</button>` : ""}<button class="btn sec" data-act="htoggle">${q.active === false ? "보관 해제" : "보관"}</button><button class="btn sec" style="color:var(--warn)" data-act="hdel">${S.armed === "hd"+c.id ? "정말 삭제" : "삭제"}</button></div>`); }
   if (c.type === "post") return postSheet(quick);
-  if (c.type === "mission") return sheetWrap("미션 추가", "", `
-    <div class="field"><input type="text" id="ms-name" maxlength="80" placeholder="예: 기획서 초안 쓰기" value="${D("ms-name")}" aria-label="미션"></div>
-    ${difficultySelector(c,'mission')}
-    <label class="toggle"><input type="checkbox" id="ms-today" ${c.today ? "checked" : ""}> ⭐ 오늘 하기</label>
-    ${goalChips(c)}
-    <button class="btn big full" data-act="submit-mission" ${S.busy?"disabled":""}>미션 추가</button>`);
-  if (c.type === "quest") return sheetWrap("일일 퀘스트 만들기", "", `
-    <div class="field"><input type="text" id="qs-name" maxlength="60" placeholder="예: 아침 스트레칭 10분" value="${D("qs-name")}" aria-label="일일 퀘스트 이름"></div>
-    <div class="field"><span class="lab">요일</span><div class="chips">${[1,2,3,4,5,6,0].map(i => `<button class="chip" data-act="qday" data-v="${i}" aria-pressed="${c.days.includes(i)}">${WD[i]}</button>`).join("")}<button class="chip new" data-act="qday" data-v="all">매일</button></div></div>
-    ${difficultySelector(c,'quest')}
-    <button class="btn big full" data-act="submit-quest" ${S.busy?"disabled":""}>일일 퀘스트 만들기</button>`);
-  if (c.type === "project") return sheetWrap("메인 퀘스트 만들기", "", `
-    <div class="field"><input type="text" id="pj-title" maxlength="80" placeholder="예: 12월 하프 마라톤 완주" value="${D("pj-title")}" aria-label="메인 퀘스트"></div>
-    ${datePick(c, "end", "마감일", false, true)}
-    ${metricFields(c)}
-    ${coverField(c)}
-    ${taskFields(c)}
-    <div class="field"><label class="lab" for="pj-text">첫 스토리 <span class="hint">선택 · 적으면 커뮤니티에 공유돼요</span></label><textarea id="pj-text" rows="2" maxlength="600">${D("pj-text")}</textarea></div>
-    <button class="btn big full" data-act="submit-project" ${S.busy?"disabled":""}>메인 퀘스트 만들기</button>`);
-  if (c.type === "sub"){ const gs = goalsOf(S.me).filter(g => g.status !== "done");
-    return sheetWrap("스테이지 만들기", "", (gs.length ? `
-    <div class="field"><input type="text" id="sp-title" maxlength="80" placeholder="예: 10km 기록 1시간 안으로" value="${D("sp-title")}" aria-label="스테이지"></div>
-    ${datePick(c, "end", "마감일")}
-    ${metricFields(c)}
-    ${parentPick(c)}
-    ${coverField(c)}
-    <button class="btn big full" data-act="submit-sub" ${S.busy?"disabled":""}>스테이지 만들기</button>` : `<p class="empty-row" style="padding:8px 0 16px">스테이지는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p><button class="btn big full" data-act="sheet" data-k="project">메인 퀘스트 만들기</button>`)); }
   if (c.type === "reward"){
     return sheetWrap(c.id ? "보상 수정" : "보상 추가", "", `
     <button class="rpick" data-act="rimg">${c.img ? `<img src="${c.img}" alt="보상 이미지">` : `<span>🎁</span>`}<em>${c.img ? "이미지 바꾸기" : "📷 이미지 추가"}</em></button>
@@ -4050,13 +3936,6 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     return sheetWrap(mine ? "내 스토리" : esc(nameOf(a)) + "님의 스토리", "", `<div class="sheetlist mlist">${mine
       ? item("editpost", "수정", "글과 수치 기록을 고쳐요") + item("ptoggle-reply", p.noReply ? "답글 기능 켜기" : "답글 기능 끄기", p.noReply ? "지금은 답글을 받을 수 없어요" : "") + item("ptoggle-likes", p.hideLikes ? "공감 수 보이기" : "공감 수 숨기기", p.hideLikes ? "다른 사람에게 공감 수가 안 보여요" : "") + item("delpost", S.armed === "dp"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", "", true)
       : item("follow", f ? "팔로우 취소" : "팔로우", "") + item("phide", "이 스토리 숨기기", "커뮤니티에서 다시 보이지 않아요") + item("block", S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true)}</div>`); }
-  if (c.type === "nttask") return sheetWrap("미션 추가", "", `
-    <div class="field"><input type="text" id="nt-name" maxlength="80" placeholder="무엇을 할까요?" value="${D("nt-name")}" aria-label="미션 이름"></div>
-    ${difficultySelector(c,'mission')}
-    ${dueField(c)}
-    <div class="btnrow"><button class="btn sec big" data-act="sheet-close">취소</button><button class="btn big" data-act="addtask">추가</button></div>`);
-  if (c.type === "plan") return planSheet(c);
-  if (c.type === "stats") return sheetWrap("능력치", "", statCard());
   if (c.type === "welcome") return sheetWrap(`${esc(nameOf(S.me))}님, 퀘스트에 오신 걸 환영합니다!`, "", `<div class="welc"><p class="welc-lead">퀘스트는 목표와 습관을 게임처럼 하나씩 깨 나가는 앱이에요.</p>
     <ol class="welc-steps">
       <li><b>메인 퀘스트</b><span>달성하고 싶은 큰 목표예요.<br>예) 토익 850점 받기</span></li>
@@ -4119,7 +3998,6 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     const body = (gs.length || orphanSubs.length ? gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphanSubs.map(x => it(x, true)).join("") : "")
 ;
     return sheetWrap("어떤 퀘스트의 스토리인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 퀘스트가 없어요. 프로필의 퀘스트 탭에서 만들 수 있어요.</p>`}</div>${S.inRef ? `<button class="btn sec full" data-act="inref" data-v="">연결 안 함</button>` : ""}`); }
-  if (c.type === "bought") return sheetWrap('구매 내역','',purchaseHistory());
   if (c.type === "buyconf"){ const r = S.mine[c.id]; if (!r){ closeSheet(); return; } const pr = priceOf(r), g = MY ? MY.gold : 0;
     return sheetWrap("", "", `<div class="reward"><div class="big">🎁</div><h2 style="justify-content:center">'${esc(r.name)}'<br>구매할까요?</h2>
       <div class="bconf"><div><span>보유 코인</span><b class="num">🪙 ${fmt(g)}</b></div><div><span>사용할 코인</span><b class="num minus">− ${fmt(pr)}</b></div><div class="tot"><span>남는 코인</span><b class="num">🪙 ${fmt(g - pr)}</b></div></div>
@@ -4158,9 +4036,6 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     <div class="gain">${c.xp ? `<span>+${fmt(c.xp)} XP</span>` : ""}${c.g ? `<span>${c.g > 0 ? "+" : ""}${fmt(c.g)} 코인</span>` : ""}</div>
     ${c.share ? `<button class="btn big full" data-act="share-after">커뮤니티에 공유하기</button><button class="link" style="margin-top:14px" data-act="sheet-close">다음에 할게요</button>` : `<button class="btn big full" data-act="sheet-close">확인</button>`}</div>`);
 }
-function goalChips(c){
-  return linkPick(c);
-}
 function parentPick(c){ const p = c.parentId && S.projects[c.parentId];
   return `<div class="field"><span class="lab">메인 퀘스트</span><div class="dprow">${p ? `<button class="btn soft sm qpb" data-act="ppick">🎯 ${esc(p.title)}</button>` : `<button class="btn sec sm" data-act="ppick">🎯 퀘스트</button>`}</div></div>`; }
 function linkPick(c){ const p = c.projectId && S.projects[c.projectId];
@@ -4169,12 +4044,6 @@ function linkChips(sel, act, label, optional){
   const gs = goalsOf(S.me).filter(g => g.status !== "done"); if (!gs.length) return "";
   const chip = p => act === "cset" ? `<button class="chip" data-act="cset" data-f="projectId" data-v="${p.id}" aria-pressed="${sel===p.id}">${esc(goalLabel(p))}</button>` : `<button class="chip" data-act="cref" data-v="${p.id}" aria-pressed="${sel===p.id}">${esc(goalLabel(p))}</button>`;
   return `<div class="field"><span class="lab">${label} ${optional ? '<span class="hint">메인 또는 스테이지 · 선택</span>' : ""}</span>${gs.map(g => `<div class="chips linkgrp">${chip(g)}${subsOf(g.id).filter(s => s.status !== "done").map(chip).join("")}</div>`).join("")}</div>`;
-}
-function taskFields(c){
-  const ts = c.tasks || [], lv = c.ntlv || "normal", d = c.ntdue || "", t = today(), tm = tomorrow(), other = d && d !== t && d !== tm;
-  return `<div class="field"><span class="lab">미션 <span class="hint">선택 · ${ts.length}개</span></span>
-    ${ts.length ? `<div class="tlist">${ts.map((x,i) => `<div class="titem"><span title="${esc(tlv(x).n)}" aria-label="${esc(tlv(x).n)}">${tlv(x).e}</span><b>${esc(x.name)}</b>${x.due ? `<em class="tdue">${x.due === t ? "오늘" : x.due === tm ? "내일" : fmtD(x.due)}</em>` : ""}${taskTimeTag(x)}<button data-act="deltask" data-i="${i}" aria-label="빼기">×</button></div>`).join("")}</div>` : ""}
-    <button class="btn soft full" data-act="ntopen" style="margin-top:8px">+ 미션 추가</button></div>`;
 }
 function metricFields(c){
   const cu = c.unit === "__c", ul = cu ? esc(S.drafts["pj-unit"]||"") : esc(c.unit||"");
@@ -4333,7 +4202,6 @@ document.addEventListener("click", e => {
   switch (a){
     case "shop-tab": S.shopTab=b.dataset.v; break;
     case "wishlist": {const r=S.mine[id];if(r)run(()=>api.putMine(id,{...r,wishlist:!r.wishlist}));return;}
-    case "milestone-pick": run(()=>api.chooseMilestone(+b.dataset.v,id),()=>toast('성장 보상을 선택했어요'));return;
     case "purchase-use": ask({t:'사용 완료로 처리할까요?',d:'사용 완료로 처리하면 환불할 수 없어요.',ok:'사용 완료'},()=>run(()=>api.purchaseAction(id,'use'),()=>{toast('사용 완료로 기록했어요');if(S.compose)renderSheet();}));return;
     case "purchase-cancel": ask({t:'구매를 취소할까요?',d:'사용한 코인을 돌려받아요.',ok:'취소·환불'},()=>run(()=>api.purchaseAction(id,'cancel'),()=>{toast('취소·환불했어요');if(S.compose)renderSheet();}));return;
     case "purchase-hide": ask({t:'기록을 숨길까요?',d:'기록만 숨기고 환불되지 않아요.',ok:'숨기기'},()=>run(()=>api.purchaseAction(id,'hide'),()=>{toast('기록을 숨겼어요');if(S.compose)renderSheet();}));return;
@@ -4359,11 +4227,9 @@ document.addEventListener("click", e => {
       const qq = S.inRef && S.inRef.startsWith("q:") && S.mine[S.inRef.slice(2)], g = !qq && S.inRef && S.projects[S.inRef], post = {ref:qq ? habitSnap(qq) : g ? {type:"project", id:g.id, label:g.title} : null, text, mood:null};
       if (value !== undefined && g) post.value = value;
       run(() => api.addPost(post, ph), () => { delete S.drafts["ps-text"]; delete S.drafts["ps-val"]; S.inPhotos = []; S.inRef = null; toast("스토리를 공유했어요"); }); return; }
-    case "bought": openSheet({type:"bought"}); return;
     case "dstory": S.profTab = "posts"; if (!u){ go("me"); return; } render(); { const w = $(".segwrap"); if (w) scrollTo({top:Math.max(0, w.getBoundingClientRect().top + scrollY - 70), behavior:"smooth"}); } return;
     case "flist": openSheet({type:"flist", kind:b.dataset.v, uid:u || S.me}); return;
     case "wdlogs": openSheet({type:"logs"}); return;
-    case "wdsi": S.wdSi = (S.wdSi || 0) + +b.dataset.v; schedule(); return;
     case "wdgs": { const g = $(".wd-goals .wd-ggrid"); if (g) g.scrollBy({left:+b.dataset.v * ((g.firstElementChild || {}).offsetWidth + 16 || 316), behavior:"smooth"}); return; }
     case "wdgi": S.wdGi = (S.wdGi || 0) + +b.dataset.v; schedule(); return;
     case "navtog": S.navMini = !S.navMini; LS.set("navMini", S.navMini); renderNav(); return;
@@ -4440,10 +4306,7 @@ document.addEventListener("click", e => {
     case "rday": { preserveSheetDrafts(); c.rday = +b.dataset.v; c._rd = false; renderSheet(); return; }
     case "cphoto": choosePhotos(true, list => { if (!S.compose || S.compose.type !== "post") return; S.compose.photos = S.compose.photos.concat(list).slice(0, MAX_IMGS); renderSheet(); }); return;
     case "cunphoto": c.photos.splice(+b.dataset.i, 1); renderSheet(); return;
-    case "swatch": S.swatch = b.dataset.c; if (c && c.type === "profile") renderSheet(); else schedule(); return;
-    case "ftab": S.feedTab = b.dataset.t; break;
     case "ptab": S.profTab = b.dataset.t; break;
-    case "story": openStories(u); return;
     case "newpill": S.ackAt = Date.now(); $("#pill").innerHTML = ""; scrollTo({top:0, behavior:"smooth"}); return;
     case "open": e.stopPropagation(); openPost(pid); return;
     case "project": e.stopPropagation(); if (c && c.type === "areainfo") closeSheet(); openGoal(pid); return;
@@ -4452,7 +4315,6 @@ document.addEventListener("click", e => {
     case "like": { const p = S.feed[pid]; if (!p || !canAct() || p.author === S.me) return; const was = liked(p); run(() => api.like(pid, !was)); if (!was) burstAt(b.closest(".body").querySelector("[data-dt]")); return; }
     case "rlike": { const r = S.replies[b.dataset.c]; if (!r) return; run(() => api.likeReply(r.id, !on((r.likes||{})[S.me]))); return; }
     case "reply": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"reply", pid, cid:b.dataset.c || null, to:b.dataset.to || b.dataset.c || null}); setTimeout(() => { const t = $("#rp-text"); t && t.focus(); }, 60); return;
-    case "nudge": { if (!canAct()) return; b.closest(".nudge").remove(); const p = S.feed[pid]; run(() => api.addReply(pid, b.dataset.t, null), () => toast(`${esc(nameOf(p.author))}님에게 응원을 보냈어요`)); return; }
     case "join": { const p = S.feed[pid]; if (!p || !canAct()) return; const x = p.ref.extra || {}; if (dupQ(p.ref.label)){ toast(DUPMSG); return; }
       const q = {kind:"quest", name:p.ref.label, purpose:x.purpose || `${nameOf(p.author)}님과 함께`, days:x.days && x.days.length ? x.days : [0,1,2,3,4,5,6], lv:lvKey(x.lv), active:true, done:{}, createdAt:Date.now(), from:{author:p.author, postId:p.id}};
       run(async () => { await api.putMine(uid8(), q); await api.join(pid); }, () => toast(`🔥 '${esc(p.ref.label)}'을 내 일일 퀘스트에 추가했어요`)); return; }
@@ -4469,24 +4331,18 @@ document.addEventListener("click", e => {
     case "pl-tab": QM().ptab = b.dataset.v; break;
     case "bd-add": { const el = $("#bd-in"); if (!bdAdd(el && el.value)){ toast("생각을 적어 주세요"); el && el.focus && el.focus(); } return; }
     case "bd-sort": openSheet({type:"bdsort", id}); return;
-    case "bd-drop": bdDrop(id); return;
     case "bd-rm": if (!S.mine[id]) return; if (S.armed !== "bx"+id){ arm("bx"+id); toast("한 번 더 누르면 삭제돼요"); break; } S.armed = null; run(() => api.delMine(id), () => toast("삭제했어요")); return;
     case "bd-step": (S.bdStep || (S.bdStep = {}))[id] = +b.dataset.v; if (c && c.type === "bdsort"){ renderSheet(); return; } break;
     case "ln-st": { if (LP) bkSave(true); const n = S.mine[S.view.id]; if (!n) return; const {f} = ntN(n), was = noteComplete(S, n);
       run(() => api.putMine(n.id, {...S.mine[n.id], cat:"learn", f:{...f, status:b.dataset.v}, updatedAt:Date.now()}), r => { if (!was && noteComplete(S, S.mine[n.id]) && r && r.xp > 0){ S.quietXp = true; toast(`학습 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>`); } }); return; }
     case "ln-read": if (LP) bkSave(true); S.lnRead = !S.lnRead; break;
     case "ln-fs": S.lnFs = b.dataset.v; LS.set("lnFs", b.dataset.v); break;
-    case "bk-jump": { const el = document.getElementById("bk-" + b.dataset.v); if (el){ el.scrollIntoView({behavior:"smooth", block:"start"}); el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 900); } return; }
     case "bk-fold": { if (!LP) return; bkSync(); const bl = LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.fold = !bl.fold; bkRedraw(); bkSave(); return; }
     case "bk-cc": { if (!LP || S.lnRead) return; bkSync(); const bl = LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; const ks = Object.keys(CALLOUT); bl.c = ks[(ks.indexOf(bl.c || "g") + 1) % ks.length]; bkRedraw(); bkSave(); return; }
     case "fmt": bkFmt(b.dataset.v); return;
     case "ln-tail": { if (!LP || S.lnRead || e.target.closest(".blk")) return; bkSync(); const last = LP.blocks[LP.blocks.length - 1]; if (last && last.t === "p" && !bkText(last).trim()){ setCaret(bxOf(last.id)); return; } const nb = {id:uid8(), t:"p", h:""}; LP.blocks.push(nb); bkRedraw(nb.id, 0); bkSave(); return; }
     case "bk-chk": { if (!LP) return; bkSync(); const bl = LP && LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.ck = !bl.ck; bkRedraw(); bkSave(); return; }
-    case "bk-type": if (LP && S.bkCur) bkSetType(S.bkCur, b.dataset.v); return;
     case "bk-pick": bkPick(b.dataset.v); return;
-    case "bk-ind": { if (!LP || !S.bkCur) return; bkSync(); const bl = LP.blocks[bkIdx(S.bkCur)]; if (!bl) return; const off = caretOff(bxOf(S.bkCur)); bl.ind = Math.max(0, Math.min(3, (bl.ind || 0) + +b.dataset.v)); bkRedraw(S.bkCur, off); bkSave(); return; }
-    case "bk-del": { if (!LP || !S.bkCur) return; bkSync(); const i = bkIdx(S.bkCur); if (i < 0) return; LP.blocks.splice(i, 1); if (!LP.blocks.length) LP.blocks.push({id:uid8(), t:"p", h:""}); const nx = LP.blocks[Math.min(i, LP.blocks.length - 1)]; bkRedraw(nx.id); bkSave(); return; }
-    case "bk-add": { if (!LP) return; bkSync(); const last = LP.blocks[LP.blocks.length - 1]; if (last && last.t === "p" && !bkText(last).trim()){ setCaret(bxOf(last.id), 0); return; } const nb = {id:uid8(), t:"p", h:""}; LP.blocks.push(nb); bkRedraw(nb.id, 0); bkSave(); return; }
     case "nt-file": e.stopPropagation(); openFile(b.dataset.v); return;
     case "nf-rm": { e.stopPropagation(); preserveSheetDrafts(); const fid = b.dataset.v; c.files = (c.files || []).filter(x => x.id !== fid); if ((c.newFiles || []).includes(fid)){ c.newFiles = c.newFiles.filter(x => x !== fid); FDB.del(fid); } else (c.rmFiles = c.rmFiles || []).push(fid); renderSheet(); return; }
     case "nf-pick": { const inp = document.createElement("input"); inp.type = "file"; inp.multiple = true; inp.accept = F_ACCEPT; inp.onchange = () => addFiles(c, inp.files); inp.click(); return; }
@@ -4532,14 +4388,9 @@ document.addEventListener("click", e => {
     case "bd-send": bdSend(id, b.dataset.v); return;
     case "bd-ask": { const v = b.dataset.v, L = {big:"메인 퀘스트", task:"미션", daily:"일일 퀘스트", note:"자료실"}[v];
       if (v === "drop") ask({t:"이 생각을 버릴게요", ok:"확인", safe:true}, () => bdDrop(id)); else ask({t:`${L}로 분류할게요`, ok:"확인", safe:true}, () => bdSend(id, v)); return; }
-    case "pl-later": QM().laterOpen = !QM().laterOpen; break;
-    case "pl-new": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } ["pw-name","pw-act","pw-hab"].forEach(k => delete S.drafts[k]); openSheet({type:"plan", step:0, steps:[], due:today(), time:"", lv:"normal"}); return;
     case "aset": { preserveSheetDrafts(); const a = (c.area || []).slice(), v = b.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else { if (a.length >= 2){ toast("영역은 2개까지 고를 수 있어요"); return; } a.push(v); } c.area = a; renderSheet(); return; }
     case "statsheet": go("stats"); return;
     case "areainfo": openSheet({type:"areainfo", k:b.dataset.v}); return;
-    case "pw-go": pwGo(c, b.dataset.v); return;
-    case "pw-sadd": pwRead(c); c.steps.push(""); renderSheet(); return;
-    case "pw-sdel": pwRead(c); c.steps.splice(+b.dataset.v, 1); c.steps.forEach((x,i) => S.drafts["pw-s"+i] = x); renderSheet(); return;
     case "qm-tab": { const Q = QM(); if (Q.tab !== b.dataset.v){ Q.tab = b.dataset.v; Q.sel = []; } break; }
     case "qm-sel": { const Q = QM(), s0 = new Set(Q.sel); if (s0.has(id)) s0.delete(id); else s0.add(id); Q.sel = [...s0]; break; }
     case "qm-all": { const Q = QM(), ids = (b.dataset.ids || "").split(",").filter(Boolean), s0 = new Set(Q.sel), all = ids.every(x => s0.has(x)); ids.forEach(x => all ? s0.delete(x) : s0.add(x)); Q.sel = [...s0]; break; }
@@ -4581,8 +4432,6 @@ document.addEventListener("click", e => {
       const go0 = () => run(() => api.putMine(id, {...S.mine[id], done:nd, doneAt:nd ? Date.now() : null}), r => {S.quietXp=true;if(nd)S.pop={id,xp:r.xp,c:r.coins,at:Date.now()};toast(`실제 반영 ${r.xp} XP · ${r.coins} 코인`);if (m.projectId) syncProgress(m.projectId); });
       if (!nd) ask(UNDO_ASK, go0); else go0(); return; }
     case "sharem": { const m = S.mine[id], pj = m && S.projects[m.projectId]; if (!pj) return; openCompose({ref:{type:"mission", id:pj.id, label:pj.title, mission:m.name}, fixed:true, title:"✅ 미션 완료"}); return; }
-    case "mtoday": { const m = S.mine[id]; if (!m) return; run(() => api.putMine(id, {...m, today:!isToday(m)})); return; }
-    case "qtoggle": { const q = S.mine[id]; run(() => api.putMine(id, {...q, active:q.active === false})); return; }
     case "buy": { const r = S.mine[id], pr = priceOf(r); if ((MY ? MY.gold : 0) < pr) return;
       openSheet({type:"buyconf", id}); return; }
     case "buyok": { const r = S.mine[c.id]; if (!r) return closeSheet(); const pr = priceOf(r); if ((MY ? MY.gold : 0) < pr){ closeSheet(); toast("코인이 부족해요"); return; }
@@ -4613,18 +4462,8 @@ document.addEventListener("click", e => {
     case "pdone": { const p = S.projects[pid], sp = isProj(p), RW = sp ? PROJ : GOAL; if (S.armed !== "pd"+pid){ arm("pd"+pid); return; } S.armed = null;
       run(() => api.putProject(pid, {...p, status:"done", doneAt:Date.now(), progress:goalProgress(p)}), r => { if (sp) syncProgress(p.parentId); rewardSheet({emoji:"🏆", title:sp ? "스테이지 완료!" : "메인 퀘스트 달성!", desc:esc(p.title)+(r.xp?'':' · 지급 조건 미달 또는 이미 지급 판정됨'), xp:r.xp, g:r.coins, share:{ref:{type:"project_done", id:pid, label:p.title, sub:sp}, title:sp ? "🔗 스테이지<br>완료!" : "🏆 메인 퀘스트<br>달성!"}}); }); return; }
     case "pdel": if (S.armed === "px"+pid){ S.armed = null; const sp = isProj(S.projects[pid]); run(async () => { const ids = [pid, ...subsOf(pid).map(x => x.id)]; for (const m of mineOf("mission").filter(m => ids.includes(m.projectId))) await api.delMine(m.id); for (const x of subsOf(pid)) await api.delProject(x.id); await api.delProject(pid); }, () => { closeSheet(); toast(sp ? "스테이지를 삭제했어요" : "메인 퀘스트를 삭제했어요"); history.back(); }); } else { arm("px"+pid); if (S.compose) renderSheet(); } return;
-    case "submit-sub": { const title = ($("#sp-title").value||"").trim(); if (!title){ toast("스테이지 이름을 적어 주세요"); return; } if (!c.end){ toast("마감일을 골라 주세요"); return; } if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; }
-      const mt = readMetric(c); if (mt === false) return; const pidN = uid8(), parent = c.parentId;
-      const tasks = pendingTasks(c);
-      run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, parentId:parent, title, start:today(), end:c.end||"", status:c.pstat === "planned" ? "planned" : "active", metric:mt, progress:{done:0,total:tasks.length}, createdAt:Date.now()}); await saveTasks(tasks, pidN); },
-        () => { ["sp-title","sp-end","nt-name"].forEach(k => delete S.drafts[k]); syncProgress(pidN); closeSheet(); toast("🔗 스테이지를 만들었어요"); openGoal(pidN); }); return; }
     case "alv": case "hlv": case "tlv": case "ntlv": preserveSheetDrafts(); c[a==='alv'||a==='tlv'?'lv':a] = lvKey(b.dataset.v); renderSheet(); return;
-    case "ntdue": c.ntdue = c.ntdue === b.dataset.v ? "" : b.dataset.v; renderSheet(); return;
-    case "ntopen": preserveSheetDrafts(); S.parentSheet = c; delete S.drafts["nt-name"]; openSheet({type:"nttask", lv:"normal", due:"", period:""}); setTimeout(() => { const x = $("#nt-name"); x && x.focus(); }, 50); return;
     case "addtask": { const el = $("#nt-name"), name = (el.value||"").trim(); if (!name){ el.focus(); toast("미션 이름을 적어 주세요"); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } const par = S.parentSheet; if (!par){ closeSheet(); return; } par.tasks = [...(par.tasks||[]), {name, lv:c.lv || "normal", due:c.due || "", time:c.time || ""}]; delete S.drafts["nt-name"]; closeSheet(); return; }
-    case "deltask": c.tasks.splice(+b.dataset.i, 1); renderSheet(); return;
-    case "cyclelv": { const t = c.tasks[+b.dataset.i], ks = Object.keys(TLV); t.lv = ks[(ks.indexOf(t.lv)+1) % ks.length]; renderSheet(); return; }
-    case "amore": c.more = true; renderSheet(); return;
     case "mlog": e.stopPropagation(); delete S.drafts["ml-val"]; delete S.drafts["ml-text"]; openSheet({type:"mlog", pid, share:false}); setTimeout(() => { const x = $("#ml-val"); x && x.focus(); }, 50); return;
     case "submit-mlog": { const pj = S.projects[c.pid]; if (!pj) return; const v = parseNum(($("#ml-val")||{}).value); if (v == null){ toast("숫자를 넣어 주세요"); return; }
       if (c.share){ const text = (($("#ml-text")||{}).value||"").trim(); run(() => api.addPost({ref:{type:"project", id:pj.id, label:pj.title}, text, mood:null, value:v}, []), () => { delete S.drafts["ml-val"]; delete S.drafts["ml-text"]; closeSheet(); toast("기록하고 커뮤니티에 공유했어요"); }); return; }
@@ -4640,11 +4479,9 @@ document.addEventListener("click", e => {
     case "gdone": S.gDone = S.gDone === pid ? null : pid; break;
     case "actmore": S.actN = (S.actN || 10) + 10; break;
     case "jfold": { const k = b.dataset.k; if (!S.jOpen) S.jOpen = new Set(); S.jOpen.has(k) ? S.jOpen.delete(k) : S.jOpen.add(k); if (S.compose && S.compose.type === "logs"){ renderSheet(); return; } break; }
-    case "tmnone": c.time = ""; c._tw = false; renderSheet(); return;
     case "tmset": { preserveSheetDrafts(); if (!c.time) c.time = "09:00"; c._tw = !c._tw; if (c._tw){ c._dp = null; c._pp = null; } renderSheet(); return; }
     case "tmdone": c._tw = false; renderSheet(); return;
     case "cdue1": { ["ta-name","te-name","te-note","ad-name","nt-name"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); const v = b.dataset.v; c.due = v; c.period = ""; if (!c.time) c.time = "09:00"; c._tw = true; c._dp = null; renderSheet(); return; }
-    case "cdue": { const [p0, v0] = b.dataset.v.split(":"); c.period = p0 === "day" ? "" : p0; c.due = v0; renderSheet(); return; }
     case "shareday": openCompose({fixed:true, title:"🎉 오늘 퀘스트<br>모두 완료!"}); return;
     case "suggest": { const n = b.dataset.v, lv = (SUGGEST.find(x => x[0] === n)||[])[1] || "easy"; if (dupQ(n)){ toast(DUPMSG); return; } b.disabled = true;
       run(() => api.putMine(uid8(), {kind:"quest", name:n, days:[0,1,2,3,4,5,6], lv, active:true, done:{}, createdAt:Date.now()}), () => toast(`🔥 '${esc(n)}' 추가`)); return; }
@@ -4677,22 +4514,7 @@ document.addEventListener("click", e => {
       run(() => api.putMine(c.id, nm), () => { closeSheet(); toast("저장했어요"); if (old) syncProgress(old); if (nm.projectId && nm.projectId !== old) syncProgress(nm.projectId); }); return; }
     case "tdel": { const tid = c.id; if (S.armed !== "td"+tid){ arm("td"+tid); renderSheet(); return; } S.armed = null; const pj = S.mine[tid].projectId;
       run(() => api.delMine(tid), () => { closeSheet(); toast("미션을 삭제했어요"); if (pj) syncProgress(pj); }); return; }
-    case "qdel": if (S.armed !== "qd"+id){ arm("qd"+id); return; } S.armed = null; run(() => api.delMine(id), () => toast("일일 퀘스트를 삭제했어요")); return;
     case "share-after": { const sh = c.share; closeSheet(); openCompose({ref:sh.ref, fixed:true, title:sh.title}); return; }
-    case "submit-mission": { const name = ($("#ms-name").value||"").trim(); if (!name){ toast("미션을 적어 주세요"); return; }
-      const pjId = c.projectId || null;
-      run(() => api.putMine(uid8(), {kind:"mission", name, lv:c.lv||"normal", today:$("#ms-today").checked, projectId:pjId, done:false, createdAt:Date.now()}), () => { delete S.drafts["ms-name"]; closeSheet(); toast("미션을 추가했어요"); if (pjId) syncProgress(pjId); }); return; }
-    case "submit-quest": { const name = ($("#qs-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (dupQ(name)){ toast(DUPMSG); return; } if (!c.days.length){ toast("요일을 골라 주세요"); return; }
-      const rp3 = buildRepeat(c); if (needsDays(rp3.type) && !rp3.days.length){ toast("요일을 골라 주세요"); return; }
-      run(() => api.putMine(uid8(), {kind:"quest", name, time:c.time||"09:00", repeat:rp3, days:rp3.days||[], lv:c.lv||"easy", active:true, done:{}, createdAt:Date.now()}), () => { ["qs-name","qs-purpose"].forEach(k => delete S.drafts[k]); closeSheet(); toast("🔥 일일 퀘스트를 만들었어요"); }); return; }
-    case "submit-project": { const title = ($("#pj-title").value||"").trim(); if (!title){ toast("메인 퀘스트를 적어 주세요"); return; }
-      if (!c.end){ toast("마감일을 골라 주세요"); return; }
-      let metric = null; if (c.unit){ const s0 = parseNum($("#pj-ms").value), t0 = parseNum($("#pj-mt").value); if (s0 == null || t0 == null || s0 === t0){ toast("지금 숫자와 목표 숫자를 넣어 주세요"); return; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return; } metric = {unit, start:s0, target:t0}; }
-      const text = ($("#pj-text").value||"").trim(), pidN = uid8();
-      const tasks = pendingTasks(c);
-      const doc = {owner:S.me, title, start:today(), end:c.end||"", status:c.pstat === "planned" ? "planned" : "active", metric, progress:{done:0,total:tasks.length}, createdAt:Date.now()};
-      run(async () => { doc.cover = await saveCover(c); await api.putProject(pidN, doc); await saveTasks(tasks, pidN); if (text) await api.addPost({ref:{type:"project", id:pidN, label:title}, text, mood:"설레요"}, []); },
-        () => { ["pj-title","pj-text","pj-end","pj-ms","pj-mt","pj-unit","nt-name"].forEach(k => delete S.drafts[k]); closeSheet(); toast("🎯 메인 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
     case "submit-reward": { const name = ($("#rw-name").value||"").trim(); if (!name){ toast("보상 이름을 적어 주세요"); return; }
       const typed = String(($('#rw-cost')||{}).value || '').replace(/,/g,'').trim(), cost = typed ? Number(typed) : Number(c.cost);
       if(!Number.isSafeInteger(cost)||cost<5||cost%5){toast(typed || c.cost !== '' ? '가격은 5 이상, 5 단위 정수로 입력해 주세요.' : '가격을 골라 주세요');return;}const id0=c.id||uid8(),old=c.id?S.mine[c.id]:null;
@@ -4712,7 +4534,6 @@ document.addEventListener("click", e => {
     case "faceupload": { const inSheet = c && c.type === "profile", tgt = inSheet ? c : S.ob;
       if (!inSheet){ const n = $("#nick"); if (n) S.drafts.nick = n.value; } else { ["ep-nick","ep-bio"].forEach(k => { const el = $("#"+k); if (el) S.drafts[k] = el.value; }); }
       choosePhotos(false, async list => { if (!list || !list[0]) return; tgt.face = await shrinkImg(list[0], 800, 160000); tgt.avatarStyle = "photo"; tgt.characterError = ""; if (inSheet){ if (S.compose === tgt) renderSheet(); } else schedule(); }); return; }
-    case "faceshot": return;
     case "facedel": { const inSheet = c && c.type === "profile", tgt = inSheet ? c : S.ob; if (tgt.making) return; tgt.avatarStyle = null; tgt.characterError = ''; if (inSheet){ ["ep-nick","ep-bio"].forEach(k => { const el = $("#"+k); if (el) S.drafts[k] = el.value; }); c.face = ""; renderSheet(); } else { const n = $("#nick"); if (n) S.drafts.nick = n.value; S.ob.face = ""; schedule(); } return; }
     case "submit-profile": { if (c.making) return; const nick = ($("#ep-nick").value||"").trim(); if (!nick){ toast("닉네임을 적어 주세요"); return; }
       run(async () => { const fk = await storeFace(c.face); await api.saveProfile({nick, bio:($("#ep-bio").value||"").trim(), color:S.swatch, ...(fk !== undefined ? {face:fk, avatarStyle:c.avatarStyle || null} : {})}); }, () => { delete S.drafts["ep-nick"]; delete S.drafts["ep-bio"]; closeSheet(); toast("프로필을 저장했어요"); }); return; }
