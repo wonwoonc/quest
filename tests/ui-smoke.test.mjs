@@ -1041,19 +1041,19 @@ test('repeat: monthly date opens a 1-31 popup and stores the exact day',async()=
   assert.deepEqual(q.repeat,{type:'monthly',day:31});
 });
 
-test('rewards tab keeps per-reward purchase history with use and refund actions',async()=>{
+test('rewards tab shows only reward cards (tap to edit); purchase status and actions live in the history tab',async()=>{
   const base=await profileUI(),saved=base.snapshot();
   saved.mine.rw={id:'rw',kind:'reward',name:'영화 보기',cost:30,repeat:'once'};
   saved.economy.purchases={old:{id:'old',rewardId:'rw',name:'영화 보기',cost:30,state:'planned',at:Date.parse('2026-11-02T03:00:00Z')}};
   const h=await profileUI(saved),before=h.snapshot();
   h.route('shop');h.click('shop-tab',{v:'personal'});
   const html=h.nodes.get('app').innerHTML;
-  assert.match(html,/영화 보기/);assert.match(html,/사용 예정/);
-  assert.match(html,/data-act="purchase-use" data-id="old"/);
-  assert.match(html,/data-act="purchase-cancel" data-id="old"/);
+  assert.match(html,/<div class="rcard" data-act="redit" data-id="rw" role="button"/);
+  assert.doesNotMatch(html,/사용 예정|사용 완료|취소 완료|data-act="purchase-|>수정</);
   assert.doesNotMatch(html,/data-v="history"/);
   h.route('shop');h.click('shop-tab',{v:'inventory'});
-  const inv=h.nodes.get('app').innerHTML;assert.match(inv,/영화 보기<\/b><small>11월 2일 · 30 코인 · 사용 예정/);assert.doesNotMatch(inv,/아이템|style-equip/);
+  const inv=h.nodes.get('app').innerHTML;assert.match(inv,/영화 보기<\/b><small>11월 2일 · 30 코인 · 사용 예정/);
+  assert.match(inv,/data-act="purchase-use" data-id="old"/);assert.match(inv,/data-act="purchase-cancel" data-id="old"/);assert.doesNotMatch(inv,/아이템|style-equip/);
   assert.deepEqual(h.snapshot(),before);
 });
 test('month view: daily quests show past completions, today with a checkbox, and only the next occurrence once today is done',async()=>{
