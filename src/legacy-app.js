@@ -1500,12 +1500,12 @@ function viewWebDash(){
   d = d.replace(/<button class="iconbtn gear wd-cgear"[^>]*>[\s\S]*?<\/button>/, "");
   d = d.replace(/^<div class="seg"[\s\S]*?<\/div>/, "");
   d = d.replace(/<div class="ch"><h2>일일 퀘스트[\s\S]*?<\/button><\/div>/, "");
-  const strip = (list, key, act, nm, n, kind, empty) => { n = Math.max(list.length, 1); const off = 0;
+  const strip = (list, nm, kind, empty) => {
     const nav = WEB.matches && list.length > 2 ? `<button class="wd-rnav" data-act="wdgs" data-v="-1" aria-label="이전 ${nm}">${I.back}</button><button class="wd-rnav fwd" data-act="wdgs" data-v="1" aria-label="다음 ${nm}">${I.back}</button>` : "";
     return `${nav ? `<div class="wd-ovnav">${nav}</div>` : ""}
       ${(() => { const addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 생성"><span class="wd-plus">+</span><b>${nm} 생성</b>${list.length ? "" : `<small>${empty}</small>`}</button>`;
-        return `<div class="wd-ggrid hs">${list.slice(off, off + n).map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(<span class="bar green big">[\s\S]*?<\/span>)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; return `<div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">미션 ${pr.done}/${pr.total}</span></div>` + wdMetric(x); }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
-  const goals = `${strip(gs, "wdGi", "wdgi", "메인 퀘스트", 2, "big", "이루고 싶은 큰 목표를 세워 보세요")}
+        return `<div class="wd-ggrid hs">${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(<span class="bar green big">[\s\S]*?<\/span>)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; return `<div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">미션 ${pr.done}/${pr.total}</span></div>` + wdMetric(x); }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
+  const goals = `${strip(gs, "메인 퀘스트", "big", "이루고 싶은 큰 목표를 세워 보세요")}
 `;
   let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}<div class="wd-mprof">${profHead(uid).replace('<div class="stage">', '<div class="stage" data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기">')}</div></div><div class="wd-goals">${goals}</div>
       <div class="wd-bot"><div class="wd-sec"><div class="wd-stack">${d}</div></div>
@@ -2081,12 +2081,12 @@ document.addEventListener("click", e => {
   if (e.target.closest("a.ntlink")) return;
   const b = e.target.closest("[data-act]"); if (!b) return;
   const a = b.dataset.act, pid = b.dataset.p, u = b.dataset.u, id = b.dataset.id, c = S.compose;
-  const CONF = {pdel:1, tdel:1, hdel:1, delpost:1, rdel:1, block:1, bdel:1, qdel:1, ldel:1, rolldel:1};
+  const CONF = {pdel:1, tdel:1, hdel:1, delpost:1, rdel:1, block:1, ldel:1, rolldel:1};
   if (CONF[a] && !b.dataset.confirmed){ e.stopPropagation();
     const sp = a === "pdel" && isProj(S.projects[pid]);
-    const key = {pdel:"px"+pid, tdel:"td"+(c && c.id), hdel:"hd"+(c && c.id), delpost:"dp"+pid, rdel:"rd"+(c && c.id), block:"bl"+u, bdel:"bd"+id, qdel:"qd"+id, ldel:"ld"+id, rolldel:"rolldel"}[a];
-    const msg = {pdel:sp ? ["스테이지를 삭제할까요?", "연결된 미션도 함께 삭제돼요."] : ["메인 퀘스트를 삭제할까요?", "아래 스테이지와 연결된 미션도 함께 삭제돼요."], tdel:["미션을 삭제할까요?", ""], hdel:["일일 퀘스트를 삭제할까요?", "지금까지 쌓은 연속 기록도 함께 사라져요."], qdel:["일일 퀘스트를 삭제할까요?", "지금까지 쌓은 연속 기록도 함께 사라져요."], delpost:["스토리를 삭제할까요?", "공감과 답글도 함께 삭제돼요."], rdel:["보상을 삭제할까요?", ""], block:["이 사람을 차단할까요?", "이 사람의 스토리와 답글이 모두 안 보여요."], bdel:["구매 기록을 지울까요?", "쓴 코인은 돌아오지 않아요."], rolldel:[`지난 미션 ${mineOf("mission").filter(m => !m.done && m.origDue && m.origDue < today() && m.due === today()).length}개를 삭제할까요?`, "오늘로 넘어온 미션만 삭제돼요. 되돌릴 수 없어요."], ldel:["저널을 삭제할까요?", diaryPost(id) ? "커뮤니티에 공유한 스토리도 함께 삭제돼요." : ""]}[a];
-    S.pend = {key, data:{...b.dataset}}; S.parentSheet = c || null; S.compose = {type:"confirm", t:msg[0], d:msg[1], ok:a === "block" ? "차단" : a === "bdel" ? "지우기" : "삭제"}; renderSheet(); return; }
+    const key = {pdel:"px"+pid, tdel:"td"+(c && c.id), hdel:"hd"+(c && c.id), delpost:"dp"+pid, rdel:"rd"+(c && c.id), block:"bl"+u, ldel:"ld"+id, rolldel:"rolldel"}[a];
+    const msg = {pdel:sp ? ["스테이지를 삭제할까요?", "연결된 미션도 함께 삭제돼요."] : ["메인 퀘스트를 삭제할까요?", "아래 스테이지와 연결된 미션도 함께 삭제돼요."], tdel:["미션을 삭제할까요?", ""], hdel:["일일 퀘스트를 삭제할까요?", "지금까지 쌓은 연속 기록도 함께 사라져요."], delpost:["스토리를 삭제할까요?", "공감과 답글도 함께 삭제돼요."], rdel:["보상을 삭제할까요?", ""], block:["이 사람을 차단할까요?", "이 사람의 스토리와 답글이 모두 안 보여요."], rolldel:[`지난 미션 ${mineOf("mission").filter(m => !m.done && m.origDue && m.origDue < today() && m.due === today()).length}개를 삭제할까요?`, "오늘로 넘어온 미션만 삭제돼요. 되돌릴 수 없어요."], ldel:["저널을 삭제할까요?", diaryPost(id) ? "커뮤니티에 공유한 스토리도 함께 삭제돼요." : ""]}[a];
+    S.pend = {key, data:{...b.dataset}}; S.parentSheet = c || null; S.compose = {type:"confirm", t:msg[0], d:msg[1], ok:a === "block" ? "차단" : "삭제"}; renderSheet(); return; }
   switch (a){
     case "shop-tab": S.shopTab=b.dataset.v; break;
     case "wishlist": {const r=S.mine[id];if(r)run(()=>api.putMine(id,{...r,wishlist:!r.wishlist}));return;}
@@ -2119,7 +2119,6 @@ document.addEventListener("click", e => {
     case "flist": openSheet({type:"flist", kind:b.dataset.v, uid:u || S.me}); return;
     case "wdlogs": openSheet({type:"logs"}); return;
     case "wdgs": { const g = $(".wd-goals .wd-ggrid"); if (g) g.scrollBy({left:+b.dataset.v * ((g.firstElementChild || {}).offsetWidth + 16 || 316), behavior:"smooth"}); return; }
-    case "wdgi": S.wdGi = (S.wdGi || 0) + +b.dataset.v; schedule(); return;
     case "navtog": S.navMini = !S.navMini; LS.set("navMini", S.navMini); renderNav(); return;
     case "cgi": S.calGi = (S.calGi || 0) + (+b.dataset.v); render(); return;
     case "cvpick": { const sv = () => document.querySelectorAll(".sheet input[id], .sheet textarea[id]").forEach(el => { if (el.type !== "checkbox") S.drafts[el.id] = el.value; }); sv();
@@ -2129,8 +2128,6 @@ document.addEventListener("click", e => {
       choosePhotos(false, async list => { const d = await shrinkImg(list[0], 1000, 170000), k = "cv-" + uid8(), doc = {...gp, cover:k}; delete doc.id;
         run(async () => { await api.putMedia(k, d); await api.putProject(gp.id, doc); }, () => toast("대표 사진을 바꿨어요")); }); return; }
     case "ptabhelp": openSheet({type:"ptabhelp", mine:!!b.dataset.v}); return;
-    case "bdel": { const bid = b.dataset.id, bd = S.mine[bid]; if (!bd) return; if (S.armed !== "bd"+bid){ arm("bd"+bid); renderSheet(); return; } S.armed = null;
-      run(() => api.putMine(bid, {...bd, hidden:true}), () => { toast("구매 기록을 지웠어요"); renderSheet(); }); return; }
     case "pqtab": S.pqTab = b.dataset.t; break;
     case "qtab": S.qTab = b.dataset.t; LS.set("qTab", S.qTab); scrollTo(0,0); break;
     case "cmode": S.cal.mode = b.dataset.v; S.tlTop = S.wgTop = null; S.yCenter = true; break;
@@ -2139,8 +2136,7 @@ document.addEventListener("click", e => {
       else if (C.mode === "month"){ d.setDate(1); d.setMonth(d.getMonth()+n); C.date = dk(d.getTime()); } else { d.setFullYear(d.getFullYear()+n); C.date = dk(d.getTime()); } break; }
     case "ctoday": S.cal.date = today(); S.tlTop = S.wgTop = null; S.yCenter = true; break;
     case "cpick": S.cal.date = b.dataset.v; if (b.dataset.m) S.cal.mode = b.dataset.m; S.tlTop = S.wgTop = null; break;
-    case "cdate":
-    case "calday": { const v = b.dataset.v; if (activityDate(v) !== v) return;
+    case "cdate": { const v = b.dataset.v; if (activityDate(v) !== v) return;
       if (v < today()){ S.calKeep = true; push({name:"calday", date:v}, "#calday"); return; }
       S.cal.mode = "day"; S.cal.date = v; S.tlTop = S.wgTop = null; scrollTo(0,0); break; }
     case "journal-view": { const d = S.mine[id]; if (d?.kind === 'diary' && isOwnPrivateEntry(d,S.me)) openSheet({type:'journal-detail',id}); return; }
