@@ -1861,8 +1861,9 @@ const tomorrow = () => dk(Date.now() + DAY);
 const restDays = () => (S.mine.rest && S.mine.rest.days) || {};
 function dueLabel(m){ if (m.period && m.due){ if (m.done) return ""; return perEnd(m.period, m.due) < today() ? `<span class="tday late">기한 지남</span>` : `<span class="tday soft">${perName(m.period, m.due)}</span>`; }
   const d = dueOf(m); if (!d || m.done) return ""; const t = today(); if (d < t) return `<span class="tday late">기한 지남</span>`; if (d === t) return S._noToday ? "" : `<span class="tday">오늘</span>`; if (d === tomorrow()) return `<span class="tday soft">내일</span>`; const x = new Date(d+"T00:00"); return `<span class="tday soft">${x.getMonth()+1}/${x.getDate()}</span>`; }
-const dueField = (c, extra = "", bare = false) => { const t = today(), tm = tomorrow(), other = c.due && !c.period && c.due !== t && c.due !== tm;
-  return `<div class="field">${bare ? "" : `<span class="lab">날짜·시간 <span class="hint">필수</span></span>`}<div class="chips">${[["오늘", t],["내일", tm]].map(([l,v]) => `<button class="chip" data-act="cdue1" data-v="${v}" aria-pressed="${!c.period && c.due === v}">${l}</button>`).join("")}<button class="chip" data-act="dpopen" data-k="due" aria-pressed="${!!other}">📅 ${other ? fmtD(c.due) : "날짜"}</button><button class="chip" data-act="tmset" aria-pressed="${!!c.time}">🕒 <span class="tmval">${c.time ? tmLabel(c.time) : "시간"}</span></button>${extra}</div>${c._dp === "due" ? miniCal(c, "due") : ""}${c._tw ? timeWheel(c) : ""}</div>`; };
+/* 미션 날짜: 버튼 하나. 새 미션은 오늘이 기본값이고, 누르면 달력이 열린다. */
+const dueField = (c, extra = "", bare = false) => { const t = today(), tm = tomorrow(), lab = !c.due || c.period ? "날짜" : c.due === t ? "오늘" : c.due === tm ? "내일" : fmtD(c.due);
+  return `<div class="field">${bare ? "" : `<span class="lab">날짜·시간 <span class="hint">필수</span></span>`}<div class="chips"><button class="chip" data-act="dpopen" data-k="due" aria-pressed="${!!(c.due && !c.period)}">📅 ${lab}</button><button class="chip" data-act="tmset" aria-pressed="${!!c.time}">🕒 <span class="tmval">${c.time ? tmLabel(c.time) : "시간"}</span></button>${extra}</div>${c._dp === "due" ? miniCal(c, "due") : ""}${c._tw ? timeWheel(c) : ""}</div>`; };
 const TW_H = 36;
 function timeWheel(c){ const [h, m] = (c.time || "09:00").split(":").map(Number), mi = Math.round(m/5) % 12;
   const col = (k, n, step, sel) => `<div class="twc" data-tw="${k}" data-sel="${sel}"><i></i><i></i>${Array.from({length:n}, (_, i) => `<span>${pad(i*step)}</span>`).join("")}<i></i><i></i></div>`;
@@ -2987,7 +2988,7 @@ function bdSortSheet(c){
     <button class="link danger ntdel" data-act="bd-del" data-id="${d.id}">${S.armed === "bd"+d.id ? "한 번 더 누르면 삭제돼요" : "삭제"}</button>`);
 }
 function bdSend(id, v){ const d = S.mine[id]; if (!d || !canAct()) return;
-      if (v === "task"){ S.drafts["ta-name"] = d.text; openSheet({type:"taskadd", lv:"normal", due:"", time:"", period:"", projectId:null, dumpId:id}); return; }
+      if (v === "task"){ S.drafts["ta-name"] = d.text; openSheet({type:"taskadd", lv:"normal", due:today(), time:"", period:"", projectId:null, dumpId:id}); return; }
       if (v === "note"){ ntKeys().forEach(k => delete S.drafts[k]); S.drafts["nf-title"] = d.text; const DR = noteDrawers(S); openSheet({type:"note", cat:(DR.find(x => x.k === "idea" && !x.hidden) || DR.find(x => !x.hidden) || DR[0]).k, vals:{}, area:null, projectId:null, dumpId:id}); return; }
       S.drafts["ad-name"] = d.text;
       if (v === "daily") return openSheet({type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:null, parentId:null, unit:null, area:[], dumpId:id});
@@ -3991,7 +3992,7 @@ document.addEventListener("click", e => {
       if (k === "profile") S.swatch = prof(S.me).color || S.swatch;
        if (k === "reward"){delete S.drafts["rw-name"];delete S.drafts['rw-cost'];}
       if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:d ? !!diaryPost(d.id) : false, date:today(), edit:!!d}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
-       const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : "", period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:300}, profile:{}}[k] || {};
+       const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : (!b.dataset.v || b.dataset.v === "once" ? today() : ""), period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:300}, profile:{}}[k] || {};
       openSheet({type:k, ...base}); return; }
     case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary","note","drawers","ntsend","fview"].includes(c.type)))) closeSheet(); return;
     case "sheet-close": closeSheet(); return;
@@ -4035,7 +4036,7 @@ document.addEventListener("click", e => {
     case "dpnav": { const base = new Date((c._dpm || ((c._dp === "jd" ? S.planner.date : c[c._dp]) || today()).slice(0,8) + "01")+"T00:00"); base.setMonth(base.getMonth() + +b.dataset.v); c._dpm = dk(base.getTime()).slice(0,8) + "01"; renderSheet(); return; }
     case "dppick": if (b.dataset.k === "jd"){ c._dp = null; c._dpm = null; jLoad(b.dataset.v); return; } ["ta-name","te-name","te-note","ad-name"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); c[b.dataset.k] = b.dataset.v; if (b.dataset.k === "due"){ c.period = ""; if (!c.time) c.time = "09:00"; c._tw = true; } c._dp = null; c._dpm = null; renderSheet(); return;
     case "dpclear": c[b.dataset.k] = ""; c._dp = null; renderSheet(); return;
-    case "taskadd": { if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"taskadd", lv:"normal", due:b.dataset.d || "", time:b.dataset.tm || "", period:"", projectId:pid || null}); setTimeout(() => { const x = $("#ta-name"); x && x.focus(); }, 50); return; }
+    case "taskadd": { if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"taskadd", lv:"normal", due:b.dataset.d || today(), time:b.dataset.tm || "", period:"", projectId:pid || null}); setTimeout(() => { const x = $("#ta-name"); x && x.focus(); }, 50); return; }
     case "submit-taskadd": { const name = ($("#ta-name").value||"").trim(); if (!name){ toast("미션 이름을 적어 주세요"); $("#ta-name").focus(); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } const pj = c.projectId || null;
       run(() => api.putMine(uid8(), {kind:"mission", name, ...readPlan(c, false), lv:c.lv||"normal", area:(c.area||[]).slice(0,2), due:c.due||"", time:c.due ? (c.time||"") : "", period:"", today:false, projectId:pj, ...(c.noteId ? {noteId:c.noteId} : {}), done:false, createdAt:Date.now()}), () => { delete S.drafts["ta-name"]; closeSheet(); dumpDone(c); toast("✅ 미션을 추가했어요"); if (pj) syncProgress(pj); }); return; }
     case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
@@ -4072,7 +4073,7 @@ document.addEventListener("click", e => {
     case "nt-task": { const name = pv("nf-" + b.dataset.f).trim(); if (!name){ toast("먼저 내용을 적어 주세요"); return; } const pj = c.projectId || null;
       saveNote(c, (key, r, fresh) => { openSheet({type:"ntsend", noteId:key, name, projectId:pj && S.projects[pj] ? pj : null}); if (fresh && r && r.xp > 0){ S.quietXp = true; toast(`자료 완성! <b>+${r.xp} XP · +${r.coins} 코인</b>`); } }); return; }
     case "nt-send": { const v = b.dataset.v, name = c.name, key = c.noteId, pj = c.projectId;
-      if (v === "task"){ S.drafts["ta-name"] = name; openSheet({type:"taskadd", lv:"normal", due:"", time:"", period:"", projectId:pj, noteId:key}); return; }
+      if (v === "task"){ S.drafts["ta-name"] = name; openSheet({type:"taskadd", lv:"normal", due:today(), time:"", period:"", projectId:pj, noteId:key}); return; }
       S.drafts["ad-name"] = name; openSheet({type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:null, parentId:null, unit:null, area:[], noteId:key}); return; }
     case "dr-manage": openSheet({type:"drawers"}); return;
     case "dr-edit": { const v = b.dataset.v, d = v && (S.mine.drawers?.list || []).find(x => x.k === v); S.drafts["dr-l"] = d ? d.l : "";
@@ -4190,7 +4191,6 @@ document.addEventListener("click", e => {
     case "jfold": { const k = b.dataset.k; if (!S.jOpen) S.jOpen = new Set(); S.jOpen.has(k) ? S.jOpen.delete(k) : S.jOpen.add(k); if (S.compose && S.compose.type === "logs"){ renderSheet(); return; } break; }
     case "tmset": { preserveSheetDrafts(); if (!c.time) c.time = "09:00"; c._tw = !c._tw; if (c._tw){ c._dp = null; c._pp = null; } renderSheet(); return; }
     case "tmdone": c._tw = false; renderSheet(); return;
-    case "cdue1": { ["ta-name","te-name","te-note","ad-name"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); const v = b.dataset.v; c.due = v; c.period = ""; if (!c.time) c.time = "09:00"; c._tw = true; c._dp = null; renderSheet(); return; }
     case "shareday": openCompose({fixed:true, title:"🎉 오늘 퀘스트<br>모두 완료!"}); return;
     case "suggest": { const n = b.dataset.v, lv = (SUGGEST.find(x => x[0] === n)||[])[1] || "easy"; if (dupQ(n)){ toast(DUPMSG); return; } b.disabled = true;
       run(() => api.putMine(uid8(), {kind:"quest", name:n, days:[0,1,2,3,4,5,6], lv, active:true, done:{}, createdAt:Date.now()}), () => toast(`🔥 '${esc(n)}' 추가`)); return; }

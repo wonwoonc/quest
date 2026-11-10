@@ -258,9 +258,9 @@ test('task creation still requires its own date/time, not a main-goal deadline',
   h.click('sheet',{k:'add',v:'once'});
   h.nodes.set('ad-name',{value:'미션'});
   h.click('submit-add'); await h.settle();
-  assert.equal(h.nodes.get('toast').innerHTML,'날짜를 골라 주세요');
+  assert.equal(h.nodes.get('toast').innerHTML,'시간을 골라 주세요','date starts on today; time is still required');
   assert.deepEqual(h.snapshot().mine,{});
-  h.click('cdue1',{v:'2099-12-31'});
+  h.click('dppick',{k:'due',v:'2099-12-31'});
   h.click('submit-add'); await h.settle();
   const tasks = Object.values(h.snapshot().mine).filter(x => x.kind === 'mission');
   assert.equal(tasks.length,1); assert.equal(tasks[0].due,'2099-12-31');
@@ -321,7 +321,7 @@ for (const projectId of [null,'main','sub']) {
     h.nodes.set('ta-name',{value:'선택기로 연결한 미션'});
     h.click('tqpick'); h.click('tqset',{v:'sub'});
     assert.match(h.nodes.get('overlay').innerHTML,/스테이지 연결 대상/);
-    h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
+    h.click('dppick',{k:'due',v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
     const task = Object.values(h.snapshot().mine).find(m => m.name === '선택기로 연결한 미션');
     assert.ok(task); assert.equal(task.kind,'mission'); assert.equal(task.projectId,'sub');
   });
@@ -332,7 +332,7 @@ test('taskadd sheet orders date/time, area, quest, difficulty and saves task are
   const at = [html.indexOf('날짜'), html.indexOf('data-act="aset"'), html.indexOf('data-act="tqpick"'), html.indexOf('난이도')];
   assert.ok(at.every(i => i >= 0), String(at)); assert.deepEqual([...at].sort((a,b)=>a-b), at);
   h.nodes.set('ta-name',{value:'영역 미션'}); h.click('aset',{v:'health'});
-  h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
+  h.click('dppick',{k:'due',v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   const task = Object.values(h.snapshot().mine).find(m => m.name === '영역 미션');
   assert.ok(task); assert.deepEqual(task.area,['health']);
 });
@@ -353,7 +353,7 @@ test.skip('brain dump (UI hidden: BD_ON=false): pour lines in, inline guide, hid
   h.click('bd-area',{v:'on'}); assert.ok(h.nodes.get('app').innerHTML.includes('id="bd-in"'));
   const wash = dumps().find(d => d.text === '세탁소 들르기'); h.click('bd-send',{id:wash.id,v:'task'});
   assert.match(h.nodes.get('overlay').innerHTML,/value="세탁소 들르기"/);
-  h.nodes.set('ta-name',{value:'세탁소 들르기'}); h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
+  h.nodes.set('ta-name',{value:'세탁소 들르기'}); h.click('dppick',{k:'due',v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.name === '세탁소 들르기'));
   assert.deepEqual(dumps().map(d => d.text),['이상한 생각']);
   { const d0 = dumps()[0]; h.click('bd-rm',{id:d0.id}); await h.settle(); assert.equal(dumps().length,1,'first tap only arms'); assert.match(h.nodes.get('app').innerHTML,/bdxa/); }
@@ -375,7 +375,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   assert.equal(xp(),x0+10,'editing does not re-grant'); assert.equal(notes()[0].f.next,'매일 아침 서비스 조사');
   h.click('nt-edit',{id:n0.id}); h.click('nt-task',{f:'next'}); await h.settle();
   assert.match(ov(),/어디로 보낼까요/); assert.match(ov(),/ntsendo rec" data-act="nt-send" data-v="daily"/); h.click('nt-send',{v:'task'});
-  h.nodes.set('ta-name',{value:'매일 아침 서비스 조사'}); h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
+  h.nodes.set('ta-name',{value:'매일 아침 서비스 조사'}); h.click('dppick',{k:'due',v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.noteId === n0.id)); assert.match(app(),/미션 진행 중/);
   h.click('nt-edit',{id:n0.id}); h.click('nt-del',{id:n0.id}); h.click('nt-del',{id:n0.id}); await h.settle();
   assert.equal(notes().length,0); assert.equal(xp(),x0,'deleting reverses the reward');
@@ -537,7 +537,7 @@ test('month native date buttons and mobile sheets retain keyboard and bounded sc
 });
 test('legacy completion stays undated after edits; new task and goal toggles persist actual doneAt',async()=>{
   const h = await calendarActivityUI();
-  h.click('tedit',{id:'legacy'}); h.click('cdue1',{v:'2099-11-03'});
+  h.click('tedit',{id:'legacy'}); h.click('dppick',{k:'due',v:'2099-11-03'});
   h.nodes.set('te-name',{value:'과거 완료 수정'}); h.nodes.set('te-note',{value:''});
   h.click('submit-tedit'); await h.settle(); assert.equal(h.snapshot().mine.legacy.doneAt,undefined);
   h.click('cdate',{v:'2099-11-03'});
@@ -597,7 +597,7 @@ for (const mode of ['day','week','month','year']) {
     h.route('cal'); h.click('tedit',{id:'tm'});
     assert.match(h.nodes.get('overlay').innerHTML,/data-act="tmset"[^>]*aria-pressed="true"/,'calendar task editor retains time control');
     assert.match(h.nodes.get('overlay').innerHTML,/<span class="tmval">9:00<\/span>/,'calendar editor retains scheduled time');
-    assert.match(h.nodes.get('overlay').innerHTML,/data-act="cdue1"/,'calendar editor retains date control');
+    assert.match(h.nodes.get('overlay').innerHTML,/data-act="dpopen" data-k="due"/,'calendar editor retains date control');
   });
 }
 for (const mode of ['day','week','month']) {
@@ -1221,7 +1221,7 @@ test('plan: place on tasks, place + after-habit on dailies, chained next-habit p
   h.click('qcheck',{id:a.id}); await h.settle();
   assert.match(h.nodes.get('toast').innerHTML,/다음 습관: <b>영어 한 줄 읽기<\/b>/);
   h.click('taskadd'); assert.match(h.nodes.get('overlay').innerHTML,/data-v="place"/); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/data-v="after"/);
-  h.nodes.set('ta-name',{value:'스쿼트 5개'}); h.click('ppopen',{v:'place'}); h.nodes.set('pp-in',{value:'거실'}); h.click('ppok'); h.click('cdue1',{v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
+  h.nodes.set('ta-name',{value:'스쿼트 5개'}); h.click('ppopen',{v:'place'}); h.nodes.set('pp-in',{value:'거실'}); h.click('ppok'); h.click('dppick',{k:'due',v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   const t = Object.values(h.snapshot().mine).find(x => x.name === '스쿼트 5개'); assert.equal(t.place,'거실');
 });
 test('level up opens the profile popup',async()=>{
@@ -1321,4 +1321,17 @@ test('backup reminder appears after three days of trial use without a backup, on
   assert.ok(JSON.parse(h.data.get('quest:foundation:empty:v2:preferences')).bkNudgeAt>0);
   assert.doesNotMatch((await open({firstSeen:now-4*day,lastBackup:now-2*day})).nodes.get('overlay').innerHTML,/백업해 두세요/,'recent backup');
   assert.doesNotMatch((await open({firstSeen:now-30*day,bkNudgeAt:now-5*day})).nodes.get('overlay').innerHTML,/백업해 두세요/,'already reminded');
+});
+test('mission add: one date button that starts on today, no today/tomorrow chips; picking another day relabels it',async()=>{
+  const h=await profileUI(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+  for(const open of [()=>h.click('taskadd'),()=>h.click('sheet',{k:'add',v:'once'})]){
+    open();let ov=h.nodes.get('overlay').innerHTML;
+    assert.doesNotMatch(ov,/cdue1|>오늘<\/button>|>내일<\/button>/);
+    assert.match(ov,/data-act="dpopen" data-k="due" aria-pressed="true">📅 오늘</);
+    h.click('dppick',{k:'due',v:'2099-12-31'});ov=h.nodes.get('overlay').innerHTML;
+    assert.match(ov,/data-act="dpopen" data-k="due" aria-pressed="true">📅 2099년 12월 31일/);
+    h.click('sheet-close');
+  }
+  h.click('taskadd');h.nodes.set('ta-name',{value:'오늘 할 일'});h.click('tmset');h.click('submit-taskadd');await h.settle();
+  const m=Object.values(h.snapshot().mine).find(x=>x.name==='오늘 할 일');assert.equal(m.due,T);assert.equal(m.time,'09:00');
 });
