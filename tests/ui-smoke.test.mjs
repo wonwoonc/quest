@@ -79,7 +79,7 @@ test('legacy face media keeps old overlay without fullbody marker',async () => {
   assert.match(h.nodes.get('app').innerHTML,/class="chibi"/);
   assert.doesNotMatch(h.nodes.get('app').innerHTML,/class="avatar-fullbody"/);
 });
-test('actual empty UI submit handlers create local profile and quick task, persisted on reload',async () => {
+test('actual empty UI submit handler creates the local profile and opens the welcome guide',async () => {
   const h = harness();
   const html = await readFile(root+'/dist/quest.html','utf8');
   vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],h.context); h.flush();
@@ -89,10 +89,6 @@ test('actual empty UI submit handlers create local profile and quick task, persi
   submit('profile'); await new Promise(resolve => setImmediate(resolve)); h.flush();
   let snap = JSON.parse(h.data.get('quest:foundation:empty:v2'));
   assert.equal(snap.profiles.me.nick,'직접 만든 로컬 프로필'); assert.equal(snap.profiles.me.private,true); assert.equal(h.context.location.hash,'#qmanage'); assert.match(h.nodes.get('overlay').innerHTML,/퀘스트에 오신 걸 환영합니다/); assert.match(h.nodes.get('overlay').innerHTML,/메인 퀘스트/); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/브레인 덤프/); h.click('sheet',{k:'add',v:'big'}); assert.match(h.nodes.get('overlay').innerHTML,/id="ad-name"/);
-  h.nodes.set('qm-name',{value:'직접 추가한 미션'});
-  submit('quicktask'); await new Promise(resolve => setImmediate(resolve)); h.flush();
-  snap = JSON.parse(h.data.get('quest:foundation:empty:v2'));
-  assert.equal(Object.values(snap.mine)[0].name,'직접 추가한 미션');
   assert.deepEqual(h.alerts,[]);
 });
 
@@ -906,13 +902,13 @@ test('selectors omit cap/rest details and retain base button payouts without cha
    }
    }
 });
-for(const id of ['alv','hlv','tlv'])test(`${id}: reactive input and legacy action rerender selection without discarding draft`,async()=>{
-  const h=await profileUI(),daily=id==='hlv';h.click('sheet',{k:'add',v:daily?'daily':'once'});
+for(const field of ['lv','hlv'])test(`${field}: difficulty chips rerender the selection without discarding the draft`,async()=>{
+  const h=await profileUI(),daily=field==='hlv';h.click('sheet',{k:'add',v:daily?'daily':'once'});
   for(const fn of h.events.input||[])fn({target:{id:'ad-name',value:'반응형 초안'}});
-  for(const fn of h.events.input||[])fn({target:{id,value:'epic'}});
+  h.click('cset',{f:field,v:'epic'});
   assert.match(h.nodes.get('overlay').innerHTML,/data-v="epic" aria-pressed="true"/);
   assert.match(h.nodes.get('overlay').innerHTML,/value="반응형 초안"/);
-  h.click(id,{v:'tiny'});
+  h.click('cset',{f:field,v:'tiny'});
   assert.match(h.nodes.get('overlay').innerHTML,/data-v="tiny" aria-pressed="true"/);
 });
 test('completion UI uses approved amounts, confirmation protects undo, manual goal completion is possible',async()=>{
