@@ -1320,7 +1320,7 @@ function viewShop(){
   if(!hasProfile())return viewToday();const q=economySummary(S);
   /* 보상은 구매하는 순간 사용 완료로 기록된다(사용 예정·내역 없음). */
   let h=`<section class="card shophero"><span>사용 가능 코인</span><b class="num">🪙 ${fmt(q.gold)}</b></section>`;
-  h+=`<div class="rgrid">${mineOf('reward').sort((a,b)=>priceOf(a)-priceOf(b)).map(r=>`<div class="rcard" data-act="redit" data-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${esc(r.name)} 수정"><div class="rbody"><b>${esc(r.name)}</b><small>${r.repeat==='once'?'1회':'반복'} · ${priceOf(r)} 코인${num(r.dailyLimit)?` · 일 ${num(r.dailyLimit)}회`:''}${num(r.weeklyLimit)?` · 주 ${num(r.weeklyLimit)}회`:''}</small><div class="eco-actions"><button class="btn sm" data-act="buy" data-id="${esc(r.id)}" ${q.gold<priceOf(r)?'disabled':''}>구매</button></div></div></div>`).join('')}<button class="rcard radd" data-act="sheet" data-k="reward"><b>＋ 보상 추가</b><small>하고 싶은 거 / 갖고 싶은 거</small></button></div>`;
+  h+=`<div class="rgrid">${mineOf('reward').sort((a,b)=>priceOf(a)-priceOf(b)).map(r=>`<div class="rcard" data-act="redit" data-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${esc(r.name)} 수정"><div class="rbody"><b>${esc(r.name)}</b><small>${priceOf(r)} 코인${num(r.dailyLimit)?` · 일 ${num(r.dailyLimit)}회`:''}${num(r.weeklyLimit)?` · 주 ${num(r.weeklyLimit)}회`:''}</small><div class="eco-actions">${r.repeat==='once'&&Object.values((S.economy&&S.economy.purchases)||{}).some(p=>p.rewardId===r.id&&p.state!=='cancelled')?`<button class="btn sm" disabled>구매 완료</button>`:`<button class="btn sm" data-act="buy" data-id="${esc(r.id)}" ${q.gold<priceOf(r)?'disabled':''}>구매</button>`}</div></div></div>`).join('')}<button class="rcard radd" data-act="sheet" data-k="reward"><b>＋ 보상 추가</b><small>하고 싶은 거 / 갖고 싶은 거</small></button></div>`;
   return h;
 }
 
@@ -1847,6 +1847,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     <div class="field"><input type="text" id="rw-name" maxlength="40" placeholder="예: 좋아하는 카페 디저트" value="${D("rw-name")}" aria-label="보상 이름"></div>
     <div class="field"><span class="lab">가격</span><div class="chips">${RW_PRICES.map(v => `<button class="chip" data-act="cset" data-f="cost" data-v="${v}" aria-pressed="${!rwCustom(c) && +c.cost === v}">🪙 ${fmt(v)}</button>`).join("")}</div>
       <div class="numrow" style="margin-top:6px"><input type="text" inputmode="numeric" id="rw-cost" placeholder="직접 입력 (5 단위)" value="${rwCustom(c) ? esc(c.cost) : ""}" aria-label="가격 직접 입력"><span>코인</span></div></div>
+    <div class="field rwrep"><span class="t"><b>반복</b><small>${c.repeat === "once" ? "한 번 사면 끝나는 보상이에요" : "코인이 있으면 몇 번이든 살 수 있어요"}</small></span>${sw("rw-rep", c.repeat !== "once", 'aria-label="반복"')}</div>
     <button class="btn big full" data-act="submit-reward">${c.id ? "저장" : "보상 등록"}</button>
     ${c.id ? `<button class="btn sec full" style="margin-top:10px;color:var(--warn)" data-act="rdel">${S.armed === "rd"+c.id ? "한 번 더 누르면 삭제" : "삭제"}</button>` : ""}`); }
   if (c.type === "profile"){ const p = prof(S.me), fc = c.face === undefined ? p.face : c.face;
@@ -2214,7 +2215,7 @@ document.addEventListener("click", e => {
       if (k === "profile") S.swatch = prof(S.me).color || S.swatch;
        if (k === "reward"){delete S.drafts["rw-name"];delete S.drafts['rw-cost'];}
       if (k === "diary"){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:d ? !!diaryPost(d.id) : false, date:today(), edit:!!d}; S.drafts["pl-text"] = d ? d.text : (S.drafts["pl-text"] || ""); }
-       const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : (!b.dataset.v || b.dataset.v === "once" ? today() : ""), period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:300}, profile:{}}[k] || {};
+       const base = {add:{kind:b.dataset.v || "once", more:b.dataset.v === "big" || b.dataset.v === "sub" || !!pid, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:b.dataset.d != null ? b.dataset.d : (!b.dataset.v || b.dataset.v === "once" ? today() : ""), period:b.dataset.per || "", projectId:pid || null, parentId:pid || null, unit:null}, mission:{today:true, projectId:null, lv:"normal"}, quest:{days:[0,1,2,3,4,5,6], lv:"easy"}, project:{unit:null}, sub:{parentId:pid || (S.view.name === "project" && S.projects[S.view.pid] && !S.projects[S.view.pid].parentId ? S.view.pid : null)}, reward:{cost:300, repeat:"repeat"}, profile:{}}[k] || {};
       openSheet({type:k, ...base}); return; }
     case "sheet-bg": if (e.target === b && !(c && (c._dp === "end" || c._rp || ["add","plan","taskadd","diary","note","drawers","ntsend","fview"].includes(c.type)))) closeSheet(); return;
     case "sheet-close": closeSheet(); return;
@@ -2446,12 +2447,13 @@ document.addEventListener("click", e => {
     case "tdel": { const tid = c.id; if (S.armed !== "td"+tid){ arm("td"+tid); renderSheet(); return; } S.armed = null; const pj = S.mine[tid].projectId;
       run(() => api.delMine(tid), () => { closeSheet(); toast("미션을 삭제했어요"); if (pj) syncProgress(pj); }); return; }
     case "share-after": { const sh = c.share; closeSheet(); openCompose({ref:sh.ref, fixed:true, title:sh.title}); return; }
+    case "rw-rep": preserveSheetDrafts(); c.repeat = c.repeat === "once" ? "repeat" : "once"; renderSheet(); return;
     case "submit-reward": { const name = ($("#rw-name").value||"").trim(); if (!name){ toast("보상 이름을 적어 주세요"); return; }
       const typed = String(($('#rw-cost')||{}).value || '').replace(/,/g,'').trim(), cost = typed ? Number(typed) : Number(c.cost);
       if(!Number.isSafeInteger(cost)||cost<5||cost%5){toast(typed || c.cost !== '' ? '가격은 5 이상, 5 단위 정수로 입력해 주세요.' : '가격을 골라 주세요');return;}const id0=c.id||uid8(),old=c.id?S.mine[c.id]:null;
-      const doc = {...(old || {}), kind:"reward", name, cost, repeat:(old && old.repeat) || 'repeat', img:c.img || null, createdAt:(old && old.createdAt) || Date.now()}; delete doc.id; delete doc.tier;
+      const doc = {...(old || {}), kind:"reward", name, cost, repeat:c.repeat === 'once' ? 'once' : 'repeat', img:c.img || null, createdAt:(old && old.createdAt) || Date.now()}; delete doc.id; delete doc.tier;
       run(() => api.putMine(id0, doc), () => { delete S.drafts["rw-name"]; closeSheet(); toast(c.id ? "보상을 수정했어요" : "🎁 보상을 등록했어요"); }); return; }
-    case "redit": { const r = S.mine[id]; if (!r) return; S.drafts["rw-name"] = r.name; openSheet({type:"reward", id, cost:priceOf(r), img:r.img || null}); return; }
+    case "redit": { const r = S.mine[id]; if (!r) return; S.drafts["rw-name"] = r.name; openSheet({type:"reward", id, cost:priceOf(r), img:r.img || null, repeat:r.repeat === "once" ? "once" : "repeat"}); return; }
     case "rimg": choosePhotos(false, async list => { if (!S.compose || S.compose.type !== "reward") return; S.compose.img = await shrinkImg(list[0], 640, 90000); renderSheet(); }); return;
     case "rimgdel": c.img = null; renderSheet(); return;
     case "rdel": { const rid = c.id; if (S.armed !== "rd"+rid){ arm("rd"+rid); renderSheet(); return; } S.armed = null; run(() => api.delMine(rid), () => { closeSheet(); toast("보상을 삭제했어요"); }); return; }

@@ -1335,3 +1335,19 @@ test('mission add: one date button that starts on today, no today/tomorrow chips
   h.click('taskadd');h.nodes.set('ta-name',{value:'오늘 할 일'});h.click('tmset');h.click('submit-taskadd');await h.settle();
   const m=Object.values(h.snapshot().mine).find(x=>x.name==='오늘 할 일');assert.equal(m.due,T);assert.equal(m.time,'09:00');
 });
+test('reward form has a repeat switch; once rewards sell one time and cards never show the repeat label',async()=>{
+  const base=await profileUI(),saved=base.snapshot();
+  saved.mine.tm={id:'tm',kind:'mission',name:'코인 벌기',lv:'epic',due:new Date(Date.now()+9*3600000).toISOString().slice(0,10),time:'09:00',done:false,createdAt:1};
+  const h=await profileUI(saved);h.route('dash');h.click('mcheck',{id:'tm'});await h.settle();h.route('shop');
+  h.click('sheet',{k:'reward'});let ov=h.nodes.get('overlay').innerHTML;
+  assert.match(ov,/<b>반복<\/b>[\s\S]*data-act="rw-rep" aria-label="반복" role="switch" aria-checked="true"/);
+  h.click('rw-rep');ov=h.nodes.get('overlay').innerHTML;assert.match(ov,/한 번 사면 끝나는 보상이에요[\s\S]*aria-checked="false"/);
+  h.nodes.set('rw-name',{value:'영화 한 편'});h.click('cset',{f:'cost',v:'100'});h.nodes.set('rw-cost',{value:''});
+  h.click('submit-reward');await h.settle();
+  const r=Object.values(h.snapshot().mine).find(x=>x.kind==='reward');assert.equal(r.repeat,'once');
+  let app=h.nodes.get('app').innerHTML;assert.doesNotMatch(app,/1회|반복/);
+  h.click('redit',{id:r.id});assert.match(h.nodes.get('overlay').innerHTML,/aria-checked="false"/,'edit keeps the setting');h.click('sheet-close');
+  const saved2=h.snapshot();saved2.mine[r.id]={...saved2.mine[r.id],cost:5};
+  const g=await profileUI(saved2);g.route('shop');g.click('buy',{id:r.id});g.click('buyok');await g.settle();await g.settle();
+  app=g.nodes.get('app').innerHTML;assert.match(app,/disabled>구매 완료</);assert.doesNotMatch(app,new RegExp(`data-act="buy" data-id="${r.id}"`));
+});
