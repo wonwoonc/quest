@@ -403,12 +403,9 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);
   padding:0 max(4px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(4px,env(safe-area-inset-left,0px))}
-.nav .col{display:grid;grid-template-columns:repeat(7,1fr);height:62px}
-@media (max-width:1023.98px){.nav .col{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}.nav .col::-webkit-scrollbar{display:none}.nav .col > a{flex:0 0 70px;scroll-snap-align:start}
-  .nav::before,.nav::after{position:absolute;top:0;height:62px;width:44px;display:flex;align-items:center;font-size:24px;font-weight:300;color:var(--muted);pointer-events:none;opacity:0;transition:opacity .2s;z-index:1}
-  .nav::before{content:"‹";left:0;justify-content:flex-start;padding-left:4px;background:linear-gradient(to left,transparent,var(--card) 65%)}
-  .nav::after{content:"›";right:0;justify-content:flex-end;padding-right:4px;background:linear-gradient(to right,transparent,var(--card) 65%)}
-  .nav.more-l::before,.nav.more-r::after{opacity:1}}
+.nav .col{display:grid;grid-template-columns:repeat(5,1fr);height:62px}
+@media (max-width:1023.98px){.nav .nm{display:none}}
+@media (min-width:1024px){.nav .nmore{display:none}}
 .ch h2 .cnt{font-size:14px;color:var(--accent);margin-left:4px}
 .ch .side .btnlink{border:0;background:none;color:var(--accent);font-weight:700;padding:0;font-size:inherit}
 .morebtn{display:block;width:100%;border:0;background:none;padding:10px 20px;text-align:left;color:var(--muted);font-size:13px;font-weight:600}
@@ -1185,8 +1182,6 @@ body.onboarding #app[data-v="login"]{max-width:440px;margin:clamp(24px,8vh,88px)
 .login-avatar{display:grid;place-items:center;margin:24px auto;width:128px;height:128px;border-radius:32px;background:var(--accent-soft)}
 .login-card h1{font-size:28px;line-height:1.4;margin:0 0 12px;font-weight:800;text-wrap:balance}
 .login-copy{font-size:14px;color:var(--sub);margin:0 0 28px}
-.login-divider{font-size:13px;color:var(--muted);margin:20px 0 10px}
-.btn.kakao-signup{background:#FEE500;color:#191919}
 .login-note{margin:24px 0 0}
 .setup-copy{margin:0 4px 4px;color:var(--sub);font-size:14px}
 @media(max-width:380px){.login-card{padding:26px 20px}.login-card h1{font-size:25px}}
@@ -1206,9 +1201,33 @@ body.onboarding #app[data-v="login"]{max-width:440px;margin:clamp(24px,8vh,88px)
 .pmeta{display:inline-flex;align-items:center;gap:3px;font-size:12px;color:var(--sub);white-space:nowrap;margin-left:6px}
 .task-meta .pmeta{margin-left:0}
 .pgplan{display:flex;flex-wrap:wrap;gap:4px 10px;margin:2px 0 6px}.pgplan .pmeta{margin-left:0}
+/* 더보기 · 첫 게임 · 체험판 안내 · 백업 안내 */
+.navitem .nvic{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--fill);color:var(--sub);flex:none}
+.navitem .nvic svg{width:20px;height:20px}
+.navitem[aria-current="page"] .nvic{background:var(--accent-soft);color:var(--accent)}
+.fgame{padding:16px 18px}
+.fgh{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.fgh b{font-size:16px;font-weight:800}.fgh .num{font-size:13px;color:var(--accent);font-weight:700}
+.fgh .fgx{margin-left:auto;width:32px;height:32px;color:var(--muted)}.fgh .fgx svg{width:18px;height:18px}
+.fgame .bar{margin-bottom:10px}.fgame .bar i{background:var(--accent)}
+.login-copy{word-break:keep-all}
+.fgl{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.fgl li{display:flex;align-items:center;gap:10px;padding:7px 0;color:var(--muted)}
+.fgl li .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.fgl li b{font-size:14px;font-weight:600}.fgl li small{font-size:12px;color:var(--sub)}
+.fgl li.now{color:var(--ink)}.fgl li.now b{font-weight:800}
+.fgl li.ok b{text-decoration:line-through;text-decoration-color:var(--line)}
+.fgc{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);font-size:12px;font-weight:700;flex:none}
+.fgl li.now .fgc{border-color:var(--accent);color:var(--accent)}
+.fgl li.ok .fgc{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.fgc svg{width:14px;height:14px}
+.fgl .btn.sm{flex:none}
+.fgdone{margin:0;font-size:14px;color:var(--sub)}
+.trialnote{padding:14px 18px}.trialnote b{font-size:15px}.trialnote p{margin:4px 0 0;font-size:13px;color:var(--sub);line-height:1.5}
+.bknudge p{margin:0 0 10px;font-size:14px;line-height:1.6;color:var(--sub)}.bknudge+.btnrow{margin-top:16px}
+.fgame,.trialnote,.bknudge{word-break:keep-all}
 </style>
 
-<p class="col local-mode" role="note">개발 미리보기 · 실제 인증 미연결<span id="demo-label"></span></p>
+<p class="col local-mode" role="note" hidden><span id="demo-label"></span></p>
 <header class="top"><div class="col" id="topbar"></div></header>
 <main class="col stack" id="app"><p class="empty">불러오는 중…</p></main>
 <div id="replybar"></div>

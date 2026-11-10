@@ -42,3 +42,12 @@ test('backup export: declined hosted save is silent, other failures alert',async
   await h.click('bkexp'); assert.equal(h.alerts.length,0);
   code = 'unavailable'; await h.click('bkexp'); assert.equal(h.alerts.length,1);
 });
+test('export records the backup time so the app can stop reminding', async () => {
+  const {installBackups} = await import('../src/backups.js');
+  const prefs = {}; let refreshed = 0, clickFn;
+  const document = {addEventListener:(n, fn) => { clickFn = fn; }, removeEventListener(){}, createElement:() => ({click(){}, remove(){}}), body:{appendChild(){}}};
+  const storage = {mode:'empty', export:() => '{}', preferences:{set:(k, v) => { prefs[k] = v; }}};
+  installBackups({document, storage, getState:() => ({}), confirm:async () => false, alert(){}, reload(){}, URL:{createObjectURL:() => 'blob:x', revokeObjectURL(){}}, Blob:class {}, onExport:() => refreshed++});
+  await clickFn({target:{closest:() => ({dataset:{act:'bkexp'}})}});
+  assert.ok(prefs.lastBackup > 0); assert.equal(refreshed, 1);
+});

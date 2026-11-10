@@ -105,15 +105,14 @@ async function profileUI(snapshot, search = '') {
   }
   return h;
 }
-for (const action of ['preview-login','preview-kakao']) {
-  test(`${action}: fresh landing has exactly one Kakao signup and transitions via actual handler without auth`,async () => {
+for (const action of ['preview-login']) {
+  test(`${action}: fresh landing has one start button and transitions via actual handler without auth`,async () => {
     const h = harness(), html = await readFile(root+'/dist/quest.html','utf8');
     vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],h.context); h.flush();
     const login = h.nodes.get('app').innerHTML;
-    assert.equal((login.match(/>카카오톡으로 가입하기</g)||[]).length,1);
-    assert.equal((login.match(/>로그인</g)||[]).length,1);
+    assert.equal((login.match(/data-act="preview-/g)||[]).length,1); assert.match(login,/>바로 시작하기</);
     assert.doesNotMatch(login,/<input|네이버|비밀번호|oauth|https?:/i);
-    assert.match(login,/개발 미리보기 · 실제 인증 미연결/);
+    assert.doesNotMatch(login,/개발 미리보기|실제 인증|카카오/); assert.match(login,/체험판/);
     assert.equal(h.nodes.get('nav').innerHTML,''); assert.equal(h.nodes.get('topbar').innerHTML,'');
     const before = h.snapshot(); let calls = 0; h.context.fetch = () => {calls++; throw new Error('No auth/network allowed');};
     h.click(action);
@@ -985,7 +984,7 @@ for(const wide of [true,false])for(const mini of [false,true]){
     // Use the persisted nav preference and reinitialize the actual bundle for this layout mode.
     const saved=h.snapshot(),prefs=JSON.stringify({navMini:mini});
     const next=harness(saved);next.context.matchMedia=()=>({matches:wide,addEventListener(){}});
-    next.data.set('quest:foundation:empty:v2:preferences',prefs);
+    next.data.set('quest:foundation:empty:v2:preferences',prefs.replace('{','{"fgOff":1,'));
     const html=await readFile(root+'/dist/quest.html','utf8');
     vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],next.context);next.flush();next.route('dash');
     const tree=layoutTree(next.nodes.get('app').innerHTML);
@@ -1270,4 +1269,39 @@ test('저널: 지난 날짜로 쓰기 (보상 없음), 카드에서 수정',asyn
   h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); await h.settle();
   assert.match(h.nodes.get('app').innerHTML, new RegExp('data-act="dedit" data-id="d-'+y+'"'));
   h.click('dedit',{id:'d-'+y}); assert.match(h.nodes.get('overlay').innerHTML, /어제 쓴 저널/); assert.match(h.nodes.get('overlay').innerHTML, /data-act="psave"[^>]*>수정/);
+});
+test('trial: first-game checklist tracks the five ebook steps and can be closed',async()=>{
+  const h=await profileUI();h.route('qmanage');let app=h.nodes.get('app').innerHTML;
+  assert.match(app,/첫 게임 시작하기[\s\S]*0\/5/);assert.match(app,/data-act="sheet" data-k="add" data-v="big">만들기/);
+  const s=h.snapshot();s.projects.g={id:'g',owner:'me',title:'목표',end:'2099-12-31',status:'active',createdAt:1};
+  s.mine.m={id:'m',kind:'mission',name:'작은 일',due:'2099-01-01',time:'09:00',projectId:'g',done:false,createdAt:1};
+  s.mine.r={id:'r',kind:'reward',name:'디저트',cost:100,createdAt:1};
+  const h2=await profileUI(s);h2.route('dash');app=h2.nodes.get('app').innerHTML;
+  assert.match(app,/첫 게임 시작하기[\s\S]*3\/5/);assert.match(app,/data-act="go" data-v="dash">체크하러 가기/);
+  h2.click('fg-off');assert.doesNotMatch(h2.nodes.get('app').innerHTML,/첫 게임/);
+  h2.route('qmanage');assert.doesNotMatch(h2.nodes.get('app').innerHTML,/첫 게임/);
+});
+test('trial: community notice, no report, no social notification settings, no developer wording',async()=>{
+  const h=await profileUI();h.route('feed');assert.match(h.nodes.get('app').innerHTML,/커뮤니티는 정식 버전에서 열려요/);
+  h.route('settings');const set=h.nodes.get('app').innerHTML;
+  assert.doesNotMatch(set,/data-act="setn"|data-act="setpriv"|차단한 계정|로컬|서버|프로토타입/);assert.match(set,/체험판/);assert.match(set,/아직 백업한 적이 없어요/);
+  assert.doesNotMatch(h.nodes.get('topbar').innerHTML,/data-v="activity"/);
+});
+test('mobile nav: four direct menus plus a more sheet holding story, community and notes',async()=>{
+  const h=await profileUI();h.route('feed');const nav=h.nodes.get('nav').innerHTML;
+  assert.equal((nav.match(/class="nm"/g)||[]).length,3);assert.match(nav,/data-act="navmore" aria-haspopup="dialog" aria-current="page"/);
+  h.click('navmore');const ov=h.nodes.get('overlay').innerHTML;
+  for(const v of ['me','feed','notes'])assert.match(ov,new RegExp(`data-act="navgo" data-v="${v}"`));
+  h.click('navgo',{v:'notes'});assert.equal(h.context.location.hash,'#notes');assert.equal(h.nodes.get('overlay').innerHTML,'');
+});
+test('backup reminder appears after three days of trial use without a backup, once per fourteen days',async()=>{
+  const base=await profileUI(),s=base.snapshot();s.mine.m={id:'m',kind:'mission',name:'일',due:'2099-01-01',time:'09:00',done:false,createdAt:1};
+  const open=async prefs=>{const h=harness(s);h.data.set('quest:foundation:empty:v2:preferences',JSON.stringify(prefs));
+    const html=await readFile(root+'/dist/quest.html','utf8');vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],h.context);h.flush();return h;};
+  const day=864e5,now=Date.now();
+  assert.doesNotMatch((await open({firstSeen:now-day})).nodes.get('overlay').innerHTML,/백업/,'too early');
+  const h=await open({firstSeen:now-4*day});assert.match(h.nodes.get('overlay').innerHTML,/기록을 백업해 두세요[\s\S]*data-act="bkexp"/);
+  assert.ok(JSON.parse(h.data.get('quest:foundation:empty:v2:preferences')).bkNudgeAt>0);
+  assert.doesNotMatch((await open({firstSeen:now-4*day,lastBackup:now-2*day})).nodes.get('overlay').innerHTML,/백업해 두세요/,'recent backup');
+  assert.doesNotMatch((await open({firstSeen:now-30*day,bkNudgeAt:now-5*day})).nodes.get('overlay').innerHTML,/백업해 두세요/,'already reminded');
 });
