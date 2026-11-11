@@ -113,7 +113,7 @@ for (const action of ['preview-login','preview-kakao']) {
     assert.equal((login.match(/>카카오톡으로 가입하기</g)||[]).length,1);
     assert.equal((login.match(/>로그인</g)||[]).length,1);
     assert.doesNotMatch(login,/<input|네이버|비밀번호|oauth|https?:/i);
-    assert.match(login,/개발 미리보기 · 실제 인증 미연결/);
+    assert.doesNotMatch(login,/개발 미리보기|실제 인증 미연결/);
     assert.equal(h.nodes.get('nav').innerHTML,''); assert.equal(h.nodes.get('topbar').innerHTML,'');
     const before = h.snapshot(); let calls = 0; h.context.fetch = () => {calls++; throw new Error('No auth/network allowed');};
     h.click(action);
