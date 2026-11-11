@@ -1298,6 +1298,15 @@ test('main edition keeps the development app: checklist yes, but no trial notice
   vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],trialLogin.context);trialLogin.flush();
   const login=trialLogin.nodes.get('app').innerHTML;assert.match(login,/>바로 시작하기</);assert.doesNotMatch(login,/카카오|개발 미리보기/);
 });
+test('quest menu: achieved main quests and stages in a folded section at the bottom, filtered by tab',async()=>{
+  const base=await profileUI(),saved=base.snapshot();
+  saved.projects={...saved.projects,gm:{id:'gm',owner:'me',title:'달성 메인',status:'done',doneAt:2},gs:{id:'gs',owner:'me',parentId:'gm',title:'완료 스테이지',status:'done',doneAt:1},ga:{id:'ga',owner:'me',title:'진행 메인',status:'active'},gx:{id:'gx',owner:'other',title:'남의 달성',status:'done',doneAt:3}};
+  const h=await profileUI(saved);h.route('qmanage');let html=h.nodes.get('app').innerHTML;
+  assert.match(html,/달성한 퀘스트 <span class="num">2<\/span>개/);assert.doesNotMatch(html,/data-act="project" data-p="gm"/,'folded by default');
+  h.click('toggle',{k:'pldone'});html=h.nodes.get('app').innerHTML;assert.match(html,/data-p="gm"[\s\S]*data-p="gs"/);assert.doesNotMatch(html,/남의 달성/);
+  h.click('pl-tab',{v:'main'});html=h.nodes.get('app').innerHTML;assert.match(html,/달성한 퀘스트 <span class="num">1<\/span>개/);assert.match(html,/data-p="gm"/);assert.doesNotMatch(html,/data-p="gs"/);
+  h.click('pl-tab',{v:'daily'});assert.doesNotMatch(h.nodes.get('app').innerHTML,/달성한 퀘스트/);
+});
 test('mobile dashboard chips: 일일/미션/저널, mission by default, switching panes keeps data unchanged',async()=>{
   const h=await profileUI();h.route('dash');let html=h.nodes.get('app').innerHTML;const before=h.snapshot();
   assert.match(html,/class="wd-chips" role="tablist"[\s\S]*data-v="daily"[^>]*>일일[\s\S]*data-v="mission" aria-selected="true">미션[\s\S]*data-v="journal"[^>]*>저널/);

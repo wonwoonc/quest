@@ -1183,6 +1183,9 @@ function viewPlan(){
     const ar = tab === "all" ? [] : mineOf("quest").filter(q => q.active === false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
     if (tab !== "all") h += `<div class="subhead"><h2>보관 <span class="num">${ar.length}</span></h2></div><section class="card tight qlist plarch">${ar.map(q => { const st = streakOf(q); return `<div class="row"><span class="t tap" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><b>${esc(q.name)}</b><small>${[repeatLabel(q), `총 ${st.total}회`].join(" · ")}</small></span><button class="btn sec xs" data-act="unarch" data-id="${q.id}">보관 해제</button></div>`; }).join("") || `<p class="empty-row">보관한 일일 퀘스트가 없어요. 잠시 쉬고 싶은 일일 퀘스트는 수정 창에서 보관할 수 있어요.</p>`}</section>`;
   }
+  /* 달성한 메인 퀘스트·스테이지: 맨 아래 접힌 칸. 전체 탭은 둘 다, 메인/스테이지 탭은 해당 종류만, 일일 탭은 없음 */
+  const dn = tab === "daily" ? [] : Object.values(S.projects).filter(p => p.owner === S.me && p.status === "done" && (tab === "all" || (tab === "main" ? !p.parentId : !!p.parentId))).sort((a,b) => (b.doneAt || 0) - (a.doneAt || 0));
+  if (dn.length) h += `<section class="card tight pldone"><button class="row" data-act="toggle" data-k="pldone" aria-expanded="${!!S.openPlDone}"><span class="t"><b>달성한 퀘스트 <span class="num">${dn.length}</span>개</b></span><span class="chev2 ${S.openPlDone ? "open" : ""}">${I.chev}</span></button>${S.openPlDone ? dn.map(p => goalRow(p, !!p.parentId)).join("") : ""}</section>`;
   return h;
 }
 /* brain dump: pour every thought in, then sort each into main / sub / daily / task, or hide it */
@@ -2222,7 +2225,7 @@ document.addEventListener("click", e => {
     case "unblock": { if (S.compose && S.compose.type === "umenu") closeSheet(); const st = getSet(); run(() => api.putMine("settings", {kind:"settings", ...st, blocked:st.blocked.filter(x => x !== u)}), () => toast("차단을 해제했어요")); return; }
     case "unhide": { const st = getSet(); st.hidden.splice(+b.dataset.i, 1); run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
     case "tfold": { const l = LS.get("tfold", []), k = b.dataset.k; LS.set("tfold", l.includes(k) ? l.filter(x => x !== k) : [...l, k]); break; }
-    case "toggle": { const m = {habits:"openHabits", later:"openLater", done:"openDone", ach:"openAch", blk:"openBlk", subdone:"openSubDone", buys:"openBuys", tdone:"openTDone", bdall:"bdAll"}[b.dataset.k]; S[m] = !S[m]; break; }
+    case "toggle": { const m = {habits:"openHabits", later:"openLater", done:"openDone", ach:"openAch", pldone:"openPlDone", blk:"openBlk", subdone:"openSubDone", buys:"openBuys", tdone:"openTDone", bdall:"bdAll"}[b.dataset.k]; S[m] = !S[m]; break; }
     case "compose": if (pid && S.projects[pid]) openCompose({ref:{type:"project", id:pid, label:S.projects[pid].title}, fixed:true}); else openCompose(); return;
     case "sheet": { if (!S.canWrite) return; if (!hasProfile() && b.dataset.k !== "profile"){ toast("먼저 캐릭터를 만들어 주세요"); return; }
       const k = b.dataset.k; if (k === "post") return openCompose();
