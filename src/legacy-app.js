@@ -461,11 +461,10 @@ function renderTop(){
   const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || v === "daily" || (v === "profile" && S.view.uid !== S.me);
   const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", daily:"일일 퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
   const n = activityItems().filter(x => x.at > actSeen).length;
-  setHtml($("#topbar"), `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : ""}<h1>${title}</h1>
-    ${S.me && !TRIAL && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
-    ${hasProfile() && !sub ? `<button class="iconbtn" data-act="go" data-v="settings" aria-label="설정">${I.gear}</button>` : ""}`);
+  setHtml($("#topbar"), `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : `<button class="iconbtn menubtn" data-act="drawer" aria-label="메뉴 열기" aria-expanded="${document.body.classList.contains("drawer")}">${MENU_SVG}</button>`}<h1${sub ? "" : ' class="tmain"'}>${title}</h1>
+    ${S.me && !TRIAL && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}`);
 }
-/* 메뉴: 사용자가 순서를 정한다(설정 › 메뉴 순서). 데스크탑은 전부 세로로, 휴대폰은 앞의 4개 + 더보기. */
+/* 메뉴: 사용자가 순서를 정한다(설정 › 메뉴 순서). 데스크탑은 사이드바에 전부 + 설정, 휴대폰은 하단에 앞의 5개 + 왼쪽 위 메뉴(서랍)에 전부 + 설정. */
 const NAV = {
   "#qmanage": ["퀘스트", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4.5h11.5l-2.2 3.75 2.2 3.75H5"/></svg>`, v => v === "qmanage"],
   "#dash": ["대시보드", `${I.dash}`, v => v === "dash"],
@@ -475,16 +474,24 @@ const NAV = {
   "#shop": ["상점", `${I.bag}`, v => v === "shop"],
   "#cal": ["캘린더", `${I.cal}`, v => v === "cal"]
 };
-const NAV_DEFAULT = ["#qmanage", "#dash", "#me", "#feed", "#notes", "#shop", "#cal"], NAV_BAR = 4;
+const NAV_DEFAULT = ["#qmanage", "#dash", "#me", "#feed", "#notes", "#shop", "#cal"], NAV_BAR = 5;
 const navOrder = () => { const saved = LS.get("navOrder", []), list = (Array.isArray(saved) ? saved : []).filter((h, i, a) => Object.hasOwn(NAV, h) && a.indexOf(h) === i);
   return [...list, ...NAV_DEFAULT.filter(h => !list.includes(h))]; };
-const MORE_SVG = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>`;
+const MENU_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></svg>`;
 function renderNav(){
-  const v = S.view.name, cur = c => c ? 'aria-current="page"' : "", order = navOrder(), moreOn = order.slice(NAV_BAR).some(h => NAV[h][2](v));
+  const v = S.view.name, cur = c => c ? 'aria-current="page"' : "", order = navOrder();
   setHtml($("#nav"), `${order.map((h, i) => { const [l, svg, on] = NAV[h]; return `<a href="${h}"${i >= NAV_BAR ? ' class="nm"' : ""} ${cur(on(v))}>${svg}<span>${l}</span></a>`; }).join("")}
-    <button class="nmore" data-act="navmore" aria-haspopup="dialog" ${cur(moreOn)}>${MORE_SVG}<span>더보기</span></button>
+    <a href="#settings" class="nset" ${cur(v === "settings")}>${I.gear}<span>설정</span></a>
     <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`);
   document.body.classList.toggle("navmini", !!S.navMini);
+  const item = (h, l, svg, on) => `<button type="button" data-act="navgo" data-v="${h.slice(1)}" ${cur(on)}>${svg}<span>${l}</span></button>`;
+  setHtml($("#drawer"), `<div class="drw-bg" data-act="drawer-x"></div><nav class="drw" aria-label="전체 메뉴"><p class="drw-brand">퀘스트</p>
+    ${order.map(h => item(h, NAV[h][0], NAV[h][1], NAV[h][2](v))).join("")}<div class="drw-foot">${item("#settings", "설정", I.gear, v === "settings")}</div></nav>`);
+}
+function drawer(open){
+  document.body.classList.toggle("drawer", open);
+  const mb = $(".menubtn"); if (mb) mb.setAttribute("aria-expanded", String(open));
+  if (open){ const f = $("#drawer .drw button"); if (f) f.focus(); } else if (mb) mb.focus();
 }
 /* 첫 게임: 전자책 마지막의 6단계를 그대로 따라가는 체크리스트(본판·테스트판 공통). 퀘스트·대시보드 맨 위에 보이고, 닫으면 사라진다. */
 function firstGame(){
@@ -1321,7 +1328,7 @@ function viewSettings(){
     <button class="row" data-act="sheet" data-k="profile"><span class="t"><b>프로필 편집</b><small>닉네임 · 소개 · 프로필 사진</small></span>${I.chev}</button>
     ${account ? `<button class="row" data-act="acct-logout"><span class="t"><b>로그아웃</b></span>${I.chev}</button>` : ""}</section>`;
   h += `<p class="sect3">화면</p><section class="card tight"><div class="row setmode"><span class="t"><b>화면 모드</b></span><div class="seg sm">${[["system","시스템"],["light","라이트"],["dark","다크"]].map(([k,l]) => `<button data-act="theme" data-v="${k}" aria-pressed="${th===k}">${l}</button>`).join("")}</div></div>
-    <button class="row" data-act="navedit"><span class="t"><b>메뉴 순서</b><small>${navOrder().slice(0, NAV_BAR).map(h0 => NAV[h0][0]).join(" · ")} · 더보기</small></span>${I.chev}</button></section>`;
+    <button class="row" data-act="navedit"><span class="t"><b>메뉴 순서</b><small>${navOrder().slice(0, NAV_BAR).map(h0 => NAV[h0][0]).join(" · ")}</small></span>${I.chev}</button></section>`;
   h += notifSection(st) + privacySection(st, me);
   h += `<p class="sect3">데이터</p><section class="card tight">
     <button class="row" data-act="bkexp"><span class="t"><b>기록 파일로 저장</b><small>내 기기에 백업 파일로 저장해요</small></span>${I.chev}</button>
@@ -1341,7 +1348,7 @@ function viewSettingsTrial(){
     <button class="row" data-act="sheet" data-k="profile"><span class="t"><b>프로필 편집</b><small>닉네임 · 소개 · 프로필 사진</small></span>${I.chev}</button>
     </section>`;
   if (!TRIAL) h += `<p class="sect3">알림</p><section class="card tight">${[["like","공감","내 글과 답글에 공감했을 때"],["reply","답글","내 글에 답글이 달렸을 때"],["follow","팔로우","새 팔로워가 생겼을 때"]].map(([k,l,d]) => `<div class="row"><span class="t"><b>${l}</b><small>${d}</small></span>${sw("setn", st.notif[k], `data-k="${k}"`)}</div>`).join("")}</section>`;
-  h += `<p class="sect3">메뉴</p><section class="card tight"><button class="row" data-act="navedit"><span class="t"><b>메뉴 순서</b><small>${navOrder().slice(0, NAV_BAR).map(h0 => NAV[h0][0]).join(" · ")} · 더보기</small></span>${I.chev}</button></section>`;
+  h += `<p class="sect3">메뉴</p><section class="card tight"><button class="row" data-act="navedit"><span class="t"><b>메뉴 순서</b><small>${navOrder().slice(0, NAV_BAR).map(h0 => NAV[h0][0]).join(" · ")}</small></span>${I.chev}</button></section>`;
   h += `<p class="sect3">화면</p><section class="card"><div class="ch" style="margin-bottom:10px"><h2 style="font-size:16px">화면 모드</h2></div><div class="seg sm">${[["system","시스템"],["light","라이트"],["dark","다크"]].map(([k,l]) => `<button data-act="theme" data-v="${k}" aria-pressed="${th===k}">${l}</button>`).join("")}</div></section>`;
   if (!TRIAL) h += `<p class="sect3">개인정보 보호</p><section class="card tight">
     <button class="row" data-act="toggle" data-k="blk"><span class="t"><b>차단한 계정</b><small>${st.blocked.length ? `${st.blocked.length}명` : "없음"}</small></span><span class="chev2 ${S.openBlk?"open":""}">${I.chev}</span></button>
@@ -1922,11 +1929,10 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     return sheetWrap(mine ? "내 스토리" : esc(nameOf(a)) + "님의 스토리", "", `<div class="sheetlist mlist">${mine
       ? item("editpost", "수정", "글과 수치 기록을 고쳐요") + item("ptoggle-reply", p.noReply ? "답글 기능 켜기" : "답글 기능 끄기", p.noReply ? "지금은 답글을 받을 수 없어요" : "") + item("ptoggle-likes", p.hideLikes ? "공감 수 보이기" : "공감 수 숨기기", p.hideLikes ? "다른 사람에게 공감 수가 안 보여요" : "") + item("delpost", S.armed === "dp"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", "", true)
       : item("follow", f ? "팔로우 취소" : "팔로우", "") + item("phide", "이 스토리 숨기기", "커뮤니티에서 다시 보이지 않아요") + item("block", S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true)}</div>`); }
-  if (c.type === "navmore") return sheetWrap("더보기", "", `<div class="sheetlist mlist">${navOrder().slice(NAV_BAR).map(h => { const [l, svg, on] = NAV[h]; return `<button class="row mitem navitem" data-act="navgo" data-v="${h.slice(1)}" ${on(S.view.name) ? 'aria-current="page"' : ""}><span class="nvic">${svg}</span><span class="t"><b>${l}</b></span>${I.chev}</button>`; }).join("")}</div><button class="btn ghost full navedit-link" data-act="navedit">메뉴 순서 바꾸기</button>`);
   if (c.type === "navedit"){ const order = navOrder(), up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>`, dn = up.replace("M6 15l6-6 6 6", "M6 9l6 6 6-6");
     const row = (h, i) => { const [l, svg] = NAV[h]; return `<div class="row navedit-row"><span class="nvic">${svg}</span><span class="t"><b>${l}</b></span><button class="iconbtn" data-act="nav-mv" data-v="${h}" data-d="-1" aria-label="${l} 위로" ${i ? "" : "disabled"}>${up}</button><button class="iconbtn" data-act="nav-mv" data-v="${h}" data-d="1" aria-label="${l} 아래로" ${i < order.length - 1 ? "" : "disabled"}>${dn}</button></div>`; };
-    return sheetWrap("메뉴 순서", "", `<p class="navedit-hint">화살표로 순서를 바꿔요. 휴대폰에서는 위의 ${NAV_BAR}개가 하단 메뉴에 보이고, 나머지는 더보기에 들어가요.</p>
-      <div class="navedit"><p class="navedit-sec">하단 메뉴</p>${order.slice(0, NAV_BAR).map(row).join("")}<p class="navedit-sec">더보기</p>${order.slice(NAV_BAR).map((h, i) => row(h, i + NAV_BAR)).join("")}</div>
+    return sheetWrap("메뉴 순서", "", `<p class="navedit-hint">화살표로 순서를 바꿔요. 휴대폰에서는 위의 ${NAV_BAR}개가 하단 메뉴에 보여요. 전체 메뉴는 왼쪽 위 메뉴 버튼에서 열 수 있어요.</p>
+      <div class="navedit"><p class="navedit-sec">하단 메뉴</p>${order.slice(0, NAV_BAR).map(row).join("")}<p class="navedit-sec">메뉴 버튼에만</p>${order.slice(NAV_BAR).map((h, i) => row(h, i + NAV_BAR)).join("")}</div>
       <div class="btnrow"><button class="btn sec big" data-act="nav-reset">기본 순서로</button><button class="btn big" data-act="sheet-close">완료</button></div>`); }
   if (c.type === "bknudge") return sheetWrap("기록을 백업해 두세요", "", `<div class="bknudge"><p>체험판 기록은 이 기기의 이 브라우저에만 저장돼요. 브라우저의 방문 기록을 지우거나 다른 기기에서 열면 지금까지의 기록을 볼 수 없어요.</p><p>백업 파일을 저장해 두면 설정 › 데이터에서 언제든 다시 불러올 수 있어요.</p></div>
     <div class="btnrow"><button class="btn sec big" data-act="sheet-close">나중에</button><button class="btn big" data-act="bkexp">지금 백업하기</button></div>`);
@@ -2089,6 +2095,7 @@ const openPost = pid => push({name:"post", pid}, "#post");
 const openGoal = pid => { if (S.view.name === "project" && S.view.pid !== pid){ (S.vstack = S.vstack || []).push({...S.view}); } push({name:"project", pid}, "#goal"); };
 const openProfile = uid => { S.profTab = "posts"; S.profN = 20; push({name:"profile", uid}, uid === S.me ? "#me" : "#profile"); };
 function route(){
+  document.body.classList.remove("drawer");
   const h = location.hash, prevKey = viewKey(), prev = S.view.name; S.scrolls[prevKey] = scrollY; if (h !== "#goal") S.vstack = [];
   if (h === "#activity"){ if (prev !== "activity"){ S.actN = 10; S.actSeenView = actSeen; actSeen = Date.now(); LS.set("actSeen", actSeen); } S.view = {name:"activity"}; }
 
@@ -2190,8 +2197,9 @@ document.addEventListener("click", e => {
     case "cfno": closeSheet(); return;
     case "back": if (S.vstack && S.vstack.length){ S.view = S.vstack.pop(); schedule(); scrollTo(0,0); return; } history.length > 1 ? history.back() : go("today"); return;
     case "go": go(b.dataset.v); return;
-    case "navmore": openSheet({type:"navmore"}); return;
-    case "navgo": closeSheet(); go(b.dataset.v); return;
+    case "drawer": drawer(!document.body.classList.contains("drawer")); return;
+    case "drawer-x": drawer(false); return;
+    case "navgo": closeSheet(); document.body.classList.remove("drawer"); go(b.dataset.v); return;
     case "navedit": openSheet({type:"navedit"}); return;
     case "nav-mv": { const o = navOrder(), i = o.indexOf(b.dataset.v), j = i + +b.dataset.d; if (i < 0 || j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; LS.set("navOrder", o); renderNav(); renderSheet(); return; }
     case "nav-reset": LS.set("navOrder", []); renderNav(); renderSheet(); return;
@@ -2525,6 +2533,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target.id === "ta-name" && !e.isComposing){ e.preventDefault(); const bt = document.querySelector('[data-act="submit-taskadd"]'); bt && bt.click(); return; }
   if (e.key === "Enter" && e.target.id === "pp-in" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); const bt = document.querySelector('[data-act="ppok"]'); bt && bt.click(); return; }
   if (e.key === "Escape" && S.compose && (S.compose._pp || S.compose._tw)){ S.compose._pp = null; S.compose._tw = false; renderSheet(); return; }
+  if (e.key === "Escape" && document.body.classList.contains("drawer")){ drawer(false); return; }
   if (e.key === "Escape" && S.compose) closeSheet();
   if ((e.key === "Enter" || e.key === " ") && e.target.getAttribute && e.target.getAttribute("role") === "button"){ e.preventDefault(); e.target.click(); }
 });

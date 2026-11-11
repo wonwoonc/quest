@@ -403,8 +403,17 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);
   padding:0 max(4px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(4px,env(safe-area-inset-left,0px))}
 .nav .col{display:grid;grid-template-columns:repeat(5,1fr);height:62px}
-@media (max-width:1023.98px){.nav .nm{display:none}}
-@media (min-width:1024px){.nav .nmore{display:none}}
+@media (max-width:1023.98px){.nav .nm,.nav .nset{display:none}.top h1.tmain{visibility:hidden}}
+@media (min-width:1024px){.menubtn,#drawer{display:none}}
+.drw-bg{position:fixed;inset:0;z-index:60;background:rgb(0 0 0 / .35);opacity:0;pointer-events:none;transition:opacity .2s}
+.drw{position:fixed;top:0;bottom:0;left:0;z-index:61;width:min(280px,82vw);background:var(--card);display:flex;flex-direction:column;gap:2px;overflow-y:auto;
+  padding:calc(20px + env(safe-area-inset-top,0px)) 12px calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-100%);visibility:hidden;transition:transform .22s,visibility .22s}
+body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}body.drawer .drw{transform:none;visibility:visible}
+.drw-brand{margin:0;padding:4px 14px 18px;font-size:21px;font-weight:800;letter-spacing:-.4px}
+.drw button{display:flex;align-items:center;gap:14px;width:100%;padding:12px 14px;border:0;border-radius:14px;background:none;color:var(--muted);font-size:16px;font-weight:500;text-align:left}
+.drw button svg{width:24px;height:24px;flex:none}.drw button:active{background:var(--fill)}
+.drw [aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.drw-foot{margin-top:auto;padding-top:10px;border-top:1px solid var(--line)}
 .ch h2 .cnt{font-size:14px;color:var(--accent);margin-left:4px}
 .ch .side .btnlink{border:0;background:none;color:var(--accent);font-weight:700;padding:0;font-size:inherit}
 .morebtn{display:block;width:100%;border:0;background:none;padding:10px 20px;text-align:left;color:var(--muted);font-size:13px;font-weight:600}
@@ -1152,7 +1161,8 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
   .top .col{height:76px}
   .top h1{font-size:24px}
   .nav{top:0;bottom:0;right:auto;width:244px;border-top:0;border-right:1px solid var(--line);padding:28px 16px}
-  .nav .col{display:flex;flex-direction:column;height:auto;gap:4px}
+  .nav .col{display:flex;flex-direction:column;height:100%;gap:4px}
+  .nav .nset{margin-top:auto}
   .nav .col::before{order:-2;content:"퀘스트";font-size:21px;font-weight:800;letter-spacing:-.4px;padding:0 14px 24px;color:var(--ink)}
   .nav a,.nav button{flex-direction:row;justify-content:flex-start;gap:14px;padding:12px 14px;border-radius:14px;font-size:16px}
   .nav a:hover{background:var(--fill)}
@@ -1287,6 +1297,7 @@ a.row{color:inherit;text-decoration:none}
 <div id="replybar"></div>
 <div id="pill"></div>
 <nav class="nav" aria-label="메뉴"><div class="col" id="nav"></div></nav>
+<div id="drawer"></div>
 <div id="overlay"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="fileIn" accept="image/*" hidden>
