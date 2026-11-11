@@ -1233,7 +1233,7 @@ body.onboarding #app[data-v="login"]{max-width:440px;margin:clamp(24px,8vh,88px)
 .pgplan{display:flex;flex-wrap:wrap;gap:4px 10px;margin:2px 0 6px}.pgplan .pmeta{margin-left:0}
 .login-divider{font-size:13px;color:var(--muted);margin:20px 0 10px}
 .btn.kakao-signup{background:#FEE500;color:#191919}
-.authcard{text-align:left}.authcard .login-brand,.authcard .authh,.authcard .login-copy{text-align:center}.authh{font-size:26px;line-height:1.4;margin:14px 0 10px;font-weight:800;text-wrap:balance}
+.authcard{text-align:left}.authcard .login-brand,.authcard .authh,.authcard .login-copy{text-align:center}.authh{font-size:26px;line-height:1.4;margin:14px 0 24px;font-weight:800;text-wrap:balance}
 .authf{margin-bottom:12px}.authcard form .btn{margin-top:6px}.authlink{display:block;margin:14px auto 0;text-align:center;font-weight:600}.authcard .login-divider{text-align:center}
 .authcard .btn+.btn{margin-top:10px}.autherr{color:var(--warn);font-size:14px;font-weight:600;margin:4px 0 8px}.authinfo{color:var(--accent);font-size:14px;font-weight:600;margin:4px 0 8px}
 .authagree{display:flex;flex-direction:column;gap:2px;margin:6px 0 12px;padding:12px 14px;background:var(--fill);border-radius:14px}.authagree .toggle{margin:6px 0}
@@ -3426,7 +3426,7 @@ async function storeFace(face){ if (!face) return face === "" ? null : undefined
 function loginScreen(){
   return `<section class="card login-card" aria-labelledby="login-title">
     <p class="login-brand">퀘스트</p><div class="login-avatar" aria-hidden="true">${sprite(COLORS[0], 1, 96)}</div>
-    <h1 id="login-title">작은 실천으로<br>시작하는 나의 모험</h1><p class="login-copy">나만의 캐릭터와 함께 하루의 퀘스트를 쌓아 보세요.</p>
+    <h1 id="login-title">작은 실천으로<br>시작하는 나의 모험</h1>
     ${TRIAL ? `<button type="button" class="btn big full" data-act="preview-login">바로 시작하기</button>
     <p class="facehint login-note">회원가입 없이 바로 쓸 수 있는 체험판이에요.<br>기록은 이 기기의 이 브라우저에만 저장돼요.</p>` : `<button type="button" class="btn big full" data-act="preview-login">로그인</button>
     <p class="login-divider">처음 오셨나요?</p><button type="button" class="btn big full kakao-signup" data-act="preview-kakao">카카오톡으로 가입하기</button>

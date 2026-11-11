@@ -18,7 +18,7 @@ export function authView(st) {
   switch (st.view) {
     case 'loading': body = `${head('불러오는 중…', esc(st.info || '계정 기록을 확인하고 있어요.'))}`; return `<section class="card login-card authcard" aria-busy="true">${body}</section>`;
     case 'error': body = `${head('연결하지 못했어요', '')}<p class="autherr" role="alert">${esc(st.error)}</p><button type="button" class="btn big full" data-auth="retry">다시 시도</button><button type="button" class="link authlink" data-auth="logout">다른 계정으로 로그인</button>`; break;
-    case 'signup': body = `${head('이메일로 가입하기', '가입하면 기록이 계정에 저장돼 휴대폰과 PC에서 이어서 쓸 수 있어요.')}
+    case 'signup': body = `${head('이메일로 가입하기', '')}
       <form data-auth-form="signup" novalidate>${field('auth-email', '이메일', 'email', 'email', st.email)}${field('auth-pw', `비밀번호 (${MIN_PW}자 이상)`, 'password', 'new-password')}${field('auth-pw2', '비밀번호 확인', 'password', 'new-password')}
       <div class="authagree"><label class="toggle"><input type="checkbox" id="auth-all"> <b>모두 동의</b></label>
       <label class="toggle"><input type="checkbox" class="auth-req" id="auth-age"> 만 14세 이상이에요 (필수)</label>
@@ -36,7 +36,7 @@ export function authView(st) {
     case 'choice': body = `${head('어떤 기록으로 이어 갈까요?', '이 기기와 계정에 서로 다른 기록이 있어요. 고르지 않은 기록은 백업 파일로 내려받아 두니 나중에 설정 → 백업 불러오기로 되살릴 수 있어요.')}
       <div class="authchoice"><button type="button" class="card authopt" data-auth="pick" data-v="local"><span class="lab">이 기기의 기록</span>${summary(st.choice.local)}<small>마지막 저장 ${fmtAt(st.choice.local.at)}</small></button>
       <button type="button" class="card authopt" data-auth="pick" data-v="server"><span class="lab">계정에 저장된 기록</span>${summary(st.choice.server)}<small>마지막 저장 ${fmtAt(st.choice.serverAt)}</small></button></div>`; return `<section class="authwrap" aria-labelledby="auth-title">${body}</section>`;
-    default: body = `${head('작은 실천으로<br>시작하는 나의 모험', '나만의 캐릭터와 함께 하루의 퀘스트를 쌓아 보세요.')}
+    default: body = `${head('작은 실천으로<br>시작하는 나의 모험', '')}
       <form data-auth-form="login" novalidate>${field('auth-email', '이메일', 'email', 'email', st.email)}${field('auth-pw', '비밀번호', 'password', 'current-password')}${msg}
       <button type="submit" class="btn big full"${busy}>${st.busy ? '로그인하는 중…' : '로그인'}</button></form>
       <button type="button" class="link authlink" data-auth="go" data-v="forgot">비밀번호를 잊으셨나요?</button>

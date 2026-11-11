@@ -1603,7 +1603,7 @@ async function storeFace(face){ if (!face) return face === "" ? null : undefined
 function loginScreen(){
   return `<section class="card login-card" aria-labelledby="login-title">
     <p class="login-brand">퀘스트</p><div class="login-avatar" aria-hidden="true">${sprite(COLORS[0], 1, 96)}</div>
-    <h1 id="login-title">작은 실천으로<br>시작하는 나의 모험</h1><p class="login-copy">나만의 캐릭터와 함께 하루의 퀘스트를 쌓아 보세요.</p>
+    <h1 id="login-title">작은 실천으로<br>시작하는 나의 모험</h1>
     ${TRIAL ? `<button type="button" class="btn big full" data-act="preview-login">바로 시작하기</button>
     <p class="facehint login-note">회원가입 없이 바로 쓸 수 있는 체험판이에요.<br>기록은 이 기기의 이 브라우저에만 저장돼요.</p>` : `<button type="button" class="btn big full" data-act="preview-login">로그인</button>
     <p class="login-divider">처음 오셨나요?</p><button type="button" class="btn big full kakao-signup" data-act="preview-kakao">카카오톡으로 가입하기</button>
