@@ -88,7 +88,7 @@ test('actual empty UI submit handler creates the local profile and opens the wel
   const submit = name => { for (const fn of h.events.submit) fn({preventDefault(){},target:{dataset:{form:name}}}); };
   submit('profile'); await new Promise(resolve => setImmediate(resolve)); h.flush();
   let snap = JSON.parse(h.data.get('quest:foundation:empty:v2'));
-  assert.equal(snap.profiles.me.nick,'직접 만든 로컬 프로필'); assert.equal(snap.profiles.me.private,true); assert.equal(h.context.location.hash,'#qmanage'); assert.match(h.nodes.get('overlay').innerHTML,/퀘스트에 오신 걸 환영합니다/); assert.match(h.nodes.get('overlay').innerHTML,/메인 퀘스트/); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/브레인 덤프/); h.click('sheet',{k:'add',v:'big'}); assert.match(h.nodes.get('overlay').innerHTML,/id="ad-name"/);
+  assert.equal(snap.profiles.me.nick,'직접 만든 로컬 프로필'); assert.equal(snap.profiles.me.private,false); assert.equal(h.context.location.hash,'#qmanage'); assert.match(h.nodes.get('overlay').innerHTML,/퀘스트에 오신 걸 환영합니다/); assert.match(h.nodes.get('overlay').innerHTML,/메인 퀘스트/); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/브레인 덤프/); h.click('sheet',{k:'add',v:'big'}); assert.match(h.nodes.get('overlay').innerHTML,/id="ad-name"/);
   assert.deepEqual(h.alerts,[]);
 });
 
@@ -711,7 +711,7 @@ test('compose mission references never invent time or show quest tags',async () 
   const js = await readFile(root+'/src/legacy-app.js','utf8');
   let post = {}, sheet = '';
   const ctx = vm.createContext({S:{projects:{},media:{},compose:null},esc:String,tmLabel:timeFormatter(js),
-    sheetWrap:(_title,_extra,html)=>{sheet=html;},D:()=>'',MAX_IMGS:4,SOCIAL:{post:1}});
+    sheetWrap:(_title,_extra,html)=>{sheet=html;},D:()=>'',MAX_IMGS:4,SOCIAL:{post:1},community:null});
   for (const [start,end] of [['function taskTimeTag(','function taskRow('],['function postSheet(','function replySheet(']]) {
     vm.runInContext(js.slice(js.indexOf(start),js.indexOf(end)),ctx);
   }

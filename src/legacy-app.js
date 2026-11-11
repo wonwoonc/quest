@@ -2,7 +2,7 @@ import {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, econo
 import {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete} from './notes.js';
 import {LEGAL_META, TERMS, PRIVACY} from './legal.js';
 import {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} from './day-activities.js';
-export function startLegacyApp({runtime, storage, seed = null, account = null}) {
+export function startLegacyApp({runtime, storage, seed = null, account = null, community = null}) {
 const entryParams = new URLSearchParams(location.search || '');
 // UI routes only. These flags are not an authentication/session boundary.
 const requestedScreen = entryParams.get('screen') || document.documentElement.dataset.entryScreen;
@@ -341,7 +341,10 @@ const nameOf = id => prof(id).nick || S.names[id] || "이름 없는 모험가";
 const colorOf = id => safeColor(prof(id).color);
 const hasProfile = () => !!(S.me && S.profiles[S.me]);
 const canAct = () => S.canWrite && hasProfile();
-const isFollowing = (a, b) => !!S.follows[keyOf(a)+"~"+keyOf(b)];
+const pendingTo = u => !!(S.followPending && S.followPending[u]);
+const followReqs = () => (S.followReqs || []).filter(x => !isBlocked(x.uid));
+const isFollowing = (a, b) => !!S.follows[keyOf(a)+"~"+keyOf(b)] && !(a === S.me && pendingTo(b));
+const folLabel = u => isFollowing(S.me, u) ? "팔로잉" : pendingTo(u) ? "요청됨" : "팔로우";
 function chibi(color, L, face, size){ const src = face && (face.startsWith("data:") ? face : S.media[face]);
   const fc = src ? `<span class="cface"><img src="${esc(src)}" alt="" draggable="false"></span>` : `<span class="cface" data-k="${esc(face)}"></span>`;
   return `<span class="chibi" style="width:${size}px;height:${size}px" aria-hidden="true"><svg viewBox="0 0 100 100"><ellipse cx="50" cy="97" rx="20" ry="3" fill="#000" opacity=".12"/>
@@ -460,7 +463,7 @@ const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
   const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || v === "daily" || (v === "profile" && S.view.uid !== S.me);
   const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", daily:"일일 퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
-  const n = activityItems().filter(x => x.at > actSeen).length;
+  const n = activityItems().filter(x => x.at > actSeen).length + followReqs().length;
   setHtml($("#topbar"), `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : `<button class="iconbtn menubtn" data-act="drawer" aria-label="메뉴 열기" aria-expanded="${document.body.classList.contains("drawer")}">${MENU_SVG}</button>`}<h1${sub ? "" : ' class="tmain"'}>${title}</h1>
     ${S.me && !TRIAL && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}`);
 }
@@ -1313,7 +1316,7 @@ const sw = (act, on0, extra = "") => `<button class="sw ${on0 ? "on" : ""}" data
 /* 본판 설정: 계정 · 화면 · 알림 · 개인정보 보호 · 데이터 · 정보, 맨 아래 회원 탈퇴. */
 const notifSection = st => `<p class="sect3">알림</p><section class="card tight">${[["like","공감","내 글과 답글에 공감했을 때"],["reply","답글","내 글에 답글이 달렸을 때"],["follow","팔로우","새 팔로워가 생겼을 때"]].map(([k,l,d]) => `<div class="row"><span class="t"><b>${l}</b><small>${d}</small></span>${sw("setn", st.notif[k], `data-k="${k}"`)}</div>`).join("")}</section>`;
 const privacySection = (st, me) => `<p class="sect3">개인정보 보호</p><section class="card tight">
-    <div class="row"><span class="t"><b>계정 비공개</b><small>팔로워만 내 스토리를 볼 수 있어요</small></span>${sw("setpriv", !!me.private)}</div>
+    <div class="row"><span class="t"><b>계정 비공개</b><small>${community ? "내가 수락한 팔로워만 내 스토리를 볼 수 있어요" : "팔로워만 내 스토리를 볼 수 있어요"}</small></span>${sw("setpriv", !!me.private)}</div>
     <button class="row" data-act="toggle" data-k="blk"><span class="t"><b>차단한 계정</b><small>${st.blocked.length ? `${st.blocked.length}명` : "없음"}</small></span><span class="chev2 ${S.openBlk?"open":""}">${I.chev}</span></button>
     ${S.openBlk ? st.blocked.map(u => `<div class="row nested">${av(u, 36, false)}<span class="t"><b>${esc(nameOf(u))}</b></span><button class="btn sec xs" data-act="unblock" data-u="${esc(u)}">해제</button></div>`).join("") : ""}
     <div class="row" style="flex-wrap:wrap"><span class="t"><b>숨길 단어</b><small>이 단어가 들어간 답글은 보이지 않아요</small></span></div>
@@ -1417,7 +1420,7 @@ function postRow(p, o = {}){
     <div class="rail">${av(a, 40)}${o.line ? '<span class="ln"></span>' : ""}</div>
     <div class="body">
       <div class="ph"><button class="nm" data-act="profile" data-u="${esc(a)}">${esc(nameOf(a))}</button><span class="pillLv">Lv.${s.L}</span><time>${ago(p.createdAt)}${p.editedAt ? " · 수정됨" : ""}</time>
-        ${showFollow ? `<button class="btn ${fol ? "sec" : "soft"} sm fol" data-act="follow" data-u="${esc(a)}">${fol ? "팔로잉" : "팔로우"}</button>` : ""}${hasProfile() && S.canWrite ? `<button class="pmenu" data-act="pmenu" data-p="${p.id}" aria-label="게시물 메뉴">${I.menu}</button>` : ""}</div>
+        ${showFollow ? `<button class="btn ${fol || pendingTo(a) ? "sec" : "soft"} sm fol" data-act="follow" data-u="${esc(a)}">${folLabel(a)}</button>` : ""}${hasProfile() && S.canWrite ? `<button class="pmenu" data-act="pmenu" data-p="${p.id}" aria-label="게시물 메뉴">${I.menu}</button>` : ""}</div>
       ${refHtml(p)}
 
       ${metricFor(p)}
@@ -1441,7 +1444,7 @@ function viewFeed(){
   let h = (TRIAL ? `<section class="card trialnote"><b>커뮤니티는 정식 버전에서 열려요</b><p>지금은 체험판이라 다른 사람의 소식은 보이지 않아요. 내가 올린 스토리는 여기와 스토리 메뉴에 쌓여요.</p></section>` : "") + (canAct() ? storyComposer() : "");
   let items = feedSorted();
   if (!items.length){
-    return h + `<div class="card empty"><strong>아직 스토리가 없어요</strong>${TRIAL ? "오늘 해낸 일을 첫 스토리로 남겨 보세요." : "일일 퀘스트를 해내고 첫 기록을 공유해 보세요."}</div>`;
+    return h + `<div class="card empty"><strong>아직 스토리가 없어요</strong>${TRIAL ? "오늘 해낸 일을 첫 스토리로 남겨 보세요." : "일일 퀘스트를 해내고 첫 기록을 공유해 보세요."}</div>` + suggestCard();
   }
   const fresh = S.feedSeen ? items.filter(p => p.createdAt > S.feedSeen && p.author !== S.me) : [];
   const rest = items.filter(p => !fresh.includes(p));
@@ -1457,7 +1460,7 @@ function viewFeed(){
 function personRow(u){
   const f = isFollowing(S.me, u), s = statsOf(u);
   return `<div class="row">${av(u, 44)}<span class="t" data-act="profile" data-u="${esc(u)}" role="button" tabindex="0"><b>${esc(nameOf(u))} <span class="pillLv">Lv.${s.L}</span></b><small>${esc(prof(u).bio || rankOf(s.L))}</small></span>
-    ${canAct() ? `<button class="btn ${f?"sec":"soft"} sm" data-act="follow" data-u="${esc(u)}">${f?"팔로잉":"팔로우"}</button>` : ""}</div>`;
+    ${canAct() ? `<button class="btn ${f || pendingTo(u) ?"sec":"soft"} sm" data-act="follow" data-u="${esc(u)}">${folLabel(u)}</button>` : ""}</div>`;
 }
 function suggestCard(){
   if (!hasProfile()) return "";
@@ -1562,12 +1565,12 @@ function storyComposer(){
     ${ph.length ? `<div class="thumbs">${ph.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="inunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
     ${sel || selQ ? `<span class="qsel"><button class="btn soft sm" data-act="qpick">${sel ? esc(goalLabel(sel)) : "🔥 " + esc(selQ.name)}</button><button class="qx" data-act="inref" data-v="" aria-label="퀘스트 연결 빼기">×</button></span>` : ""}
     ${sel && sel.metric ? (() => { const lv = lastVal(sel); return `<div class="field svalf"><label class="lab" for="ps-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lv)}${esc(sel.metric.unit)} · 목표 ${numFmt(sel.metric.target)}${esc(sel.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ps-val" placeholder="${numFmt(lv)}" value="${D("ps-val")}"><span>${esc(sel.metric.unit)}</span></div></div>`; })() : ""}
-    <div class="sact"><div class="sbtns"><button class="btn sec sm ibtn" data-act="qpick">${I.target}퀘스트</button><button class="btn sec sm ibtn" data-act="inphoto" ${ph.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진</button></div><button class="btn sm" data-act="inpost" ${S.busy?"disabled":""}>공유하기</button></div></section>`;
+    <div class="sact"><div class="sbtns"><button class="btn sec sm ibtn" data-act="qpick">${I.target}퀘스트</button>${community ? "" : `<button class="btn sec sm ibtn" data-act="inphoto" ${ph.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진</button>`}</div><button class="btn sm" data-act="inpost" ${S.busy?"disabled":""}>공유하기</button></div></section>`;
 }
 function profHead(uid){ const mine = uid === S.me, p = prof(uid), posts = feedSorted().filter(x => x.author === uid);
   const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
   const can = !mine && hasProfile() && S.canWrite, f = isFollowing(S.me, uid), bl = isBlocked(uid);
-  const side = mine ? (S.canWrite ? `<button class="editp" data-act="sheet" data-k="profile">프로필 편집</button>` : "") : (can && !bl ? `<button class="editp fbtn ${f ? "" : "on"}" data-act="follow" data-u="${esc(uid)}">${f ? "팔로잉" : "팔로우"}</button>` : can && bl ? `<button class="editp" data-act="unblock" data-u="${esc(uid)}">차단 해제</button>` : "");
+  const side = mine ? (S.canWrite ? `<button class="editp" data-act="sheet" data-k="profile">프로필 편집</button>` : "") : (can && !bl ? `<button class="editp fbtn ${f || pendingTo(uid) ? "" : "on"}" data-act="follow" data-u="${esc(uid)}">${folLabel(uid)}</button>` : can && bl ? `<button class="editp" data-act="unblock" data-u="${esc(uid)}">차단 해제</button>` : "");
   const dots = can ? `<button class="pdots" data-act="umenu" data-u="${esc(uid)}" aria-label="더보기"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>` : "";
   return charCard(uid, `${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ""}
     <div class="counts ccl"><button data-act="dstory" data-u="${esc(uid)}"><b class="num">${posts.length}</b><span>스토리</span></button><button data-act="flist" data-v="followers" data-u="${esc(uid)}"><b class="num">${followers}</b><span>팔로워</span></button><button data-act="flist" data-v="following" data-u="${esc(uid)}"><b class="num">${following}</b><span>팔로잉</span></button></div>
@@ -1685,7 +1688,9 @@ const snippet = p => p.text || (p.ref ? p.ref.label : "") || "사진";
 function viewActivity(){
   const items = activityItems(), newN = items.filter(x => x.at > S.actSeenView).length;
   let h = `<h2 class="hello">${newN ? `새 알림이<br><em>${newN}개</em> 있어요` : "새 알림을<br>모두 확인했어요"}</h2>`;
-  if (!items.length) return h + `<div class="card empty">기록을 공유하면 공감과 답글이 여기 쌓여요.</div>`;
+  const reqs = followReqs();
+  if (reqs.length) h += `<p class="sect3">팔로우 요청 ${reqs.length}</p><section class="card tight freqs">${reqs.map(x => `<div class="row">${av(x.uid, 40)}<span class="t"><b>${esc(nameOf(x.uid))}</b><small>${ago(x.at)}</small></span><button class="btn sm" data-act="freq-ok" data-u="${esc(x.uid)}">수락</button><button class="btn sec sm" data-act="freq-no" data-u="${esc(x.uid)}">거절</button></div>`).join("")}</section>`;
+  if (!items.length) return h + (reqs.length ? "" : `<div class="card empty">기록을 공유하면 공감과 답글이 여기 쌓여요.</div>`);
   const row = x => {
     const nm = `<b style="font-weight:700;display:inline">${esc(nameOf(x.who))}</b>`; let title = "", sub = "", right = "";
     if (x.type === "like"){ title = `${nm}님이 내 기록에 공감했어요`; sub = snippet(x.p); right = `<span style="color:var(--heart);display:flex;width:22px">${I.heartOn}</span>`; }
@@ -1928,7 +1933,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-p="${p.id}" data-u="${esc(a)}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
     return sheetWrap(mine ? "내 스토리" : esc(nameOf(a)) + "님의 스토리", "", `<div class="sheetlist mlist">${mine
       ? item("editpost", "수정", "글과 수치 기록을 고쳐요") + item("ptoggle-reply", p.noReply ? "답글 기능 켜기" : "답글 기능 끄기", p.noReply ? "지금은 답글을 받을 수 없어요" : "") + item("ptoggle-likes", p.hideLikes ? "공감 수 보이기" : "공감 수 숨기기", p.hideLikes ? "다른 사람에게 공감 수가 안 보여요" : "") + item("delpost", S.armed === "dp"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", "", true)
-      : item("follow", f ? "팔로우 취소" : "팔로우", "") + item("phide", "이 스토리 숨기기", "커뮤니티에서 다시 보이지 않아요") + item("block", S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true)}</div>`); }
+      : item("follow", f ? "팔로우 취소" : "팔로우", "") + item("phide", "이 스토리 숨기기", "커뮤니티에서 다시 보이지 않아요") + item("block", S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true) + (TRIAL ? "" : item("preport", "신고", "부적절한 스토리를 운영자에게 알려요", true))}</div>`); }
   if (c.type === "navedit"){ const order = navOrder(), up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>`, dn = up.replace("M6 15l6-6 6 6", "M6 9l6 6 6-6");
     const row = (h, i) => { const [l, svg] = NAV[h]; return `<div class="row navedit-row"><span class="nvic">${svg}</span><span class="t"><b>${l}</b></span><button class="iconbtn" data-act="nav-mv" data-v="${h}" data-d="-1" aria-label="${l} 위로" ${i ? "" : "disabled"}>${up}</button><button class="iconbtn" data-act="nav-mv" data-v="${h}" data-d="1" aria-label="${l} 아래로" ${i < order.length - 1 ? "" : "disabled"}>${dn}</button></div>`; };
     return sheetWrap("메뉴 순서", "", `<p class="navedit-hint">화살표로 순서를 바꿔요. 휴대폰에서는 위의 ${NAV_BAR}개가 하단 메뉴에 보여요. 전체 메뉴는 왼쪽 위 메뉴 버튼에서 열 수 있어요.</p>
@@ -1964,7 +1969,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     <button class="btn big full" data-act="submit-taskadd" ${S.busy?"disabled":""}>추가</button>`);
   if (c.type === "flist"){ const fol = c.kind === "followers", ids = Object.values(S.follows).filter(f => fol ? f.to === c.uid : f.from === c.uid).sort((a,b) => (b.at||0) - (a.at||0)).map(f => fol ? f.from : f.to).filter(x => x !== c.uid);
     return sheetWrap(fol ? `팔로워 ${ids.length}` : `팔로잉 ${ids.length}`, "", ids.length ? `<div class="fl-list">${ids.map(u => { const p = prof(u), me0 = u === S.me, f = isFollowing(S.me, u);
-      return `<div class="fl-row">${av(u, 44)}<button class="t" data-act="profile" data-u="${esc(u)}"><b>${esc(nameOf(u))}${me0 ? " (나)" : ""}</b><small>Lv.${statsOf(u).L}${p.bio ? " · " + esc(p.bio) : ""}</small></button>${!me0 && hasProfile() && S.canWrite ? `<button class="btn ${f ? "sec" : "soft"} sm" data-act="follow" data-u="${esc(u)}">${f ? "팔로잉" : "팔로우"}</button>` : ""}</div>`; }).join("")}</div>` : `<p class="empty-row">${fol ? "아직 팔로워가 없어요." : "아직 팔로잉하는 사람이 없어요."}</p>`); }
+      return `<div class="fl-row">${av(u, 44)}<button class="t" data-act="profile" data-u="${esc(u)}"><b>${esc(nameOf(u))}${me0 ? " (나)" : ""}</b><small>Lv.${statsOf(u).L}${p.bio ? " · " + esc(p.bio) : ""}</small></button>${!me0 && hasProfile() && S.canWrite ? `<button class="btn ${f || pendingTo(u) ? "sec" : "soft"} sm" data-act="follow" data-u="${esc(u)}">${folLabel(u)}</button>` : ""}</div>`; }).join("")}</div>` : `<p class="empty-row">${fol ? "아직 팔로워가 없어요." : "아직 팔로잉하는 사람이 없어요."}</p>`); }
   if (c.type === "confirm") return sheetWrap("", "", `<div class="cfbox"><h3>${c.t}</h3>${c.d ? `<p>${c.d}</p>` : ""}<div class="btnrow">${c.alert ? `<button class="btn big full" data-act="cfno">확인</button>` : `<button class="btn sec big" data-act="cfno">취소</button><button class="btn big ${c.safe ? "" : "cfdel"}" data-act="cfok">${c.ok}</button>`}</div></div>`);
   if (c.type === "mlog"){ const pj = S.projects[c.pid]; if (!pj || !pj.metric){ closeSheet(); return; } const m = pj.metric, lv = lastVal(pj), u = esc(m.unit);
     return sheetWrap(`수치 기록`, "", `<p class="mlog-t">${esc(pj.title)}</p>
@@ -2059,7 +2064,7 @@ function postSheet(quick){
       linkChips(r ? r.id : null, "cref", "연결", false)}
     ${pj && pj.metric ? `<div class="field"><label class="lab" for="po-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lastV)}${esc(pj.metric.unit)} · 목표 ${numFmt(pj.metric.target)}${esc(pj.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="po-val" placeholder="${numFmt(lastV)}" value="${D("po-val")}"><span>${esc(pj.metric.unit)}</span></div></div>` : ""}
     <div class="field"><textarea id="po-text" rows="4" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("po-text")}</textarea></div>
-    <div class="field"><span class="lab">사진 <span class="hint">최대 ${MAX_IMGS}장</span></span><div class="thumbs">${c.photos.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="cunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}${c.photos.length < MAX_IMGS ? `<button class="addph" data-act="cphoto">+ 사진</button>` : ""}</div></div>
+    ${community ? "" : `<div class="field"><span class="lab">사진 <span class="hint">최대 ${MAX_IMGS}장</span></span><div class="thumbs">${c.photos.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="cunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}${c.photos.length < MAX_IMGS ? `<button class="addph" data-act="cphoto">+ 사진</button>` : ""}</div></div>`}
     <button class="btn big full" data-act="submit-post" ${S.busy?"disabled":""}>공유하기</button>`);
 }
 function replySheet(){
@@ -2259,7 +2264,10 @@ document.addEventListener("click", e => {
     case "block": { if (S.armed !== "bl"+u){ arm("bl"+u); if (S.compose) renderSheet(); return; } S.armed = null; const st = getSet(); if (S.compose && (S.compose.type === "pmenu" || S.compose.type === "umenu")) closeSheet();
       run(async () => { await api.putMine("settings", {kind:"settings", ...st, blocked:[...new Set([...st.blocked, u])]}); if (isFollowing(S.me, u)) await api.follow(u, false); }, () => toast(`${esc(nameOf(u))}님을 차단했어요`)); return; }
     case "umenu": openSheet({type:"umenu", u}); return;
-    case "ureport": closeSheet(); toast("신고가 접수됐어요. 검토 후 조치할게요"); return;
+    case "ureport": case "preport": { closeSheet(); const done = () => toast("신고가 접수됐어요. 검토 후 조치할게요");
+      if (!community) return done(); community.report(a === "preport" ? "post" : "user", a === "preport" ? pid : u).then(done, e => toast(esc(e.message || "신고하지 못했어요. 잠시 후 다시 시도해 주세요."))); return; }
+    case "freq-ok": case "freq-no": { if (!community) return; const ok = a === "freq-ok";
+      community[ok ? "accept" : "reject"](u).then(() => { S.followReqs = (S.followReqs || []).filter(x => x.uid !== u); toast(ok ? "팔로우 요청을 수락했어요" : "팔로우 요청을 거절했어요"); schedule(); community.refresh(); }, e => toast(esc(e.message || "처리하지 못했어요"))); return; }
     case "unblock": { if (S.compose && S.compose.type === "umenu") closeSheet(); const st = getSet(); run(() => api.putMine("settings", {kind:"settings", ...st, blocked:st.blocked.filter(x => x !== u)}), () => toast("차단을 해제했어요")); return; }
     case "unhide": { const st = getSet(); st.hidden.splice(+b.dataset.i, 1); run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
     case "tfold": { const l = LS.get("tfold", []), k = b.dataset.k; LS.set("tfold", l.includes(k) ? l.filter(x => x !== k) : [...l, k]); break; }
@@ -2304,7 +2312,9 @@ document.addEventListener("click", e => {
     case "open": e.stopPropagation(); openPost(pid); return;
     case "project": e.stopPropagation(); if (c && c.type === "areainfo") closeSheet(); openGoal(pid); return;
     case "profile": e.stopPropagation(); if (S.compose && S.compose.type === "flist") closeSheet(); openProfile(u); return;
-    case "follow": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } { const f = !isFollowing(S.me, u); if (S.compose && S.compose.type === "pmenu") closeSheet(); run(() => api.follow(u, f), () => { if (S.compose && S.compose.type === "flist") renderSheet(); }); toast(f ? `${esc(nameOf(u))}님을 팔로우했어요` : "팔로우를 취소했어요"); } return;
+    case "follow": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } { const f = !(isFollowing(S.me, u) || pendingTo(u)), ask0 = f && community && prof(u).private; if (S.compose && S.compose.type === "pmenu") closeSheet();
+      S.followPending = {...(S.followPending || {})}; if (ask0) S.followPending[u] = true; else delete S.followPending[u];
+      run(() => api.follow(u, f), () => { if (S.compose && S.compose.type === "flist") renderSheet(); }); toast(ask0 ? `${esc(nameOf(u))}님에게 팔로우를 요청했어요` : f ? `${esc(nameOf(u))}님을 팔로우했어요` : "팔로우를 취소했어요"); } return;
     case "like": { const p = S.feed[pid]; if (!p || !canAct() || p.author === S.me) return; const was = liked(p); run(() => api.like(pid, !was)); if (!was) burstAt(b.closest(".body").querySelector("[data-dt]")); return; }
     case "rlike": { const r = S.replies[b.dataset.c]; if (!r) return; run(() => api.likeReply(r.id, !on((r.likes||{})[S.me]))); return; }
     case "reply": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"reply", pid, cid:b.dataset.c || null, to:b.dataset.to || b.dataset.c || null}); setTimeout(() => { const t = $("#rp-text"); t && t.focus(); }, 60); return;
@@ -2576,5 +2586,9 @@ api = runtime.createAPI({state:S, storage, id:uid8, now:Date.now, color:COLORS[0
 MY = computeMine(); S.lastXp = MY.xp; S.lastLv = MY.L;
 applyTheme(); route(); schedule();
 if (!entryScreen && bkDue()){ LS.set("bkNudgeAt", Date.now()); openSheet({type:"bknudge"}); }
-return {state:S, api, snapshot:() => storage.capture(S), confirm:askAsync, notify:msg => toast(esc(msg)), refresh:schedule};
+/* 배포판 커뮤니티: 서버에서 받은 스토리·답글·팔로우를 화면 상태에 넣는다(저장은 하지 않음). 무언가 입력하는 중이면 미룬다. */
+const adopt = (snap, extra = {}) => { if (S.compose) return false;
+  try { storage.hydrate(S, snap); } catch { return false; }
+  S.followPending = extra.pending || {}; S.followReqs = extra.requests || []; schedule(); return true; };
+return {state:S, api, snapshot:() => storage.capture(S), confirm:askAsync, notify:msg => toast(esc(msg)), refresh:schedule, adopt};
 }

@@ -413,6 +413,7 @@ body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}bo
 .drw button{display:flex;align-items:center;gap:14px;width:100%;padding:12px 14px;border:0;border-radius:14px;background:none;color:var(--muted);font-size:16px;font-weight:500;text-align:left}
 .drw button svg{width:24px;height:24px;flex:none}.drw button:active{background:var(--fill)}
 .drw [aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.freqs .row{gap:8px}.freqs .row .btn{flex:none}
 .drw-foot{margin-top:auto;padding-top:10px;border-top:1px solid var(--line)}
 .ch h2 .cnt{font-size:14px;color:var(--accent);margin-left:4px}
 .ch .side .btnlink{border:0;background:none;color:var(--accent);font-weight:700;padding:0;font-size:inherit}
@@ -1312,13 +1313,14 @@ const modules={"cloud-entry.js":function(__require,__exports){
 const {bootstrap} = __require("bootstrap.js");
 const {NAMESPACES} = __require("storage.js");
 const {createCloud, loadState, createSync, applyPrefs} = __require("cloud.js");
+const {createCommunity, mergeView, ownOnly} = __require("community.js");
 const {mountAuth} = __require("auth-screen.js");
 
 const host = window, ls = host.localStorage, KEY = NAMESPACES.empty, PREF_KEY = KEY + ':preferences';
 const site = host.location.origin + host.location.pathname;
 const cloud = createCloud({fetch:host.fetch.bind(host), ls, site});
 const root = host.document.querySelector('#app');
-let auth = null, sync = null, app = null, leaving = false;
+let auth = null, sync = null, app = null, comm = null, leaving = false;
 
 function download(label, snapshot){
   try {
@@ -1341,26 +1343,30 @@ function showAuth(initial){ if (auth) auth.unmount(); auth = mountAuth({root, bo
 
 async function enter(notice){
   if (!auth) showAuth({view:'loading'}); else auth.set({view:'loading', info:'', error:''});
-  let st;
-  try { st = await loadState({cloud, ls, key:KEY, backup:download}); }
+  let st, view = null;
+  comm = createCommunity({rest:cloud.rest, me:() => cloud.user().id, onState:s => bar('comm', s)});
+  try { [st, view] = await Promise.all([loadState({cloud, ls, key:KEY, backup:download}), comm.fetchView().catch(() => null)]); } // 커뮤니티를 못 불러와도 앱은 시작한다
   catch (e) {
     if (!cloud.user()) return showAuth({view:'login', error:e.message});
     return auth.set({view:'error', error:e.message, busy:false}); // 기록이 서버에만 있으니 연결돼야 시작할 수 있다
   }
   if (st.prefs) applyPrefs(ls, PREF_KEY, st.prefs);
-  start(notice || st.notice, st);
+  start(notice || st.notice, st, view);
 }
 
-// 저장 실패 알림 막대: 저장될 때까지 화면 아래에 남는다.
+// 저장 실패 알림 막대: 기록과 커뮤니티 둘 다 저장될 때까지 화면 아래에 남는다.
+let bar = () => {};
 function saveBar(){
   const el = host.document.createElement('div');
   el.className = 'savebar'; el.setAttribute('role', 'alert'); el.hidden = true;
   el.innerHTML = '<span class="savebar-t"></span><button type="button" class="btn sm">다시 시도</button>';
   host.document.body.appendChild(el);
   const t = el.querySelector('.savebar-t'), b = el.querySelector('button');
-  b.addEventListener('click', () => sync && sync.flush());
-  return state => {
-    if (state === 'saved'){ el.hidden = true; return; }
+  b.addEventListener('click', () => { if (sync) sync.flush(); if (comm) comm.flush(); });
+  const bad = {};
+  return (src, state) => {
+    if (state === 'offline' || state === 'error') bad[src] = state; else if (state === 'saved') delete bad[src];
+    if (state === 'saved'){ const left = Object.values(bad)[0]; if (!left){ el.hidden = true; return; } state = left; }
     if (state === 'offline' || state === 'error'){
       t.textContent = state === 'offline' ? '연결이 끊겨 저장되지 않았어요' : '저장되지 않았어요';
       b.disabled = false; b.textContent = '다시 시도'; el.hidden = false; return;
@@ -1369,13 +1375,14 @@ function saveBar(){
   };
 }
 
-function start(notice, st){
+function start(notice, st, view){
   if (auth){ auth.unmount(); auth = null; }
-  sync = createSync({cloud, ls, key:KEY, initial:st.text, at:st.at, onState:saveBar()});
+  bar = saveBar();
+  sync = createSync({cloud, ls, key:KEY, initial:st.text, at:st.at, onState:s => bar('rec', s), shape:ownOnly, onChange:text => { try { comm.change(JSON.parse(text)); } catch { /* 다음 저장 때 */ } }});
   const leave = go => { leaving = true; go(); };
   const account = {
     email:cloud.user().email,
-    async signOut(){ await sync.flush(); if (sync.pending() && !(await app.confirm('아직 저장하지 못한 기록이 있어요. 지금 로그아웃하면 저장하지 못한 내용은 사라져요. 그래도 로그아웃할까요?'))) return;
+    async signOut(){ await Promise.all([sync.flush(), comm.flush()]); if ((sync.pending() || comm.pending()) && !(await app.confirm('아직 저장하지 못한 기록이 있어요. 지금 로그아웃하면 저장하지 못한 내용은 사라져요. 그래도 로그아웃할까요?'))) return;
       await cloud.signOut(); leave(() => host.location.replace(site)); },
     async deleteAccount(){ await cloud.deleteAccount(); leave(() => host.location.replace(site)); }
   };
@@ -1385,18 +1392,36 @@ function start(notice, st){
     while (sync.pending() && await app.confirm('서버에 저장하지 못했어요. 다시 시도할까요? 취소하면 이번 변경은 반영되지 않아요.')) await sync.flush();
     leave(() => host.location.reload());
   };
-  app = bootstrap({host, driver:sync.driver, account, reload});
+  const community = {
+    report:(type, id) => comm.report(type, id),
+    accept:uid => comm.accept(uid), reject:uid => comm.reject(uid),
+    refresh:() => refreshCommunity(true)
+  };
+  app = bootstrap({host, driver:sync.driver, account, reload, community});
+  if (view) adoptView(view);
   if (notice) setTimeout(() => app.notify(notice), 300);
-  host.addEventListener('beforeunload', e => { if (leaving || !sync.pending()) return; sync.flush(); e.preventDefault(); e.returnValue = ''; });
-  host.addEventListener('online', () => sync.flush());
-  host.setInterval(() => { if (sync.pending()) sync.flush(); }, 30000);
+  host.addEventListener('beforeunload', e => { if (leaving || !(sync.pending() || comm.pending())) return; sync.flush(); comm.flush(); e.preventDefault(); e.returnValue = ''; });
+  host.addEventListener('online', () => { sync.flush(); comm.flush(); });
+  host.setInterval(() => { if (sync.pending()) sync.flush(); if (comm.pending()) comm.flush(); }, 30000);
+  host.setInterval(() => refreshCommunity(), 60000); // 새 스토리·공감·답글 받아오기
   // 다른 기기에서 바뀐 기록 확인: 화면으로 돌아올 때 서버가 더 새로우면 다시 불러온다.
   host.document.addEventListener('visibilitychange', async () => {
-    if (host.document.visibilityState === 'hidden'){ sync.flush(); return; }
+    if (host.document.visibilityState === 'hidden'){ sync.flush(); comm.flush(); return; }
+    refreshCommunity();
     if (sync.pending() || !cloud.user()) return;
     try { const row = await cloud.pull(); if (row && row.updated_at !== sync.at() && !sync.pending()){
       host.sessionStorage.setItem('quest:cloud:notice', '다른 기기에서 바뀐 기록을 불러왔어요'); leave(() => host.location.reload()); } } catch { /* 다음에 다시 확인 */ }
   });
+}
+
+/* 커뮤니티: 서버 보기를 화면 상태에 넣고, 그 상태를 기준으로 내 몫을 올리기 시작한다. */
+function adoptView(view){ const merged = mergeView(app.snapshot(), view); if (app.adopt(merged, view)) comm.ready(view, merged); }
+let refreshing = false;
+async function refreshCommunity(force){
+  if (!app || !comm || refreshing || comm.pending() || sync.pending() || !cloud.user() || (!force && host.document.visibilityState === 'hidden')) return;
+  refreshing = true;
+  try { const view = await comm.fetchView(); if (!comm.pending() && !sync.pending()) adoptView(view); } catch { /* 다음에 다시 */ }
+  finally { refreshing = false; }
 }
 
 (async () => {
@@ -1422,7 +1447,7 @@ const {createAPI} = __require("runtime.js");
 const {startLegacyApp} = __require("legacy-app.js");
 const {installBackups} = __require("backups.js");
 
-function bootstrap({mode = 'empty', seed = null, host = window, driver = null, account = null, reload = null} = {}) {
+function bootstrap({mode = 'empty', seed = null, host = window, driver = null, account = null, reload = null, community = null} = {}) {
   try {
     // Access can itself fail for file:// or disabled persistence. Do not pretend success.
     const storage = createStorage({driver:driver || host.localStorage, mode, onError:error => host.alert('로컬 저장 실패: '+error.message)});
@@ -1430,7 +1455,7 @@ function bootstrap({mode = 'empty', seed = null, host = window, driver = null, a
     const label = host.document.querySelector('#demo-label');
     // Release builds hide the dev banner; only the demo build shows it, as a sample-data notice.
     if (mode === 'demo' && label && host.document.documentElement.dataset.edition !== 'trial') { label.textContent = ' · 가상 데이터 데모'; if (label.parentNode) label.parentNode.hidden = false; }
-    const app = startLegacyApp({runtime:{createAPI}, storage, seed, account});
+    const app = startLegacyApp({runtime:{createAPI}, storage, seed, account, community});
     installBackups({document:host.document, storage, getState:() => app.state,
       confirm:app.confirm || host.confirm.bind(host), alert:app.notify || host.alert.bind(host), reload:reload || (() => host.location.reload()), URL:host.URL, Blob:host.Blob,
       onExport:() => app.refresh && app.refresh(),
@@ -1634,7 +1659,7 @@ function createAPI({state, storage, id, now = Date.now, color = '#3DBE8B'}) {
     purchaseAction:write((s, key, action) => purchaseAction(s,key,action,now())),
     equip:write((s, itemId) => equipStyle(s,itemId)),
     chooseMilestone:write((s, level, itemId) => chooseMilestone(s,level,itemId,now())),
-    saveProfile:write((s, p) => { s.profiles[me] = {uid:me, nick:'로컬 테스트', color, bio:'', private:true, ...s.profiles[me], ...clone(p)}; }),
+    saveProfile:write((s, p) => { s.profiles[me] = {uid:me, nick:'로컬 테스트', color, bio:'', private:false, ...s.profiles[me], ...clone(p)}; }),
     saveStats:write((s, stats) => { doc(s.profiles, me).stats = clone(stats); }),
     putMine:write((s, key, value) => put(s.mine, key, value)),
     delMine:write((s, key) => { delete s.mine[key]; }),
@@ -1946,7 +1971,7 @@ const {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, econom
 const {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete} = __require("notes.js");
 const {LEGAL_META, TERMS, PRIVACY} = __require("legal.js");
 const {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} = __require("day-activities.js");
-function startLegacyApp({runtime, storage, seed = null, account = null}) {
+function startLegacyApp({runtime, storage, seed = null, account = null, community = null}) {
 const entryParams = new URLSearchParams(location.search || '');
 // UI routes only. These flags are not an authentication/session boundary.
 const requestedScreen = entryParams.get('screen') || document.documentElement.dataset.entryScreen;
@@ -2285,7 +2310,10 @@ const nameOf = id => prof(id).nick || S.names[id] || "이름 없는 모험가";
 const colorOf = id => safeColor(prof(id).color);
 const hasProfile = () => !!(S.me && S.profiles[S.me]);
 const canAct = () => S.canWrite && hasProfile();
-const isFollowing = (a, b) => !!S.follows[keyOf(a)+"~"+keyOf(b)];
+const pendingTo = u => !!(S.followPending && S.followPending[u]);
+const followReqs = () => (S.followReqs || []).filter(x => !isBlocked(x.uid));
+const isFollowing = (a, b) => !!S.follows[keyOf(a)+"~"+keyOf(b)] && !(a === S.me && pendingTo(b));
+const folLabel = u => isFollowing(S.me, u) ? "팔로잉" : pendingTo(u) ? "요청됨" : "팔로우";
 function chibi(color, L, face, size){ const src = face && (face.startsWith("data:") ? face : S.media[face]);
   const fc = src ? `<span class="cface"><img src="${esc(src)}" alt="" draggable="false"></span>` : `<span class="cface" data-k="${esc(face)}"></span>`;
   return `<span class="chibi" style="width:${size}px;height:${size}px" aria-hidden="true"><svg viewBox="0 0 100 100"><ellipse cx="50" cy="97" rx="20" ry="3" fill="#000" opacity=".12"/>
@@ -2404,7 +2432,7 @@ const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
   const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || v === "daily" || (v === "profile" && S.view.uid !== S.me);
   const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", daily:"일일 퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
-  const n = activityItems().filter(x => x.at > actSeen).length;
+  const n = activityItems().filter(x => x.at > actSeen).length + followReqs().length;
   setHtml($("#topbar"), `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : `<button class="iconbtn menubtn" data-act="drawer" aria-label="메뉴 열기" aria-expanded="${document.body.classList.contains("drawer")}">${MENU_SVG}</button>`}<h1${sub ? "" : ' class="tmain"'}>${title}</h1>
     ${S.me && !TRIAL && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}`);
 }
@@ -3257,7 +3285,7 @@ const sw = (act, on0, extra = "") => `<button class="sw ${on0 ? "on" : ""}" data
 /* 본판 설정: 계정 · 화면 · 알림 · 개인정보 보호 · 데이터 · 정보, 맨 아래 회원 탈퇴. */
 const notifSection = st => `<p class="sect3">알림</p><section class="card tight">${[["like","공감","내 글과 답글에 공감했을 때"],["reply","답글","내 글에 답글이 달렸을 때"],["follow","팔로우","새 팔로워가 생겼을 때"]].map(([k,l,d]) => `<div class="row"><span class="t"><b>${l}</b><small>${d}</small></span>${sw("setn", st.notif[k], `data-k="${k}"`)}</div>`).join("")}</section>`;
 const privacySection = (st, me) => `<p class="sect3">개인정보 보호</p><section class="card tight">
-    <div class="row"><span class="t"><b>계정 비공개</b><small>팔로워만 내 스토리를 볼 수 있어요</small></span>${sw("setpriv", !!me.private)}</div>
+    <div class="row"><span class="t"><b>계정 비공개</b><small>${community ? "내가 수락한 팔로워만 내 스토리를 볼 수 있어요" : "팔로워만 내 스토리를 볼 수 있어요"}</small></span>${sw("setpriv", !!me.private)}</div>
     <button class="row" data-act="toggle" data-k="blk"><span class="t"><b>차단한 계정</b><small>${st.blocked.length ? `${st.blocked.length}명` : "없음"}</small></span><span class="chev2 ${S.openBlk?"open":""}">${I.chev}</span></button>
     ${S.openBlk ? st.blocked.map(u => `<div class="row nested">${av(u, 36, false)}<span class="t"><b>${esc(nameOf(u))}</b></span><button class="btn sec xs" data-act="unblock" data-u="${esc(u)}">해제</button></div>`).join("") : ""}
     <div class="row" style="flex-wrap:wrap"><span class="t"><b>숨길 단어</b><small>이 단어가 들어간 답글은 보이지 않아요</small></span></div>
@@ -3361,7 +3389,7 @@ function postRow(p, o = {}){
     <div class="rail">${av(a, 40)}${o.line ? '<span class="ln"></span>' : ""}</div>
     <div class="body">
       <div class="ph"><button class="nm" data-act="profile" data-u="${esc(a)}">${esc(nameOf(a))}</button><span class="pillLv">Lv.${s.L}</span><time>${ago(p.createdAt)}${p.editedAt ? " · 수정됨" : ""}</time>
-        ${showFollow ? `<button class="btn ${fol ? "sec" : "soft"} sm fol" data-act="follow" data-u="${esc(a)}">${fol ? "팔로잉" : "팔로우"}</button>` : ""}${hasProfile() && S.canWrite ? `<button class="pmenu" data-act="pmenu" data-p="${p.id}" aria-label="게시물 메뉴">${I.menu}</button>` : ""}</div>
+        ${showFollow ? `<button class="btn ${fol || pendingTo(a) ? "sec" : "soft"} sm fol" data-act="follow" data-u="${esc(a)}">${folLabel(a)}</button>` : ""}${hasProfile() && S.canWrite ? `<button class="pmenu" data-act="pmenu" data-p="${p.id}" aria-label="게시물 메뉴">${I.menu}</button>` : ""}</div>
       ${refHtml(p)}
 
       ${metricFor(p)}
@@ -3385,7 +3413,7 @@ function viewFeed(){
   let h = (TRIAL ? `<section class="card trialnote"><b>커뮤니티는 정식 버전에서 열려요</b><p>지금은 체험판이라 다른 사람의 소식은 보이지 않아요. 내가 올린 스토리는 여기와 스토리 메뉴에 쌓여요.</p></section>` : "") + (canAct() ? storyComposer() : "");
   let items = feedSorted();
   if (!items.length){
-    return h + `<div class="card empty"><strong>아직 스토리가 없어요</strong>${TRIAL ? "오늘 해낸 일을 첫 스토리로 남겨 보세요." : "일일 퀘스트를 해내고 첫 기록을 공유해 보세요."}</div>`;
+    return h + `<div class="card empty"><strong>아직 스토리가 없어요</strong>${TRIAL ? "오늘 해낸 일을 첫 스토리로 남겨 보세요." : "일일 퀘스트를 해내고 첫 기록을 공유해 보세요."}</div>` + suggestCard();
   }
   const fresh = S.feedSeen ? items.filter(p => p.createdAt > S.feedSeen && p.author !== S.me) : [];
   const rest = items.filter(p => !fresh.includes(p));
@@ -3401,7 +3429,7 @@ function viewFeed(){
 function personRow(u){
   const f = isFollowing(S.me, u), s = statsOf(u);
   return `<div class="row">${av(u, 44)}<span class="t" data-act="profile" data-u="${esc(u)}" role="button" tabindex="0"><b>${esc(nameOf(u))} <span class="pillLv">Lv.${s.L}</span></b><small>${esc(prof(u).bio || rankOf(s.L))}</small></span>
-    ${canAct() ? `<button class="btn ${f?"sec":"soft"} sm" data-act="follow" data-u="${esc(u)}">${f?"팔로잉":"팔로우"}</button>` : ""}</div>`;
+    ${canAct() ? `<button class="btn ${f || pendingTo(u) ?"sec":"soft"} sm" data-act="follow" data-u="${esc(u)}">${folLabel(u)}</button>` : ""}</div>`;
 }
 function suggestCard(){
   if (!hasProfile()) return "";
@@ -3506,12 +3534,12 @@ function storyComposer(){
     ${ph.length ? `<div class="thumbs">${ph.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="inunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
     ${sel || selQ ? `<span class="qsel"><button class="btn soft sm" data-act="qpick">${sel ? esc(goalLabel(sel)) : "🔥 " + esc(selQ.name)}</button><button class="qx" data-act="inref" data-v="" aria-label="퀘스트 연결 빼기">×</button></span>` : ""}
     ${sel && sel.metric ? (() => { const lv = lastVal(sel); return `<div class="field svalf"><label class="lab" for="ps-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lv)}${esc(sel.metric.unit)} · 목표 ${numFmt(sel.metric.target)}${esc(sel.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ps-val" placeholder="${numFmt(lv)}" value="${D("ps-val")}"><span>${esc(sel.metric.unit)}</span></div></div>`; })() : ""}
-    <div class="sact"><div class="sbtns"><button class="btn sec sm ibtn" data-act="qpick">${I.target}퀘스트</button><button class="btn sec sm ibtn" data-act="inphoto" ${ph.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진</button></div><button class="btn sm" data-act="inpost" ${S.busy?"disabled":""}>공유하기</button></div></section>`;
+    <div class="sact"><div class="sbtns"><button class="btn sec sm ibtn" data-act="qpick">${I.target}퀘스트</button>${community ? "" : `<button class="btn sec sm ibtn" data-act="inphoto" ${ph.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진</button>`}</div><button class="btn sm" data-act="inpost" ${S.busy?"disabled":""}>공유하기</button></div></section>`;
 }
 function profHead(uid){ const mine = uid === S.me, p = prof(uid), posts = feedSorted().filter(x => x.author === uid);
   const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
   const can = !mine && hasProfile() && S.canWrite, f = isFollowing(S.me, uid), bl = isBlocked(uid);
-  const side = mine ? (S.canWrite ? `<button class="editp" data-act="sheet" data-k="profile">프로필 편집</button>` : "") : (can && !bl ? `<button class="editp fbtn ${f ? "" : "on"}" data-act="follow" data-u="${esc(uid)}">${f ? "팔로잉" : "팔로우"}</button>` : can && bl ? `<button class="editp" data-act="unblock" data-u="${esc(uid)}">차단 해제</button>` : "");
+  const side = mine ? (S.canWrite ? `<button class="editp" data-act="sheet" data-k="profile">프로필 편집</button>` : "") : (can && !bl ? `<button class="editp fbtn ${f || pendingTo(uid) ? "" : "on"}" data-act="follow" data-u="${esc(uid)}">${folLabel(uid)}</button>` : can && bl ? `<button class="editp" data-act="unblock" data-u="${esc(uid)}">차단 해제</button>` : "");
   const dots = can ? `<button class="pdots" data-act="umenu" data-u="${esc(uid)}" aria-label="더보기"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>` : "";
   return charCard(uid, `${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ""}
     <div class="counts ccl"><button data-act="dstory" data-u="${esc(uid)}"><b class="num">${posts.length}</b><span>스토리</span></button><button data-act="flist" data-v="followers" data-u="${esc(uid)}"><b class="num">${followers}</b><span>팔로워</span></button><button data-act="flist" data-v="following" data-u="${esc(uid)}"><b class="num">${following}</b><span>팔로잉</span></button></div>
@@ -3629,7 +3657,9 @@ const snippet = p => p.text || (p.ref ? p.ref.label : "") || "사진";
 function viewActivity(){
   const items = activityItems(), newN = items.filter(x => x.at > S.actSeenView).length;
   let h = `<h2 class="hello">${newN ? `새 알림이<br><em>${newN}개</em> 있어요` : "새 알림을<br>모두 확인했어요"}</h2>`;
-  if (!items.length) return h + `<div class="card empty">기록을 공유하면 공감과 답글이 여기 쌓여요.</div>`;
+  const reqs = followReqs();
+  if (reqs.length) h += `<p class="sect3">팔로우 요청 ${reqs.length}</p><section class="card tight freqs">${reqs.map(x => `<div class="row">${av(x.uid, 40)}<span class="t"><b>${esc(nameOf(x.uid))}</b><small>${ago(x.at)}</small></span><button class="btn sm" data-act="freq-ok" data-u="${esc(x.uid)}">수락</button><button class="btn sec sm" data-act="freq-no" data-u="${esc(x.uid)}">거절</button></div>`).join("")}</section>`;
+  if (!items.length) return h + (reqs.length ? "" : `<div class="card empty">기록을 공유하면 공감과 답글이 여기 쌓여요.</div>`);
   const row = x => {
     const nm = `<b style="font-weight:700;display:inline">${esc(nameOf(x.who))}</b>`; let title = "", sub = "", right = "";
     if (x.type === "like"){ title = `${nm}님이 내 기록에 공감했어요`; sub = snippet(x.p); right = `<span style="color:var(--heart);display:flex;width:22px">${I.heartOn}</span>`; }
@@ -3872,7 +3902,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-p="${p.id}" data-u="${esc(a)}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
     return sheetWrap(mine ? "내 스토리" : esc(nameOf(a)) + "님의 스토리", "", `<div class="sheetlist mlist">${mine
       ? item("editpost", "수정", "글과 수치 기록을 고쳐요") + item("ptoggle-reply", p.noReply ? "답글 기능 켜기" : "답글 기능 끄기", p.noReply ? "지금은 답글을 받을 수 없어요" : "") + item("ptoggle-likes", p.hideLikes ? "공감 수 보이기" : "공감 수 숨기기", p.hideLikes ? "다른 사람에게 공감 수가 안 보여요" : "") + item("delpost", S.armed === "dp"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", "", true)
-      : item("follow", f ? "팔로우 취소" : "팔로우", "") + item("phide", "이 스토리 숨기기", "커뮤니티에서 다시 보이지 않아요") + item("block", S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true)}</div>`); }
+      : item("follow", f ? "팔로우 취소" : "팔로우", "") + item("phide", "이 스토리 숨기기", "커뮤니티에서 다시 보이지 않아요") + item("block", S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true) + (TRIAL ? "" : item("preport", "신고", "부적절한 스토리를 운영자에게 알려요", true))}</div>`); }
   if (c.type === "navedit"){ const order = navOrder(), up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>`, dn = up.replace("M6 15l6-6 6 6", "M6 9l6 6 6-6");
     const row = (h, i) => { const [l, svg] = NAV[h]; return `<div class="row navedit-row"><span class="nvic">${svg}</span><span class="t"><b>${l}</b></span><button class="iconbtn" data-act="nav-mv" data-v="${h}" data-d="-1" aria-label="${l} 위로" ${i ? "" : "disabled"}>${up}</button><button class="iconbtn" data-act="nav-mv" data-v="${h}" data-d="1" aria-label="${l} 아래로" ${i < order.length - 1 ? "" : "disabled"}>${dn}</button></div>`; };
     return sheetWrap("메뉴 순서", "", `<p class="navedit-hint">화살표로 순서를 바꿔요. 휴대폰에서는 위의 ${NAV_BAR}개가 하단 메뉴에 보여요. 전체 메뉴는 왼쪽 위 메뉴 버튼에서 열 수 있어요.</p>
@@ -3908,7 +3938,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     <button class="btn big full" data-act="submit-taskadd" ${S.busy?"disabled":""}>추가</button>`);
   if (c.type === "flist"){ const fol = c.kind === "followers", ids = Object.values(S.follows).filter(f => fol ? f.to === c.uid : f.from === c.uid).sort((a,b) => (b.at||0) - (a.at||0)).map(f => fol ? f.from : f.to).filter(x => x !== c.uid);
     return sheetWrap(fol ? `팔로워 ${ids.length}` : `팔로잉 ${ids.length}`, "", ids.length ? `<div class="fl-list">${ids.map(u => { const p = prof(u), me0 = u === S.me, f = isFollowing(S.me, u);
-      return `<div class="fl-row">${av(u, 44)}<button class="t" data-act="profile" data-u="${esc(u)}"><b>${esc(nameOf(u))}${me0 ? " (나)" : ""}</b><small>Lv.${statsOf(u).L}${p.bio ? " · " + esc(p.bio) : ""}</small></button>${!me0 && hasProfile() && S.canWrite ? `<button class="btn ${f ? "sec" : "soft"} sm" data-act="follow" data-u="${esc(u)}">${f ? "팔로잉" : "팔로우"}</button>` : ""}</div>`; }).join("")}</div>` : `<p class="empty-row">${fol ? "아직 팔로워가 없어요." : "아직 팔로잉하는 사람이 없어요."}</p>`); }
+      return `<div class="fl-row">${av(u, 44)}<button class="t" data-act="profile" data-u="${esc(u)}"><b>${esc(nameOf(u))}${me0 ? " (나)" : ""}</b><small>Lv.${statsOf(u).L}${p.bio ? " · " + esc(p.bio) : ""}</small></button>${!me0 && hasProfile() && S.canWrite ? `<button class="btn ${f || pendingTo(u) ? "sec" : "soft"} sm" data-act="follow" data-u="${esc(u)}">${folLabel(u)}</button>` : ""}</div>`; }).join("")}</div>` : `<p class="empty-row">${fol ? "아직 팔로워가 없어요." : "아직 팔로잉하는 사람이 없어요."}</p>`); }
   if (c.type === "confirm") return sheetWrap("", "", `<div class="cfbox"><h3>${c.t}</h3>${c.d ? `<p>${c.d}</p>` : ""}<div class="btnrow">${c.alert ? `<button class="btn big full" data-act="cfno">확인</button>` : `<button class="btn sec big" data-act="cfno">취소</button><button class="btn big ${c.safe ? "" : "cfdel"}" data-act="cfok">${c.ok}</button>`}</div></div>`);
   if (c.type === "mlog"){ const pj = S.projects[c.pid]; if (!pj || !pj.metric){ closeSheet(); return; } const m = pj.metric, lv = lastVal(pj), u = esc(m.unit);
     return sheetWrap(`수치 기록`, "", `<p class="mlog-t">${esc(pj.title)}</p>
@@ -4003,7 +4033,7 @@ function postSheet(quick){
       linkChips(r ? r.id : null, "cref", "연결", false)}
     ${pj && pj.metric ? `<div class="field"><label class="lab" for="po-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lastV)}${esc(pj.metric.unit)} · 목표 ${numFmt(pj.metric.target)}${esc(pj.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="po-val" placeholder="${numFmt(lastV)}" value="${D("po-val")}"><span>${esc(pj.metric.unit)}</span></div></div>` : ""}
     <div class="field"><textarea id="po-text" rows="4" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("po-text")}</textarea></div>
-    <div class="field"><span class="lab">사진 <span class="hint">최대 ${MAX_IMGS}장</span></span><div class="thumbs">${c.photos.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="cunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}${c.photos.length < MAX_IMGS ? `<button class="addph" data-act="cphoto">+ 사진</button>` : ""}</div></div>
+    ${community ? "" : `<div class="field"><span class="lab">사진 <span class="hint">최대 ${MAX_IMGS}장</span></span><div class="thumbs">${c.photos.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="cunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}${c.photos.length < MAX_IMGS ? `<button class="addph" data-act="cphoto">+ 사진</button>` : ""}</div></div>`}
     <button class="btn big full" data-act="submit-post" ${S.busy?"disabled":""}>공유하기</button>`);
 }
 function replySheet(){
@@ -4203,7 +4233,10 @@ document.addEventListener("click", e => {
     case "block": { if (S.armed !== "bl"+u){ arm("bl"+u); if (S.compose) renderSheet(); return; } S.armed = null; const st = getSet(); if (S.compose && (S.compose.type === "pmenu" || S.compose.type === "umenu")) closeSheet();
       run(async () => { await api.putMine("settings", {kind:"settings", ...st, blocked:[...new Set([...st.blocked, u])]}); if (isFollowing(S.me, u)) await api.follow(u, false); }, () => toast(`${esc(nameOf(u))}님을 차단했어요`)); return; }
     case "umenu": openSheet({type:"umenu", u}); return;
-    case "ureport": closeSheet(); toast("신고가 접수됐어요. 검토 후 조치할게요"); return;
+    case "ureport": case "preport": { closeSheet(); const done = () => toast("신고가 접수됐어요. 검토 후 조치할게요");
+      if (!community) return done(); community.report(a === "preport" ? "post" : "user", a === "preport" ? pid : u).then(done, e => toast(esc(e.message || "신고하지 못했어요. 잠시 후 다시 시도해 주세요."))); return; }
+    case "freq-ok": case "freq-no": { if (!community) return; const ok = a === "freq-ok";
+      community[ok ? "accept" : "reject"](u).then(() => { S.followReqs = (S.followReqs || []).filter(x => x.uid !== u); toast(ok ? "팔로우 요청을 수락했어요" : "팔로우 요청을 거절했어요"); schedule(); community.refresh(); }, e => toast(esc(e.message || "처리하지 못했어요"))); return; }
     case "unblock": { if (S.compose && S.compose.type === "umenu") closeSheet(); const st = getSet(); run(() => api.putMine("settings", {kind:"settings", ...st, blocked:st.blocked.filter(x => x !== u)}), () => toast("차단을 해제했어요")); return; }
     case "unhide": { const st = getSet(); st.hidden.splice(+b.dataset.i, 1); run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
     case "tfold": { const l = LS.get("tfold", []), k = b.dataset.k; LS.set("tfold", l.includes(k) ? l.filter(x => x !== k) : [...l, k]); break; }
@@ -4248,7 +4281,9 @@ document.addEventListener("click", e => {
     case "open": e.stopPropagation(); openPost(pid); return;
     case "project": e.stopPropagation(); if (c && c.type === "areainfo") closeSheet(); openGoal(pid); return;
     case "profile": e.stopPropagation(); if (S.compose && S.compose.type === "flist") closeSheet(); openProfile(u); return;
-    case "follow": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } { const f = !isFollowing(S.me, u); if (S.compose && S.compose.type === "pmenu") closeSheet(); run(() => api.follow(u, f), () => { if (S.compose && S.compose.type === "flist") renderSheet(); }); toast(f ? `${esc(nameOf(u))}님을 팔로우했어요` : "팔로우를 취소했어요"); } return;
+    case "follow": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } { const f = !(isFollowing(S.me, u) || pendingTo(u)), ask0 = f && community && prof(u).private; if (S.compose && S.compose.type === "pmenu") closeSheet();
+      S.followPending = {...(S.followPending || {})}; if (ask0) S.followPending[u] = true; else delete S.followPending[u];
+      run(() => api.follow(u, f), () => { if (S.compose && S.compose.type === "flist") renderSheet(); }); toast(ask0 ? `${esc(nameOf(u))}님에게 팔로우를 요청했어요` : f ? `${esc(nameOf(u))}님을 팔로우했어요` : "팔로우를 취소했어요"); } return;
     case "like": { const p = S.feed[pid]; if (!p || !canAct() || p.author === S.me) return; const was = liked(p); run(() => api.like(pid, !was)); if (!was) burstAt(b.closest(".body").querySelector("[data-dt]")); return; }
     case "rlike": { const r = S.replies[b.dataset.c]; if (!r) return; run(() => api.likeReply(r.id, !on((r.likes||{})[S.me]))); return; }
     case "reply": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"reply", pid, cid:b.dataset.c || null, to:b.dataset.to || b.dataset.c || null}); setTimeout(() => { const t = $("#rp-text"); t && t.focus(); }, 60); return;
@@ -4520,7 +4555,11 @@ api = runtime.createAPI({state:S, storage, id:uid8, now:Date.now, color:COLORS[0
 MY = computeMine(); S.lastXp = MY.xp; S.lastLv = MY.L;
 applyTheme(); route(); schedule();
 if (!entryScreen && bkDue()){ LS.set("bkNudgeAt", Date.now()); openSheet({type:"bknudge"}); }
-return {state:S, api, snapshot:() => storage.capture(S), confirm:askAsync, notify:msg => toast(esc(msg)), refresh:schedule};
+/* 배포판 커뮤니티: 서버에서 받은 스토리·답글·팔로우를 화면 상태에 넣는다(저장은 하지 않음). 무언가 입력하는 중이면 미룬다. */
+const adopt = (snap, extra = {}) => { if (S.compose) return false;
+  try { storage.hydrate(S, snap); } catch { return false; }
+  S.followPending = extra.pending || {}; S.followReqs = extra.requests || []; schedule(); return true; };
+return {state:S, api, snapshot:() => storage.capture(S), confirm:askAsync, notify:msg => toast(esc(msg)), refresh:schedule, adopt};
 }
 
 Object.assign(__exports,{startLegacyApp});
@@ -4563,7 +4602,7 @@ const TERMS = [
 const PRIVACY = [
   ["안내", `<p>${M.operator}(이하 "운영자")는 개인정보 보호법에 따라 이용자의 개인정보를 보호하고 관련 고충을 처리하기 위해 이 방침을 공개해요.</p>`],
   ["1. 처리 목적", `<ul><li>회원 가입과 본인 확인, 계정 관리</li><li>퀘스트·미션·저널 등 기록의 저장과 여러 기기 간 동기화</li><li>스토리·답글·공감 등 커뮤니티 기능 제공</li><li>신고 처리, 부정 이용 방지, 문의 응대</li></ul>`],
-  ["2. 처리하는 항목", `<ul><li><b>가입 시</b> 이메일 주소, 비밀번호(암호화해 저장하며 운영자도 볼 수 없어요). 카카오 로그인을 도입하면 그때 받는 항목을 이 방침에 추가해 알려요.</li><li><b>이용 중 입력</b> 캐릭터 이름과 사진, 메인 퀘스트·스테이지·미션·일일 퀘스트, 저널, 자료실 노트와 첨부 파일, 상점 보상, 스토리·답글·첨부 사진</li><li><b>자동 생성</b> 접속 일시, 기기·브라우저 정보, 서비스 이용 기록</li></ul><p>저널과 노트에는 건강 상태나 감정처럼 민감한 내용을 적지 않도록 주의해 주세요. 운영자는 이를 따로 분석하거나 이용하지 않아요.</p>`],
+  ["2. 처리하는 항목", `<ul><li><b>가입 시</b> 이메일 주소, 비밀번호(암호화해 저장하며 운영자도 볼 수 없어요). 카카오 로그인을 도입하면 그때 받는 항목을 이 방침에 추가해 알려요.</li><li><b>이용 중 입력</b> 캐릭터 이름과 사진, 메인 퀘스트·스테이지·미션·일일 퀘스트, 저널, 자료실 노트와 첨부 파일, 상점 보상, 스토리·답글·첨부 사진</li><li><b>자동 생성</b> 접속 일시, 기기·브라우저 정보, 서비스 이용 기록</li><li><b>신고할 때</b> 신고한 대상(스토리·계정)과 신고한 계정</li></ul><p><b>다른 이용자에게 공개되는 정보</b> 닉네임, 소개, 캐릭터 색, 레벨, 커뮤니티에 공유한 스토리와 답글, 공감, 팔로우 관계. 계정을 비공개로 하면 내가 수락한 팔로워에게만 스토리가 보여요. 퀘스트·미션·저널·자료실 등 공유하지 않은 기록은 다른 이용자에게 보이지 않아요.</p><p>저널과 노트에는 건강 상태나 감정처럼 민감한 내용을 적지 않도록 주의해 주세요. 운영자는 이를 따로 분석하거나 이용하지 않아요.</p>`],
   ["3. 보유와 이용 기간", `<p>탈퇴할 때까지 보유하고, 탈퇴하면 지체 없이 파기해요. 다만 법령이 보존을 요구하는 정보는 그 기간 동안 따로 보관해요.</p><ul><li>서비스 접속 기록: 3개월 (통신비밀보호법)</li></ul><p>1년 동안 로그인하지 않으면 미리 알린 뒤 정보를 분리 보관하거나 파기할 수 있어요.</p>`],
   ["4. 제3자 제공", `<p>이용자의 동의 없이 개인정보를 외부에 제공하지 않아요. 법령에 근거가 있거나 수사기관이 법에 정한 절차로 요청한 경우는 예외예요.</p>`],
   ["5. 처리 위탁과 국외 이전", `<p>서비스 운영을 위해 아래 업체에 처리를 맡겨요.</p><ul><li><b>회원 인증·기록 저장</b> Supabase Inc.(미국) · 저장 지역 대한민국 서울 · 가입부터 탈퇴까지 보관</li><li><b>웹사이트 전송</b> Cloudflare, Inc.(미국) · 서비스 화면 전송과 접속 기록 처리</li></ul><p>위탁 업체나 국외 이전 내용이 바뀌면 이 방침을 고쳐 알려요.</p>`],
@@ -4785,6 +4824,8 @@ function createCloud({fetch, ls, url = CLOUD_URL, key = CLOUD_KEY, site = '', no
       const rows = await call('/rest/v1/user_state?on_conflict=user_id&select=updated_at', {method:'POST', auth:true, prefer:'resolution=merge-duplicates,return=representation', body:{user_id:session.user.id, data:snapshot}});
       return Array.isArray(rows) && rows[0] ? rows[0].updated_at : null;
     },
+    // 커뮤니티 표(supabase/community.sql) 읽기·쓰기. 응답이 없으면 null.
+    rest:(path, o = {}) => call(path, {...o, auth:true}),
     async deleteAccount(){ await call('/rest/v1/rpc/delete_my_account', {method:'POST', body:{}, auth:true}); keep(null); },
     meta:() => read(META_KEY),
     setMeta:m => write(META_KEY, m)
@@ -4824,7 +4865,7 @@ async function loadState({cloud, ls, key, backup = () => {}}) {
 
 /* 기록은 메모리에만 두고, 바뀔 때마다 서버로 올린다(1.5초 모아서). 실패하면 다시 시도할 때까지 '저장 안 됨'으로 남는다.
  * 계정 설정(화면 모드·메뉴 순서)이 바뀌어도 함께 올린다. 다른 설정 키는 이 기기에만 저장한다. */
-function createSync({cloud, ls, key, initial = null, at = null, delay = 1500, setTimer = setTimeout, clearTimer = clearTimeout, onState = () => {}}) {
+function createSync({cloud, ls, key, initial = null, at = null, delay = 1500, shape = d => d, onChange = () => {}, setTimer = setTimeout, clearTimer = clearTimeout, onState = () => {}}) {
   const prefKey = key + ':preferences';
   let mem = initial, last = at, timer = null, running = null, writes = 0, saved = 0;
   let prefsSeen = JSON.stringify(pickPrefs(ls.getItem(prefKey)));
@@ -4835,7 +4876,7 @@ function createSync({cloud, ls, key, initial = null, at = null, delay = 1500, se
     if (timer){ clearTimer(timer); timer = null; }
     while (running) await running;
     if (writes === saved || !cloud.user()) return;
-    const seen = writes, data = {...(parse(mem) || {}), prefs:pickPrefs(ls.getItem(prefKey))};
+    const seen = writes, data = {...(shape(parse(mem)) || {}), prefs:pickPrefs(ls.getItem(prefKey))};
     running = (async () => {
       try { onState('saving'); last = await cloud.push(data); saved = seen; onState(writes !== saved ? 'dirty' : 'saved'); if (writes !== saved) schedule(); }
       catch (e) { onState(e && e.code === 'network' ? 'offline' : 'error', e); }
@@ -4846,7 +4887,7 @@ function createSync({cloud, ls, key, initial = null, at = null, delay = 1500, se
   return {
     driver:{
       getItem:k => k === key ? mem : ls.getItem(k),
-      setItem(k, v){ if (k === key){ mem = String(v); mark(); return; } ls.setItem(k, v); if (k === prefKey && prefsChanged()) mark(); },
+      setItem(k, v){ if (k === key){ mem = String(v); mark(); onChange(mem); return; } ls.setItem(k, v); if (k === prefKey && prefsChanged()) mark(); },
       removeItem(k){ if (k === key){ mem = null; mark(); return; } ls.removeItem(k); if (k === prefKey && prefsChanged()) mark(); }
     },
     flush, pending:() => writes !== saved, at:() => last
@@ -4854,6 +4895,206 @@ function createSync({cloud, ls, key, initial = null, at = null, delay = 1500, se
 }
 
 Object.assign(__exports,{CLOUD_URL,CLOUD_KEY,SESSION_KEY,META_KEY,createCloud,ACCOUNT_PREFS,hasContent,pickPrefs,applyPrefs,loadState,createSync});
+},
+"community.js":function(__require,__exports){
+"use strict";
+/* 배포판 커뮤니티: 스토리·답글·공감·팔로우·차단을 모든 사용자와 서버(supabase/community.sql)에서 공유한다.
+ * - 앱 화면은 그대로 S.feed / S.replies / S.follows / S.profiles를 읽는다. 서버에서 받은 것을 이 형태로 바꿔 넣는다(mergeView).
+ * - 내 활동은 앱이 평소처럼 내 기록에 쓰고, 이 모듈이 바뀐 부분만 골라 서버에 올린다(extract → diff → 요청).
+ * - 앱 안에서 나는 'me', 다른 사람은 계정 id(uuid). 서버에는 내 계정 id로 저장된다.
+ * - 남이 쓴 내용은 그대로 믿지 않고 앱이 쓰는 필드만 골라 담는다(cleanPost 등). */
+const {balances} = __require("economy.js");
+
+const ME = 'me';
+const ID = /^[A-Za-z0-9_-]{1,64}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const plain = v => !!v && typeof v === 'object' && !Array.isArray(v);
+const str = (v, max) => typeof v === 'string' ? v.slice(0, max) : '';
+const time = v => Number.isFinite(+v) && +v >= 0 ? Math.floor(+v) : 0;
+const on = v => !!v && v !== 0;
+const COLOR = /^#[0-9a-f]{3,8}$/i;
+const REF_TYPES = new Set(['project', 'mission', 'project_done', 'quest', 'diary']);
+
+// 스토리에 붙는 기록 카드(ref): 문자열·숫자·참거짓만, 한 단계 extra까지.
+function cleanFlat(o, depth = 0){
+  const out = {}; if (!plain(o)) return out;
+  for (const [k, v] of Object.entries(o).slice(0, 24)){
+    if (!/^[A-Za-z][A-Za-z0-9_]{0,23}$/.test(k)) continue;
+    if (typeof v === 'string') out[k] = v.slice(0, 200);
+    else if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
+    else if (typeof v === 'boolean' || v === null) out[k] = v;
+    else if (depth === 0 && k === 'extra' && plain(v)) out[k] = cleanFlat(v, 1);
+    else if (depth === 1 && Array.isArray(v)) out[k] = v.filter(x => typeof x === 'number' && Number.isFinite(x)).slice(0, 7);
+  }
+  return out;
+}
+function cleanRef(r){
+  if (!plain(r) || !REF_TYPES.has(r.type) || !ID.test(String(r.id || ''))) return null;
+  const out = cleanFlat(r); out.type = r.type; out.id = r.id; out.label = str(r.label, 200); return out;
+}
+function cleanPost(d){
+  const p = plain(d) ? d : {}, out = {text:str(p.text, 4000), mood:typeof p.mood === 'string' ? p.mood.slice(0, 40) : null, ref:cleanRef(p.ref)};
+  if (typeof p.value === 'number' && Number.isFinite(p.value)) out.value = p.value;
+  if (p.noReply === true) out.noReply = true;
+  if (p.hideLikes === true) out.hideLikes = true;
+  return out;
+}
+const cleanProfile = (uid, priv, d) => { const p = plain(d) ? d : {};
+  return {uid, nick:str(p.nick, 40) || '모험가', bio:str(p.bio, 300), color:COLOR.test(p.color || '') ? p.color : '#3DBE8B', private:!!priv, stats:{xp:time(p.xp)}}; };
+
+/* 서버 행 → 앱 형태. me: 내 계정 id. */
+function toView(me, rows){
+  const m = u => u === me ? ME : u;
+  const feed = {}, replies = {}, follows = {}, profiles = {}, pending = {}, requests = [];
+  for (const r of rows.profiles || []) if (r.user_id !== me && UUID.test(r.user_id)) profiles[r.user_id] = cleanProfile(r.user_id, r.private, r.data);
+  for (const r of [...(rows.posts || []), ...(rows.myPosts || [])]){
+    if (!ID.test(String(r.id)) || !UUID.test(String(r.author)) || feed[r.id]) continue;
+    feed[r.id] = {...cleanPost(r.data), id:r.id, author:m(r.author), imgs:0, reactions:{}, joiners:{}, createdAt:time(r.at)};
+  }
+  for (const r of rows.likes || []) if (feed[r.post_id] && UUID.test(String(r.user_id))) feed[r.post_id].reactions[m(r.user_id)] = {k:'heart', at:time(r.at)};
+  for (const r of [...(rows.replies || []), ...(rows.myReplies || [])]){
+    if (!ID.test(String(r.id)) || !feed[r.post_id] || !UUID.test(String(r.author)) || replies[r.id]) continue;
+    replies[r.id] = {id:r.id, postId:r.post_id, author:m(r.author), text:str(r.text, 2000), parentId:ID.test(String(r.parent_id || '')) ? r.parent_id : null, likes:{}, createdAt:time(r.at)};
+  }
+  for (const r of rows.rlikes || []) if (replies[r.reply_id] && UUID.test(String(r.user_id))) replies[r.reply_id].likes[m(r.user_id)] = time(r.at);
+  for (const f of rows.follows || []){
+    if (!UUID.test(String(f.follower)) || !UUID.test(String(f.followee))) continue;
+    if (!f.accepted){ if (f.follower === me) pending[f.followee] = true; else if (f.followee === me) requests.push({uid:f.follower, at:time(f.at)}); continue; }
+    const from = m(f.follower), to = m(f.followee); follows[from + '~' + to] = {from, to, at:time(f.at)};
+  }
+  const mine = {
+    posts:Object.fromEntries((rows.myPosts || []).filter(r => feed[r.id]).map(r => [r.id, postKey(feed[r.id])])),
+    replies:Object.fromEntries(Object.values(replies).filter(r => r.author === ME).map(r => [r.id, replyKey(r)])),
+    likes:Object.fromEntries(Object.values(feed).filter(p => on(p.reactions[ME])).map(p => [p.id, p.reactions[ME].at])),
+    rlikes:Object.fromEntries(Object.values(replies).filter(r => on(r.likes[ME])).map(r => [r.id, r.likes[ME]])),
+    follows:Object.fromEntries([...(rows.follows || [])].filter(f => f.follower === me).map(f => [f.followee, time(f.at)])),
+    blocks:(rows.blocks || []).map(b => b.blocked).filter(u => UUID.test(String(u))).sort(),
+    profile:rows.me ? JSON.stringify({private:!!rows.me.private, data:rows.me.data || {}}) : ''
+  };
+  requests.sort((a, b) => b.at - a.at);
+  return {feed, replies, follows, profiles, pending, requests, mine};
+}
+
+const postKey = p => JSON.stringify({data:cleanPost(p), at:time(p.createdAt)});
+const replyKey = r => JSON.stringify({post_id:r.postId, parent_id:r.parentId || null, text:r.text, at:time(r.createdAt)});
+
+/* 내 기록 + 서버 보기 → 화면에 쓸 기록. 내 글·답글은 내 기록이 기준이고, 남의 것과 공감·팔로우는 서버가 기준. */
+function mergeView(snap, view){
+  const s = {...snap};
+  const feed = {};
+  for (const [id, p] of Object.entries(view.feed)) feed[id] = p;
+  for (const [id, p] of Object.entries(snap.feed || {})) if (p && p.author === ME) feed[id] = {...p, reactions:view.feed[id] ? view.feed[id].reactions : {}};
+  // 남의 스토리에 내가 누른 공감은 서버 기준(view.feed에 이미 있음)
+  const replies = {};
+  for (const [id, r] of Object.entries(view.replies)) replies[id] = r;
+  for (const [id, r] of Object.entries(snap.replies || {})) if (r && r.author === ME && feed[r.postId]) replies[id] = {...r, likes:view.replies[id] ? view.replies[id].likes : {}};
+  s.feed = feed; s.replies = replies; s.follows = {...view.follows};
+  for (const u of Object.keys(view.pending)) s.follows[ME + '~' + u] = {from:ME, to:u, at:view.mine.follows[u] || 0};
+  const own = (snap.profiles || {})[ME];
+  s.profiles = {...view.profiles, ...(own ? {[ME]:own} : {})};
+  return s;
+}
+
+/* 서버에 올릴 내 몫: 내 글·답글, 내가 누른 공감, 내 팔로우, 차단 목록, 공개 프로필 */
+function extract(snap){
+  const feed = snap.feed || {}, replies = snap.replies || {}, me = (snap.profiles || {})[ME];
+  const blocked = ((snap.mine || {}).settings || {}).blocked;
+  let xp = 0; try { xp = balances(snap).xp; } catch { xp = 0; }
+  return {
+    posts:Object.fromEntries(Object.values(feed).filter(p => p && p.author === ME && ID.test(String(p.id))).map(p => [p.id, postKey(p)])),
+    replies:Object.fromEntries(Object.values(replies).filter(r => r && r.author === ME && ID.test(String(r.id)) && feed[r.postId]).map(r => [r.id, replyKey(r)])),
+    likes:Object.fromEntries(Object.values(feed).filter(p => p && p.author !== ME && on((p.reactions || {})[ME]) && ID.test(String(p.id))).map(p => [p.id, time(p.reactions[ME].at)])),
+    rlikes:Object.fromEntries(Object.values(replies).filter(r => r && r.author !== ME && on((r.likes || {})[ME]) && ID.test(String(r.id))).map(r => [r.id, time(r.likes[ME])])),
+    follows:Object.fromEntries(Object.values(snap.follows || {}).filter(f => f && f.from === ME && UUID.test(String(f.to))).map(f => [f.to, time(f.at)])),
+    blocks:Array.isArray(blocked) ? [...new Set(blocked.filter(u => UUID.test(String(u))))].sort() : [],
+    profile:me ? JSON.stringify({private:!!me.private, data:{nick:str(me.nick, 40), bio:str(me.bio, 300), color:COLOR.test(me.color || '') ? me.color : '#3DBE8B', xp}}) : ''
+  };
+}
+
+/* 두 시점의 내 몫을 비교해 서버 요청 목록을 만든다(순서대로 실행). */
+function diff(a, b, me){
+  const ops = [], add = (x, y) => Object.keys(y).filter(k => x[k] !== y[k]), gone = (x, y) => Object.keys(x).filter(k => !(k in y));
+  const inList = ids => 'in.(' + ids.map(encodeURIComponent).join(',') + ')';
+  if (b.profile && a.profile !== b.profile){ const p = JSON.parse(b.profile); ops.push({method:'POST', path:'/rest/v1/profiles_pub?on_conflict=user_id', prefer:'resolution=merge-duplicates,return=minimal', body:{user_id:me, ...p}}); }
+  const posts = add(a.posts, b.posts); if (posts.length) ops.push({method:'POST', path:'/rest/v1/posts?on_conflict=id', prefer:'resolution=merge-duplicates,return=minimal', body:posts.map(id => ({id, author:me, ...JSON.parse(b.posts[id])}))});
+  const replies = add(a.replies, b.replies); for (const id of replies) ops.push({method:'POST', path:'/rest/v1/replies?on_conflict=id', prefer:'resolution=ignore-duplicates,return=minimal', body:{id, author:me, ...JSON.parse(b.replies[id])}});
+  const likes = Object.keys(b.likes).filter(k => !(k in a.likes)); if (likes.length) ops.push({method:'POST', path:'/rest/v1/post_likes?on_conflict=post_id,user_id', prefer:'resolution=ignore-duplicates,return=minimal', body:likes.map(id => ({post_id:id, user_id:me, at:b.likes[id]}))});
+  const rlikes = Object.keys(b.rlikes).filter(k => !(k in a.rlikes)); if (rlikes.length) ops.push({method:'POST', path:'/rest/v1/reply_likes?on_conflict=reply_id,user_id', prefer:'resolution=ignore-duplicates,return=minimal', body:rlikes.map(id => ({reply_id:id, user_id:me, at:b.rlikes[id]}))});
+  const fol = Object.keys(b.follows).filter(k => !(k in a.follows)); if (fol.length) ops.push({method:'POST', path:'/rest/v1/follows?on_conflict=follower,followee', prefer:'resolution=ignore-duplicates,return=minimal', body:fol.map(u => ({follower:me, followee:u, at:b.follows[u]}))});
+  const blk = b.blocks.filter(u => !a.blocks.includes(u)); if (blk.length) ops.push({method:'POST', path:'/rest/v1/blocks?on_conflict=blocker,blocked', prefer:'resolution=ignore-duplicates,return=minimal', body:blk.map(u => ({blocker:me, blocked:u}))});
+  const unblk = a.blocks.filter(u => !b.blocks.includes(u)); if (unblk.length) ops.push({method:'DELETE', path:`/rest/v1/blocks?blocker=eq.${me}&blocked=${inList(unblk)}`});
+  const unfol = gone(a.follows, b.follows); if (unfol.length) ops.push({method:'DELETE', path:`/rest/v1/follows?follower=eq.${me}&followee=${inList(unfol)}`});
+  const unrl = gone(a.rlikes, b.rlikes); if (unrl.length) ops.push({method:'DELETE', path:`/rest/v1/reply_likes?user_id=eq.${me}&reply_id=${inList(unrl)}`});
+  const unl = gone(a.likes, b.likes); if (unl.length) ops.push({method:'DELETE', path:`/rest/v1/post_likes?user_id=eq.${me}&post_id=${inList(unl)}`});
+  const delPosts = gone(a.posts, b.posts);
+  const delReplies = gone(a.replies, b.replies).filter(id => !delPosts.includes(JSON.parse(a.replies[id]).post_id));
+  if (delReplies.length) ops.push({method:'DELETE', path:`/rest/v1/replies?author=eq.${me}&id=${inList(delReplies)}`});
+  if (delPosts.length) ops.push({method:'DELETE', path:`/rest/v1/posts?author=eq.${me}&id=${inList(delPosts)}`});
+  return ops;
+}
+
+/* 내 기록(user_state)에는 내 몫만 남긴다: 남의 글·답글·프로필·팔로우와 남이 누른 공감은 서버에서 다시 받는다. */
+function ownOnly(snap){
+  if (!plain(snap)) return snap;
+  const s = {...snap};
+  s.feed = Object.fromEntries(Object.entries(snap.feed || {}).filter(([, p]) => p && p.author === ME).map(([k, p]) => [k, {...p, reactions:{}, joiners:{}}]));
+  s.replies = Object.fromEntries(Object.entries(snap.replies || {}).filter(([, r]) => r && r.author === ME).map(([k, r]) => [k, {...r, likes:{}}]));
+  s.follows = {};
+  s.profiles = Object.fromEntries(Object.entries(snap.profiles || {}).filter(([k]) => k === ME));
+  return s;
+}
+
+/* 서버와 주고받기. rest(path, {method, body, prefer}) → JSON. */
+function createCommunity({rest, me, delay = 1200, setTimer = setTimeout, clearTimer = clearTimeout, onState = () => {}}){
+  let base = null, want = null, timer = null, running = null;
+  const q = (path, o) => rest(path, o);
+  async function fetchView(){
+    const id = encodeURIComponent(me());
+    const [profiles, posts, myPosts, replies, myReplies, likes, rlikes, follows, blocks] = await Promise.all([
+      q('/rest/v1/profiles_pub?select=user_id,private,data&limit=1000'),
+      q('/rest/v1/posts?select=id,author,data,at&order=created_at.desc&limit=300'),
+      q(`/rest/v1/posts?select=id,author,data,at&author=eq.${id}`),
+      q('/rest/v1/replies?select=id,post_id,author,parent_id,text,at&order=created_at.desc&limit=3000'),
+      q(`/rest/v1/replies?select=id,post_id,author,parent_id,text,at&author=eq.${id}`),
+      q('/rest/v1/post_likes?select=post_id,user_id,at&limit=10000'),
+      q('/rest/v1/reply_likes?select=reply_id,user_id,at&limit=10000'),
+      q('/rest/v1/follows?select=follower,followee,accepted,at&limit=10000'),
+      q(`/rest/v1/blocks?select=blocked&blocker=eq.${id}`)
+    ]);
+    const meRow = (profiles || []).find(r => r.user_id === me());
+    return toView(me(), {profiles, posts, myPosts, replies, myReplies, likes, rlikes, follows, blocks, me:meRow});
+  }
+  async function run(){
+    while (want && base){
+      const target = want, ops = diff(base, target, me());
+      if (!ops.length){ if (want === target) want = null; break; }
+      onState('saving');
+      for (const op of ops){
+        try { await q(op.path, op); }
+        catch (e) {
+          if (e && e.code === 'network'){ onState('offline', e); return; }
+          // 서버가 거절한 요청(이미 지워진 스토리에 답글 등)은 건너뛴다. 계속 붙잡고 있으면 다음 저장도 막힌다.
+        }
+      }
+      base = target; if (want === target) want = null;
+    }
+    onState('saved');
+  }
+  const flush = async () => { if (timer){ clearTimer(timer); timer = null; } while (running) await running; if (!want || !base) return; running = run().finally(() => { running = null; }); return running; };
+  return {
+    fetchView,
+    // 서버 보기를 화면에 넣은 뒤 호출: 그때부터 서버와 내 기록의 차이를 올린다(처음에는 서버에 없던 내 글을 올림).
+    ready(view, snap){ base = view.mine; want = extract(snap); if (timer) clearTimer(timer); timer = setTimer(() => { timer = null; flush(); }, 0); },
+    // 내 기록이 바뀔 때마다 호출: 바뀐 몫을 모아서 올린다.
+    change(snap){ if (!base) return; want = extract(snap); if (timer) clearTimer(timer); timer = setTimer(() => { timer = null; flush(); }, delay); },
+    flush, pending:() => !!want || !!running,
+    accept:async uid => q(`/rest/v1/follows?follower=eq.${encodeURIComponent(uid)}&followee=eq.${encodeURIComponent(me())}`, {method:'PATCH', body:{accepted:true}, prefer:'return=minimal'}),
+    reject:async uid => q(`/rest/v1/follows?follower=eq.${encodeURIComponent(uid)}&followee=eq.${encodeURIComponent(me())}`, {method:'DELETE'}),
+    report:async (type, target, reason = '') => q('/rest/v1/reports', {method:'POST', body:{reporter:me(), target_type:type, target_id:String(target).slice(0, 64), reason:String(reason).slice(0, 500)}, prefer:'return=minimal'})
+  };
+}
+
+Object.assign(__exports,{ME,cleanRef,cleanPost,toView,mergeView,extract,diff,ownOnly,createCommunity});
 },
 "auth-screen.js":function(__require,__exports){
 "use strict";

@@ -96,6 +96,8 @@ export function createCloud({fetch, ls, url = CLOUD_URL, key = CLOUD_KEY, site =
       const rows = await call('/rest/v1/user_state?on_conflict=user_id&select=updated_at', {method:'POST', auth:true, prefer:'resolution=merge-duplicates,return=representation', body:{user_id:session.user.id, data:snapshot}});
       return Array.isArray(rows) && rows[0] ? rows[0].updated_at : null;
     },
+    // 커뮤니티 표(supabase/community.sql) 읽기·쓰기. 응답이 없으면 null.
+    rest:(path, o = {}) => call(path, {...o, auth:true}),
     async deleteAccount(){ await call('/rest/v1/rpc/delete_my_account', {method:'POST', body:{}, auth:true}); keep(null); },
     meta:() => read(META_KEY),
     setMeta:m => write(META_KEY, m)
@@ -135,7 +137,7 @@ export async function loadState({cloud, ls, key, backup = () => {}}) {
 
 /* 기록은 메모리에만 두고, 바뀔 때마다 서버로 올린다(1.5초 모아서). 실패하면 다시 시도할 때까지 '저장 안 됨'으로 남는다.
  * 계정 설정(화면 모드·메뉴 순서)이 바뀌어도 함께 올린다. 다른 설정 키는 이 기기에만 저장한다. */
-export function createSync({cloud, ls, key, initial = null, at = null, delay = 1500, setTimer = setTimeout, clearTimer = clearTimeout, onState = () => {}}) {
+export function createSync({cloud, ls, key, initial = null, at = null, delay = 1500, shape = d => d, onChange = () => {}, setTimer = setTimeout, clearTimer = clearTimeout, onState = () => {}}) {
   const prefKey = key + ':preferences';
   let mem = initial, last = at, timer = null, running = null, writes = 0, saved = 0;
   let prefsSeen = JSON.stringify(pickPrefs(ls.getItem(prefKey)));
@@ -146,7 +148,7 @@ export function createSync({cloud, ls, key, initial = null, at = null, delay = 1
     if (timer){ clearTimer(timer); timer = null; }
     while (running) await running;
     if (writes === saved || !cloud.user()) return;
-    const seen = writes, data = {...(parse(mem) || {}), prefs:pickPrefs(ls.getItem(prefKey))};
+    const seen = writes, data = {...(shape(parse(mem)) || {}), prefs:pickPrefs(ls.getItem(prefKey))};
     running = (async () => {
       try { onState('saving'); last = await cloud.push(data); saved = seen; onState(writes !== saved ? 'dirty' : 'saved'); if (writes !== saved) schedule(); }
       catch (e) { onState(e && e.code === 'network' ? 'offline' : 'error', e); }
@@ -157,7 +159,7 @@ export function createSync({cloud, ls, key, initial = null, at = null, delay = 1
   return {
     driver:{
       getItem:k => k === key ? mem : ls.getItem(k),
-      setItem(k, v){ if (k === key){ mem = String(v); mark(); return; } ls.setItem(k, v); if (k === prefKey && prefsChanged()) mark(); },
+      setItem(k, v){ if (k === key){ mem = String(v); mark(); onChange(mem); return; } ls.setItem(k, v); if (k === prefKey && prefsChanged()) mark(); },
       removeItem(k){ if (k === key){ mem = null; mark(); return; } ls.removeItem(k); if (k === prefKey && prefsChanged()) mark(); }
     },
     flush, pending:() => writes !== saved, at:() => last

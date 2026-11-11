@@ -33,7 +33,7 @@ test('both build products contain one self-contained syntactically valid script,
 });
 test('legacy UI is explicitly dependency-injected ESM, preferences never touch old key', async () => {
   const js = await readFile(root+'/src/legacy-app.js','utf8');
-  assert.match(js,/export function startLegacyApp\(\{runtime, storage, seed = null, account = null\}\)/);
+  assert.match(js,/export function startLegacyApp\(\{runtime, storage, seed = null, account = null, community = null\}\)/);
   assert.doesNotMatch(js,/localStorage|lq2:|quest:v1/);
   assert.match(js,/const LS = storage.preferences/);
   assert.match(js,/planner:\{cond:70, emo:null, share:false\}/);

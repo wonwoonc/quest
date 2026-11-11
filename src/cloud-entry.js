@@ -3,13 +3,14 @@
 import {bootstrap} from './bootstrap.js';
 import {NAMESPACES} from './storage.js';
 import {createCloud, loadState, createSync, applyPrefs} from './cloud.js';
+import {createCommunity, mergeView, ownOnly} from './community.js';
 import {mountAuth} from './auth-screen.js';
 
 const host = window, ls = host.localStorage, KEY = NAMESPACES.empty, PREF_KEY = KEY + ':preferences';
 const site = host.location.origin + host.location.pathname;
 const cloud = createCloud({fetch:host.fetch.bind(host), ls, site});
 const root = host.document.querySelector('#app');
-let auth = null, sync = null, app = null, leaving = false;
+let auth = null, sync = null, app = null, comm = null, leaving = false;
 
 function download(label, snapshot){
   try {
@@ -32,26 +33,30 @@ function showAuth(initial){ if (auth) auth.unmount(); auth = mountAuth({root, bo
 
 async function enter(notice){
   if (!auth) showAuth({view:'loading'}); else auth.set({view:'loading', info:'', error:''});
-  let st;
-  try { st = await loadState({cloud, ls, key:KEY, backup:download}); }
+  let st, view = null;
+  comm = createCommunity({rest:cloud.rest, me:() => cloud.user().id, onState:s => bar('comm', s)});
+  try { [st, view] = await Promise.all([loadState({cloud, ls, key:KEY, backup:download}), comm.fetchView().catch(() => null)]); } // 커뮤니티를 못 불러와도 앱은 시작한다
   catch (e) {
     if (!cloud.user()) return showAuth({view:'login', error:e.message});
     return auth.set({view:'error', error:e.message, busy:false}); // 기록이 서버에만 있으니 연결돼야 시작할 수 있다
   }
   if (st.prefs) applyPrefs(ls, PREF_KEY, st.prefs);
-  start(notice || st.notice, st);
+  start(notice || st.notice, st, view);
 }
 
-// 저장 실패 알림 막대: 저장될 때까지 화면 아래에 남는다.
+// 저장 실패 알림 막대: 기록과 커뮤니티 둘 다 저장될 때까지 화면 아래에 남는다.
+let bar = () => {};
 function saveBar(){
   const el = host.document.createElement('div');
   el.className = 'savebar'; el.setAttribute('role', 'alert'); el.hidden = true;
   el.innerHTML = '<span class="savebar-t"></span><button type="button" class="btn sm">다시 시도</button>';
   host.document.body.appendChild(el);
   const t = el.querySelector('.savebar-t'), b = el.querySelector('button');
-  b.addEventListener('click', () => sync && sync.flush());
-  return state => {
-    if (state === 'saved'){ el.hidden = true; return; }
+  b.addEventListener('click', () => { if (sync) sync.flush(); if (comm) comm.flush(); });
+  const bad = {};
+  return (src, state) => {
+    if (state === 'offline' || state === 'error') bad[src] = state; else if (state === 'saved') delete bad[src];
+    if (state === 'saved'){ const left = Object.values(bad)[0]; if (!left){ el.hidden = true; return; } state = left; }
     if (state === 'offline' || state === 'error'){
       t.textContent = state === 'offline' ? '연결이 끊겨 저장되지 않았어요' : '저장되지 않았어요';
       b.disabled = false; b.textContent = '다시 시도'; el.hidden = false; return;
@@ -60,13 +65,14 @@ function saveBar(){
   };
 }
 
-function start(notice, st){
+function start(notice, st, view){
   if (auth){ auth.unmount(); auth = null; }
-  sync = createSync({cloud, ls, key:KEY, initial:st.text, at:st.at, onState:saveBar()});
+  bar = saveBar();
+  sync = createSync({cloud, ls, key:KEY, initial:st.text, at:st.at, onState:s => bar('rec', s), shape:ownOnly, onChange:text => { try { comm.change(JSON.parse(text)); } catch { /* 다음 저장 때 */ } }});
   const leave = go => { leaving = true; go(); };
   const account = {
     email:cloud.user().email,
-    async signOut(){ await sync.flush(); if (sync.pending() && !(await app.confirm('아직 저장하지 못한 기록이 있어요. 지금 로그아웃하면 저장하지 못한 내용은 사라져요. 그래도 로그아웃할까요?'))) return;
+    async signOut(){ await Promise.all([sync.flush(), comm.flush()]); if ((sync.pending() || comm.pending()) && !(await app.confirm('아직 저장하지 못한 기록이 있어요. 지금 로그아웃하면 저장하지 못한 내용은 사라져요. 그래도 로그아웃할까요?'))) return;
       await cloud.signOut(); leave(() => host.location.replace(site)); },
     async deleteAccount(){ await cloud.deleteAccount(); leave(() => host.location.replace(site)); }
   };
@@ -76,18 +82,36 @@ function start(notice, st){
     while (sync.pending() && await app.confirm('서버에 저장하지 못했어요. 다시 시도할까요? 취소하면 이번 변경은 반영되지 않아요.')) await sync.flush();
     leave(() => host.location.reload());
   };
-  app = bootstrap({host, driver:sync.driver, account, reload});
+  const community = {
+    report:(type, id) => comm.report(type, id),
+    accept:uid => comm.accept(uid), reject:uid => comm.reject(uid),
+    refresh:() => refreshCommunity(true)
+  };
+  app = bootstrap({host, driver:sync.driver, account, reload, community});
+  if (view) adoptView(view);
   if (notice) setTimeout(() => app.notify(notice), 300);
-  host.addEventListener('beforeunload', e => { if (leaving || !sync.pending()) return; sync.flush(); e.preventDefault(); e.returnValue = ''; });
-  host.addEventListener('online', () => sync.flush());
-  host.setInterval(() => { if (sync.pending()) sync.flush(); }, 30000);
+  host.addEventListener('beforeunload', e => { if (leaving || !(sync.pending() || comm.pending())) return; sync.flush(); comm.flush(); e.preventDefault(); e.returnValue = ''; });
+  host.addEventListener('online', () => { sync.flush(); comm.flush(); });
+  host.setInterval(() => { if (sync.pending()) sync.flush(); if (comm.pending()) comm.flush(); }, 30000);
+  host.setInterval(() => refreshCommunity(), 60000); // 새 스토리·공감·답글 받아오기
   // 다른 기기에서 바뀐 기록 확인: 화면으로 돌아올 때 서버가 더 새로우면 다시 불러온다.
   host.document.addEventListener('visibilitychange', async () => {
-    if (host.document.visibilityState === 'hidden'){ sync.flush(); return; }
+    if (host.document.visibilityState === 'hidden'){ sync.flush(); comm.flush(); return; }
+    refreshCommunity();
     if (sync.pending() || !cloud.user()) return;
     try { const row = await cloud.pull(); if (row && row.updated_at !== sync.at() && !sync.pending()){
       host.sessionStorage.setItem('quest:cloud:notice', '다른 기기에서 바뀐 기록을 불러왔어요'); leave(() => host.location.reload()); } } catch { /* 다음에 다시 확인 */ }
   });
+}
+
+/* 커뮤니티: 서버 보기를 화면 상태에 넣고, 그 상태를 기준으로 내 몫을 올리기 시작한다. */
+function adoptView(view){ const merged = mergeView(app.snapshot(), view); if (app.adopt(merged, view)) comm.ready(view, merged); }
+let refreshing = false;
+async function refreshCommunity(force){
+  if (!app || !comm || refreshing || comm.pending() || sync.pending() || !cloud.user() || (!force && host.document.visibilityState === 'hidden')) return;
+  refreshing = true;
+  try { const view = await comm.fetchView(); if (!comm.pending() && !sync.pending()) adoptView(view); } catch { /* 다음에 다시 */ }
+  finally { refreshing = false; }
 }
 
 (async () => {

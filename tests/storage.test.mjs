@@ -39,7 +39,7 @@ test('new namespaces never read or overwrite quest:v1/lq2', async () => {
 test('CRUD profile/mine/project persists immediately and reloads', async () => {
   const {storage,state,api} = setup();
   await api.saveProfile({nick:'테스트'});
-  assert.equal(storage.load().profiles.me.private,true);
+  assert.equal(storage.load().profiles.me.private,false);
   await api.putProject('p',{owner:'me',title:'목표'});
   await api.putMine('m',{kind:'mission',name:'할 일',projectId:'p'});
   assert.equal(storage.load().mine.m.name,'할 일');

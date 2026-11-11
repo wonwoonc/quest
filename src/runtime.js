@@ -26,7 +26,7 @@ export function createAPI({state, storage, id, now = Date.now, color = '#3DBE8B'
     purchaseAction:write((s, key, action) => purchaseAction(s,key,action,now())),
     equip:write((s, itemId) => equipStyle(s,itemId)),
     chooseMilestone:write((s, level, itemId) => chooseMilestone(s,level,itemId,now())),
-    saveProfile:write((s, p) => { s.profiles[me] = {uid:me, nick:'로컬 테스트', color, bio:'', private:true, ...s.profiles[me], ...clone(p)}; }),
+    saveProfile:write((s, p) => { s.profiles[me] = {uid:me, nick:'로컬 테스트', color, bio:'', private:false, ...s.profiles[me], ...clone(p)}; }),
     saveStats:write((s, stats) => { doc(s.profiles, me).stats = clone(stats); }),
     putMine:write((s, key, value) => put(s.mine, key, value)),
     delMine:write((s, key) => { delete s.mine[key]; }),
