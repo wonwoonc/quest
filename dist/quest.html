@@ -3359,12 +3359,12 @@ function viewWebDash(){
   d = d.replace(/<button class="iconbtn gear wd-cgear"[^>]*>[\s\S]*?<\/button>/, "");
   d = d.replace(/^<div class="seg"[\s\S]*?<\/div>/, "");
   d = d.replace(/<div class="ch"><h2>일일 퀘스트[\s\S]*?<\/button><\/div>/, "");
-  const strip = (list, nm, kind, empty) => {
+  const strip = (list, nm, kind) => {
     const nav = WEB.matches && list.length > 2 ? `<button class="wd-rnav" data-act="wdgs" data-v="-1" aria-label="이전 ${nm}">${I.back}</button><button class="wd-rnav fwd" data-act="wdgs" data-v="1" aria-label="다음 ${nm}">${I.back}</button>` : "";
     return `${nav ? `<div class="wd-ovnav">${nav}</div>` : ""}
-      ${(() => { const addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 생성"><span class="wd-plus">+</span><b>${nm} 생성</b>${list.length ? "" : `<small>${empty}</small>`}</button>`;
+      ${(() => { const addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 생성"><span class="wd-plus">+</span><b>${nm} 생성</b></button>`;
         return `<div class="wd-ggrid hs">${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(<span class="bar green big">[\s\S]*?<\/span>)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; return `<div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">미션 ${pr.done}/${pr.total}</span></div>` + wdMetric(x); }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
-  const goals = `${strip(gs, "메인 퀘스트", "big", "이루고 싶은 큰 목표를 세워 보세요")}
+  const goals = `${strip(gs, "메인 퀘스트", "big")}
 `;
   let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}<div class="wd-mprof">${profHead(uid).replace('<div class="stage">', '<div class="stage" data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기">')}</div></div><div class="wd-goals">${goals}</div>
       ${dashChips()}<div class="wd-bot" data-pane="${S.dashPane || "mission"}"><div class="wd-sec dp-daily"><div class="wd-stack">${d}</div></div>
