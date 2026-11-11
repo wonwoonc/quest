@@ -1297,11 +1297,13 @@ test('trial: community notice, no report, no social notification settings, no de
   assert.doesNotMatch(set,/data-act="setn"|data-act="setpriv"|차단한 계정|로컬|서버|프로토타입/);assert.match(set,/체험판/);assert.match(set,/아직 백업한 적이 없어요/);
   h.route('feed');assert.doesNotMatch(h.nodes.get('topbar').innerHTML,/data-v="activity"/);
 });
-test('main edition keeps the development app: checklist yes, but no trial notice or reminder; social settings stay',async()=>{
+test('main edition: checklist yes, no trial notice or reminder; settings = 계정/화면/데이터/정보 without unconnected social settings',async()=>{
   const h=await profileUI();h.route('qmanage');assert.match(h.nodes.get('app').innerHTML,/첫 게임 시작하기[\s\S]*일일 퀘스트 하나 만들기/,'main edition also shows the checklist');
   h.route('feed');assert.doesNotMatch(h.nodes.get('app').innerHTML,/정식 버전에서 열려요/);
   h.route('settings');const set=h.nodes.get('app').innerHTML;
-  assert.match(set,/data-act="setn"/);assert.doesNotMatch(set,/로컬 비공개 표시|data-act="setpriv"/);assert.match(set,/저장 위치/);assert.match(set,/앱 버전<\/b><small>1\.0</);assert.doesNotMatch(set,/프로토타입|로컬 테스트 프로필/);assert.match(set,/지금까지 기록을 JSON 파일로 저장/);
+  assert.equal((set.match(/class="sect3">([^<]+)</g)||[]).map(x=>x.replace(/.*>/,'').replace(/<$/,'')).join(','),'계정,화면,데이터,정보');
+  assert.doesNotMatch(set,/data-act="setn"|data-k="blk"|숨길 단어|로컬 비공개 표시|data-act="setpriv"|저장 위치|프로토타입|로컬 테스트 프로필|data-act="acct-/,'no account rows without login; no unconnected social settings');
+  assert.match(set,/화면 모드[\s\S]*data-act="theme"[\s\S]*data-act="navedit"/);assert.match(set,/앱 버전<\/b><small>1\.0</);assert.match(set,/기록 파일로 저장[\s\S]*파일에서 기록 불러오기[\s\S]*기록 전체 삭제/);
   h.route('feed');assert.match(h.nodes.get('topbar').innerHTML,/data-v="activity"/);
   const trialLogin=harness(undefined,'',{trial:true}),html=await readFile(root+'/dist/quest-tester.html','utf8');
   assert.match(html,/<html lang="ko" data-edition="trial"/);assert.match(html,/<title>퀘스트 테스트판<\/title>/);
@@ -1317,7 +1319,7 @@ test('mobile dashboard chips: 일일/미션/저널, mission by default, switchin
 });
 test('release info: terms, privacy policy and contact in main edition only; sheets render every section',async()=>{
   const h=await profileUI();h.route('settings');const set=h.nodes.get('app').innerHTML;
-  assert.match(set,/data-k="terms"[\s\S]*이용약관/);assert.match(set,/data-k="privacy"[\s\S]*개인정보처리방침/);assert.match(set,/문의하기<\/b><small>카카오톡 오픈채팅 · 준비 중/);
+  assert.match(set,/data-k="terms"[\s\S]*이용약관/);assert.match(set,/data-k="privacy"[\s\S]*개인정보처리방침/);assert.match(set,/href="mailto:wonwoonc10@gmail\.com"><span class="t"><b>문의하기<\/b><small>wonwoonc10@gmail\.com/);
   h.click('sheet',{k:'terms'});let o=h.nodes.get('overlay').innerHTML;assert.match(o,/제1조 목적[\s\S]*제6조 코인·경험치·보상[\s\S]*부칙/);assert.match(o,/만 14세 이상/);
   h.click('sheet-close');h.click('sheet',{k:'privacy'});o=h.nodes.get('overlay').innerHTML;assert.match(o,/1\. 처리 목적[\s\S]*5\. 처리 위탁과 국외 이전[\s\S]*10\. 개인정보 보호책임자[\s\S]*12\. 방침의 변경/);
   const t=await profileUI(undefined,'',{trial:true});t.route('settings');assert.doesNotMatch(t.nodes.get('app').innerHTML,/data-k="terms"|data-k="privacy"|문의하기/);

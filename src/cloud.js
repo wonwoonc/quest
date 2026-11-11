@@ -114,7 +114,7 @@ export async function reconcile({cloud, ls, key, ask, backup}) {
   const useServer = () => { if (row) ls.setItem(key, JSON.stringify(validateSnapshot(row.data))); else ls.removeItem(key); cloud.setMeta({uid, syncedAt:row ? row.updated_at : null, dirty:false}); };
   const useLocal = async () => { cloud.setMeta({uid, syncedAt:row ? row.updated_at : null, dirty:true}); const at = await cloud.push(validateSnapshot(local)); cloud.setMeta({uid, syncedAt:at, dirty:false}); };
   if (meta && meta.uid === uid){
-    if (meta.dirty && hasContent(local)){ await useLocal(); return {result:'pushed'}; }
+    if (meta.dirty && local){ await useLocal(); return {result:'pushed'}; } // 전체 삭제(빈 기록)도 서버에 반영
     if (row && row.updated_at !== meta.syncedAt){ useServer(); return {result:'pulled', notice:'다른 기기에서 바뀐 기록을 불러왔어요'}; }
     if (!row && hasContent(local)){ await useLocal(); return {result:'pushed'}; }
     return {result:'same'};

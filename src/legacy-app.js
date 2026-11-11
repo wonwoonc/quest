@@ -1301,7 +1301,29 @@ const all0 = l => l.length;
 
 /* ================= settings ================= */
 const sw = (act, on0, extra = "") => `<button class="sw ${on0 ? "on" : ""}" data-act="${act}" ${extra} role="switch" aria-checked="${on0}"><i></i></button>`;
+/* 본판 설정: 계정 · 화면 · 데이터 · 정보, 맨 아래 회원 탈퇴. 서버에 연결되지 않은 커뮤니티용 알림·개인정보 보호는 숨김(서버 연결 때 다시). */
 function viewSettings(){
+  if (!hasProfile()) return viewToday();
+  if (TRIAL) return viewSettingsTrial();
+  const th = LS.get("theme", "system"), contact = safeUrl(LEGAL_META.contactUrl);
+  let h = `<p class="sect3">계정</p><section class="card tight">
+    ${account ? `<div class="row"><span class="t"><b>${esc(account.email || "로그인한 계정")}</b><small>이메일로 로그인 중 · 기록이 계정에 저장돼요</small></span></div>` : ""}
+    <button class="row" data-act="sheet" data-k="profile"><span class="t"><b>프로필 편집</b><small>닉네임 · 소개 · 프로필 사진</small></span>${I.chev}</button>
+    ${account ? `<button class="row" data-act="acct-logout"><span class="t"><b>로그아웃</b><small>이 기기의 기록 사본을 지우고 로그아웃해요</small></span>${I.chev}</button>` : ""}</section>`;
+  h += `<p class="sect3">화면</p><section class="card tight"><div class="row setmode"><span class="t"><b>화면 모드</b></span><div class="seg sm">${[["system","시스템"],["light","라이트"],["dark","다크"]].map(([k,l]) => `<button data-act="theme" data-v="${k}" aria-pressed="${th===k}">${l}</button>`).join("")}</div></div>
+    <button class="row" data-act="navedit"><span class="t"><b>메뉴 순서</b><small>${navOrder().slice(0, NAV_BAR).map(h0 => NAV[h0][0]).join(" · ")} · 더보기</small></span>${I.chev}</button></section>`;
+  h += `<p class="sect3">데이터</p><section class="card tight">
+    <button class="row" data-act="bkexp"><span class="t"><b>기록 파일로 저장</b><small>내 기기에 백업 파일로 저장해요</small></span>${I.chev}</button>
+    <button class="row" data-act="bkimp"><span class="t"><b>파일에서 기록 불러오기</b><small>${account ? "계정의 기록이 파일 내용으로 바뀌어요" : "지금 기록이 파일 내용으로 바뀌어요"}</small></span>${I.chev}</button>
+    <button class="row" data-act="bkreset"><span class="t"><b>기록 전체 삭제</b><small>모든 기록을 지우고 처음부터 시작해요</small></span>${I.chev}</button></section>`;
+  h += `<p class="sect3">정보</p><section class="card tight"><div class="row"><span class="t"><b>앱 버전</b><small>${APP_VERSION}</small></span></div>
+    <button class="row" data-act="sheet" data-k="terms"><span class="t"><b>이용약관</b></span>${I.chev}</button><button class="row" data-act="sheet" data-k="privacy"><span class="t"><b>개인정보처리방침</b></span>${I.chev}</button>
+    ${contact ? `<a class="row" href="${esc(contact)}" target="_blank" rel="noopener noreferrer"><span class="t"><b>문의하기</b><small>카카오톡 오픈채팅</small></span>${I.chev}</a>` : `<a class="row" href="mailto:${esc(LEGAL_META.email)}"><span class="t"><b>문의하기</b><small>${esc(LEGAL_META.email)}</small></span>${I.chev}</a>`}
+    <button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
+  if (account) h += `<button class="link setdel" data-act="acct-delete">회원 탈퇴</button>`;
+  return h;
+}
+function viewSettingsTrial(){
   if (!hasProfile()) return viewToday();
   const st = getSet(), me = prof(S.me), th = LS.get("theme", "system");
   let h = `<p class="sect3">계정</p><section class="card tight">

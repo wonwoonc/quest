@@ -8,6 +8,8 @@ export const LEGAL_META = {
   effective: "2026년 11월 11일",
   // 카카오톡 오픈채팅 주소(https://open.kakao.com/o/...). 비어 있으면 문의하기는 '준비 중'으로 보인다.
   contactUrl: "",
+  // 오픈채팅이 없을 때 문의하기는 이 메일로 연결된다(처리방침의 보호책임자 연락처와 같음).
+  email: "wonwoonc10@gmail.com",
 };
 
 const M = LEGAL_META;

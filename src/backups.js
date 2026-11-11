@@ -29,11 +29,11 @@ export function installBackups({document, storage, getState, confirm, alert, rel
             const text = await f.text();
             // Validate BEFORE prompting/replacing; never load quest:v1 automatically.
             parseBackup(text);
-            if (!(await confirm('현재 '+storage.mode+' 작업 공간을 이 백업으로 교체할까요? 기존 기록은 덮어씁니다.'))) return;
+            if (!(await confirm('지금 기록을 이 파일 내용으로 바꿀까요? 지금 기록은 덮어써져요.'))) return;
             storage.import(text); reload();
           } catch (error) { alert('백업 가져오기 실패: '+error.message); }
         }; input.click();
-      } else if (await confirm('현재 '+storage.mode+' 작업 공간만 초기화할까요? 되돌릴 수 없습니다.')) {
+      } else if (await confirm('모든 기록을 지우고 처음부터 시작할까요? 되돌릴 수 없어요.')) {
         storage.reset(); reload();
       }
     } catch (error) { alert('백업 작업 실패: '+error.message); }
