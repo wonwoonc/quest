@@ -1086,6 +1086,8 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
 .wd-merge{display:flex;flex-direction:column;gap:12px}
 .card.today{min-height:88px;padding-top:14px;padding-bottom:14px;gap:12px;align-items:center}
 .card.today .ringwrap{width:48px;height:48px}
+.jtoday .jicon{display:grid;place-items:center;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:24px}.card.today.jtoday .jicon .ei,.card.today.jtoday .jicon svg{width:26px;height:26px;display:block}
+.jlist .wdlog{cursor:pointer}
 .card.today .ringwrap svg{width:48px;height:48px}
 .card.today .ringwrap b{font-size:13px}
 .card.today h2{font-size:18px}
@@ -2462,7 +2464,14 @@ function diaryForm(d, P, sheet = false){ const dt = P.date || today(), t0 = toda
     <button class="btn big full" data-act="psave" ${S.busy?"disabled":""}>${d ? "수정" : "저장"}${d ? "" : past ? `<span class="x">지난 날짜는 보상 없이 기록만 남아요</span>` : ""}</button>
     ${d ? `<button class="btn big full sec" style="margin-top:10px;color:var(--warn)" data-act="ldel" data-id="d-${esc(d.date)}">저널 삭제</button>` : ""}`; }
 const diaryPost = key => Object.values(S.feed).find(p => p.author === S.me && p.ref && p.ref.type === "diary" && p.ref.id === key);
-function logToday(){ return S.mine["d-"+today()] || S.planner.edit ? diaryCard() : `<section class="card wd-lognew"><div class="ch"><h2>오늘의 저널</h2></div><p class="hint">오늘 컨디션과 감정, 하루를 짧게 남겨 보세요.</p><button class="btn soft full" data-act="sheet" data-k="diary">오늘 저널 쓰기</button></section>`; }
+/* 대시보드 저널 칩: 오늘의 미션처럼 요약 카드 + 목록 카드. 목록 카드에 최근 저널(오늘 포함 3개)과 쓰기·수정 버튼. */
+function logToday(){ const d = S.mine["d-"+today()];
+  const head = `<section class="card today jtoday"><div class="ringwrap jicon">${d && EMOI[d.emo] ? EMOI[d.emo] : "📓"}</div><div class="tinfo"><small>오늘의 저널</small><h2>${d ? "오늘 기록을 남겼어요" : "오늘의 기록을 남겨 보세요"}</h2><p>${d ? `컨디션 ${esc(d.cond ?? "-")}%${d.emo ? ` · ${esc(d.emo)}` : ""}` : ""}</p></div></section>`;
+  if (S.planner.edit) return head + diaryCard();
+  const all = mineOf("diary").sort((a,b) => (b.date||"") < (a.date||"") ? -1 : 1), ds = all.slice(0, 3);
+  const row = x => { const t = pd(x.date); return `<div class="row wdlog" data-act="journal-view" data-id="${esc(x.id)}" role="button" tabindex="0"><span class="em">${EMOI[x.emo] || "💭"}</span><span class="t"><b>${x.date === today() ? "오늘" : `${t.getMonth()+1}월 ${t.getDate()}일 ${WD[t.getDay()]}`} · 컨디션 ${esc(x.cond ?? "-")}%</b><small>${esc(x.text || "일기 없이 기록만 남겼어요.")}</small></span></div>`; };
+  return head + `<section class="card tight qlist jlist">${ds.length ? `<p class="grp">최근 저널 <span class="num">${all.length}</span></p>${ds.map(row).join("")}${all.length > 3 ? `<button class="morebtn" data-act="wdlogs">전체 보기</button>` : ""}` : `<p class="empty-row">아직 남긴 저널이 없어요.</p>`}
+    <button class="tadd-pill" data-act="sheet" data-k="diary">${d ? "오늘 저널 수정" : "+ 저널 쓰기"}</button></section>`; }
 function diaryList0(){
   const ds = mineOf("diary").sort((a,b) => (b.date||"") < (a.date||"") ? -1 : 1);
   if (!ds.length) return "";
@@ -3465,8 +3474,7 @@ function viewWebDash(){
       ${dashChips()}<div class="wd-bot" data-pane="${S.dashPane || "mission"}"><div class="wd-sec dp-daily"><div class="wd-stack">${d}</div></div>
       <div class="wd-tl"><div class="wd-sec dp-mission"><div class="wd-merge wd-fix">${(() => { S._noToday = true; S._noTime = true; let tt; try{ tt = taskTab({noUp:true}); } finally { S._noToday = false; S._noTime = false; }
         return tt; })()}</div></div>
-        <div class="wd-sec dp-journal"><div class="wd-stack wd-logst">${logToday()}${(() => { const ds = mineOf("diary").filter(x => x.date !== today()).sort((a,b) => (b.date||"") < (a.date||"") ? -1 : 1).slice(0, 3);
-          return ds.length ? `<section class="card tight wd-logs"><div class="ch"><h2>최근 저널</h2><button class="side btnlink" data-act="wdlogs">전체 보기</button></div>${ds.map(x => { const t = pd(x.date); return `<div class="row wdlog"><span class="em">${EMOI[x.emo] || "💭"}</span><span class="t"><b>${t.getMonth()+1}월 ${t.getDate()}일 ${WD[t.getDay()]} · 컨디션 ${esc(x.cond ?? "-")}%</b><small>${esc(x.text || "일기 없이 기록만 남겼어요.")}</small></span></div>`; }).join("")}</section>` : ""; })()}</div></div></div></div></div>`;
+        <div class="wd-sec dp-journal"><div class="wd-stack wd-logst">${logToday()}</div></div></div></div></div>`;
   return h;
 }
 function viewProfile(){
