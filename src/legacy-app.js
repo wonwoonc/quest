@@ -32,7 +32,8 @@ const S = {
 let api = null, MY = null;
 const LS = storage.preferences;
 /* 테스트판(전자책 독자용 체험판, <html data-edition="trial">): 혼자 쓰는 로컬 저장이라 커뮤니티·신고·소식 알림은 숨기고,
-   개발용 문구 대신 체험판 안내를 보여 준다. 본판(퀘스트 v3)과 데모는 이 분기와 무관하게 개발 화면 그대로다. */
+   개발용 문구 대신 체험판 안내를 보여 준다. 본판(출시판 1.0)과 데모는 이 분기와 무관하다. */
+const APP_VERSION = "1.0";
 const TRIAL = document.documentElement.dataset.edition === "trial" && storage.mode !== "demo";
 S.qTab = LS.get("qTab", "daily");
 let actSeen = LS.get("actSeen", 0);
@@ -1312,7 +1313,7 @@ function viewSettings(){
     <button class="row" data-act="bkexp"><span class="t"><b>백업 내보내기</b><small>${!TRIAL ? "지금까지 기록을 JSON 파일로 저장" : LS.get("lastBackup", 0) ? `마지막 백업 ${fmtD(koreaDate(LS.get("lastBackup", 0)))}` : "아직 백업한 적이 없어요"}</small></span>${I.chev}</button>
     <button class="row" data-act="bkimp"><span class="t"><b>백업 불러오기</b><small>저장한 JSON 파일로 복원</small></span>${I.chev}</button>
     <button class="row" data-act="bkreset"><span class="t"><b>전체 초기화</b><small>모든 기록을 지우고 처음부터</small></span>${I.chev}</button></section>`;
-  h += `<p class="sect3">정보</p><section class="card tight">${TRIAL ? `<div class="row"><span class="t"><b>체험판</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>` : `<div class="row"><span class="t"><b>로컬 테스트 프로필</b><small>로그인/서버 미연결 · 이 브라우저에만 저장</small></span></div><div class="row"><span class="t"><b>앱 버전</b><small>프로토타입 0.1</small></span></div>`}<button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
+  h += `<p class="sect3">정보</p><section class="card tight">${TRIAL ? `<div class="row"><span class="t"><b>체험판</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>` : `<div class="row"><span class="t"><b>저장 위치</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>`}<div class="row"><span class="t"><b>앱 버전</b><small>${APP_VERSION}</small></span></div><button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
   return h;
 }
 

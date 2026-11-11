@@ -1,5 +1,5 @@
 <!doctype html><html lang="ko"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="script-src-attr 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>퀘스트 v3</title>
+<title>퀘스트</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
 <style>
@@ -1230,7 +1230,7 @@ body.onboarding #app[data-v="login"]{max-width:440px;margin:clamp(24px,8vh,88px)
 .fgame,.trialnote,.bknudge{word-break:keep-all}
 </style>
 
-<p class="col local-mode" role="note">개발 미리보기 · 실제 인증 미연결<span id="demo-label"></span></p>
+<p class="col local-mode" role="note" hidden>개발 미리보기 · 실제 인증 미연결<span id="demo-label"></span></p>
 <header class="top"><div class="col" id="topbar"></div></header>
 <main class="col stack" id="app"><p class="empty">불러오는 중…</p></main>
 <div id="replybar"></div>
@@ -1261,10 +1261,10 @@ function bootstrap({mode = 'empty', seed = null, host = window} = {}) {
   try {
     // Access can itself fail for file:// or disabled persistence. Do not pretend success.
     const storage = createStorage({driver:host.localStorage, mode, onError:error => host.alert('로컬 저장 실패: '+error.message)});
-    // Editions: the main build is the in-development app; the tester build (data-edition="trial") is the public trial for readers.
+    // Editions: the main build is the release app (1.0); the tester build (data-edition="trial") is the public trial for readers.
     const label = host.document.querySelector('#demo-label');
-    if (host.document.documentElement.dataset.edition === 'trial') { if (label && label.parentNode) label.parentNode.hidden = true; }
-    else if (mode === 'demo' && label) label.textContent = ' · 가상 데이터 데모';
+    // Release builds hide the dev banner; only the demo build shows it, as a sample-data notice.
+    if (mode === 'demo' && label && host.document.documentElement.dataset.edition !== 'trial') { label.textContent = ' · 가상 데이터 데모'; if (label.parentNode) label.parentNode.hidden = false; }
     const app = startLegacyApp({runtime:{createAPI}, storage, seed});
     installBackups({document:host.document, storage, getState:() => app.state,
       confirm:app.confirm || host.confirm.bind(host), alert:app.notify || host.alert.bind(host), reload:() => host.location.reload(), URL:host.URL, Blob:host.Blob,
@@ -1811,7 +1811,8 @@ const S = {
 let api = null, MY = null;
 const LS = storage.preferences;
 /* 테스트판(전자책 독자용 체험판, <html data-edition="trial">): 혼자 쓰는 로컬 저장이라 커뮤니티·신고·소식 알림은 숨기고,
-   개발용 문구 대신 체험판 안내를 보여 준다. 본판(퀘스트 v3)과 데모는 이 분기와 무관하게 개발 화면 그대로다. */
+   개발용 문구 대신 체험판 안내를 보여 준다. 본판(출시판 1.0)과 데모는 이 분기와 무관하다. */
+const APP_VERSION = "1.0";
 const TRIAL = document.documentElement.dataset.edition === "trial" && storage.mode !== "demo";
 S.qTab = LS.get("qTab", "daily");
 let actSeen = LS.get("actSeen", 0);
@@ -3091,7 +3092,7 @@ function viewSettings(){
     <button class="row" data-act="bkexp"><span class="t"><b>백업 내보내기</b><small>${!TRIAL ? "지금까지 기록을 JSON 파일로 저장" : LS.get("lastBackup", 0) ? `마지막 백업 ${fmtD(koreaDate(LS.get("lastBackup", 0)))}` : "아직 백업한 적이 없어요"}</small></span>${I.chev}</button>
     <button class="row" data-act="bkimp"><span class="t"><b>백업 불러오기</b><small>저장한 JSON 파일로 복원</small></span>${I.chev}</button>
     <button class="row" data-act="bkreset"><span class="t"><b>전체 초기화</b><small>모든 기록을 지우고 처음부터</small></span>${I.chev}</button></section>`;
-  h += `<p class="sect3">정보</p><section class="card tight">${TRIAL ? `<div class="row"><span class="t"><b>체험판</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>` : `<div class="row"><span class="t"><b>로컬 테스트 프로필</b><small>로그인/서버 미연결 · 이 브라우저에만 저장</small></span></div><div class="row"><span class="t"><b>앱 버전</b><small>프로토타입 0.1</small></span></div>`}<button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
+  h += `<p class="sect3">정보</p><section class="card tight">${TRIAL ? `<div class="row"><span class="t"><b>체험판</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>` : `<div class="row"><span class="t"><b>저장 위치</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>`}<div class="row"><span class="t"><b>앱 버전</b><small>${APP_VERSION}</small></span></div><button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
   return h;
 }
 
