@@ -1546,8 +1546,8 @@ function dashChips(){ const k = today(), pane = S.dashPane || "mission";
   const hs = habitsOn(k), hDone = hs.filter(q => (q.done || {})[k]).length;
   const ms = mineOf("mission"), mDone = ms.filter(m => m.done && m.doneAt && dk(m.doneAt) === k).length, mLeft = ms.filter(m => !m.done && dueOf(m) && (dueOf(m) <= k && !m.period || (m.period && isToday(m)))).length;
   const wrote = mineOf("diary").some(x => x.date === k);
-  const chip = (v, label, badge) => `<button role="tab" data-act="dpane" data-v="${v}" aria-selected="${pane === v}">${label}${badge}</button>`;
-  return `<div class="wd-chips" role="tablist" aria-label="오늘 보기">${chip("daily", "일일", hs.length ? `<span class="num">${hDone}/${hs.length}</span>` : "")}${chip("mission", "미션", mDone + mLeft ? `<span class="num">${mDone}/${mDone + mLeft}</span>` : "")}${chip("journal", "저널", wrote ? `<span class="ck">${I.check}</span>` : "")}</div>`; }
+  const chip = (v, label, badge) => `<button data-act="dpane" data-v="${v}" aria-pressed="${pane === v}">${label}${badge}</button>`;
+  return `<div class="wd-chips"><div class="seg" role="group" aria-label="오늘 보기">${chip("daily", "일일", hs.length ? `<span class="num">${hDone}/${hs.length}</span>` : "")}${chip("mission", "미션", mDone + mLeft ? `<span class="num">${mDone}/${mDone + mLeft}</span>` : "")}${chip("journal", "저널", wrote ? `<span class="ck">${I.check}</span>` : "")}</div></div>`; }
 function viewWebDash(){
   const uid = S.me, gs = goalsOf(uid).filter(g => g.status !== "done" && !isPlanned(g)).sort(gOrder);
   const save = S.qTab; S.qTab = "daily"; let d = viewToday(); S.qTab = save;

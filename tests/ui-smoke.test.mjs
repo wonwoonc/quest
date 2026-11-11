@@ -1309,9 +1309,9 @@ test('quest menu: achieved main quests and stages in a folded section at the bot
 });
 test('mobile dashboard chips: 일일/미션/저널, mission by default, switching panes keeps data unchanged',async()=>{
   const h=await profileUI();h.route('dash');let html=h.nodes.get('app').innerHTML;const before=h.snapshot();
-  assert.match(html,/class="wd-chips" role="tablist"[\s\S]*data-v="daily"[^>]*>일일[\s\S]*data-v="mission" aria-selected="true">미션[\s\S]*data-v="journal"[^>]*>저널/);
+  assert.match(html,/class="wd-chips"><div class="seg" role="group"[\s\S]*data-v="daily"[^>]*>일일[\s\S]*data-v="mission" aria-pressed="true">미션[\s\S]*data-v="journal"[^>]*>저널/);
   assert.match(html,/class="wd-bot" data-pane="mission"/);assert.match(html,/wd-sec dp-daily[\s\S]*wd-sec dp-mission[\s\S]*wd-sec dp-journal/);
-  h.click('dpane',{v:'journal'});html=h.nodes.get('app').innerHTML;assert.match(html,/data-pane="journal"/);assert.match(html,/data-v="journal" aria-selected="true"/);
+  h.click('dpane',{v:'journal'});html=h.nodes.get('app').innerHTML;assert.match(html,/data-pane="journal"/);assert.match(html,/data-v="journal" aria-pressed="true"/);
   h.click('dpane',{v:'bogus'});assert.match(h.nodes.get('app').innerHTML,/data-pane="journal"/);assert.deepEqual(h.snapshot(),before);
 });
 test('release info: terms, privacy policy and contact in main edition only; sheets render every section',async()=>{
