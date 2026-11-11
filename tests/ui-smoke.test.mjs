@@ -1296,6 +1296,13 @@ test('main edition keeps the development app: checklist yes, but no trial notice
   vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],trialLogin.context);trialLogin.flush();
   const login=trialLogin.nodes.get('app').innerHTML;assert.match(login,/>바로 시작하기</);assert.doesNotMatch(login,/카카오|개발 미리보기/);
 });
+test('release info: terms, privacy policy and contact in main edition only; sheets render every section',async()=>{
+  const h=await profileUI();h.route('settings');const set=h.nodes.get('app').innerHTML;
+  assert.match(set,/data-k="terms"[\s\S]*이용약관/);assert.match(set,/data-k="privacy"[\s\S]*개인정보처리방침/);assert.match(set,/문의하기<\/b><small>카카오톡 오픈채팅 · 준비 중/);
+  h.click('sheet',{k:'terms'});let o=h.nodes.get('overlay').innerHTML;assert.match(o,/제1조 목적[\s\S]*제6조 코인·경험치·보상[\s\S]*부칙/);assert.match(o,/만 14세 이상/);
+  h.click('sheet-close');h.click('sheet',{k:'privacy'});o=h.nodes.get('overlay').innerHTML;assert.match(o,/1\. 처리 목적[\s\S]*5\. 처리 위탁과 국외 이전[\s\S]*10\. 개인정보 보호책임자[\s\S]*12\. 방침의 변경/);
+  const t=await profileUI(undefined,'',{trial:true});t.route('settings');assert.doesNotMatch(t.nodes.get('app').innerHTML,/data-k="terms"|data-k="privacy"|문의하기/);
+});
 test('menu: default order quest/dash/story/community, rest in more; user can reorder and reset',async()=>{
   const h=await profileUI();h.route('notes');let nav=h.nodes.get('nav').innerHTML;
   const order=()=>[...h.nodes.get('nav').innerHTML.matchAll(/<a href="#(\w+)"(?: class="(nm)")?/g)].map(m=>m[1]+(m[2]?'*':''));

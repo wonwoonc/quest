@@ -151,6 +151,7 @@ button.row:active,[role=button].row:active{background:var(--fill)}
 .helpitem.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--card))}
 .helpitem b{display:block;font-size:15px;font-weight:800;margin-bottom:4px}
 .helpitem p{margin:0;font-size:13px;line-height:1.55;color:var(--sub)}
+.helpitem p+p,.helpitem ul+p{margin-top:6px}.helpitem li b{display:inline;font-size:13px;margin:0 4px 0 0}.tbd{background:#fff3bf;color:#7a5b00;border-radius:4px;padding:0 4px}
 .helpitem ul{margin:6px 0 0;padding-left:16px;font-size:13px;line-height:1.6;color:var(--sub)}
 .seg{display:flex;background:var(--seg);border-radius:12px;padding:4px;gap:4px;border:1.5px solid color-mix(in srgb,var(--ink) 22%,transparent)}
 .seg button{flex:1;border:0;background:none;border-radius:9px;padding:8px 4px;font-size:14px;color:var(--muted);font-weight:700;white-space:nowrap}
@@ -1779,6 +1780,7 @@ Object.assign(__exports,{NOTE_POOL,BASE_DRAWERS,noteDrawers,noteDrawer,noteNorm,
 "use strict";
 const {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, koreaDate, economySummary, migrateEconomy} = __require("economy.js");
 const {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete} = __require("notes.js");
+const {LEGAL_META, TERMS, PRIVACY} = __require("legal.js");
 const {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} = __require("day-activities.js");
 function startLegacyApp({runtime, storage, seed = null}) {
 const entryParams = new URLSearchParams(location.search || '');
@@ -3092,7 +3094,7 @@ function viewSettings(){
     <button class="row" data-act="bkexp"><span class="t"><b>백업 내보내기</b><small>${!TRIAL ? "지금까지 기록을 JSON 파일로 저장" : LS.get("lastBackup", 0) ? `마지막 백업 ${fmtD(koreaDate(LS.get("lastBackup", 0)))}` : "아직 백업한 적이 없어요"}</small></span>${I.chev}</button>
     <button class="row" data-act="bkimp"><span class="t"><b>백업 불러오기</b><small>저장한 JSON 파일로 복원</small></span>${I.chev}</button>
     <button class="row" data-act="bkreset"><span class="t"><b>전체 초기화</b><small>모든 기록을 지우고 처음부터</small></span>${I.chev}</button></section>`;
-  h += `<p class="sect3">정보</p><section class="card tight">${TRIAL ? `<div class="row"><span class="t"><b>체험판</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>` : `<div class="row"><span class="t"><b>저장 위치</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>`}<div class="row"><span class="t"><b>앱 버전</b><small>${APP_VERSION}</small></span></div><button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
+  h += `<p class="sect3">정보</p><section class="card tight">${TRIAL ? `<div class="row"><span class="t"><b>체험판</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>` : `<div class="row"><span class="t"><b>저장 위치</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>`}<div class="row"><span class="t"><b>앱 버전</b><small>${APP_VERSION}</small></span></div>${TRIAL ? "" : `<button class="row" data-act="sheet" data-k="terms"><span class="t"><b>이용약관</b></span>${I.chev}</button><button class="row" data-act="sheet" data-k="privacy"><span class="t"><b>개인정보처리방침</b></span>${I.chev}</button>${safeUrl(LEGAL_META.contactUrl) ? `<a class="row" href="${esc(safeUrl(LEGAL_META.contactUrl))}" target="_blank" rel="noopener noreferrer"><span class="t"><b>문의하기</b><small>카카오톡 오픈채팅</small></span>${I.chev}</a>` : `<div class="row"><span class="t"><b>문의하기</b><small>카카오톡 오픈채팅 · 준비 중</small></span></div>`}`}<button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
   return h;
 }
 
@@ -3703,6 +3705,8 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-u="${esc(u)}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
     return sheetWrap(esc(nameOf(u)), "", `<div class="sheetlist mlist">${bl ? item("unblock", "차단 해제", "다시 스토리와 답글이 보여요") : item("block", "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true)}${TRIAL ? "" : item("ureport", "신고", "부적절한 프로필이나 활동을 알려 주세요", true)}</div>`); }
   if (c.type === "logs") return sheetWrap("저널", "", `<div class="logsheet">${diaryList0() || `<p class="empty-row">아직 저널이 없어요.</p>`}</div>`);
+  if (c.type === "terms" || c.type === "privacy"){ const doc = c.type === "terms" ? TERMS : PRIVACY;
+    return sheetWrap(c.type === "terms" ? "이용약관" : "개인정보처리방침", "", `<div class="helplist legal">${doc.map(([t, body]) => `<div class="helpitem"><b>${t}</b>${body}</div>`).join("")}</div><button class="btn big full" data-act="sheet-close">확인</button>`); }
   if (c.type === "oss") return sheetWrap("오픈소스 라이선스", "", `<div class="helplist">
       <div class="helpitem"><b>Noto Sans KR</b><p>Copyright 2014–2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. Google Fonts에서 제공하며 SIL Open Font License, Version 1.1에 따라 사용해요. 이 폰트는 상업적 사용을 포함해 무료로 쓸 수 있어요.</p><p><a href="https://openfontlicense.org" target="_blank" rel="noopener noreferrer">SIL Open Font License 1.1 전문 보기</a></p></div>
       <div class="helpitem"><b>아이콘 · 캐릭터 · 이미지</b><p>앱 안의 아이콘, 기본 캐릭터, 카드 배경은 퀘스트에서 직접 그린 그림이에요. 이모지는 사용 중인 기기의 기본 이모지 글꼴로 표시돼요.</p></div>
@@ -4306,6 +4310,57 @@ return {state:S, api, snapshot:() => storage.capture(S), confirm:askAsync, notif
 }
 
 Object.assign(__exports,{startLegacyApp});
+},
+"legal.js":function(__require,__exports){
+"use strict";
+// 출시판(본판) 설정 > 정보에 들어가는 이용약관 · 개인정보처리방침 · 문의 채널.
+// 서버 연결판 기준 초안이다. tbd("...")로 표시한 곳은 서버·로그인·운영자 정보가 정해지면 채운다.
+// 이 표시나 빈 문의 주소가 남아 있으면 tests/legal.test.mjs가 todo로 알린다.
+const tbd = label => `<mark class="tbd">${label}</mark>`;
+
+const LEGAL_META = {
+  operator: tbd("운영자명 기재"),
+  effective: tbd("시행일 기재"),
+  // 카카오톡 오픈채팅 주소(https://open.kakao.com/o/...). 비어 있으면 문의하기는 '준비 중'으로 보인다.
+  contactUrl: "",
+};
+
+const M = LEGAL_META;
+
+const TERMS = [
+  ["제1조 목적", `<p>이 약관은 ${M.operator}(이하 "운영자")가 제공하는 퀘스트 서비스의 이용 조건과 절차, 운영자와 이용자의 권리·의무를 정해요.</p>`],
+  ["제2조 정의", `<ul><li><b>서비스</b> 목표·미션·습관 관리, 기록, 커뮤니티 등 퀘스트가 제공하는 모든 기능</li><li><b>이용자</b> 이 약관에 동의하고 서비스를 이용하는 사람</li><li><b>게시물</b> 이용자가 서비스에 올린 글, 사진, 답글 등</li><li><b>코인·경험치</b> 활동에 따라 서비스 안에서 쌓이는 기록용 점수</li></ul>`],
+  ["제3조 약관의 효력과 변경", `<p>약관은 서비스 화면에 게시해 효력이 생겨요. 약관을 바꿀 때는 시행 7일 전부터, 이용자에게 불리한 변경은 30일 전부터 서비스 안에 알려요. 바뀐 약관에 동의하지 않으면 탈퇴할 수 있어요.</p>`],
+  ["제4조 이용 계약", `<p>서비스는 만 14세 이상만 가입할 수 있어요. 가입 화면에서 이 약관과 개인정보처리방침에 동의하면 이용 계약이 맺어져요. 다른 사람의 정보를 도용한 가입은 승인하지 않거나 취소할 수 있어요.</p>`],
+  ["제5조 서비스 내용", `<p>운영자는 메인 퀘스트·스테이지·미션·일일 퀘스트 관리, 저널과 자료실, 상점 보상, 캘린더와 대시보드, 스토리와 커뮤니티 기능을 제공해요. 서비스는 무료이며, 유료 기능을 도입할 때는 미리 알리고 별도 동의를 받아요.</p>`],
+  ["제6조 코인·경험치·보상", `<p>코인과 경험치는 서비스 안의 활동을 기록하는 점수예요. 현금 가치가 없고, 현금이나 다른 재화로 바꾸거나 다른 이용자에게 넘길 수 없어요. 상점 보상은 이용자가 스스로 정한 약속이며, 운영자가 실제 물품이나 혜택을 주는 것이 아니에요.</p>`],
+  ["제7조 이용자의 의무", `<p>이용자는 다음 행동을 하면 안 돼요.</p><ul><li>다른 사람의 정보 도용, 계정 공유·판매</li><li>욕설, 혐오, 괴롭힘, 음란하거나 폭력적인 게시물</li><li>다른 사람의 저작권·초상권 등 권리 침해</li><li>광고, 홍보, 스팸, 같은 내용 반복 게시</li><li>서비스 운영을 방해하거나 비정상적인 방법으로 접근하는 행위</li><li>그 밖에 법령에 어긋나는 행위</li></ul>`],
+  ["제8조 게시물", `<p>게시물의 권리는 작성한 이용자에게 있어요. 운영자는 서비스 안에서 게시물을 보여 주는 데 필요한 범위에서만 사용해요. 제7조를 어긴 게시물이나 신고된 게시물은 확인 후 숨기거나 지울 수 있어요. 비공개로 둔 저널과 기록은 다른 이용자에게 보이지 않아요.</p>`],
+  ["제9조 서비스 변경과 중단", `<p>점검, 설비 장애, 운영상 필요가 있으면 서비스 일부나 전부를 바꾸거나 잠시 멈출 수 있어요. 미리 알릴 수 있는 경우에는 사전에 알려요. 서비스를 종료할 때는 30일 전에 알리고, 그 기간 동안 내 데이터를 내보낼 수 있게 해요.</p>`],
+  ["제10조 이용 제한", `<p>제7조를 어기면 경고, 게시물 숨김, 일정 기간 이용 정지, 계약 해지 순으로 이용을 제한할 수 있어요. 제한할 때는 이유를 알리고, 이용자는 문의하기로 이의를 제기할 수 있어요.</p>`],
+  ["제11조 탈퇴", `<p>이용자는 언제든 설정에서 탈퇴할 수 있어요. 탈퇴하면 개인정보처리방침에 따라 정보가 파기되고, 코인·경험치·기록은 되살릴 수 없어요. 탈퇴 전에 데이터를 내보내 두세요.</p>`],
+  ["제12조 책임의 제한", `<p>운영자는 천재지변이나 이용자 잘못으로 생긴 손해에는 책임지지 않아요. 다만 운영자의 고의나 중대한 과실로 생긴 손해는 예외예요. 서비스는 목표 관리를 돕는 도구이며, 목표 달성 결과를 보장하지 않아요.</p>`],
+  ["제13조 분쟁 해결", `<p>이 약관은 대한민국 법을 따르며, 분쟁이 생기면 민사소송법에 따른 관할 법원에서 해결해요.</p>`],
+  ["부칙", `<p>이 약관은 ${M.effective}부터 시행해요.</p>`],
+];
+
+const PRIVACY = [
+  ["안내", `<p>${M.operator}(이하 "운영자")는 개인정보 보호법에 따라 이용자의 개인정보를 보호하고 관련 고충을 처리하기 위해 이 방침을 공개해요.</p>`],
+  ["1. 처리 목적", `<ul><li>회원 가입과 본인 확인, 계정 관리</li><li>퀘스트·미션·저널 등 기록의 저장과 여러 기기 간 동기화</li><li>스토리·답글·공감 등 커뮤니티 기능 제공</li><li>신고 처리, 부정 이용 방지, 문의 응대</li></ul>`],
+  ["2. 처리하는 항목", `<ul><li><b>가입 시</b> ${tbd("로그인 방식 확정 후 기재 (예: 소셜 로그인 회원 식별번호, 닉네임)")}</li><li><b>이용 중 입력</b> 캐릭터 이름과 사진, 메인 퀘스트·스테이지·미션·일일 퀘스트, 저널, 자료실 노트와 첨부 파일, 상점 보상, 스토리·답글·첨부 사진</li><li><b>자동 생성</b> 접속 일시, 기기·브라우저 정보, 서비스 이용 기록</li></ul><p>저널과 노트에는 건강 상태나 감정처럼 민감한 내용을 적지 않도록 주의해 주세요. 운영자는 이를 따로 분석하거나 이용하지 않아요.</p>`],
+  ["3. 보유와 이용 기간", `<p>탈퇴할 때까지 보유하고, 탈퇴하면 지체 없이 파기해요. 다만 법령이 보존을 요구하는 정보는 그 기간 동안 따로 보관해요.</p><ul><li>서비스 접속 기록: 3개월 (통신비밀보호법)</li></ul><p>1년 동안 로그인하지 않으면 미리 알린 뒤 정보를 분리 보관하거나 파기할 수 있어요.</p>`],
+  ["4. 제3자 제공", `<p>이용자의 동의 없이 개인정보를 외부에 제공하지 않아요. 법령에 근거가 있거나 수사기관이 법에 정한 절차로 요청한 경우는 예외예요.</p>`],
+  ["5. 처리 위탁과 국외 이전", `<p>서비스 운영을 위해 아래 업체에 처리를 맡겨요.</p><ul><li><b>데이터 저장·서버 운영</b> ${tbd("서버 업체명, 저장 국가, 이전 항목·시기·방법 기재")}</li><li><b>로그인</b> ${tbd("로그인 제공 업체명 기재")}</li></ul><p>위탁 업체나 국외 이전 내용이 바뀌면 이 방침을 고쳐 알려요.</p>`],
+  ["6. 이용자의 권리", `<p>이용자는 언제든 자신의 개인정보를 열람·정정·삭제하거나 처리 정지를 요구할 수 있어요. 대부분은 앱 설정에서 직접 할 수 있고, 그 밖의 요청은 문의하기로 보내 주면 지체 없이 처리해요. 설정의 데이터 내보내기로 내 기록을 파일로 받을 수도 있어요.</p>`],
+  ["7. 파기 절차와 방법", `<p>보유 기간이 끝나거나 처리 목적을 달성한 정보는 지체 없이 파기해요. 전자 파일은 복구할 수 없는 방법으로 지우고, 서버 백업에 남은 사본도 백업 보관 주기가 지나면 함께 지워져요.</p>`],
+  ["8. 안전성 확보 조치", `<ul><li>모든 통신은 암호화(HTTPS)해서 주고받아요</li><li>개인정보에 접근할 수 있는 사람을 최소한으로 제한해요</li><li>다른 이용자의 비공개 기록에 접근할 수 없도록 계정별 접근 권한을 설정해요</li><li>접속 기록을 보관하고 이상 접근을 점검해요</li></ul>`],
+  ["9. 자동 수집 장치", `<p>로그인 상태 유지와 화면 설정(메뉴 순서 등)을 위해 브라우저 저장소와 쿠키를 사용해요. 브라우저 설정에서 거부할 수 있지만, 그러면 로그인이 유지되지 않을 수 있어요. 광고나 행동 분석을 위한 추적 도구는 사용하지 않아요.</p>`],
+  ["10. 개인정보 보호책임자", `<ul><li><b>책임자</b> ${tbd("이름 기재")}</li><li><b>연락처</b> ${tbd("이메일 기재")} · 앱 설정의 문의하기</li></ul>`],
+  ["11. 권익 침해 구제", `<p>개인정보 침해로 상담이나 구제가 필요하면 아래 기관에 문의할 수 있어요.</p><ul><li>개인정보침해신고센터 (국번 없이) 118 · privacy.kisa.or.kr</li><li>개인정보분쟁조정위원회 1833-6972 · kopico.go.kr</li><li>대검찰청 (국번 없이) 1301</li><li>경찰청 (국번 없이) 182</li></ul>`],
+  ["12. 방침의 변경", `<p>이 방침은 ${M.effective}부터 시행해요. 내용이 바뀌면 시행 7일 전부터 서비스 안에 알려요.</p>`],
+];
+
+Object.assign(__exports,{LEGAL_META,TERMS,PRIVACY});
 },
 "day-activities.js":function(__require,__exports){
 "use strict";

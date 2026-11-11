@@ -1,5 +1,6 @@
 import {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, koreaDate, economySummary, migrateEconomy} from './economy.js';
 import {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete} from './notes.js';
+import {LEGAL_META, TERMS, PRIVACY} from './legal.js';
 import {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} from './day-activities.js';
 export function startLegacyApp({runtime, storage, seed = null}) {
 const entryParams = new URLSearchParams(location.search || '');
@@ -1313,7 +1314,7 @@ function viewSettings(){
     <button class="row" data-act="bkexp"><span class="t"><b>백업 내보내기</b><small>${!TRIAL ? "지금까지 기록을 JSON 파일로 저장" : LS.get("lastBackup", 0) ? `마지막 백업 ${fmtD(koreaDate(LS.get("lastBackup", 0)))}` : "아직 백업한 적이 없어요"}</small></span>${I.chev}</button>
     <button class="row" data-act="bkimp"><span class="t"><b>백업 불러오기</b><small>저장한 JSON 파일로 복원</small></span>${I.chev}</button>
     <button class="row" data-act="bkreset"><span class="t"><b>전체 초기화</b><small>모든 기록을 지우고 처음부터</small></span>${I.chev}</button></section>`;
-  h += `<p class="sect3">정보</p><section class="card tight">${TRIAL ? `<div class="row"><span class="t"><b>체험판</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>` : `<div class="row"><span class="t"><b>저장 위치</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>`}<div class="row"><span class="t"><b>앱 버전</b><small>${APP_VERSION}</small></span></div><button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
+  h += `<p class="sect3">정보</p><section class="card tight">${TRIAL ? `<div class="row"><span class="t"><b>체험판</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>` : `<div class="row"><span class="t"><b>저장 위치</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>`}<div class="row"><span class="t"><b>앱 버전</b><small>${APP_VERSION}</small></span></div>${TRIAL ? "" : `<button class="row" data-act="sheet" data-k="terms"><span class="t"><b>이용약관</b></span>${I.chev}</button><button class="row" data-act="sheet" data-k="privacy"><span class="t"><b>개인정보처리방침</b></span>${I.chev}</button>${safeUrl(LEGAL_META.contactUrl) ? `<a class="row" href="${esc(safeUrl(LEGAL_META.contactUrl))}" target="_blank" rel="noopener noreferrer"><span class="t"><b>문의하기</b><small>카카오톡 오픈채팅</small></span>${I.chev}</a>` : `<div class="row"><span class="t"><b>문의하기</b><small>카카오톡 오픈채팅 · 준비 중</small></span></div>`}`}<button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
   return h;
 }
 
@@ -1924,6 +1925,8 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-u="${esc(u)}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
     return sheetWrap(esc(nameOf(u)), "", `<div class="sheetlist mlist">${bl ? item("unblock", "차단 해제", "다시 스토리와 답글이 보여요") : item("block", "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true)}${TRIAL ? "" : item("ureport", "신고", "부적절한 프로필이나 활동을 알려 주세요", true)}</div>`); }
   if (c.type === "logs") return sheetWrap("저널", "", `<div class="logsheet">${diaryList0() || `<p class="empty-row">아직 저널이 없어요.</p>`}</div>`);
+  if (c.type === "terms" || c.type === "privacy"){ const doc = c.type === "terms" ? TERMS : PRIVACY;
+    return sheetWrap(c.type === "terms" ? "이용약관" : "개인정보처리방침", "", `<div class="helplist legal">${doc.map(([t, body]) => `<div class="helpitem"><b>${t}</b>${body}</div>`).join("")}</div><button class="btn big full" data-act="sheet-close">확인</button>`); }
   if (c.type === "oss") return sheetWrap("오픈소스 라이선스", "", `<div class="helplist">
       <div class="helpitem"><b>Noto Sans KR</b><p>Copyright 2014–2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. Google Fonts에서 제공하며 SIL Open Font License, Version 1.1에 따라 사용해요. 이 폰트는 상업적 사용을 포함해 무료로 쓸 수 있어요.</p><p><a href="https://openfontlicense.org" target="_blank" rel="noopener noreferrer">SIL Open Font License 1.1 전문 보기</a></p></div>
       <div class="helpitem"><b>아이콘 · 캐릭터 · 이미지</b><p>앱 안의 아이콘, 기본 캐릭터, 카드 배경은 퀘스트에서 직접 그린 그림이에요. 이모지는 사용 중인 기기의 기본 이모지 글꼴로 표시돼요.</p></div>
