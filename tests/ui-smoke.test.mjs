@@ -730,7 +730,7 @@ test('economy shop tabs and reward form omit guidance while price constraints st
   const h=await profileUI();h.route('shop');
   assert.doesNotMatch(h.nodes.get('app').innerHTML,/buyrest|휴식권 구매|data-act="shop-tab"|>내역</);assert.doesNotMatch(h.nodes.get('app').innerHTML,removedEconomyGuidance);
   h.click('sheet',{k:'reward'});let markup=h.nodes.get('overlay').innerHTML;
-  assert.match(markup,/id="rw-cost"[^>]*placeholder="예\) 300"[^>]*value=""/);assert.doesNotMatch(markup,/data-f="cost"|5 단위/,'no preset buttons, no 5-step rule');assert.doesNotMatch(markup,/rw-repeat|rw-daily|rw-weekly/);assert.doesNotMatch(markup,removedEconomyGuidance);
+  assert.match(markup,/id="rw-cost"[^>]*placeholder="예: 300"[^>]*value=""/);assert.doesNotMatch(markup,/data-f="cost"|5 단위/,'no preset buttons, no 5-step rule');assert.doesNotMatch(markup,/rw-repeat|rw-daily|rw-weekly/);assert.doesNotMatch(markup,removedEconomyGuidance);
   const costField=markup.slice(markup.indexOf('<span class="lab">가격'),markup.indexOf('<span class="lab">가격')+500);
   assert.doesNotMatch(costField,/<p class="hint"/);
   h.nodes.set('rw-name',{value:'직접 정한 보상'});
