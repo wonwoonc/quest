@@ -490,7 +490,9 @@ test('past month date buttons open the day records page; back returns to the sam
   assert.equal(h.context.location.hash,'#calday'); assert.equal(h.nodes.get('overlay').innerHTML,'');
   assert.match(h.nodes.get('topbar').innerHTML,/data-act="back"/);
   const sheet = h.nodes.get('app').innerHTML;
-  for (const text of ['첫 저널','두 번째 저널','공유 스토리','두 번째 스토리','완료 일일','실제 완료 미션','기간 완료 미션','완료 메인','완료 스테이지','완료</h3>','예정 · 미션','날짜 미확인','과거 완료 미션']) assert.ok(sheet.includes(text),text);
+  for (const text of ['첫 저널','두 번째 저널','공유 스토리','두 번째 스토리','완료 일일','실제 완료 미션','기간 완료 미션','완료 메인','완료 스테이지','<h3>완료 <span','날짜 미확인','과거 완료 미션','class="dsum"','완료한 미션','data-act="cdaystep" data-v="2026-11-01"']) assert.ok(sheet.includes(text),text);
+  assert.doesNotMatch(sheet,/기록이 없어요|못 한 미션|예정 · 미션|기록·완료 · 한국 시간/,'empty sections hidden');
+  h.click('cdaystep',{v:'2026-11-01'}); assert.match(h.nodes.get('app').innerHTML,/data-date="2026-11-01"/); h.click('cdaystep',{v:'2026-11-02'}); assert.equal(h.nodes.get('app').innerHTML,sheet,'step back restores same day');
   assert.match(sheet,/data-date="2026-11-02"/); assert.match(sheet,/&lt;img src=x&gt; &amp; 안전/);
   assert.doesNotMatch(sheet,/다른 사용자|<img src=x>|class="tday\b|id="pl-text"|data-act="psave"/);
   assertNoNestedButtons(sheet); assert.deepEqual(h.snapshot(),before);

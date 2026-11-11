@@ -753,19 +753,25 @@ function calHabitChip(q, d){ const done = q.doneHabit, canEdit = d === today();
   return `<div class="wti wck habit ${done?"done":""}" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><button class="wchk ${done?"on":""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit?"":"disabled"} aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(q.name)}</span></div></div>`; }
 function calendarDaySheet(date, asPage = false){
   const index = dayActivityIndex(), day = selectDayActivities(index, date);
-  const row = (entry, act, key, label, text = '') => `<button class="row" data-act="${act}" data-${key}="${esc(entry.id)}"><span class="t"><b>${esc(label)}</b>${text ? `<small>${esc(text)}</small>` : ''}</span>${I.chev}</button>`;
-  const section = (title, entries, render) => `<section class="day-section"><h3>${title} <span class="num">${entries.length}</span></h3>${entries.length ? entries.map(render).join('') : '<p class="empty-row">기록이 없어요.</p>'}</section>`;
-  let body = `<div class="day-activities" data-date="${esc(date)}"><p class="hint">기록·완료 · 한국 시간 기준</p>${!day.count ? '<p class="empty-row">이 날의 기록이나 완료한 항목이 없어요.</p>' : ''}`;
-  body += section('저널', day.journals, d => row(d,'journal-view','id',`컨디션 ${esc(d.cond ?? "-")}% · ${d.emo || '저널'}`,d.text || '내용 없는 저널'));
-  body += section('스토리', day.stories, p => row(p,'day-post','p',p.text || p.ref?.label || '사진 스토리',p.ref?.type === 'diary' ? '이 날 게시한 저널 공유 스토리 · 저널 완료와 별개' : '이 날 게시한 내 스토리 · 완료 여부와 별개'));
-  body += `<h3 class="day-group">완료</h3>`;
-  body += section('일일 퀘스트', day.daily, q => row(q,'hedit','id',q.name));
-  body += section('미션', day.tasks, m => taskRow(m,true,false,{showTime:false,showDate:false}));
-  body += section('메인 퀘스트', day.main, p => row(p,'day-project','p',p.title));
-  body += section('스테이지', day.sub, p => row(p,'day-project','p',p.title));
-  const scheduled = (tasksByDate()[date] || []).filter(m => !m.done && !m._ghost);
-  body += section('예정 · 미션', scheduled, m => taskRow(m,true,false,{showTime:false,showDate:false}));
-  body += `<button class="btn sec full" data-act="day-schedule" data-v="${esc(date)}">일별 일정 보기·추가</button>`;
+  const ring = (done, total) => { const r = 15, c = 2 * Math.PI * r, f = total ? Math.min(1, done / total) : 0;
+    return `<svg class="dring" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="${r}"/><circle class="on" cx="18" cy="18" r="${r}" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}"/></svg>`; };
+  const habitTotal = Math.max(day.daily.length, mineOf("quest").filter(q => occursOn(qRepeat(q), date) && activityDate(q.createdAt || 0) <= date).length);
+  const missed = (tasksByDate()[date] || []).filter(m => !m.done && !m._ghost);
+  const j = day.journals[0];
+  const stat = (big, label, extra = "") => `<div class="dstat">${extra}<b class="num">${big}</b><small>${label}</small></div>`;
+  const prev = addD(date, -1), next = addD(date, 1), mdOf = d => { const D = pd(d); return `${D.getMonth() + 1}월 ${D.getDate()}일`; };
+  let body = `<div class="day-activities" data-date="${esc(date)}">
+    <div class="dnav"><button class="btn sec xs" data-act="cdaystep" data-v="${prev}">${I.back}${mdOf(prev)}</button>${next < today() ? `<button class="btn sec xs fwd" data-act="cdaystep" data-v="${next}">${mdOf(next)}${I.back}</button>` : ""}</div>
+    <div class="dsum">${stat(habitTotal ? `${day.daily.length}/${habitTotal}` : "–", "일일 퀘스트", habitTotal ? ring(day.daily.length, habitTotal) : "")}${stat(day.tasks.length, "완료한 미션")}${stat(j ? `${j.cond ?? "-"}%` : "–", j ? `컨디션${j.emo ? ` · ${esc(j.emo)}` : ""}` : "저널 없음", j && EMOI[j.emo] ? `<span class="demo">${EMOI[j.emo]}</span>` : "")}</div>`;
+  if (!day.count && !missed.length) body += '<p class="dempty">이 날의 기록이나 완료한 항목이 없어요.</p>';
+  const sec = (title, n, inner) => n ? `<section class="dsec"><h3>${title} <span class="num">${n}</span></h3>${inner}</section>` : "";
+  body += sec("저널", day.journals.length, day.journals.map(d => `<button class="djour" data-act="journal-view" data-id="${esc(d.id)}"><span class="djtop"><b>${d.emo ? `${EMOI[d.emo] || ""} ${esc(d.emo)}` : "저널"}</b><span class="djbar" aria-label="컨디션 ${esc(d.cond ?? 0)}%"><i style="width:${Math.max(0, Math.min(100, +d.cond || 0))}%"></i></span><small class="num">${esc(d.cond ?? "-")}%</small></span><span class="djtext">${esc(d.text || "내용 없는 저널")}</span></button>`).join(""));
+  const item = (act, key, id, label, tag, cls = "") => `<button class="ditem${cls}" data-act="${act}" data-${key}="${esc(id)}"><span class="dck">${cls ? "" : I.check}</span><span class="dlabel">${esc(label)}</span><span class="dtag">${tag}</span></button>`;
+  const doneItems = [...day.daily.map(q => item("hedit", "id", q.id, q.name, "일일")), ...day.tasks.map(m => item("tedit", "id", m.id, m.name, "미션")), ...day.main.map(p => item("day-project", "p", p.id, p.title, "메인 퀘스트")), ...day.sub.map(p => item("day-project", "p", p.id, p.title, "스테이지"))];
+  body += sec("완료", doneItems.length, `<div class="dlist">${doneItems.join("")}</div>`);
+  body += sec("못 한 미션", missed.length, `<div class="dlist">${missed.map(m => item("tedit", "id", m.id, m.name, "미션", " miss")).join("")}</div>`);
+  body += sec("스토리", day.stories.length, `<div class="dlist">${day.stories.map(p => item("day-post", "p", p.id, p.text || p.ref?.label || "사진 스토리", "스토리", " story")).join("")}</div>`);
+  body += `<button class="btn sec full dsched" data-act="day-schedule" data-v="${esc(date)}">일별 일정 보기·추가</button>`;
   const unknown = [...index.unknown.tasks, ...index.unknown.main, ...index.unknown.sub];
   if (unknown.length) body += `<details class="day-unknown"><summary>날짜 미확인 · 전체 과거 완료 ${unknown.length}개</summary><p class="hint">완료 시각이 없어 이 날의 기록·완료 개수에 포함하지 않았어요.</p>${unknown.map(x => `<p>${esc(x.name || x.title)} · 날짜 미확인</p>`).join('')}</details>`;
   if (asPage) return body+'</div>';
@@ -2190,6 +2196,7 @@ document.addEventListener("click", e => {
       else if (C.mode === "month"){ d.setDate(1); d.setMonth(d.getMonth()+n); C.date = dk(d.getTime()); } else { d.setFullYear(d.getFullYear()+n); C.date = dk(d.getTime()); } break; }
     case "ctoday": S.cal.date = today(); S.tlTop = S.wgTop = null; S.yCenter = true; break;
     case "cpick": S.cal.date = b.dataset.v; if (b.dataset.m) S.cal.mode = b.dataset.m; S.tlTop = S.wgTop = null; break;
+    case "cdaystep": { const v = b.dataset.v; if (activityDate(v) !== v || v >= today()) return; S.view = {name:"calday", date:v}; render(); window.scrollTo?.(0, 0); return; }
     case "cdate": { const v = b.dataset.v; if (activityDate(v) !== v) return;
       if (v < today()){ S.calKeep = true; push({name:"calday", date:v}, "#calday"); return; }
       S.cal.mode = "day"; S.cal.date = v; S.tlTop = S.wgTop = null; scrollTo(0,0); break; }
