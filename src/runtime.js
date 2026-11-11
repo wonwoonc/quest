@@ -50,6 +50,7 @@ export function createAPI({state, storage, id, now = Date.now, color = '#3DBE8B'
     like:write((s, key, value) => { const p = doc(s.feed,key); p.reactions = {...p.reactions, [me]:value ? {k:'heart', at:now()} : 0}; }),
     join:write((s, key) => { const p = doc(s.feed,key); p.joiners = {...p.joiners, [me]:now()}; }),
     addReply:write((s, pid, text, parentId) => { doc(s.feed,pid); const key = id(); s.replies[key] = {id:key, postId:pid, author:me, text, parentId:parentId || null, likes:{}, createdAt:now()}; }),
+    delReply:write((s, key) => { if (doc(s.replies,key).author !== me) throw new Error('내 답글만 지울 수 있어요.'); delete s.replies[key]; }),
     likeReply:write((s, key, value) => { const r = doc(s.replies,key); r.likes = {...r.likes, [me]:value ? now() : 0}; }),
     follow:write((s, user, value) => { const key = me+'~'+user; if (value) s.follows[key] = {from:me, to:user, at:now()}; else delete s.follows[key]; }),
     getMedia:async key => state.media[key] || '',

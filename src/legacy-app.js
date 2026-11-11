@@ -1481,7 +1481,7 @@ function viewPost(){
 }
 function replyRow(c, child, line){
   const lk = on((c.likes||{})[S.me]), n = Object.values(c.likes||{}).filter(on).length, parent = c.parentId && S.replies[c.parentId];
-  return `<div class="reply ${child?"child":""}"${!TRIAL && canAct() && c.author !== S.me ? ` data-rid="${esc(c.id)}"` : ""}><div class="rail">${av(c.author, child?28:36)}${line ? '<span class="ln"></span>' : ""}</div>
+  return `<div class="reply ${child?"child":""}"${canAct() && (c.author === S.me || !TRIAL) ? ` data-rid="${esc(c.id)}"` : ""}><div class="rail">${av(c.author, child?28:36)}${line ? '<span class="ln"></span>' : ""}</div>
     <div class="body"><div class="ph"><button class="nm" data-act="profile" data-u="${esc(c.author)}">${esc(nameOf(c.author))}</button><span class="pillLv">Lv.${statsOf(c.author).L}</span><time>${ago(c.createdAt)}</time></div>
       ${parent && child ? `<div class="to">${esc(nameOf(parent.author))}님에게 답글</div>` : ""}${c.modHidden && c.author === S.me ? `<p class="modnote">운영자가 숨긴 답글이에요. 지금은 나에게만 보여요.</p>` : ""}<p class="txt">${esc(c.text)}</p>
       <div class="acts"><button class="ab ${lk?"on":""}" data-act="rlike" data-c="${c.id}" ${canAct() && c.author !== S.me ? "" : "disabled"} aria-pressed="${lk}" aria-label="답글 공감">${lk?I.heartOn:I.heart}${n?`<span class="num">${n}</span>`:""}</button>
@@ -1937,6 +1937,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
       ? item("editpost", "수정", "글과 수치 기록을 고쳐요") + item("ptoggle-reply", p.noReply ? "답글 기능 켜기" : "답글 기능 끄기", p.noReply ? "지금은 답글을 받을 수 없어요" : "") + item("ptoggle-likes", p.hideLikes ? "공감 수 보이기" : "공감 수 숨기기", p.hideLikes ? "다른 사람에게 공감 수가 안 보여요" : "") + item("delpost", S.armed === "dp"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", "", true)
       : item("follow", f ? "팔로우 취소" : "팔로우", "") + item("phide", "이 스토리 숨기기", "커뮤니티에서 다시 보이지 않아요") + item("block", S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true) + (TRIAL ? "" : item("preport", "신고", "부적절한 스토리를 운영자에게 알려요", true))}</div>`); }
   if (c.type === "rmenu"){ const r = S.replies[c.rid]; if (!r){ closeSheet(); return; } const a = r.author;
+    if (a === S.me) return sheetWrap("내 답글", "", `<div class="sheetlist mlist"><button class="row mitem warn" data-act="rdelreply" data-c="${esc(r.id)}"><span class="t"><b>${S.armed === "rx"+r.id ? "한 번 더 누르면 삭제돼요" : "삭제"}</b><small>삭제한 답글은 되돌릴 수 없어요</small></span></button></div>`);
     return sheetWrap(esc(nameOf(a)) + "님의 답글", "", `<div class="sheetlist mlist"><button class="row mitem warn" data-act="rreport" data-c="${esc(r.id)}"><span class="t"><b>신고</b><small>부적절한 답글을 운영자에게 알려요</small></span></button>
       <button class="row mitem warn" data-act="block" data-u="${esc(a)}"><span class="t"><b>${S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단"}</b><small>이 사람의 스토리와 답글이 모두 안 보여요</small></span></button></div>`); }
   if (c.type === "navedit"){ const order = navOrder(), up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>`, dn = up.replace("M6 15l6-6 6 6", "M6 9l6 6 6-6");
@@ -2279,6 +2280,8 @@ document.addEventListener("click", e => {
     case "umenu": openSheet({type:"umenu", u}); return;
     case "ureport": case "preport": { closeSheet(); const done = () => toast("신고가 접수됐어요. 검토 후 조치할게요");
       if (!community) return done(); community.report(a === "preport" ? "post" : "user", a === "preport" ? pid : u).then(done, e => toast(esc(e.message || "신고하지 못했어요. 잠시 후 다시 시도해 주세요."))); return; }
+    case "rdelreply": { const rid = b.dataset.c; if (S.armed !== "rx"+rid){ arm("rx"+rid); renderSheet(); return; } S.armed = null;
+      run(() => api.delReply(rid), () => { closeSheet(); toast("답글을 삭제했어요"); }); return; }
     case "rreport": { const rid = b.dataset.c; closeSheet();
       const done = () => toast("신고가 접수됐어요. 검토 후 조치할게요"); if (!community) return done();
       community.report("reply", rid).then(done, e => toast(esc(e.message || "신고하지 못했어요. 잠시 후 다시 시도해 주세요."))); return; }
