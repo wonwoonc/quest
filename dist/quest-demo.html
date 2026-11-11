@@ -2390,7 +2390,7 @@ function diaryForm(d, P, sheet = false){ const dt = P.date || today(), t0 = toda
 const diaryPost = key => Object.values(S.feed).find(p => p.author === S.me && p.ref && p.ref.type === "diary" && p.ref.id === key);
 /* 대시보드 저널 칩: 오늘의 미션처럼 요약 카드 + 목록 카드. 목록 카드에 최근 저널(오늘 포함 3개)과 쓰기·수정 버튼. */
 function logToday(){ const d = S.mine["d-"+today()];
-  const head = `<section class="card today jtoday"><div class="ringwrap jicon">${d && EMOI[d.emo] ? EMOI[d.emo] : "📓"}</div><div class="tinfo"><small>오늘의 저널</small><h2>${d ? "오늘 기록을 남겼어요" : "아직 기록하지 않았어요"}</h2></div></section>`;
+  const head = `<section class="card today jtoday"><div class="ringwrap jicon">${d && EMOI[d.emo] ? EMOI[d.emo] : "📓"}</div><div class="tinfo"><small>오늘의 저널</small><h2>${d ? "오늘 기록을 남겼어요" : "오늘 하루를 기록해 보세요"}</h2></div></section>`;
   if (S.planner.edit) return head + diaryCard();
   const all = mineOf("diary").sort((a,b) => (b.date||"") < (a.date||"") ? -1 : 1), ds = all.slice(0, 3);
   const row = x => { const t = pd(x.date); return `<div class="row wdlog" data-act="journal-view" data-id="${esc(x.id)}" role="button" tabindex="0"><span class="em">${EMOI[x.emo] || "💭"}</span><span class="t"><b>${x.date === today() ? "오늘" : `${t.getMonth()+1}월 ${t.getDate()}일 ${WD[t.getDay()]}`}</b><small>컨디션 ${esc(x.cond ?? "-")}%${x.emo ? ` · ${esc(x.emo)}` : ""}</small></span></div>`; };
