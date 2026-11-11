@@ -800,11 +800,11 @@ for(const [route,kind] of [['add-daily','quest'],['hedit','quest'],['add-once','
 test('existing daily records render current icons for five tiers and legacy aliases without writes',async()=>{
   const base=await linkedUI(),saved=base.snapshot();
   for(const key of [...TIERS,'gold'])saved.mine[`d-${key}`]={id:`d-${key}`,kind:'quest',name:`기존 ${key}`,lv:key,days:[0,1,2,3,4,5,6],done:{}};
-  const h=await profileUI(saved),before=h.snapshot();h.click('sheet',{k:'hset'});
-  const html=h.nodes.get('overlay').innerHTML;
+  const h=await profileUI(saved),before=h.snapshot();h.route('daily');
+  const html=h.nodes.get('app').innerHTML;
   for(const key of [...TIERS,'gold']){
     const meta=DAILY_DIFFICULTY[key==='gold'?'normal':key];
-    assert.ok(html.includes(`data-id="d-${key}"><span class="ic sq" title="${meta.n}" aria-label="${meta.n}">${meta.e}</span>`));
+    assert.ok(html.includes(`data-id="d-${key}"`)&&html.includes(`${meta.e} ${meta.n}`),key);
   }
   assert.deepEqual(h.snapshot(),before);
 });
@@ -1106,7 +1106,7 @@ test('nav › 퀘스트: bulk status change, archive, task move and confirmed de
   saved.mine.qa={id:'qa',kind:'quest',name:'관리 일일',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{},createdAt:1};
   saved.mine.t1={id:'t1',kind:'mission',name:'관리 미션',due:'2099-01-01',time:'10:00',projectId:'s1',lv:'normal',done:false,createdAt:1};
   const h=await profileUI(saved);assert.match(h.nodes.get('nav').innerHTML,/href="#qmanage"[^>]*>[\s\S]*?<span>퀘스트<\/span>/);
-  h.route('qmanage');assert.match(h.nodes.get('topbar').innerHTML,/퀘스트/);assert.match(h.nodes.get('app').innerHTML,/data-act="pl-tab" data-v="sub"[\s\S]*data-k="add" data-v="big"><span class="wd-plus">\+<\/span><b>메인 퀘스트 생성/);h.click('pl-mode',{v:'tidy'});assert.match(h.nodes.get('app').innerHTML,/메인 하나/);
+  h.route('qmanage');assert.match(h.nodes.get('topbar').innerHTML,/퀘스트/);assert.match(h.nodes.get('app').innerHTML,/data-act="pl-tab" data-v="active"[\s\S]*data-k="add" data-v="big"><span class="wd-plus">\+<\/span><b>메인 퀘스트 생성/);h.click('pl-mode',{v:'tidy'});assert.match(h.nodes.get('app').innerHTML,/메인 하나/);
   h.click('qm-sel',{id:'m1'});h.click('qm-sel',{id:'m2'});assert.match(h.nodes.get('app').innerHTML,/<b>2<\/b>개 선택/);
   h.click('qm-do',{v:'planned'});await h.settle();assert.equal(h.snapshot().projects.m1.status,'planned');assert.equal(h.snapshot().projects.m2.status,'planned');
   h.click('qm-tab',{v:'daily'});h.click('qm-sel',{id:'qa'});h.click('qm-do',{v:'arch'});await h.settle();assert.equal(h.snapshot().mine.qa.active,false);
@@ -1136,22 +1136,29 @@ test('main quest page shows sub quests as cards with progress and next task',asy
   assert.match(html,/class="card pgc[^"]*" data-act="project" data-p="s1"[\s\S]*?기초 체력/);
   assert.match(html,/data-p="s2"[\s\S]*?시작 전/);assert.match(html,/subadd/);assert.doesNotMatch(html,/<em>다음<\/em>/);
 });
-test('nav › 퀘스트: 전체 / 메인 / 스테이지 / 일일 tabs each show their own list and create button',async()=>{
+test('nav › 퀘스트: main quests only, chips 전체/진행/대기/달성 filter; stage progress on the card',async()=>{
   const base=await profileUI(),saved=base.snapshot();
-  saved.projects={m1:{id:'m1',owner:'me',title:'메인 A',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'스테이지 B',end:'2099-12-31',status:'active'}};
+  saved.projects={m1:{id:'m1',owner:'me',title:'메인 A',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'스테이지 B',end:'2099-12-31',status:'active'},m2:{id:'m2',owner:'me',title:'대기 메인',end:'2099-12-31',status:'planned'},m3:{id:'m3',owner:'me',title:'달성 메인',status:'done',doneAt:5}};
   saved.mine.qa={id:'qa',kind:'quest',name:'일일 C',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:true,done:{},createdAt:1};
   const h=await profileUI(saved);h.route('qmanage');let html=h.nodes.get('app').innerHTML;
-  assert.match(html,/data-act="pl-tab" data-v="all" aria-pressed="true"/);assert.match(html,/메인 A[\s\S]*스테이지 B[\s\S]*일일 C/);
-  h.click('pl-tab',{v:'main'});html=h.nodes.get('app').innerHTML;assert.match(html,/메인 A/);assert.doesNotMatch(html,/일일 C/);
-  h.click('pl-tab',{v:'sub'});html=h.nodes.get('app').innerHTML;assert.match(html,/스테이지 B/);assert.match(html,/data-v="sub"><span class="wd-plus">/);assert.doesNotMatch(html,/일일 C/);
-  h.click('pl-tab',{v:'daily'});html=h.nodes.get('app').innerHTML;assert.match(html,/일일 C/);assert.match(html,/data-v="daily"><span class="wd-plus">/);assert.doesNotMatch(html,/메인 A/);
+  assert.match(html,/data-v="all" aria-pressed="true">전체 <span class="num">3[\s\S]*data-v="active"[^>]*>진행 <span class="num">1[\s\S]*data-v="later"[^>]*>대기 <span class="num">1[\s\S]*data-v="done"[^>]*>달성 <span class="num">1/);
+  assert.match(html,/진행 중 <span class="num">1[\s\S]*메인 A[\s\S]*스테이지 0\/1[\s\S]*class="pgsub[^"]*" data-act="project" data-p="s1"[\s\S]*메인 퀘스트 생성[\s\S]*대기 중 <span class="num">1[\s\S]*대기 메인[\s\S]*달성 <span class="num">1[\s\S]*달성 메인/);
+  assert.doesNotMatch(html,/일일 C|data-v="sub"|data-v="daily"/);
+  h.click('pl-tab',{v:'later'});html=h.nodes.get('app').innerHTML;assert.match(html,/대기 메인/);assert.doesNotMatch(html,/메인 A|달성 메인/);
+  h.click('pl-tab',{v:'done'});html=h.nodes.get('app').innerHTML;assert.match(html,/달성 메인/);assert.doesNotMatch(html,/메인 A|대기 메인/);
+  h.click('pl-tab',{v:'active'});html=h.nodes.get('app').innerHTML;assert.match(html,/메인 A[\s\S]*메인 퀘스트 생성/);assert.doesNotMatch(html,/대기 메인|달성 메인/);
+  h.click('pl-tab',{v:'bogus'});assert.match(h.nodes.get('app').innerHTML,/data-v="all" aria-pressed="true"/);
 });
-test('nav › 퀘스트 › 일일: archived dailies listed under 보관 and can be restored',async()=>{
+test('대시보드 일일 › 관리: opens the 일일 퀘스트 page (cards + 보관), archived can be restored',async()=>{
   const base=await profileUI(),saved=base.snapshot();
   saved.mine.qz={id:'qz',kind:'quest',name:'쉬는 습관',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:false,done:{},createdAt:1};
-  const h=await profileUI(saved);h.route('qmanage');h.click('pl-tab',{v:'daily'});
-  assert.match(h.nodes.get('app').innerHTML,/보관 <span class="num">1[\s\S]*쉬는 습관[\s\S]*data-act="unarch" data-id="qz"/);
-  h.click('unarch',{id:'qz'});await h.settle();assert.equal(h.snapshot().mine.qz.active,true);
+  saved.mine.qo={id:'qo',kind:'quest',name:'안 하는 날',repeat:{type:'weekly',days:[]},days:[],lv:'easy',active:true,done:{},createdAt:2};
+  saved.mine.qd={id:'qd',kind:'quest',name:'매일 습관',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:true,done:{},createdAt:3};
+  const h=await profileUI(saved);h.route('dash');h.click('dpane',{v:'daily'});assert.match(h.nodes.get('app').innerHTML,/data-act="hset" aria-label="일일 퀘스트 관리"[\s\S]*관리 <em class="num">보관 1/);
+  h.click('hset');assert.equal(h.context.location.hash,'#daily');h.route('daily');assert.match(h.nodes.get('topbar').innerHTML,/data-act="back"[\s\S]*일일 퀘스트/);
+  let o=h.nodes.get('app').innerHTML;
+  assert.match(o,/일일 퀘스트 <span class="num">2[\s\S]*class="card pgc dqc"[\s\S]*(안 하는 날|매일 습관)[\s\S]*일일 퀘스트 생성[\s\S]*보관 <span class="num">1[\s\S]*쉬는 습관[\s\S]*data-act="unarch" data-id="qz"/);
+  h.click('unarch',{id:'qz'});await h.settle();assert.equal(h.snapshot().mine.qz.active,true);assert.doesNotMatch(h.nodes.get('app').innerHTML,/data-act="unarch"/);
 });
 test('퀘스트 › 메인 (today view): covers and sub/task toggles start folded and open on tap',async()=>{
   const h=await linkedUI();h.route('today');h.click('qtab',{t:'main'});let html=h.nodes.get('app').innerHTML;
@@ -1166,12 +1173,6 @@ test('sub quest create is one sheet everywhere, with 속성; sub area overrides 
   const ov=h.nodes.get('overlay').innerHTML;assert.match(ov,/스테이지 생성/);assert.match(ov,/data-act="aset" data-v="money"/);assert.doesNotMatch(ov,/최초 생성|data-act="ntopen"/);
   h.nodes.set('ad-name',{value:'장비 구입'});h.click('dppick',{k:'end',v:'2099-06-01'});h.click('aset',{v:'money'});h.click('submit-add');await h.settle();
   const sub=Object.values(h.snapshot().projects).find(p=>p.title==='장비 구입');assert.equal(sub.parentId,'m1');assert.deepEqual(sub.area,['money']);
-});
-test('nav › 퀘스트 › 스테이지: planned sub quests sit under their own 나중에 시작 group',async()=>{
-  const base=await profileUI(),saved=base.snapshot();
-  saved.projects={m1:{id:'m1',owner:'me',title:'메인',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'지금 스테이지',end:'2099-12-31',status:'active'},s2:{id:'s2',owner:'me',parentId:'m1',title:'나중 스테이지',end:'2099-12-31',status:'planned'}};
-  const h=await profileUI(saved);h.route('qmanage');assert.doesNotMatch(h.nodes.get('app').innerHTML,/나중에 시작 <span/,'hidden on 전체');h.click('pl-tab',{v:'sub'});const html=h.nodes.get('app').innerHTML;
-  assert.match(html,/스테이지 <span class="num">1[\s\S]*지금 스테이지[\s\S]*스테이지 생성[\s\S]*나중에 시작 <span class="num">1[\s\S]*나중 스테이지/);
 });
 test('main / sub quest page shows selected 속성 tags; sub without its own shows the inherited one',async()=>{
   const base=await profileUI(),saved=base.snapshot();
@@ -1225,7 +1226,7 @@ test('plan: place on tasks, place + after-habit on dailies, chained next-habit p
   h.click('rpt',{v:'daily'}); h.click('tmset'); h.click('submit-add'); await h.settle();
   const b = Object.values(h.snapshot().mine).find(x => x.name === '영어 한 줄 읽기');
   assert.equal(b.place,'욕실'); assert.equal(b.afterId,a.id); assert.equal(b.after,'');
-  h.route('qmanage'); assert.match(h.nodes.get('app').innerHTML,/양치 후/); assert.match(h.nodes.get('app').innerHTML,/욕실/);
+  h.route('daily'); assert.match(h.nodes.get('app').innerHTML,/양치 후/); assert.match(h.nodes.get('app').innerHTML,/욕실/); h.route('dash');
   h.click('qcheck',{id:a.id}); await h.settle();
   assert.match(h.nodes.get('toast').innerHTML,/다음 습관: <b>영어 한 줄 읽기<\/b>/);
   h.click('taskadd'); assert.match(h.nodes.get('overlay').innerHTML,/data-v="place"/); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/data-v="after"/);
@@ -1304,19 +1305,10 @@ test('main edition keeps the development app: checklist yes, but no trial notice
   vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],trialLogin.context);trialLogin.flush();
   const login=trialLogin.nodes.get('app').innerHTML;assert.match(login,/>바로 시작하기</);assert.doesNotMatch(login,/카카오|개발 미리보기/);
 });
-test('quest menu: achieved main quests and stages in a folded section at the bottom, filtered by tab',async()=>{
-  const base=await profileUI(),saved=base.snapshot();
-  saved.projects={...saved.projects,gm:{id:'gm',owner:'me',title:'달성 메인',status:'done',doneAt:2},gs:{id:'gs',owner:'me',parentId:'gm',title:'완료 스테이지',status:'done',doneAt:1},ga:{id:'ga',owner:'me',title:'진행 메인',status:'active'},gx:{id:'gx',owner:'other',title:'남의 달성',status:'done',doneAt:3}};
-  const h=await profileUI(saved);h.route('qmanage');let html=h.nodes.get('app').innerHTML;
-  assert.match(html,/달성한 퀘스트 <span class="num">2<\/span>개/);assert.doesNotMatch(html,/data-act="project" data-p="gm"/,'folded by default');
-  h.click('toggle',{k:'pldone'});html=h.nodes.get('app').innerHTML;assert.match(html,/data-p="gm"[\s\S]*data-p="gs"/);assert.doesNotMatch(html,/남의 달성/);
-  h.click('pl-tab',{v:'main'});html=h.nodes.get('app').innerHTML;assert.match(html,/달성한 퀘스트 <span class="num">1<\/span>개/);assert.match(html,/data-p="gm"/);assert.doesNotMatch(html,/data-p="gs"/);
-  h.click('pl-tab',{v:'daily'});assert.doesNotMatch(h.nodes.get('app').innerHTML,/달성한 퀘스트/);
-});
 test('mobile dashboard chips: 일일/미션/저널, mission by default, switching panes keeps data unchanged',async()=>{
   const h=await profileUI();h.route('dash');let html=h.nodes.get('app').innerHTML;const before=h.snapshot();
   assert.match(html,/class="wd-chips"><div class="seg" role="group"[\s\S]*data-v="daily"[^>]*>일일[\s\S]*data-v="mission" aria-pressed="true">미션[\s\S]*data-v="journal"[^>]*>저널/);
-  assert.match(html,/class="wd-bot" data-pane="mission"/);assert.match(html,/wd-sec dp-daily[\s\S]*wd-sec dp-mission[\s\S]*wd-sec dp-journal/);
+  assert.match(html,/class="wd-bot" data-pane="mission"/);assert.doesNotMatch(html,/wd-mprof|lvstrip|class="card pcard"/,'no profile card on mobile dashboard');assert.match(html,/wd-sec dp-daily[\s\S]*wd-sec dp-mission[\s\S]*wd-sec dp-journal/);
   h.click('dpane',{v:'journal'});html=h.nodes.get('app').innerHTML;assert.match(html,/data-pane="journal"/);assert.match(html,/data-v="journal" aria-pressed="true"/);
   h.click('dpane',{v:'bogus'});assert.match(h.nodes.get('app').innerHTML,/data-pane="journal"/);assert.deepEqual(h.snapshot(),before);
 });

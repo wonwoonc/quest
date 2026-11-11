@@ -411,7 +411,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   if (v === "profile" && !S.view.uid) S.view.uid = S.me;
   rollOver();
    const dash = v === "dash" && hasProfile();
-  $("#app").innerHTML = (dash || v === "qmanage" ? firstGame() : "") + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, learn:viewLearn, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
+  $("#app").innerHTML = (dash || v === "qmanage" ? firstGame() : "") + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, daily:viewDaily, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, learn:viewLearn, calday:viewCalDay, dash:viewFeed}[v] || viewToday)());
   { const gg = dash && $(".wd-goals .wd-ggrid"); if (gg && S.wdGs) gg.scrollLeft = S.wdGs; }
   $("#app").dataset.v = S.me && !hasProfile() && S.canWrite ? "profile" : dash ? "dash" : v; $("#app").dataset.pt = v === "profile" || v === "today" ? (S.profTab || "") : "";
   renderReplyBar(); renderPill();
@@ -456,8 +456,8 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
 }
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
-  const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || (v === "profile" && S.view.uid !== S.me);
-  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
+  const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || v === "daily" || (v === "profile" && S.view.uid !== S.me);
+  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", daily:"일일 퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
   const n = activityItems().filter(x => x.at > actSeen).length;
   setHtml($("#topbar"), `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : ""}<h1>${title}</h1>
     ${S.me && !TRIAL && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
@@ -727,7 +727,7 @@ function viewToday(){
   } else if (!total) h += `<p class="empty-row">오늘 할 일일 퀘스트가 없어요.</p>`;
   h += todo.map(row).join("");
   const archived = mineOf("quest").filter(q => q.active === false).length;
-  h += done.map(row).join("") + `<div class="qfoot2"><button class="tadd-pill" data-act="sheet" data-k="add" data-v="daily">+ 퀘스트 생성</button><button class="archbtn" data-act="archive" aria-label="보관한 일일 퀘스트 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4"/></svg>보관${archived ? ` <em class="num">${archived}</em>` : ""}</button></div></section>`;
+  h += done.map(row).join("") + `<div class="qfoot2"><button class="tadd-pill" data-act="sheet" data-k="add" data-v="daily">+ 퀘스트 생성</button><button class="archbtn" data-act="hset" aria-label="일일 퀘스트 관리"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M4 12h16M4 18h7"/><circle cx="17" cy="6" r="2"/><circle cx="14" cy="18" r="2"/></svg>관리${archived ? ` <em class="num">보관 ${archived}</em>` : ""}</button></div></section>`;
   return h;
 }
 function goalRow(p, nested = false){
@@ -1158,33 +1158,28 @@ function dailyCard(q){
     <div class="pgmeta"><span>${lv.e} ${esc(lv.n)}</span><span>${repeatLabel(q)}</span><span>최장 ${st.best}${streakUnit(q)} · 총 ${st.total}회</span></div>
   </section>`;
 }
-const plCard = g => pgCard(g).replace(/<div class="pgsubs">[\s\S]*?<\/div>\s*<\/section>$/, "</section>");
-function viewPlan(){
-  const gs = goalsOf(S.me).filter(g => g.status !== "done"), act = gs.filter(g => !isPlanned(g)).sort(gOrder), later = gs.filter(isPlanned).sort(gOrder), Q = QM();
-  const addC = (kind, label, cls = "") => `<button class="card subc subadd pladdc ${cls}" data-act="sheet" data-k="add" data-v="${kind}"><span class="wd-plus">+</span><b>${label}</b></button>`;
-  const head = (t, n) => `<div class="subhead"><h2>${t} <span class="num">${n}</span></h2></div>`;
-  const tab = Q.ptab || "all", subs = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId && p.status !== "done" && S.projects[p.parentId] && S.projects[p.parentId].status !== "done").sort((a,b) => isPlanned(a) - isPlanned(b) || ((a.end || "9") < (b.end || "9") ? -1 : (a.end || "9") > (b.end || "9") ? 1 : 0));
+/* 일일 퀘스트 관리 페이지(#daily): 대시보드 일일 칩의 '관리'에서 들어온다. 예전 퀘스트 메뉴의 일일 탭과 같은 카드 + 보관 목록. */
+function viewDaily(){
+  if (!hasProfile()) return viewToday();
   const qs = chainSort(mineOf("quest").filter(q => q.active !== false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0)));
-  let h = `<div class="seg pltabs" role="group" aria-label="퀘스트 종류">${[["all","전체",act.length + later.length + subs.length + qs.length],["main","메인",act.length + later.length],["sub","스테이지",subs.length],["daily","일일",qs.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
+  const ar = mineOf("quest").filter(q => q.active === false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+  return `<div class="subhead"><h2>일일 퀘스트 <span class="num">${qs.length}</span></h2></div><div class="dqstack">${qs.map(dailyCard).join("")}<button class="card subc subadd pladdc dqadd" data-act="sheet" data-k="add" data-v="daily"><span class="wd-plus">+</span><b>일일 퀘스트 생성</b></button></div>
+  <div class="subhead"><h2>보관 <span class="num">${ar.length}</span></h2></div><section class="card tight qlist plarch">${ar.map(q => { const st = streakOf(q); return `<div class="row"><span class="t tap" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><b>${esc(q.name)}</b><small>${[repeatLabel(q), `총 ${st.total}회`].join(" · ")}</small></span><button class="btn sec xs" data-act="unarch" data-id="${q.id}">보관 해제</button></div>`; }).join("") || `<p class="empty-row">보관한 일일 퀘스트가 없어요. 잠시 쉬고 싶은 일일 퀘스트는 수정 창에서 보관할 수 있어요.</p>`}</section>`;
+}
+const plCard = g => pgCard(g).replace(/<div class="pgsubs">[\s\S]*?<\/div>\s*<\/section>$/, "</section>");
+/* 퀘스트 메뉴: 메인 퀘스트만. 칩 전체/진행/대기/달성. 카드에 스테이지 진행도(pgCard). 일일 퀘스트는 대시보드 일일 칩의 '관리'에서. */
+function viewPlan(){
+  const all = goalsOf(S.me), Q = QM();
+  const act = all.filter(g => g.status !== "done" && !isPlanned(g)).sort(gOrder), later = all.filter(g => g.status !== "done" && isPlanned(g)).sort(gOrder), done = all.filter(g => g.status === "done").sort((a,b) => (b.doneAt || 0) - (a.doneAt || 0));
+  if (!["all", "active", "later", "done"].includes(Q.ptab)) Q.ptab = "all";
+  const tab = Q.ptab, T = t => tab === "all" || tab === t;
+  const addC = `<button class="card subc subadd pladdc" data-act="sheet" data-k="add" data-v="big"><span class="wd-plus">+</span><b>메인 퀘스트 생성</b></button>`;
+  const sec = (t, list, extra = "", empty = "") => `<div class="subhead"><h2>${t} <span class="num">${list.length}</span></h2></div>${list.length || extra ? `<div class="plgrid hsc">${list.map(pgCard).join("")}${extra}</div>` : `<p class="empty-row plempty">${empty}</p>`}`;
+  let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태">${[["all","전체",all.length],["active","진행",act.length],["later","대기",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
   if (BD_ON) h = brainDump() + h;
-  const T = t => tab === "all" || tab === t;
-  if (T("main")){
-    h += head("메인 퀘스트", act.length) + `<div class="plgrid hsc">${act.map(plCard).join("")}${addC("big", "메인 퀘스트 생성")}</div>`;
-    if (later.length && tab !== "all") h += `<div class="subhead"><h2>나중에 시작 <span class="num">${later.length}</span></h2></div><div class="plgrid hsc">${later.map(plCard).join("")}</div>`;
-  }
-  if (T("sub")){
-    const sAct = subs.filter(x => !isPlanned(x)), sLater = subs.filter(isPlanned);
-    h += head("스테이지", sAct.length) + `<div class="plgrid hsc">${sAct.map(plCard).join("")}${addC("sub", "스테이지 생성")}</div>`;
-    if (sLater.length && tab !== "all") h += `<div class="subhead"><h2>나중에 시작 <span class="num">${sLater.length}</span></h2></div><div class="plgrid hsc">${sLater.map(plCard).join("")}</div>`;
-  }
-  if (T("daily")){
-    h += head("일일 퀘스트", qs.length) + `<div class="plgrid hsc">${qs.map(dailyCard).join("")}${addC("daily", "일일 퀘스트 생성", "dqadd")}</div>`;
-    const ar = tab === "all" ? [] : mineOf("quest").filter(q => q.active === false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
-    if (tab !== "all") h += `<div class="subhead"><h2>보관 <span class="num">${ar.length}</span></h2></div><section class="card tight qlist plarch">${ar.map(q => { const st = streakOf(q); return `<div class="row"><span class="t tap" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><b>${esc(q.name)}</b><small>${[repeatLabel(q), `총 ${st.total}회`].join(" · ")}</small></span><button class="btn sec xs" data-act="unarch" data-id="${q.id}">보관 해제</button></div>`; }).join("") || `<p class="empty-row">보관한 일일 퀘스트가 없어요. 잠시 쉬고 싶은 일일 퀘스트는 수정 창에서 보관할 수 있어요.</p>`}</section>`;
-  }
-  /* 달성한 메인 퀘스트·스테이지: 맨 아래 접힌 칸. 전체 탭은 둘 다, 메인/스테이지 탭은 해당 종류만, 일일 탭은 없음 */
-  const dn = tab === "daily" ? [] : Object.values(S.projects).filter(p => p.owner === S.me && p.status === "done" && (tab === "all" || (tab === "main" ? !p.parentId : !!p.parentId))).sort((a,b) => (b.doneAt || 0) - (a.doneAt || 0));
-  if (dn.length) h += `<section class="card tight pldone"><button class="row" data-act="toggle" data-k="pldone" aria-expanded="${!!S.openPlDone}"><span class="t"><b>달성한 퀘스트 <span class="num">${dn.length}</span>개</b></span><span class="chev2 ${S.openPlDone ? "open" : ""}">${I.chev}</span></button>${S.openPlDone ? dn.map(p => goalRow(p, !!p.parentId)).join("") : ""}</section>`;
+  if (T("active")) h += sec("진행 중", act, addC);
+  if (T("later") && (later.length || tab === "later")) h += sec("대기 중", later, "", "시작일이 아직 오지 않은 메인 퀘스트가 여기에 모여요.");
+  if (T("done") && (done.length || tab === "done")) h += sec("달성", done, "", "달성한 메인 퀘스트가 여기에 모여요.");
   return h;
 }
 /* brain dump: pour every thought in, then sort each into main / sub / daily / task, or hide it */
@@ -1560,7 +1555,7 @@ function viewWebDash(){
         return `<div class="wd-ggrid hs">${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(<span class="bar green big">[\s\S]*?<\/span>)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; return `<div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">미션 ${pr.done}/${pr.total}</span></div>` + wdMetric(x); }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
   const goals = `${strip(gs, "메인 퀘스트", "big")}
 `;
-  let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}<div class="wd-mprof">${profHead(uid).replace('<div class="stage">', '<div class="stage" data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기">')}</div></div><div class="wd-goals">${goals}</div>
+  let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}</div><div class="wd-goals">${goals}</div>
       ${dashChips()}<div class="wd-bot" data-pane="${S.dashPane || "mission"}"><div class="wd-sec dp-daily"><div class="wd-stack">${d}</div></div>
       <div class="wd-tl"><div class="wd-sec dp-mission"><div class="wd-merge wd-fix">${(() => { S._noToday = true; S._noTime = true; let tt; try{ tt = taskTab({noUp:true}); } finally { S._noToday = false; S._noTime = false; }
         return tt; })()}</div></div>
@@ -1988,12 +1983,6 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     <button class="btn big full" data-act="submit-postedit" ${S.busy?"disabled":""}>저장</button>`); }
   if (c.type === "archive"){ const qs = mineOf("quest").filter(q => q.active === false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
     return sheetWrap(`보관한 일일 퀘스트${qs.length ? ` <span class="num" style="color:var(--accent)">${qs.length}</span>` : ""}`, "", qs.length ? `<div class="sheetlist">${qs.map(q => { const st = streakOf(q); return `<div class="row"><span class="t tap" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><b>${esc(q.name)}</b><small>${repeatLabel(q)} · 최장 ${st.best}${streakUnit(q)} · 총 ${st.total}회</small></span><button class="btn soft sm" data-act="unarch" data-id="${esc(q.id)}">보관 해제</button></div>`; }).join("")}</div>` : `<p class="empty-row" style="padding:4px 0 16px">보관한 일일 퀘스트가 없어요.<br>일일 퀘스트를 눌러 '보관'하면 여기로 옮겨져요.</p>`); }
-  if (c.type === "hset"){ const qs = mineOf("quest").sort((a,b) => (a.createdAt||0) - (b.createdAt||0)), act = qs.filter(q => q.active !== false), ps = qs.filter(q => q.active === false);
-    const r = q => { const st = streakOf(q), lv = HLV[lvKey(q.lv)]; return `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq" title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span><span class="t"><b>${esc(q.name)}</b><small>${repeatLabel(q)} · 🔥 ${st.cur}${streakUnit(q)} · 최장 ${st.best}${streakUnit(q)}</small></span>${I.chev}</button>`; };
-    return sheetWrap("일일 퀘스트 설정", "", `
-    <div class="sheetlist">${act.length ? `<p class="lab" style="margin:0 20px 4px">진행 중 ${act.length}</p>${act.map(r).join("")}` : `<p class="empty-row">진행 중인 일일 퀘스트가 없어요.</p>`}
-    ${ps.length ? `<p class="lab" style="margin:14px 20px 4px">보관 ${ps.length}</p>${ps.map(r).join("")}` : ""}</div>
-    <button class="btn big full" data-act="sheet" data-k="add" data-v="daily">+ 일일 퀘스트 생성</button>`); }
   if (c.type === "reward-got") return sheetWrap("", "", `<div class="reward"><div class="big">${c.emoji}</div><h2 style="justify-content:center">${c.title}</h2><p class="desc" style="margin:0">${c.desc}</p>
     <div class="gain">${c.g ? `<span>${c.g > 0 ? "+" : ""}${fmt(c.g)} 코인</span>` : ""}</div>
     ${c.share ? `<button class="btn big full" data-act="share-after">커뮤니티에 공유하기</button><button class="link" style="margin-top:14px" data-act="sheet-close">다음에 할게요</button>` : `<button class="btn big full" data-act="sheet-close">확인</button>`}</div>`);
@@ -2069,6 +2058,7 @@ function route(){
   else if (h === "#cal"){ if (prev !== "cal" && S.calKeep){ S.calKeep = false; S.view = {name:"cal"}; } else if (prev !== "cal"){ S.tlTop = S.wgTop = null; S.yCenter = true; if (S.cal){ S.cal.mode = "day"; S.cal.date = today(); } } S.view = {name:"cal"}; }
   else if (h === "#settings") S.view = {name:"settings"};
   else if (h === "#stats"){ S.view = {name:"stats"}; }
+  else if (h === "#daily"){ S.view = {name:"daily"}; }
   else if (h === "#qmanage"){ if (prev !== "qmanage") { const Q = QM(); Q.sel = []; } S.view = {name:"qmanage"}; }
   else if (h === "#me"){ if (prev !== "profile") S.profN = 20; if (!["profile","project","post","calday","activity","settings","stats"].includes(prev)) S.profTab = "posts"; S.view = {name:"profile", uid:S.me}; }
   else if (h === "#dash") S.view = {name:"dash"};
@@ -2224,7 +2214,7 @@ document.addEventListener("click", e => {
     case "unblock": { if (S.compose && S.compose.type === "umenu") closeSheet(); const st = getSet(); run(() => api.putMine("settings", {kind:"settings", ...st, blocked:st.blocked.filter(x => x !== u)}), () => toast("차단을 해제했어요")); return; }
     case "unhide": { const st = getSet(); st.hidden.splice(+b.dataset.i, 1); run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
     case "tfold": { const l = LS.get("tfold", []), k = b.dataset.k; LS.set("tfold", l.includes(k) ? l.filter(x => x !== k) : [...l, k]); break; }
-    case "toggle": { const m = {habits:"openHabits", later:"openLater", done:"openDone", ach:"openAch", pldone:"openPlDone", blk:"openBlk", subdone:"openSubDone", buys:"openBuys", tdone:"openTDone", bdall:"bdAll"}[b.dataset.k]; S[m] = !S[m]; break; }
+    case "toggle": { const m = {habits:"openHabits", later:"openLater", done:"openDone", ach:"openAch", blk:"openBlk", subdone:"openSubDone", buys:"openBuys", tdone:"openTDone", bdall:"bdAll"}[b.dataset.k]; S[m] = !S[m]; break; }
     case "compose": if (pid && S.projects[pid]) openCompose({ref:{type:"project", id:pid, label:S.projects[pid].title}, fixed:true}); else openCompose(); return;
     case "sheet": { if (!S.canWrite) return; if (!hasProfile() && b.dataset.k !== "profile"){ toast("먼저 캐릭터를 만들어 주세요"); return; }
       const k = b.dataset.k; if (k === "post") return openCompose();
@@ -2392,7 +2382,7 @@ document.addEventListener("click", e => {
       const pid = uid8(); run(async () => { await api.redeem(r.id, pid); await api.purchaseAction(pid, "use"); }, () => rewardSheet({emoji:"🎁", title:`'${esc(r.name)}' 구매 완료!`, desc:"마음껏 즐기세요!", g:-pr})); return; }
     case "emocustom": S.planner.custom = true; reDiary(); setTimeout(() => { const x = $("#pl-emo"); x && x.focus(); }, 0); return;
     case "emoadd": { const v = (($("#pl-emo")||{}).value||"").trim(); if (!v){ toast("감정을 적어 주세요"); return; } S.planner.extra = [...new Set([...(S.planner.extra||[]), v])]; S.planner.emo = v; S.planner.custom = false; delete S.drafts["pl-emo"]; reDiary(); return; }
-    case "hset": openSheet({type:"hset"}); return;
+    case "hset": go("daily"); return;
     case "archive": openSheet({type:"archive"}); return;
     case "unarch": { const q = S.mine[id]; if (!q) return; run(() => api.putMine(id, {...q, active:true}), () => { toast(`'${esc(q.name)}' 보관을 해제했어요`); if (S.compose && S.compose.type === "archive") renderSheet(); }); return; }
     case "pemo": S.planner.emo = S.planner.emo === b.dataset.v ? null : b.dataset.v; reDiary(); return;
