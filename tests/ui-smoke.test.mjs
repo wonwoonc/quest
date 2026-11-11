@@ -397,7 +397,7 @@ function taskMarkup(html,id) {
   assert.ok(start >= 0,`missing task row ${id}`);
   return html.slice(start,html.indexOf('</div>',start));
 }
-for (const page of ['today','today-main','dash','me','me-main','cal','main-detail','sub-detail']) {
+for (const page of ['today','today-main','dash','cal','main-detail','sub-detail']) {
    test(`${page}: ${page === 'cal' ? 'all rows omit date/time badges' : 'timed rows have one non-linking badge; untimed rows have none'}`,async () => {
     const h = await linkedUI();
     const show = () => {
@@ -1153,8 +1153,8 @@ test('nav › 퀘스트 › 일일: archived dailies listed under 보관 and can
   assert.match(h.nodes.get('app').innerHTML,/보관 <span class="num">1[\s\S]*쉬는 습관[\s\S]*data-act="unarch" data-id="qz"/);
   h.click('unarch',{id:'qz'});await h.settle();assert.equal(h.snapshot().mine.qz.active,true);
 });
-test('story › 퀘스트 › 메인: covers and sub/task toggles start folded and open on tap',async()=>{
-  const h=await linkedUI();h.route('me');h.click('ptab',{t:'goals'});h.click('qtab',{t:'main'});let html=h.nodes.get('app').innerHTML;
+test('퀘스트 › 메인 (today view): covers and sub/task toggles start folded and open on tap',async()=>{
+  const h=await linkedUI();h.route('today');h.click('qtab',{t:'main'});let html=h.nodes.get('app').innerHTML;
   assert.match(html,/data-act="cvfold" data-p="main">표지 펴기/);assert.match(html,/data-act="mfold" data-k="main" aria-expanded="false"/);assert.match(html,/data-act="mfold" data-k="s:main" aria-expanded="false"/);
   h.click('mfold',{k:'main'});h.click('cvfold',{p:'main'});html=h.nodes.get('app').innerHTML;
   assert.match(html,/data-act="mfold" data-k="main" aria-expanded="true"/);assert.match(html,/aria-label="표지 접기"/);
@@ -1191,9 +1191,15 @@ test('profile card opens the 능력치 page with level, XP, coins and stats; pro
   h.route('stats');const html=h.nodes.get('app').innerHTML;assert.match(h.nodes.get('topbar').innerHTML,/프로필/);h.click('areainfo',{v:'health'});assert.match(h.nodes.get('overlay').innerHTML,/체력 · 건강[\s\S]*몸을 돌보는/);
   assert.match(html,/총 경험치[\s\S]*보유 코인[\s\S]*class="statcard"/);assert.doesNotMatch(html,/최장 연속/);
 });
-test('story menu opens on the 스토리 tab after visiting another menu',async()=>{
-  const h=await profileUI();h.route('me');h.click('ptab',{t:'goals'});assert.match(h.nodes.get('app').innerHTML,/data-act="ptab" data-t="goals" aria-pressed="true"/);
-  h.route('dash');h.route('me');assert.match(h.nodes.get('app').innerHTML,/data-act="ptab" data-t="posts" aria-pressed="true"/);
+test('my story page shows stories only (no 퀘스트/저널 chips); stale tab state cannot reopen them',async()=>{
+  const h=await profileUI();h.route('me');let html=h.nodes.get('app').innerHTML;
+  assert.doesNotMatch(html,/class="segwrap"|data-act="ptab"|data-t="diary"|id="pl-text"/);
+  h.click('ptab',{t:'goals'});html=h.nodes.get('app').innerHTML;assert.doesNotMatch(html,/data-act="qtab"|data-act="ptab"/);
+  h.click('ptab',{t:'diary'});assert.doesNotMatch(h.nodes.get('app').innerHTML,/id="pl-text"|data-act="pemo"/);
+  const saved=h.snapshot();saved.profiles={...(saved.profiles||{}),other:{name:'다른 모험가',color:'#3DBE8B'}};saved.projects={...saved.projects,og:{id:'og',owner:'other',title:'남의 메인',status:'active'}};
+  const o=await profileUI(saved);o.click('profile',{u:'other'});html=o.nodes.get('app').innerHTML;
+  assert.match(html,/data-act="ptab" data-t="posts"[^>]*>스토리[\s\S]*data-act="ptab" data-t="goals"[^>]*>퀘스트/);assert.doesNotMatch(html,/data-t="diary"/);
+  o.click('ptab',{t:'goals'});assert.match(o.nodes.get('app').innerHTML,/남의 메인/);
 });
 test('overdue main/sub quests show a red "N일 지남" badge and no end-date tag',async()=>{
   const base=await profileUI(),saved=base.snapshot(),past=new Date(Date.now()+9*3600000-3*86400000).toISOString().slice(0,10);

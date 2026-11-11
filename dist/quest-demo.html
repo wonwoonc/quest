@@ -2370,7 +2370,6 @@ function diaryForm(d, P, sheet = false){ const dt = P.date || today(), t0 = toda
     ${d ? `<button class="btn big full sec" style="margin-top:10px;color:var(--warn)" data-act="ldel" data-id="d-${esc(d.date)}">저널 삭제</button>` : ""}`; }
 const diaryPost = key => Object.values(S.feed).find(p => p.author === S.me && p.ref && p.ref.type === "diary" && p.ref.id === key);
 function logToday(){ return S.mine["d-"+today()] || S.planner.edit ? diaryCard() : `<section class="card wd-lognew"><div class="ch"><h2>오늘의 저널</h2></div><p class="hint">오늘 컨디션과 감정, 하루를 짧게 남겨 보세요.</p><button class="btn soft full" data-act="sheet" data-k="diary">오늘 저널 쓰기</button></section>`; }
-function diaryList(){ return diaryCard() + diaryList0(); }
 function diaryList0(){
   const ds = mineOf("diary").sort((a,b) => (b.date||"") < (a.date||"") ? -1 : 1);
   if (!ds.length) return "";
@@ -3387,9 +3386,9 @@ function viewProfile(){
   const posts = feedSorted().filter(x => x.author === uid), goals = goalsOf(uid);
   let h = mine ? profHead(uid).replace('<div class="stage">', '<div class="stage" data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기">') : profHead(uid);
   if (!mine && (isBlocked(uid) || (p.private && !isFollowing(S.me, uid)))) return h + `<div class="card empty"><strong>${isBlocked(uid) ? "차단한 계정이에요" : "🔒 비공개 계정이에요"}</strong>${isBlocked(uid) ? "차단을 해제하면 다시 볼 수 있어요." : "팔로우하면 게시물과 퀘스트를 볼 수 있어요."}</div>`;
-  h += `<div class="segwrap"><button class="helpdot" data-act="ptabhelp" data-v="${mine ? 1 : ""}" aria-label="탭 설명 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r="1.3" fill="currentColor" stroke="none"/></svg></button><div class="seg" role="group" aria-label="보기"><button data-act="ptab" data-t="posts" aria-pressed="${S.profTab==="posts"}">스토리</button><button data-act="ptab" data-t="goals" aria-pressed="${S.profTab==="goals"}">퀘스트</button>${mine ? `<button data-act="ptab" data-t="diary" aria-pressed="${S.profTab==="diary"}">저널</button>` : ""}</div></div>`;
-  if (S.profTab === "diary" && mine) return h + diaryList();
-  if (S.profTab === "goals" && mine) return h + viewToday();
+  /* 내 스토리 화면은 스토리만 보여 준다(오늘 할 일은 대시보드, 지난 저널은 자료실·캘린더). 다른 사람 프로필은 스토리·퀘스트 칩을 둔다. */
+  if (mine) S.profTab = "posts";
+  else h += `<div class="segwrap"><button class="helpdot" data-act="ptabhelp" data-v="" aria-label="탭 설명 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r="1.3" fill="currentColor" stroke="none"/></svg></button><div class="seg" role="group" aria-label="보기"><button data-act="ptab" data-t="posts" aria-pressed="${S.profTab==="posts"}">스토리</button><button data-act="ptab" data-t="goals" aria-pressed="${S.profTab==="goals"}">퀘스트</button></div></div>`;
   if (S.profTab === "goals"){ const pt = S.pqTab === "sub" ? "main" : (S.pqTab || "main");
     h += `<div class="seg sm2" role="group" aria-label="퀘스트 종류">${[["daily","일일"],["main","메인"]].map(([k,l]) => `<button data-act="pqtab" data-t="${k}" aria-pressed="${pt===k}">${l}</button>`).join("")}</div>`;
     if (pt === "daily"){
@@ -4071,7 +4070,7 @@ document.addEventListener("click", e => {
     case "rday": { preserveSheetDrafts(); c.rday = +b.dataset.v; c._rd = false; renderSheet(); return; }
     case "cphoto": choosePhotos(true, list => { if (!S.compose || S.compose.type !== "post") return; S.compose.photos = S.compose.photos.concat(list).slice(0, MAX_IMGS); renderSheet(); }); return;
     case "cunphoto": c.photos.splice(+b.dataset.i, 1); renderSheet(); return;
-    case "ptab": S.profTab = b.dataset.t; break;
+    case "ptab": if (["posts", "goals"].includes(b.dataset.t)) S.profTab = b.dataset.t; break;
     case "newpill": S.ackAt = Date.now(); setHtml($("#pill"), ""); scrollTo({top:0, behavior:"smooth"}); return;
     case "open": e.stopPropagation(); openPost(pid); return;
     case "project": e.stopPropagation(); if (c && c.type === "areainfo") closeSheet(); openGoal(pid); return;
