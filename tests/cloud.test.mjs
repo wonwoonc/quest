@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createCloud, reconcile, createSync, hasContent, SESSION_KEY, META_KEY} from '../src/cloud.js';
+import {createCloud, loadState, createSync, applyPrefs, pickPrefs, hasContent, SESSION_KEY, META_KEY} from '../src/cloud.js';
 import {authView} from '../src/auth-screen.js';
 import {emptySnapshot} from '../src/storage.js';
 
@@ -72,62 +72,59 @@ test('cloud auth: mail links (#access_token / #error) are parsed and adopted; re
   await assert.rejects(cloud.adopt({access:'bogus', refresh:'x', type:'signup'}), /만료/);
 });
 
-test('reconcile: new account uploads device records; server-only pulls; same account pulls newer server / pushes unsent changes', async () => {
+test('loadState: records come from the server only; old device copies are cleaned up (unsent same-account changes are pushed first)', async () => {
   const sb = fakeSupabase({confirm:false}), {cloud, ls} = make(sb);
-  await cloud.signUp('a@b.co', 'password1');
-  ls.setItem(KEY, JSON.stringify(snap('기기')));
-  const ask = () => assert.fail('no question when server is empty');
-  assert.equal((await reconcile({cloud, ls, key:KEY, ask, backup:() => assert.fail()})).result, 'uploaded');
-  const uid = cloud.user().id; assert.equal(sb.rows.get(uid).data.profiles.me.nick, '기기'); assert.equal(cloud.meta().dirty, false);
-  assert.equal((await reconcile({cloud, ls, key:KEY, ask, backup:() => {}})).result, 'same');
-  sb.rows.set(uid, {data:snap('다른 기기'), updated_at:'later'});
-  const r = await reconcile({cloud, ls, key:KEY, ask, backup:() => {}});
-  assert.equal(r.result, 'pulled'); assert.match(r.notice, /다른 기기/); assert.equal(JSON.parse(ls.getItem(KEY)).profiles.me.nick, '다른 기기');
-  ls.setItem(KEY, JSON.stringify(snap('오프라인 수정'))); cloud.setMeta({...cloud.meta(), dirty:true});
-  assert.equal((await reconcile({cloud, ls, key:KEY, ask, backup:() => {}})).result, 'pushed'); assert.equal(sb.rows.get(uid).data.profiles.me.nick, '오프라인 수정');
-  // fresh device, server has records, device empty → pulled without asking
-  const other = make(sb, memLS()); await other.cloud.signIn('a@b.co', 'password1');
-  assert.equal((await reconcile({cloud:other.cloud, ls:other.ls, key:KEY, ask, backup:() => {}})).result, 'pulled');
-});
-
-test('reconcile: pre-login device records + server records → user chooses; the other side is backed up as a file', async () => {
-  for (const pick of ['local', 'server']){
-    const sb = fakeSupabase({confirm:false}), {cloud, ls} = make(sb);
-    await cloud.signUp('a@b.co', 'password1'); sb.rows.set(cloud.user().id, {data:snap('서버'), updated_at:'s1'});
-    ls.setItem(KEY, JSON.stringify(snap('기기', {mine:{m1:{id:'m1', kind:'mission', name:'x'}}})));
-    const backups = []; let asked = null;
-    const r = await reconcile({cloud, ls, key:KEY, ask:async c => { asked = c; return pick; }, backup:(label, s) => backups.push([label, s.profiles.me.nick])});
-    assert.equal(asked.local.profiles.me.nick, '기기'); assert.equal(asked.server.profiles.me.nick, '서버'); assert.equal(asked.serverAt, 's1');
-    assert.equal(r.result, pick === 'local' ? 'kept-local' : 'kept-server');
-    assert.deepEqual(backups, pick === 'local' ? [['서버', '서버']] : [['이 기기', '기기']]);
-    assert.equal(JSON.parse(ls.getItem(KEY)).profiles.me.nick, pick === 'local' ? '기기' : '서버');
-    assert.equal(sb.rows.get(cloud.user().id).data.profiles.me.nick, pick === 'local' ? '기기' : '서버');
-  }
-});
-
-test('reconcile: another account cached on this device is replaced by this account (no question)', async () => {
-  const sb = fakeSupabase({confirm:false}), {cloud, ls} = make(sb);
-  await cloud.signUp('b@b.co', 'password1'); cloud.setMeta({uid:'someone-else', syncedAt:'x', dirty:false});
-  ls.setItem(KEY, JSON.stringify(snap('남의 기록')));
-  assert.equal((await reconcile({cloud, ls, key:KEY, ask:() => assert.fail(), backup:() => assert.fail()})).result, 'switched');
-  assert.equal(ls.getItem(KEY), null);
+  await cloud.signUp('a@b.co', 'password1'); const uid = cloud.user().id;
+  let r = await loadState({cloud, ls, key:KEY, backup:() => assert.fail()});
+  assert.equal(r.text, null); assert.equal(r.prefs, null);
+  sb.rows.set(uid, {data:{...snap('서버'), prefs:{theme:'dark'}}, updated_at:'s1'});
+  r = await loadState({cloud, ls, key:KEY, backup:() => assert.fail()});
+  assert.equal(JSON.parse(r.text).profiles.me.nick, '서버'); assert.deepEqual(r.prefs, {theme:'dark'}); assert.equal(r.at, 's1');
+  // 이전 버전의 같은 계정 사본 + 못 올린 변경 → 올리고(서버 설정 유지) 사본 삭제
+  ls.setItem(KEY, JSON.stringify(snap('오프라인 수정'))); cloud.setMeta({uid, syncedAt:'s1', dirty:true});
+  r = await loadState({cloud, ls, key:KEY});
+  assert.equal(sb.rows.get(uid).data.profiles.me.nick, '오프라인 수정'); assert.deepEqual(sb.rows.get(uid).data.prefs, {theme:'dark'});
+  assert.equal(JSON.parse(r.text).profiles.me.nick, '오프라인 수정'); assert.equal(ls.getItem(KEY), null); assert.equal(cloud.meta(), null);
+  // 다른 계정의 사본 → 그냥 지움
+  ls.setItem(KEY, JSON.stringify(snap('남의 기록'))); cloud.setMeta({uid:'someone', dirty:true});
+  r = await loadState({cloud, ls, key:KEY, backup:() => assert.fail()}); assert.equal(JSON.parse(r.text).profiles.me.nick, '오프라인 수정'); assert.equal(ls.getItem(KEY), null);
+  // 로그인 전 기록 + 서버 기록 → 서버 기록 사용, 기기 사본은 백업 파일로
+  ls.setItem(KEY, JSON.stringify(snap('로그인 전'))); const backups = [];
+  r = await loadState({cloud, ls, key:KEY, backup:(l, x) => backups.push([l, x.profiles.me.nick])});
+  assert.deepEqual(backups, [['이 기기', '로그인 전']]); assert.match(r.notice, /백업 파일/); assert.equal(JSON.parse(r.text).profiles.me.nick, '오프라인 수정');
+  // 로그인 전 기록 + 빈 서버 → 올림
+  const other = make(sb); await other.cloud.signUp('c@b.co', 'password1');
+  other.ls.setItem(KEY, JSON.stringify(snap('첫 기기'))); other.ls.setItem(KEY + ':preferences', JSON.stringify({theme:'light', tab:'x'}));
+  r = await loadState({cloud:other.cloud, ls:other.ls, key:KEY});
+  assert.equal(sb.rows.get(other.cloud.user().id).data.profiles.me.nick, '첫 기기'); assert.deepEqual(sb.rows.get(other.cloud.user().id).data.prefs, {theme:'light'});
+  // 설정만 저장된 계정(캐릭터 전) → 빈 기록으로 시작
+  sb.rows.set(uid, {data:{prefs:{theme:'dark'}}, updated_at:'s9'});
+  r = await loadState({cloud, ls, key:KEY}); assert.equal(r.text, null); assert.deepEqual(r.prefs, {theme:'dark'});
   assert.equal(hasContent(null), false); assert.equal(hasContent(emptySnapshot()), false); assert.equal(hasContent(snap('a')), true);
 });
 
-test('sync driver: snapshot writes are debounced into one upload; failures stay dirty and retry; other keys never upload', async () => {
+test('sync driver: records live only in memory and upload debounced; theme/menu order upload with them; other prefs stay on the device', async () => {
   const sb = fakeSupabase({confirm:false}), {cloud, ls} = make(sb);
-  await cloud.signUp('a@b.co', 'password1'); cloud.setMeta({uid:cloud.user().id, syncedAt:null, dirty:false});
+  await cloud.signUp('a@b.co', 'password1'); const uid = cloud.user().id, PK = KEY + ':preferences';
   let fire = null; const states = [];
-  const sync = createSync({cloud, ls, key:KEY, setTimer:fn => { fire = fn; return 1; }, clearTimer:() => {}, onState:s => states.push(s)});
-  sync.driver.setItem(KEY + ':preferences', '{}'); assert.equal(sync.pending(), false);
+  const sync = createSync({cloud, ls, key:KEY, initial:JSON.stringify(snap('0')), at:'s0', setTimer:fn => { fire = fn; return 1; }, clearTimer:() => {}, onState:s => states.push(s)});
+  assert.equal(JSON.parse(sync.driver.getItem(KEY)).profiles.me.nick, '0'); assert.equal(sync.at(), 's0');
+  sync.driver.setItem(PK, JSON.stringify({tab:'home'})); assert.equal(sync.pending(), false, 'device-only pref');
   sync.driver.setItem(KEY, JSON.stringify(snap('1'))); sync.driver.setItem(KEY, JSON.stringify(snap('2')));
+  assert.equal(ls.getItem(KEY), null, 'never written to the device');
   assert.equal(sync.pending(), true); assert.equal(sb.rows.size, 0, 'nothing sent before the delay');
-  fire(); await new Promise(r => setTimeout(r, 0)); await sync.flush();
-  assert.equal(sb.rows.get(cloud.user().id).data.profiles.me.nick, '2'); assert.equal(sync.pending(), false); assert.ok(states.includes('saved'));
+  fire(); await sync.flush();
+  assert.equal(sb.rows.get(uid).data.profiles.me.nick, '2'); assert.equal(sync.pending(), false); assert.ok(states.includes('saved')); assert.equal(sync.at(), sb.rows.get(uid).updated_at);
+  sync.driver.setItem(PK, JSON.stringify({tab:'home', theme:'dark', navOrder:['#plan']})); assert.equal(sync.pending(), true);
+  await sync.flush(); assert.deepEqual(sb.rows.get(uid).data.prefs, {theme:'dark', navOrder:['#plan']}); assert.equal(sb.rows.get(uid).data.profiles.me.nick, '2');
   sb.setOffline(true); sync.driver.setItem(KEY, JSON.stringify(snap('3'))); await sync.flush();
   assert.equal(sync.pending(), true); assert.ok(states.includes('offline'));
-  sb.setOffline(false); await sync.flush(); assert.equal(sb.rows.get(cloud.user().id).data.profiles.me.nick, '3'); assert.equal(sync.pending(), false);
-  assert.equal(sync.driver.getItem(KEY), ls.getItem(KEY));
+  sb.setOffline(false); await sync.flush(); assert.equal(sb.rows.get(uid).data.profiles.me.nick, '3'); assert.equal(sync.pending(), false);
+  // reset: prefs removed → server prefs cleared too
+  sync.driver.removeItem(PK); assert.equal(sync.pending(), true); await sync.flush(); assert.deepEqual(sb.rows.get(uid).data.prefs, {});
+  // 계정 설정 적용: 기기 전용 설정은 유지
+  ls.setItem(PK, JSON.stringify({tab:'home', theme:'light'})); applyPrefs(ls, PK, {navOrder:['#shop']});
+  assert.deepEqual(JSON.parse(ls.getItem(PK)), {tab:'home', navOrder:['#shop']}); assert.deepEqual(pickPrefs('nope'), {});
 });
 
 test('account deletion calls the RPC, clears the session and the server row', async () => {
@@ -140,7 +137,7 @@ test('account deletion calls the RPC, clears the session and the server row', as
   assert.equal(META_KEY, 'quest:cloud:meta');
 });
 
-test('auth screen: login / sign-up (required consents + terms) / sent / choice views escape user text', () => {
+test('auth screen: login / sign-up (required consents + terms) / sent views escape user text', () => {
   const login = authView({view:'login', email:'<x>@a.co'});
   assert.match(login, /data-auth-form="login"[\s\S]*id="auth-email"[\s\S]*id="auth-pw"[\s\S]*로그인[\s\S]*비밀번호를 잊으셨나요[\s\S]*이메일로 가입하기/);
   assert.ok(!login.includes('<x>@a.co')); assert.match(login, /&lt;x&gt;@a\.co/);
@@ -149,8 +146,7 @@ test('auth screen: login / sign-up (required consents + terms) / sent / choice v
   assert.equal((su.match(/class="auth-req"/g) || []).length, 3); assert.match(su, /제1조 목적/);
   assert.match(authView({view:'sent', email:'a@b.co'}), /인증 메일을 보냈어요[\s\S]*a@b\.co[\s\S]*data-auth="resend"/);
   assert.match(authView({view:'login', error:'<b>오류</b>'}), /role="alert">&lt;b&gt;오류/);
-  const ch = authView({view:'choice', choice:{local:snap('<기기>', {mine:{a:{kind:'mission'}}}), server:snap('서버'), serverAt:'2026-11-11T10:00:00Z'}});
-  assert.match(ch, /data-v="local"[\s\S]*&lt;기기&gt;[\s\S]*미션 1개[\s\S]*data-v="server"[\s\S]*서버/);
+  assert.ok(!authView({view:'login'}).includes('authchoice'));
   assert.match(authView({view:'reset'}), /data-auth-form="reset"[\s\S]*새 비밀번호/);
   assert.match(authView({view:'error', error:'x'}), /data-auth="retry"[\s\S]*data-auth="logout"/);
 });

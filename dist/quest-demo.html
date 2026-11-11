@@ -967,6 +967,9 @@ body.reo-lock{touch-action:none;overscroll-behavior:none}
 #toast.mid{top:50%;bottom:auto;transform:translate(-50%,-50%) scale(.94);box-shadow:0 10px 30px rgb(0 0 0 / .25)}
 #toast.mid.show{transform:translate(-50%,-50%) scale(1)}
 #toast b{color:#FFC861}
+.savebar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:90;display:flex;align-items:center;gap:12px;width:max-content;max-width:calc(100vw - 32px);padding:8px 8px 8px 16px;border-radius:14px;background:var(--ink);color:var(--bg);font-size:14px;font-weight:600;box-shadow:0 8px 24px rgb(0 0 0 / .2)}
+.savebar[hidden]{display:none}.savebar .btn{flex:none}
+@media (min-width:900px){.savebar{bottom:24px}}
 #toast.act.show{pointer-events:auto}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
@@ -1241,7 +1244,6 @@ body.onboarding #app[data-v="login"]{max-width:440px;margin:clamp(24px,8vh,88px)
 .authagree{display:flex;flex-direction:column;gap:2px;margin:6px 0 12px;padding:12px 14px;background:var(--fill);border-radius:14px}.authagree .toggle{margin:6px 0}
 .authdoc{margin:0 0 4px 28px;font-size:13px}.authdoc summary{color:var(--muted);cursor:pointer}.authdoc .helplist{margin:8px 0 4px;max-height:260px;overflow:auto}
 .authwrap{display:flex;flex-direction:column;gap:12px}.authwrap .login-brand,.authwrap .authh,.authwrap .login-copy{text-align:center}.authwrap .login-copy{margin-bottom:8px}
-.authchoice{display:flex;flex-direction:column;gap:12px}.authopt{display:flex;flex-direction:column;gap:4px;text-align:left;border:2px solid transparent;width:100%;color:inherit}.authopt:hover{border-color:var(--accent)}.authopt b{font-size:17px}.authopt small{color:var(--muted);font-size:13px}
 .warn-t{color:var(--warn)}
 .setmode{gap:12px}.setmode .t{flex:none}.setmode .seg{flex:1;max-width:260px;margin-left:auto}
 a.row{color:inherit;text-decoration:none}
@@ -1307,7 +1309,7 @@ const {createAPI} = __require("runtime.js");
 const {startLegacyApp} = __require("legacy-app.js");
 const {installBackups} = __require("backups.js");
 
-function bootstrap({mode = 'empty', seed = null, host = window, driver = null, account = null} = {}) {
+function bootstrap({mode = 'empty', seed = null, host = window, driver = null, account = null, reload = null} = {}) {
   try {
     // Access can itself fail for file:// or disabled persistence. Do not pretend success.
     const storage = createStorage({driver:driver || host.localStorage, mode, onError:error => host.alert('로컬 저장 실패: '+error.message)});
@@ -1317,7 +1319,7 @@ function bootstrap({mode = 'empty', seed = null, host = window, driver = null, a
     if (mode === 'demo' && label && host.document.documentElement.dataset.edition !== 'trial') { label.textContent = ' · 가상 데이터 데모'; if (label.parentNode) label.parentNode.hidden = false; }
     const app = startLegacyApp({runtime:{createAPI}, storage, seed, account});
     installBackups({document:host.document, storage, getState:() => app.state,
-      confirm:app.confirm || host.confirm.bind(host), alert:app.notify || host.alert.bind(host), reload:() => host.location.reload(), URL:host.URL, Blob:host.Blob,
+      confirm:app.confirm || host.confirm.bind(host), alert:app.notify || host.alert.bind(host), reload:reload || (() => host.location.reload()), URL:host.URL, Blob:host.Blob,
       onExport:() => app.refresh && app.refresh(),
       getDownloads:async () => { const rt = host.claude; return rt && typeof rt.use === 'function' ? rt.use('downloads') : null; }});
     return app;
@@ -3148,7 +3150,7 @@ function viewSettings(){
   let h = `<p class="sect3">계정</p><section class="card tight">
     ${account ? `<div class="row"><span class="t"><b>${esc(account.email || "로그인한 계정")}</b><small>이메일로 로그인 중 · 기록이 계정에 저장돼요</small></span></div>` : ""}
     <button class="row" data-act="sheet" data-k="profile"><span class="t"><b>프로필 편집</b><small>닉네임 · 소개 · 프로필 사진</small></span>${I.chev}</button>
-    ${account ? `<button class="row" data-act="acct-logout"><span class="t"><b>로그아웃</b><small>이 기기의 기록 사본을 지우고 로그아웃해요</small></span>${I.chev}</button>` : ""}</section>`;
+    ${account ? `<button class="row" data-act="acct-logout"><span class="t"><b>로그아웃</b></span>${I.chev}</button>` : ""}</section>`;
   h += `<p class="sect3">화면</p><section class="card tight"><div class="row setmode"><span class="t"><b>화면 모드</b></span><div class="seg sm">${[["system","시스템"],["light","라이트"],["dark","다크"]].map(([k,l]) => `<button data-act="theme" data-v="${k}" aria-pressed="${th===k}">${l}</button>`).join("")}</div></div>
     <button class="row" data-act="navedit"><span class="t"><b>메뉴 순서</b><small>${navOrder().slice(0, NAV_BAR).map(h0 => NAV[h0][0]).join(" · ")} · 더보기</small></span>${I.chev}</button></section>`;
   h += notifSection(st) + privacySection(st, me);
@@ -4064,7 +4066,7 @@ document.addEventListener("click", e => {
     case "cpick": S.cal.date = b.dataset.v; if (b.dataset.m) S.cal.mode = b.dataset.m; S.tlTop = S.wgTop = null; break;
     case "setpriv": { const pr = !prof(S.me).private; run(() => api.saveProfile({private:pr}), () => toast(pr ? "계정을 비공개로 바꿨어요" : "계정을 공개로 바꿨어요")); return; }
     case "acct-logout": if (account) account.signOut().catch(e => toast(esc(e.message || "로그아웃하지 못했어요"))); return;
-    case "acct-delete": if (account) ask({t:"정말 탈퇴할까요?", d:"계정과 서버에 저장된 모든 기록(캐릭터, 퀘스트, 미션, 저널, 자료실, 상점)이 지워지고 되돌릴 수 없어요. 필요하면 먼저 설정 → 백업 내보내기로 기록을 저장해 두세요.", ok:"탈퇴하기"}, () => { toast("탈퇴를 처리하고 있어요…"); account.deleteAccount().catch(e => toast(esc(e.message || "탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요."))); }); return;
+    case "acct-delete": if (account) ask({t:"정말 탈퇴할까요?", d:"계정과 서버에 저장된 모든 기록(캐릭터, 퀘스트, 미션, 저널, 자료실, 상점)이 지워지고 되돌릴 수 없어요. 필요하면 먼저 설정 → 기록 파일로 저장으로 내려받아 두세요.", ok:"탈퇴하기"}, () => { toast("탈퇴를 처리하고 있어요…"); account.deleteAccount().catch(e => toast(esc(e.message || "탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요."))); }); return;
     case "dpane": { if (!["daily", "mission", "journal"].includes(b.dataset.v)) return; S.dashPane = b.dataset.v; render(); return; }
     case "cdaystep": { const v = b.dataset.v; if (activityDate(v) !== v || v >= today()) return; S.view = {name:"calday", date:v}; render(); window.scrollTo?.(0, 0); return; }
     case "cdate": { const v = b.dataset.v; if (activityDate(v) !== v) return;
@@ -4446,7 +4448,7 @@ const PRIVACY = [
   ["6. 이용자의 권리", `<p>이용자는 언제든 자신의 개인정보를 열람·정정·삭제하거나 처리 정지를 요구할 수 있어요. 대부분은 앱 설정에서 직접 할 수 있고, 그 밖의 요청은 문의하기로 보내 주면 지체 없이 처리해요. 설정의 데이터 내보내기로 내 기록을 파일로 받을 수도 있어요.</p>`],
   ["7. 파기 절차와 방법", `<p>보유 기간이 끝나거나 처리 목적을 달성한 정보는 지체 없이 파기해요. 전자 파일은 복구할 수 없는 방법으로 지우고, 서버 백업에 남은 사본도 백업 보관 주기가 지나면 함께 지워져요.</p>`],
   ["8. 안전성 확보 조치", `<ul><li>모든 통신은 암호화(HTTPS)해서 주고받아요</li><li>개인정보에 접근할 수 있는 사람을 최소한으로 제한해요</li><li>다른 이용자의 비공개 기록에 접근할 수 없도록 계정별 접근 권한을 설정해요</li><li>접속 기록을 보관하고 이상 접근을 점검해요</li></ul>`],
-  ["9. 자동 수집 장치", `<p>로그인 상태 유지, 기록 사본 보관, 화면 설정(메뉴 순서 등)을 위해 브라우저 저장소를 사용해요. 브라우저 설정에서 거부할 수 있지만, 그러면 로그인이 유지되지 않을 수 있어요. 광고나 행동 분석을 위한 추적 도구는 사용하지 않아요.</p>`],
+  ["9. 자동 수집 장치", `<p>로그인 상태 유지와 기기별 화면 설정을 위해 브라우저 저장소를 사용해요. 기록은 브라우저에 남기지 않고 서버에만 저장해요. 브라우저 설정에서 거부할 수 있지만, 그러면 로그인이 유지되지 않을 수 있어요. 광고나 행동 분석을 위한 추적 도구는 사용하지 않아요.</p>`],
   ["10. 개인정보 보호책임자", `<ul><li><b>책임자</b> (주)원운컴퍼니 개인정보 보호 담당 부서</li><li><b>연락처</b> wonwoonc10@gmail.com</li></ul>`],
   ["11. 권익 침해 구제", `<p>개인정보 침해로 상담이나 구제가 필요하면 아래 기관에 문의할 수 있어요.</p><ul><li>개인정보침해신고센터 (국번 없이) 118 · privacy.kisa.or.kr</li><li>개인정보분쟁조정위원회 1833-6972 · kopico.go.kr</li><li>대검찰청 (국번 없이) 1301</li><li>경찰청 (국번 없이) 182</li></ul>`],
   ["12. 방침의 변경", `<p>이 방침은 ${M.effective}부터 시행해요. 내용이 바뀌면 시행 7일 전부터 서비스 안에 알려요.</p>`],

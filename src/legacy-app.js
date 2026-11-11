@@ -1319,7 +1319,7 @@ function viewSettings(){
   let h = `<p class="sect3">계정</p><section class="card tight">
     ${account ? `<div class="row"><span class="t"><b>${esc(account.email || "로그인한 계정")}</b><small>이메일로 로그인 중 · 기록이 계정에 저장돼요</small></span></div>` : ""}
     <button class="row" data-act="sheet" data-k="profile"><span class="t"><b>프로필 편집</b><small>닉네임 · 소개 · 프로필 사진</small></span>${I.chev}</button>
-    ${account ? `<button class="row" data-act="acct-logout"><span class="t"><b>로그아웃</b><small>이 기기의 기록 사본을 지우고 로그아웃해요</small></span>${I.chev}</button>` : ""}</section>`;
+    ${account ? `<button class="row" data-act="acct-logout"><span class="t"><b>로그아웃</b></span>${I.chev}</button>` : ""}</section>`;
   h += `<p class="sect3">화면</p><section class="card tight"><div class="row setmode"><span class="t"><b>화면 모드</b></span><div class="seg sm">${[["system","시스템"],["light","라이트"],["dark","다크"]].map(([k,l]) => `<button data-act="theme" data-v="${k}" aria-pressed="${th===k}">${l}</button>`).join("")}</div></div>
     <button class="row" data-act="navedit"><span class="t"><b>메뉴 순서</b><small>${navOrder().slice(0, NAV_BAR).map(h0 => NAV[h0][0]).join(" · ")} · 더보기</small></span>${I.chev}</button></section>`;
   h += notifSection(st) + privacySection(st, me);
@@ -2235,7 +2235,7 @@ document.addEventListener("click", e => {
     case "cpick": S.cal.date = b.dataset.v; if (b.dataset.m) S.cal.mode = b.dataset.m; S.tlTop = S.wgTop = null; break;
     case "setpriv": { const pr = !prof(S.me).private; run(() => api.saveProfile({private:pr}), () => toast(pr ? "계정을 비공개로 바꿨어요" : "계정을 공개로 바꿨어요")); return; }
     case "acct-logout": if (account) account.signOut().catch(e => toast(esc(e.message || "로그아웃하지 못했어요"))); return;
-    case "acct-delete": if (account) ask({t:"정말 탈퇴할까요?", d:"계정과 서버에 저장된 모든 기록(캐릭터, 퀘스트, 미션, 저널, 자료실, 상점)이 지워지고 되돌릴 수 없어요. 필요하면 먼저 설정 → 백업 내보내기로 기록을 저장해 두세요.", ok:"탈퇴하기"}, () => { toast("탈퇴를 처리하고 있어요…"); account.deleteAccount().catch(e => toast(esc(e.message || "탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요."))); }); return;
+    case "acct-delete": if (account) ask({t:"정말 탈퇴할까요?", d:"계정과 서버에 저장된 모든 기록(캐릭터, 퀘스트, 미션, 저널, 자료실, 상점)이 지워지고 되돌릴 수 없어요. 필요하면 먼저 설정 → 기록 파일로 저장으로 내려받아 두세요.", ok:"탈퇴하기"}, () => { toast("탈퇴를 처리하고 있어요…"); account.deleteAccount().catch(e => toast(esc(e.message || "탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요."))); }); return;
     case "dpane": { if (!["daily", "mission", "journal"].includes(b.dataset.v)) return; S.dashPane = b.dataset.v; render(); return; }
     case "cdaystep": { const v = b.dataset.v; if (activityDate(v) !== v || v >= today()) return; S.view = {name:"calday", date:v}; render(); window.scrollTo?.(0, 0); return; }
     case "cdate": { const v = b.dataset.v; if (activityDate(v) !== v) return;

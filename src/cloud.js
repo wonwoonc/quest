@@ -102,41 +102,53 @@ export function createCloud({fetch, ls, url = CLOUD_URL, key = CLOUD_KEY, site =
   };
 }
 
-/* 기록 맞추기: 로그인 직후 한 번.
- * - 이 기기 사본이 같은 계정 것이면: 다른 기기에서 바뀐 서버 기록을 받아오거나(알림), 못 올린 변경을 올린다.
- * - 다른 계정의 사본이면: 서버 기록으로 바꾼다(그 계정 기록은 서버에 있다).
- * - 로그인 기능 전부터 쓰던 기록이면: 서버가 비어 있으면 올리고, 양쪽 다 있으면 사용자에게 묻고 고르지 않은 쪽은 백업 파일로 남긴다. */
+/* 기록은 서버에만 둔다. 이 기기에는 로그인 상태와 기기 설정만 남는다.
+ * 계정별 설정(화면 모드·메뉴 순서)은 기록과 함께 user_state.data.prefs에 저장한다. */
+export const ACCOUNT_PREFS = ['theme', 'navOrder'];
 export const hasContent = snap => !!snap && (Object.keys(snap.profiles || {}).length > 0 || Object.keys(snap.mine || {}).length > 0 || Object.keys(snap.projects || {}).length > 0);
-export async function reconcile({cloud, ls, key, ask, backup}) {
-  const uid = cloud.user().id, meta = cloud.meta();
-  let local = null; try { const t = ls.getItem(key); local = t ? JSON.parse(t) : null; } catch { local = null; }
-  const row = await cloud.pull();
-  const useServer = () => { if (row) ls.setItem(key, JSON.stringify(validateSnapshot(row.data))); else ls.removeItem(key); cloud.setMeta({uid, syncedAt:row ? row.updated_at : null, dirty:false}); };
-  const useLocal = async () => { cloud.setMeta({uid, syncedAt:row ? row.updated_at : null, dirty:true}); const at = await cloud.push(validateSnapshot(local)); cloud.setMeta({uid, syncedAt:at, dirty:false}); };
-  if (meta && meta.uid === uid){
-    if (meta.dirty && local){ await useLocal(); return {result:'pushed'}; } // 전체 삭제(빈 기록)도 서버에 반영
-    if (row && row.updated_at !== meta.syncedAt){ useServer(); return {result:'pulled', notice:'다른 기기에서 바뀐 기록을 불러왔어요'}; }
-    if (!row && hasContent(local)){ await useLocal(); return {result:'pushed'}; }
-    return {result:'same'};
-  }
-  if (meta && meta.uid !== uid){ useServer(); return {result:'switched'}; }
-  if (!hasContent(local)){ useServer(); return {result:row ? 'pulled' : 'new'}; }
-  if (!row){ await useLocal(); return {result:'uploaded'}; }
-  const choice = await ask({local:validateSnapshot(local), server:validateSnapshot(row.data), serverAt:row.updated_at});
-  if (choice === 'local'){ backup('서버', row.data); await useLocal(); return {result:'kept-local'}; }
-  backup('이 기기', local); useServer(); return {result:'kept-server'};
+const parse = text => { try { return text ? JSON.parse(text) : null; } catch { return null; } };
+export const pickPrefs = text => { const p = parse(text), out = {}; if (p && typeof p === 'object' && !Array.isArray(p)) for (const k of ACCOUNT_PREFS) if (Object.hasOwn(p, k)) out[k] = p[k]; return out; };
+// 서버의 계정 설정을 이 기기 설정 JSON에 덮어쓴다(기기 전용 설정은 그대로).
+export function applyPrefs(ls, prefKey, prefs){
+  const p = parse(ls.getItem(prefKey)) || {};
+  for (const k of ACCOUNT_PREFS){ if (prefs && Object.hasOwn(prefs, k)) p[k] = prefs[k]; else delete p[k]; }
+  ls.setItem(prefKey, JSON.stringify(p));
 }
 
-/* 저장할 때마다 서버로 올린다(1.5초 모아서). 실패하면 dirty로 남겨 다음 저장·온라인 복귀·주기 재시도 때 다시 올린다. */
-export function createSync({cloud, ls, key, delay = 1500, setTimer = setTimeout, clearTimer = clearTimeout, onState = () => {}}) {
-  let timer = null, running = null, writes = 0;
-  const meta = () => cloud.meta() || {uid:cloud.user() && cloud.user().id};
+/* 로그인 직후 한 번: 서버 기록을 불러온다.
+ * 이전 버전이 이 기기에 남긴 기록 사본은 정리한다. 같은 계정의 못 올린 변경이면 먼저 올리고,
+ * 로그인 전부터 쓰던 기록인데 서버에도 기록이 있으면 기기 사본을 백업 파일로 내려받아 둔다. */
+export async function loadState({cloud, ls, key, backup = () => {}}) {
+  const uid = cloud.user().id, meta = cloud.meta(), local = parse(ls.getItem(key));
+  let row = await cloud.pull(), notice = '';
+  if (local){
+    const mine = meta && meta.uid === uid;
+    if ((mine && meta.dirty) || (!meta && !row && hasContent(local))){
+      const data = {...validateSnapshot(local), prefs:row && row.data ? row.data.prefs : pickPrefs(ls.getItem(key + ':preferences'))};
+      row = {data, updated_at:await cloud.push(data)};
+    } else if (!meta && row && hasContent(local)){ backup('이 기기', local); notice = '이 기기에 남아 있던 기록은 백업 파일로 내려받았어요'; }
+  }
+  ls.removeItem(key); cloud.setMeta(null);
+  // 기록 없이 설정만 저장된 계정(캐릭터를 만들기 전)은 빈 기록으로 시작한다.
+  return {text:row && row.data && row.data.v ? JSON.stringify(validateSnapshot(row.data)) : null, prefs:row && row.data ? row.data.prefs || null : null, at:row ? row.updated_at : null, notice};
+}
+
+/* 기록은 메모리에만 두고, 바뀔 때마다 서버로 올린다(1.5초 모아서). 실패하면 다시 시도할 때까지 '저장 안 됨'으로 남는다.
+ * 계정 설정(화면 모드·메뉴 순서)이 바뀌어도 함께 올린다. 다른 설정 키는 이 기기에만 저장한다. */
+export function createSync({cloud, ls, key, initial = null, at = null, delay = 1500, setTimer = setTimeout, clearTimer = clearTimeout, onState = () => {}}) {
+  const prefKey = key + ':preferences';
+  let mem = initial, last = at, timer = null, running = null, writes = 0, saved = 0;
+  let prefsSeen = JSON.stringify(pickPrefs(ls.getItem(prefKey)));
+  const schedule = () => { if (timer) clearTimer(timer); timer = setTimer(() => { timer = null; flush(); }, delay); };
+  const mark = () => { writes++; onState('dirty'); schedule(); };
+  const prefsChanged = () => { const p = JSON.stringify(pickPrefs(ls.getItem(prefKey))); if (p === prefsSeen) return false; prefsSeen = p; return true; };
   async function flush(){
-    if (running) { await running; if (!(cloud.meta() || {}).dirty) return; }
-    const text = ls.getItem(key); if (!text || !cloud.user()) return;
-    const seen = writes;
+    if (timer){ clearTimer(timer); timer = null; }
+    while (running) await running;
+    if (writes === saved || !cloud.user()) return;
+    const seen = writes, data = {...(parse(mem) || {}), prefs:pickPrefs(ls.getItem(prefKey))};
     running = (async () => {
-      try { onState('saving'); const at = await cloud.push(JSON.parse(text)); const m = meta(); cloud.setMeta({...m, uid:cloud.user().id, syncedAt:at, dirty:writes !== seen}); onState(writes !== seen ? 'dirty' : 'saved'); }
+      try { onState('saving'); last = await cloud.push(data); saved = seen; onState(writes !== saved ? 'dirty' : 'saved'); if (writes !== saved) schedule(); }
       catch (e) { onState(e && e.code === 'network' ? 'offline' : 'error', e); }
       finally { running = null; }
     })();
@@ -144,12 +156,10 @@ export function createSync({cloud, ls, key, delay = 1500, setTimer = setTimeout,
   }
   return {
     driver:{
-      getItem:k => ls.getItem(k),
-      removeItem:k => ls.removeItem(k),
-      setItem(k, v){ ls.setItem(k, v); if (k !== key || !cloud.user()) return; writes++; cloud.setMeta({...meta(), uid:cloud.user().id, dirty:true});
-        if (timer) clearTimer(timer); timer = setTimer(() => { timer = null; flush(); }, delay); }
+      getItem:k => k === key ? mem : ls.getItem(k),
+      setItem(k, v){ if (k === key){ mem = String(v); mark(); return; } ls.setItem(k, v); if (k === prefKey && prefsChanged()) mark(); },
+      removeItem(k){ if (k === key){ mem = null; mark(); return; } ls.removeItem(k); if (k === prefKey && prefsChanged()) mark(); }
     },
-    flush:async () => { if (timer){ clearTimer(timer); timer = null; } if ((cloud.meta() || {}).dirty) await flush(); },
-    pending:() => !!(cloud.meta() || {}).dirty
+    flush, pending:() => writes !== saved, at:() => last
   };
 }

@@ -1,14 +1,15 @@
-/* 배포판 진입점(Cloudflare): 로그인 필수. 로그인 → 기록 맞추기 → 앱 시작 → 저장할 때마다 서버로 올리기. */
+/* 배포판 진입점(Cloudflare): 로그인 필수. 로그인 → 서버 기록 불러오기 → 앱 시작 → 바뀔 때마다 서버로 저장.
+ * 기록은 서버에만 둔다(이 기기에는 메모리에만). 화면 모드·메뉴 순서도 계정에 함께 저장한다. */
 import {bootstrap} from './bootstrap.js';
 import {NAMESPACES} from './storage.js';
-import {createCloud, reconcile, createSync} from './cloud.js';
+import {createCloud, loadState, createSync, applyPrefs} from './cloud.js';
 import {mountAuth} from './auth-screen.js';
 
-const host = window, ls = host.localStorage, KEY = NAMESPACES.empty;
+const host = window, ls = host.localStorage, KEY = NAMESPACES.empty, PREF_KEY = KEY + ':preferences';
 const site = host.location.origin + host.location.pathname;
 const cloud = createCloud({fetch:host.fetch.bind(host), ls, site});
 const root = host.document.querySelector('#app');
-let auth = null, sync = null, app = null;
+let auth = null, sync = null, app = null, leaving = false;
 
 function download(label, snapshot){
   try {
@@ -31,38 +32,61 @@ function showAuth(initial){ if (auth) auth.unmount(); auth = mountAuth({root, bo
 
 async function enter(notice){
   if (!auth) showAuth({view:'loading'}); else auth.set({view:'loading', info:'', error:''});
-  let result;
-  try { result = await reconcile({cloud, ls, key:KEY, ask:choice => auth.choose(choice), backup:download}); }
+  let st;
+  try { st = await loadState({cloud, ls, key:KEY, backup:download}); }
   catch (e) {
     if (!cloud.user()) return showAuth({view:'login', error:e.message});
-    const m = cloud.meta();
-    // 오프라인이어도 이 계정의 기기 사본이 있으면 그대로 쓰고, 연결되면 올린다.
-    if (!(e.code === 'network' && m && m.uid === cloud.user().id)) return auth.set({view:'error', error:e.message, busy:false});
-    notice = '오프라인이에요. 연결되면 기록을 자동으로 저장해요.';
+    return auth.set({view:'error', error:e.message, busy:false}); // 기록이 서버에만 있으니 연결돼야 시작할 수 있다
   }
-  start(notice || (result && result.notice));
+  if (st.prefs) applyPrefs(ls, PREF_KEY, st.prefs);
+  start(notice || st.notice, st);
 }
 
-function start(notice){
+// 저장 실패 알림 막대: 저장될 때까지 화면 아래에 남는다.
+function saveBar(){
+  const el = host.document.createElement('div');
+  el.className = 'savebar'; el.setAttribute('role', 'alert'); el.hidden = true;
+  el.innerHTML = '<span class="savebar-t"></span><button type="button" class="btn sm">다시 시도</button>';
+  host.document.body.appendChild(el);
+  const t = el.querySelector('.savebar-t'), b = el.querySelector('button');
+  b.addEventListener('click', () => sync && sync.flush());
+  return state => {
+    if (state === 'saved'){ el.hidden = true; return; }
+    if (state === 'offline' || state === 'error'){
+      t.textContent = state === 'offline' ? '연결이 끊겨 저장되지 않았어요' : '저장되지 않았어요';
+      b.disabled = false; b.textContent = '다시 시도'; el.hidden = false; return;
+    }
+    if (state === 'saving' && !el.hidden){ b.disabled = true; b.textContent = '저장하는 중…'; }
+  };
+}
+
+function start(notice, st){
   if (auth){ auth.unmount(); auth = null; }
-  sync = createSync({cloud, ls, key:KEY, onState:s => { if (s === 'error' && app) app.notify('기록을 서버에 저장하지 못했어요. 잠시 후 다시 시도해요.'); }});
+  sync = createSync({cloud, ls, key:KEY, initial:st.text, at:st.at, onState:saveBar()});
+  const leave = go => { leaving = true; go(); };
   const account = {
     email:cloud.user().email,
-    async signOut(){ await sync.flush(); if (sync.pending() && !(await app.confirm('아직 서버에 저장하지 못한 기록이 있어요. 그래도 로그아웃할까요? 이 기기의 기록은 지워져요.'))) return;
-      await cloud.signOut(); ls.removeItem(KEY); cloud.setMeta(null); host.location.replace(site); },
-    async deleteAccount(){ await cloud.deleteAccount(); ls.removeItem(KEY); cloud.setMeta(null); host.location.replace(site); }
+    async signOut(){ await sync.flush(); if (sync.pending() && !(await app.confirm('아직 저장하지 못한 기록이 있어요. 지금 로그아웃하면 저장하지 못한 내용은 사라져요. 그래도 로그아웃할까요?'))) return;
+      await cloud.signOut(); leave(() => host.location.replace(site)); },
+    async deleteAccount(){ await cloud.deleteAccount(); leave(() => host.location.replace(site)); }
   };
-  app = bootstrap({host, driver:sync.driver, account});
+  // 백업 불러오기·전체 삭제 뒤 새로고침: 서버에 저장한 다음에 새로고침한다(기록이 메모리에만 있으므로).
+  const reload = async () => {
+    await sync.flush();
+    while (sync.pending() && await app.confirm('서버에 저장하지 못했어요. 다시 시도할까요? 취소하면 이번 변경은 반영되지 않아요.')) await sync.flush();
+    leave(() => host.location.reload());
+  };
+  app = bootstrap({host, driver:sync.driver, account, reload});
   if (notice) setTimeout(() => app.notify(notice), 300);
-  // 저장하지 못한 기록 재시도 + 다른 기기 변경 확인
+  host.addEventListener('beforeunload', e => { if (leaving || !sync.pending()) return; sync.flush(); e.preventDefault(); e.returnValue = ''; });
   host.addEventListener('online', () => sync.flush());
   host.setInterval(() => { if (sync.pending()) sync.flush(); }, 30000);
+  // 다른 기기에서 바뀐 기록 확인: 화면으로 돌아올 때 서버가 더 새로우면 다시 불러온다.
   host.document.addEventListener('visibilitychange', async () => {
     if (host.document.visibilityState === 'hidden'){ sync.flush(); return; }
     if (sync.pending() || !cloud.user()) return;
-    try { const row = await cloud.pull(); const m = cloud.meta(); if (row && m && row.updated_at !== m.syncedAt && !sync.pending()){
-      host.sessionStorage.setItem('quest:cloud:notice', '다른 기기에서 바뀐 기록을 불러왔어요');
-      await reconcile({cloud, ls, key:KEY, ask:async () => 'server', backup:() => {}}); host.location.reload(); } } catch { /* 다음에 다시 확인 */ }
+    try { const row = await cloud.pull(); if (row && row.updated_at !== sync.at() && !sync.pending()){
+      host.sessionStorage.setItem('quest:cloud:notice', '다른 기기에서 바뀐 기록을 불러왔어요'); leave(() => host.location.reload()); } } catch { /* 다음에 다시 확인 */ }
   });
 }
 
