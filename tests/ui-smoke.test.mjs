@@ -68,7 +68,7 @@ test('onboarding uses the actual profile/story CSS wrapper on dashboard and prof
     assert.match(h.nodes.get('app').innerHTML,/캐릭터 만들기/);
     assert.doesNotMatch(h.nodes.get('app').innerHTML,/새벽러너|id="nick"[^>]*placeholder=/);
   }
-  assert.match(html,/#app\[data-v="feed"\],#app\[data-v="profile"\][^{]+\{[^}]*max-width:600px;margin:0 auto/);
+  assert.match(html,/#app\[data-v="feed"\],#app\[data-v="profile"\][^{]*\{[^}]*max-width:600px;margin:0 auto/);
   assert.doesNotMatch(html,/<input[^>]*id="character(Upload|Camera)In"|capture="user"/);
   assert.doesNotMatch(html,/cartoonFace|saturate\(1\.35\)|setTimeout\(r, 1800\)|원본 사진은 저장하지/);
 });
