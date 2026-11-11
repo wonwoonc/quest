@@ -9,7 +9,7 @@ const summary = snap => { const p = Object.values(snap.profiles || {})[0], mine 
   return `<b>${esc(p && p.nick ? p.nick : '캐릭터 없음')}</b><small>메인 퀘스트 ${Object.values(snap.projects || {}).filter(x => !x.parentId).length}개 · 미션 ${mine.filter(m => m.kind === 'mission').length}개 · 일일 퀘스트 ${mine.filter(m => m.kind === 'quest').length}개 · 저널 ${mine.filter(m => m.kind === 'diary').length}개</small>`; };
 const doc = (title, list) => `<details class="authdoc"><summary>${title} 보기</summary><div class="helplist">${list.map(([t, b]) => `<div class="helpitem"><b>${t}</b>${b}</div>`).join('')}</div></details>`;
 const head = (title, copy) => `<p class="login-brand">퀘스트</p><h1 id="auth-title" class="authh">${title}</h1>${copy ? `<p class="login-copy">${copy}</p>` : ''}`;
-const field = (id, label, type, ac, value = '') => `<label class="field authf"><span class="lab">${label}</span><input type="${type}" id="${id}" autocomplete="${ac}" value="${esc(value)}"${type === 'email' ? ' inputmode="email" autocapitalize="off" spellcheck="false"' : ''}${type === 'text' ? ' maxlength="20"' : ''} required></label>`;
+const field = (id, label, type, ac, value = '') => `<label class="field authf"><span class="lab">${label}</span><input type="${type}" id="${id}" autocomplete="${ac}" value="${esc(value)}"${type === 'email' ? ' inputmode="email" autocapitalize="off" spellcheck="false"' : ''} required></label>`;
 
 export function authView(st) {
   const msg = st.error ? `<p class="autherr" role="alert">${esc(st.error)}</p>` : st.info ? `<p class="authinfo" role="status">${esc(st.info)}</p>` : '';
@@ -19,7 +19,7 @@ export function authView(st) {
     case 'loading': body = `${head('불러오는 중…', esc(st.info || '계정 기록을 확인하고 있어요.'))}`; return `<section class="card login-card authcard" aria-busy="true">${body}</section>`;
     case 'error': body = `${head('연결하지 못했어요', '')}<p class="autherr" role="alert">${esc(st.error)}</p><button type="button" class="btn big full" data-auth="retry">다시 시도</button><button type="button" class="link authlink" data-auth="logout">다른 계정으로 로그인</button>`; break;
     case 'signup': body = `${head('이메일로 가입하기', '')}
-      <form data-auth-form="signup" novalidate>${field('auth-nick', '닉네임', 'text', 'nickname', st.nick)}${field('auth-email', '이메일', 'email', 'email', st.email)}${field('auth-pw', `비밀번호 (${MIN_PW}자 이상)`, 'password', 'new-password')}${field('auth-pw2', '비밀번호 확인', 'password', 'new-password')}
+      <form data-auth-form="signup" novalidate>${field('auth-email', '이메일', 'email', 'email', st.email)}${field('auth-pw', `비밀번호 (${MIN_PW}자 이상)`, 'password', 'new-password')}${field('auth-pw2', '비밀번호 확인', 'password', 'new-password')}
       <div class="authagree"><label class="toggle"><input type="checkbox" id="auth-all"> <b>모두 동의</b></label>
       <label class="toggle"><input type="checkbox" class="auth-req" id="auth-age"> 만 14세 이상이에요 (필수)</label>
       <label class="toggle"><input type="checkbox" class="auth-req" id="auth-terms"> 이용약관에 동의해요 (필수)</label>${doc('이용약관', TERMS)}
@@ -73,9 +73,8 @@ export function mountAuth({root, body, actions, initial = {view:'login'}}) {
   }
   function onSubmit(e){
     const f = e.target.closest('[data-auth-form]'); if (!f) return; e.preventDefault(); if (st.busy) return;
-    const kind = f.dataset.authForm, email = val('auth-email').trim(), pw = val('auth-pw'), pw2 = val('auth-pw2'), nick = val('auth-nick').trim();
+    const kind = f.dataset.authForm, email = val('auth-email').trim(), pw = val('auth-pw'), pw2 = val('auth-pw2');
     const bad = m => set({error:m, info:'', email:email || st.email});
-    if (kind === 'signup' && (!nick || nick.length > 20)) return bad(nick ? '닉네임은 20자 이하로 정해 주세요.' : '닉네임을 입력해 주세요.');
     if (kind !== 'reset' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return bad('이메일 주소를 다시 확인해 주세요.');
     if (kind === 'login'){ if (!pw) return bad('비밀번호를 입력해 주세요.'); st.email = email; return run(() => actions.signIn(email, pw), () => {}); }
     if (kind === 'forgot'){ st.email = email; return run(() => actions.recover(email), () => set({busy:false, view:'forgot-sent'})); }
@@ -83,7 +82,7 @@ export function mountAuth({root, body, actions, initial = {view:'login'}}) {
     if (pw !== pw2) return bad('비밀번호 확인이 일치하지 않아요.');
     if (kind === 'reset') return run(() => actions.updatePassword(pw), () => {});
     if (![...root.querySelectorAll('.auth-req')].every(x => x.checked)) return bad('필수 항목에 모두 동의해 주세요.');
-    st.email = email; st.nick = nick; run(() => actions.signUp(email, pw, nick), r => { if (r && r.confirm) set({busy:false, view:'sent'}); });
+    st.email = email; run(() => actions.signUp(email, pw), r => { if (r && r.confirm) set({busy:false, view:'sent'}); });
   }
   root.addEventListener('click', onClick); root.addEventListener('change', onChange); root.addEventListener('submit', onSubmit);
   draw();

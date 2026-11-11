@@ -20,7 +20,7 @@ function download(label, snapshot){
 }
 const actions = {
   signIn:async (email, pw) => { await cloud.signIn(email, pw); await enter(); },
-  signUp:async (email, pw, nick) => { const r = await cloud.signUp(email, pw, nick); if (!r.confirm) await enter(); return r; },
+  signUp:async (email, pw) => { const r = await cloud.signUp(email, pw); if (!r.confirm) await enter(); return r; },
   resend:email => cloud.resend(email),
   recover:email => cloud.recover(email),
   updatePassword:async pw => { await cloud.updatePassword(pw); await enter('비밀번호를 바꿨어요'); },
@@ -47,7 +47,7 @@ function start(notice){
   if (auth){ auth.unmount(); auth = null; }
   sync = createSync({cloud, ls, key:KEY, onState:s => { if (s === 'error' && app) app.notify('기록을 서버에 저장하지 못했어요. 잠시 후 다시 시도해요.'); }});
   const account = {
-    email:cloud.user().email, nick:cloud.user().nick || '',
+    email:cloud.user().email,
     async signOut(){ await sync.flush(); if (sync.pending() && !(await app.confirm('아직 서버에 저장하지 못한 기록이 있어요. 그래도 로그아웃할까요? 이 기기의 기록은 지워져요.'))) return;
       await cloud.signOut(); ls.removeItem(KEY); cloud.setMeta(null); host.location.replace(site); },
     async deleteAccount(){ await cloud.deleteAccount(); ls.removeItem(KEY); cloud.setMeta(null); host.location.replace(site); }

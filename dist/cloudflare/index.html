@@ -1316,7 +1316,7 @@ function download(label, snapshot){
 }
 const actions = {
   signIn:async (email, pw) => { await cloud.signIn(email, pw); await enter(); },
-  signUp:async (email, pw, nick) => { const r = await cloud.signUp(email, pw, nick); if (!r.confirm) await enter(); return r; },
+  signUp:async (email, pw) => { const r = await cloud.signUp(email, pw); if (!r.confirm) await enter(); return r; },
   resend:email => cloud.resend(email),
   recover:email => cloud.recover(email),
   updatePassword:async pw => { await cloud.updatePassword(pw); await enter('비밀번호를 바꿨어요'); },
@@ -1343,7 +1343,7 @@ function start(notice){
   if (auth){ auth.unmount(); auth = null; }
   sync = createSync({cloud, ls, key:KEY, onState:s => { if (s === 'error' && app) app.notify('기록을 서버에 저장하지 못했어요. 잠시 후 다시 시도해요.'); }});
   const account = {
-    email:cloud.user().email, nick:cloud.user().nick || '',
+    email:cloud.user().email,
     async signOut(){ await sync.flush(); if (sync.pending() && !(await app.confirm('아직 서버에 저장하지 못한 기록이 있어요. 그래도 로그아웃할까요? 이 기기의 기록은 지워져요.'))) return;
       await cloud.signOut(); ls.removeItem(KEY); cloud.setMeta(null); host.location.replace(site); },
     async deleteAccount(){ await cloud.deleteAccount(); ls.removeItem(KEY); cloud.setMeta(null); host.location.replace(site); }
@@ -4466,8 +4466,6 @@ if (!saved) storage.save(initial);
 storage.hydrate(S, initial);
 if(!S.economy)storage.commit(S,next=>migrateEconomy(next,Date.now(),S.me));
 if (!entryScreen && !hasProfile()) entryScreen = account ? 'character' : 'login';
-// 가입할 때 정한 닉네임을 캐릭터 만들기 칸에 미리 채운다(바꿀 수 있음).
-if (account && account.nick && !hasProfile() && !S.drafts.nick) S.drafts.nick = account.nick;
 /* 백업 안내: 체험판을 3일 넘게 쓰는 동안 백업이 없으면 한 번 띄우고, 그래도 백업하지 않으면 14일마다 다시 띄운다. */
 if (hasProfile() && !LS.get("firstSeen", 0)) LS.set("firstSeen", Date.now());
 const bkDue = () => { const now = Date.now(), first = LS.get("firstSeen", 0), last = Math.max(LS.get("lastBackup", 0), LS.get("bkNudgeAt", 0));
@@ -4519,7 +4517,7 @@ const TERMS = [
 const PRIVACY = [
   ["안내", `<p>${M.operator}(이하 "운영자")는 개인정보 보호법에 따라 이용자의 개인정보를 보호하고 관련 고충을 처리하기 위해 이 방침을 공개해요.</p>`],
   ["1. 처리 목적", `<ul><li>회원 가입과 본인 확인, 계정 관리</li><li>퀘스트·미션·저널 등 기록의 저장과 여러 기기 간 동기화</li><li>스토리·답글·공감 등 커뮤니티 기능 제공</li><li>신고 처리, 부정 이용 방지, 문의 응대</li></ul>`],
-  ["2. 처리하는 항목", `<ul><li><b>가입 시</b> 닉네임, 이메일 주소, 비밀번호(암호화해 저장하며 운영자도 볼 수 없어요). 카카오 로그인을 도입하면 그때 받는 항목을 이 방침에 추가해 알려요.</li><li><b>이용 중 입력</b> 캐릭터 이름과 사진, 메인 퀘스트·스테이지·미션·일일 퀘스트, 저널, 자료실 노트와 첨부 파일, 상점 보상, 스토리·답글·첨부 사진</li><li><b>자동 생성</b> 접속 일시, 기기·브라우저 정보, 서비스 이용 기록</li></ul><p>저널과 노트에는 건강 상태나 감정처럼 민감한 내용을 적지 않도록 주의해 주세요. 운영자는 이를 따로 분석하거나 이용하지 않아요.</p>`],
+  ["2. 처리하는 항목", `<ul><li><b>가입 시</b> 이메일 주소, 비밀번호(암호화해 저장하며 운영자도 볼 수 없어요). 카카오 로그인을 도입하면 그때 받는 항목을 이 방침에 추가해 알려요.</li><li><b>이용 중 입력</b> 캐릭터 이름과 사진, 메인 퀘스트·스테이지·미션·일일 퀘스트, 저널, 자료실 노트와 첨부 파일, 상점 보상, 스토리·답글·첨부 사진</li><li><b>자동 생성</b> 접속 일시, 기기·브라우저 정보, 서비스 이용 기록</li></ul><p>저널과 노트에는 건강 상태나 감정처럼 민감한 내용을 적지 않도록 주의해 주세요. 운영자는 이를 따로 분석하거나 이용하지 않아요.</p>`],
   ["3. 보유와 이용 기간", `<p>탈퇴할 때까지 보유하고, 탈퇴하면 지체 없이 파기해요. 다만 법령이 보존을 요구하는 정보는 그 기간 동안 따로 보관해요.</p><ul><li>서비스 접속 기록: 3개월 (통신비밀보호법)</li></ul><p>1년 동안 로그인하지 않으면 미리 알린 뒤 정보를 분리 보관하거나 파기할 수 있어요.</p>`],
   ["4. 제3자 제공", `<p>이용자의 동의 없이 개인정보를 외부에 제공하지 않아요. 법령에 근거가 있거나 수사기관이 법에 정한 절차로 요청한 경우는 예외예요.</p>`],
   ["5. 처리 위탁과 국외 이전", `<p>서비스 운영을 위해 아래 업체에 처리를 맡겨요.</p><ul><li><b>회원 인증·기록 저장</b> Supabase Inc.(미국) · 저장 지역 대한민국 서울 · 가입부터 탈퇴까지 보관</li><li><b>웹사이트 전송</b> Cloudflare, Inc.(미국) · 서비스 화면 전송과 접속 기록 처리</li></ul><p>위탁 업체나 국외 이전 내용이 바뀌면 이 방침을 고쳐 알려요.</p>`],
@@ -4680,7 +4678,7 @@ function createCloud({fetch, ls, url = CLOUD_URL, key = CLOUD_KEY, site = '', no
   if (!session || typeof session.access_token !== 'string' || !session.user || typeof session.user.id !== 'string') session = null;
   const keep = s => { session = s; write(SESSION_KEY, s); };
   const fromToken = (data, user = data.user) => ({access_token:data.access_token, refresh_token:data.refresh_token,
-    expires_at:Number(data.expires_at) || Math.floor(now() / 1000) + (Number(data.expires_in) || 3600), user:{id:user.id, email:user.email || '', nick:String((user.user_metadata && user.user_metadata.nick) || '').slice(0, 20)}});
+    expires_at:Number(data.expires_at) || Math.floor(now() / 1000) + (Number(data.expires_in) || 3600), user:{id:user.id, email:user.email || ''}});
   const redirect = site ? '?redirect_to=' + encodeURIComponent(site) : '';
 
   async function call(path, {method = 'GET', body, auth = false, prefer} = {}) {
@@ -4708,8 +4706,8 @@ function createCloud({fetch, ls, url = CLOUD_URL, key = CLOUD_KEY, site = '', no
   }
   return {
     user:() => session ? session.user : null,
-    async signUp(email, password, nick = ''){
-      const data = await call('/auth/v1/signup' + redirect, {method:'POST', body:{email, password, data:nick ? {nick:String(nick).slice(0, 20)} : {}}});
+    async signUp(email, password){
+      const data = await call('/auth/v1/signup' + redirect, {method:'POST', body:{email, password}});
       if (data && data.access_token){ keep(fromToken(data)); return {confirm:false}; }
       return {confirm:true};
     },
@@ -4814,7 +4812,7 @@ const summary = snap => { const p = Object.values(snap.profiles || {})[0], mine 
   return `<b>${esc(p && p.nick ? p.nick : '캐릭터 없음')}</b><small>메인 퀘스트 ${Object.values(snap.projects || {}).filter(x => !x.parentId).length}개 · 미션 ${mine.filter(m => m.kind === 'mission').length}개 · 일일 퀘스트 ${mine.filter(m => m.kind === 'quest').length}개 · 저널 ${mine.filter(m => m.kind === 'diary').length}개</small>`; };
 const doc = (title, list) => `<details class="authdoc"><summary>${title} 보기</summary><div class="helplist">${list.map(([t, b]) => `<div class="helpitem"><b>${t}</b>${b}</div>`).join('')}</div></details>`;
 const head = (title, copy) => `<p class="login-brand">퀘스트</p><h1 id="auth-title" class="authh">${title}</h1>${copy ? `<p class="login-copy">${copy}</p>` : ''}`;
-const field = (id, label, type, ac, value = '') => `<label class="field authf"><span class="lab">${label}</span><input type="${type}" id="${id}" autocomplete="${ac}" value="${esc(value)}"${type === 'email' ? ' inputmode="email" autocapitalize="off" spellcheck="false"' : ''}${type === 'text' ? ' maxlength="20"' : ''} required></label>`;
+const field = (id, label, type, ac, value = '') => `<label class="field authf"><span class="lab">${label}</span><input type="${type}" id="${id}" autocomplete="${ac}" value="${esc(value)}"${type === 'email' ? ' inputmode="email" autocapitalize="off" spellcheck="false"' : ''} required></label>`;
 
 function authView(st) {
   const msg = st.error ? `<p class="autherr" role="alert">${esc(st.error)}</p>` : st.info ? `<p class="authinfo" role="status">${esc(st.info)}</p>` : '';
@@ -4824,7 +4822,7 @@ function authView(st) {
     case 'loading': body = `${head('불러오는 중…', esc(st.info || '계정 기록을 확인하고 있어요.'))}`; return `<section class="card login-card authcard" aria-busy="true">${body}</section>`;
     case 'error': body = `${head('연결하지 못했어요', '')}<p class="autherr" role="alert">${esc(st.error)}</p><button type="button" class="btn big full" data-auth="retry">다시 시도</button><button type="button" class="link authlink" data-auth="logout">다른 계정으로 로그인</button>`; break;
     case 'signup': body = `${head('이메일로 가입하기', '')}
-      <form data-auth-form="signup" novalidate>${field('auth-nick', '닉네임', 'text', 'nickname', st.nick)}${field('auth-email', '이메일', 'email', 'email', st.email)}${field('auth-pw', `비밀번호 (${MIN_PW}자 이상)`, 'password', 'new-password')}${field('auth-pw2', '비밀번호 확인', 'password', 'new-password')}
+      <form data-auth-form="signup" novalidate>${field('auth-email', '이메일', 'email', 'email', st.email)}${field('auth-pw', `비밀번호 (${MIN_PW}자 이상)`, 'password', 'new-password')}${field('auth-pw2', '비밀번호 확인', 'password', 'new-password')}
       <div class="authagree"><label class="toggle"><input type="checkbox" id="auth-all"> <b>모두 동의</b></label>
       <label class="toggle"><input type="checkbox" class="auth-req" id="auth-age"> 만 14세 이상이에요 (필수)</label>
       <label class="toggle"><input type="checkbox" class="auth-req" id="auth-terms"> 이용약관에 동의해요 (필수)</label>${doc('이용약관', TERMS)}
@@ -4878,9 +4876,8 @@ function mountAuth({root, body, actions, initial = {view:'login'}}) {
   }
   function onSubmit(e){
     const f = e.target.closest('[data-auth-form]'); if (!f) return; e.preventDefault(); if (st.busy) return;
-    const kind = f.dataset.authForm, email = val('auth-email').trim(), pw = val('auth-pw'), pw2 = val('auth-pw2'), nick = val('auth-nick').trim();
+    const kind = f.dataset.authForm, email = val('auth-email').trim(), pw = val('auth-pw'), pw2 = val('auth-pw2');
     const bad = m => set({error:m, info:'', email:email || st.email});
-    if (kind === 'signup' && (!nick || nick.length > 20)) return bad(nick ? '닉네임은 20자 이하로 정해 주세요.' : '닉네임을 입력해 주세요.');
     if (kind !== 'reset' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return bad('이메일 주소를 다시 확인해 주세요.');
     if (kind === 'login'){ if (!pw) return bad('비밀번호를 입력해 주세요.'); st.email = email; return run(() => actions.signIn(email, pw), () => {}); }
     if (kind === 'forgot'){ st.email = email; return run(() => actions.recover(email), () => set({busy:false, view:'forgot-sent'})); }
@@ -4888,7 +4885,7 @@ function mountAuth({root, body, actions, initial = {view:'login'}}) {
     if (pw !== pw2) return bad('비밀번호 확인이 일치하지 않아요.');
     if (kind === 'reset') return run(() => actions.updatePassword(pw), () => {});
     if (![...root.querySelectorAll('.auth-req')].every(x => x.checked)) return bad('필수 항목에 모두 동의해 주세요.');
-    st.email = email; st.nick = nick; run(() => actions.signUp(email, pw, nick), r => { if (r && r.confirm) set({busy:false, view:'sent'}); });
+    st.email = email; run(() => actions.signUp(email, pw), r => { if (r && r.confirm) set({busy:false, view:'sent'}); });
   }
   root.addEventListener('click', onClick); root.addEventListener('change', onChange); root.addEventListener('submit', onSubmit);
   draw();

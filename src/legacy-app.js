@@ -2559,8 +2559,6 @@ if (!saved) storage.save(initial);
 storage.hydrate(S, initial);
 if(!S.economy)storage.commit(S,next=>migrateEconomy(next,Date.now(),S.me));
 if (!entryScreen && !hasProfile()) entryScreen = account ? 'character' : 'login';
-// 가입할 때 정한 닉네임을 캐릭터 만들기 칸에 미리 채운다(바꿀 수 있음).
-if (account && account.nick && !hasProfile() && !S.drafts.nick) S.drafts.nick = account.nick;
 /* 백업 안내: 체험판을 3일 넘게 쓰는 동안 백업이 없으면 한 번 띄우고, 그래도 백업하지 않으면 14일마다 다시 띄운다. */
 if (hasProfile() && !LS.get("firstSeen", 0)) LS.set("firstSeen", Date.now());
 const bkDue = () => { const now = Date.now(), first = LS.get("firstSeen", 0), last = Math.max(LS.get("lastBackup", 0), LS.get("bkNudgeAt", 0));

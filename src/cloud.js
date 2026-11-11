@@ -35,7 +35,7 @@ export function createCloud({fetch, ls, url = CLOUD_URL, key = CLOUD_KEY, site =
   if (!session || typeof session.access_token !== 'string' || !session.user || typeof session.user.id !== 'string') session = null;
   const keep = s => { session = s; write(SESSION_KEY, s); };
   const fromToken = (data, user = data.user) => ({access_token:data.access_token, refresh_token:data.refresh_token,
-    expires_at:Number(data.expires_at) || Math.floor(now() / 1000) + (Number(data.expires_in) || 3600), user:{id:user.id, email:user.email || '', nick:String((user.user_metadata && user.user_metadata.nick) || '').slice(0, 20)}});
+    expires_at:Number(data.expires_at) || Math.floor(now() / 1000) + (Number(data.expires_in) || 3600), user:{id:user.id, email:user.email || ''}});
   const redirect = site ? '?redirect_to=' + encodeURIComponent(site) : '';
 
   async function call(path, {method = 'GET', body, auth = false, prefer} = {}) {
@@ -63,8 +63,8 @@ export function createCloud({fetch, ls, url = CLOUD_URL, key = CLOUD_KEY, site =
   }
   return {
     user:() => session ? session.user : null,
-    async signUp(email, password, nick = ''){
-      const data = await call('/auth/v1/signup' + redirect, {method:'POST', body:{email, password, data:nick ? {nick:String(nick).slice(0, 20)} : {}}});
+    async signUp(email, password){
+      const data = await call('/auth/v1/signup' + redirect, {method:'POST', body:{email, password}});
       if (data && data.access_token){ keep(fromToken(data)); return {confirm:false}; }
       return {confirm:true};
     },
