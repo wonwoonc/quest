@@ -211,7 +211,6 @@ button.row:active,[role=button].row:active{background:var(--fill)}
 .ref.quest{background:color-mix(in srgb,var(--warn) 9%,var(--card))}
 .ref.done{background:var(--xp-soft)}
 .ref.diary{background:var(--violet-soft)}
-.ref .join{flex:none}
 .mood{display:inline-block;margin-top:8px;font-size:13px;font-weight:500;background:var(--fill);color:var(--sub);border-radius:8px;padding:2px 9px}
 .txtwrap{position:relative}
 .txt{margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:1.6;cursor:pointer;touch-action:manipulation}
@@ -3134,7 +3133,7 @@ function viewSettings(){
   let h = `<p class="sect3">계정</p><section class="card tight">
     <button class="row" data-act="sheet" data-k="profile"><span class="t"><b>프로필 편집</b><small>닉네임 · 소개 · 프로필 사진</small></span>${I.chev}</button>
     </section>`;
-  if (!TRIAL) h += `<p class="sect3">알림</p><section class="card tight">${[["like","공감","내 글과 답글에 공감했을 때"],["reply","답글","내 글에 답글이 달렸을 때"],["follow","팔로우","새 팔로워가 생겼을 때"],["join","함께하기","내 일일 퀘스트를 함께 시작했을 때"]].map(([k,l,d]) => `<div class="row"><span class="t"><b>${l}</b><small>${d}</small></span>${sw("setn", st.notif[k], `data-k="${k}"`)}</div>`).join("")}</section>`;
+  if (!TRIAL) h += `<p class="sect3">알림</p><section class="card tight">${[["like","공감","내 글과 답글에 공감했을 때"],["reply","답글","내 글에 답글이 달렸을 때"],["follow","팔로우","새 팔로워가 생겼을 때"]].map(([k,l,d]) => `<div class="row"><span class="t"><b>${l}</b><small>${d}</small></span>${sw("setn", st.notif[k], `data-k="${k}"`)}</div>`).join("")}</section>`;
   h += `<p class="sect3">메뉴</p><section class="card tight"><button class="row" data-act="navedit"><span class="t"><b>메뉴 순서</b><small>${navOrder().slice(0, NAV_BAR).map(h0 => NAV[h0][0]).join(" · ")} · 더보기</small></span>${I.chev}</button></section>`;
   h += `<p class="sect3">화면</p><section class="card"><div class="ch" style="margin-bottom:10px"><h2 style="font-size:16px">화면 모드</h2></div><div class="seg sm">${[["system","시스템"],["light","라이트"],["dark","다크"]].map(([k,l]) => `<button data-act="theme" data-v="${k}" aria-pressed="${th===k}">${l}</button>`).join("")}</div></section>`;
   if (!TRIAL) h += `<p class="sect3">개인정보 보호</p><section class="card tight">
@@ -3174,9 +3173,8 @@ function refHtml(p){
   }
   if (r.type === "project_done"){ const sp = isProj(S.projects[r.id]) || r.sub; return `<button class="ref done" data-act="project" data-p="${r.id}"><span class="ri">🏆</span><span class="rt"><b>${sp ? "스테이지 완료" : "메인 퀘스트 달성"} · ${esc(r.label)}</b><small>완료 기록 · 공유 자체는 무보상</small></span>${I.chev}</button>`; }
   if (r.type === "quest"){
-    const x = r.extra || {}, lv = HLV[lvKey(x.lv)], n = Object.values(p.joiners||{}).filter(on).length, joined = on((p.joiners||{})[S.me]);
-    return `<div class="ref quest"><span class="ri">🔥</span><span class="rt"><b>${esc(r.label)} · ${num(x.streak)}일 연속</b><small><span title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span> 일일 퀘스트${n ? ` · ${n}명이 함께해요` : ""}</small></span>
-      ${p.author !== S.me && canAct() ? `<button class="btn ${joined?"sec":"soft"} xs join" data-act="join" data-p="${p.id}" ${joined?"disabled":""}>${joined ? "함께하는 중" : "나도 하기"}</button>` : ""}</div>`;
+    const x = r.extra || {}, lv = HLV[lvKey(x.lv)];
+    return `<div class="ref quest"><span class="ri">🔥</span><span class="rt"><b>${esc(r.label)} · ${num(x.streak)}일 연속</b><small><span title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span> 일일 퀘스트</small></span></div>`;
   }
   if (r.type === "diary"){ const x = r.extra || {}; return `<div class="ref diary"><span class="ri">${EMOI[x.emo]||"📓"}</span><span class="rt"><b>${r.label && r.label !== "오늘의 기록" ? esc(r.label) : "오늘의 저널"} · ${esc(x.emo||"")}</b><small>컨디션 ${esc(x.cond ?? "-")}%</small></span></div>`; }
   return "";
@@ -3455,20 +3453,19 @@ function activityItems(){
   if (!S.me) return [];
   const out = [];
   for (const p of Object.values(S.feed)){ if (p.author !== S.me) continue;
-    for (const [u,r] of Object.entries(p.reactions||{})) if (on(r) && u !== S.me) out.push({type:"like", who:u, at:r.at, p});
-    for (const [u,t] of Object.entries(p.joiners||{})) if (on(t) && u !== S.me) out.push({type:"join", who:u, at:t, p}); }
+    for (const [u,r] of Object.entries(p.reactions||{})) if (on(r) && u !== S.me) out.push({type:"like", who:u, at:r.at, p}); }
   for (const c of Object.values(S.replies)){
     const p = S.feed[c.postId]; if (!p) continue; const parent = c.parentId && S.replies[c.parentId];
     if (c.author !== S.me && (p.author === S.me || (parent && parent.author === S.me))) out.push({type:"reply", who:c.author, text:c.text, at:c.createdAt, p, toMe:!!(parent && parent.author === S.me)});
     if (c.author === S.me) for (const [u,t] of Object.entries(c.likes||{})) if (on(t) && u !== S.me) out.push({type:"rlike", who:u, text:c.text, at:t, p});
   }
   for (const f of Object.values(S.follows)) if (f.to === S.me && f.from !== S.me) out.push({type:"follow", who:f.from, at:f.at});
-  const N = getSet().notif, key = {like:"like", rlike:"like", reply:"reply", follow:"follow", join:"join"};
+  const N = getSet().notif, key = {like:"like", rlike:"like", reply:"reply", follow:"follow"};
   return out.filter(x => N[key[x.type]] !== false && !isBlocked(x.who)).sort((a,b) => b.at - a.at).slice(0, 120);
 }
 function actText(x){
   const nm = `<b>${esc(nameOf(x.who))}</b>`;
-  return x.type === "like" ? `❤️ ${nm}님이 공감했어요` : x.type === "rlike" ? `❤️ ${nm}님이 내 답글에 공감했어요` : x.type === "reply" ? `💬 ${nm}님: ${esc(x.text)}` : x.type === "join" ? `🔥 ${nm}님이 내 일일 퀘스트를 함께 시작했어요` : `👋 ${nm}님이 팔로우했어요`;
+  return x.type === "like" ? `❤️ ${nm}님이 공감했어요` : x.type === "rlike" ? `❤️ ${nm}님이 내 답글에 공감했어요` : x.type === "reply" ? `💬 ${nm}님: ${esc(x.text)}` : `👋 ${nm}님이 팔로우했어요`;
 }
 const snippet = p => p.text || (p.ref ? p.ref.label : "") || "사진";
 function viewActivity(){
@@ -3480,7 +3477,6 @@ function viewActivity(){
     if (x.type === "like"){ title = `${nm}님이 내 기록에 공감했어요`; sub = snippet(x.p); right = `<span style="color:var(--heart);display:flex;width:22px">${I.heartOn}</span>`; }
     else if (x.type === "rlike"){ title = `${nm}님이 내 답글에 공감했어요`; sub = x.text; right = `<span style="color:var(--heart);display:flex;width:22px">${I.heartOn}</span>`; }
     else if (x.type === "reply"){ title = x.toMe ? `${nm}님이 내 답글에 답했어요` : `${nm}님이 답글을 남겼어요`; sub = x.text; }
-    else if (x.type === "join"){ title = `${nm}님이 내 일일 퀘스트를 함께 시작했어요`; sub = x.p.ref ? x.p.ref.label : ""; right = `<span style="font-size:22px">🔥</span>`; }
     else { title = `${nm}님이 회원님을 팔로우해요`; sub = ago(x.at); right = isFollowing(S.me, x.who) || !S.canWrite ? "" : `<button class="btn soft sm" data-act="follow" data-u="${esc(x.who)}">맞팔로우</button>`; }
     return `<div class="row ${x.at > S.actSeenView ? "new":""}" ${x.p?`data-act="open" data-p="${x.p.id}" role="button" tabindex="0"`:""}>${av(x.who, 42)}<span class="t"><b style="white-space:normal;font-weight:500">${title}</b><small>${esc(sub)}${x.type!=="follow"?` · ${ago(x.at)}`:""}</small></span>${right}</div>`;
   };
@@ -4093,9 +4089,6 @@ document.addEventListener("click", e => {
     case "like": { const p = S.feed[pid]; if (!p || !canAct() || p.author === S.me) return; const was = liked(p); run(() => api.like(pid, !was)); if (!was) burstAt(b.closest(".body").querySelector("[data-dt]")); return; }
     case "rlike": { const r = S.replies[b.dataset.c]; if (!r) return; run(() => api.likeReply(r.id, !on((r.likes||{})[S.me]))); return; }
     case "reply": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"reply", pid, cid:b.dataset.c || null, to:b.dataset.to || b.dataset.c || null}); setTimeout(() => { const t = $("#rp-text"); t && t.focus(); }, 60); return;
-    case "join": { const p = S.feed[pid]; if (!p || !canAct()) return; const x = p.ref.extra || {}; if (dupQ(p.ref.label)){ toast(DUPMSG); return; }
-      const q = {kind:"quest", name:p.ref.label, purpose:x.purpose || `${nameOf(p.author)}님과 함께`, days:x.days && x.days.length ? x.days : [0,1,2,3,4,5,6], lv:lvKey(x.lv), active:true, done:{}, createdAt:Date.now(), from:{author:p.author, postId:p.id}};
-      run(async () => { await api.putMine(uid8(), q); await api.join(pid); }, () => toast(`🔥 '${esc(p.ref.label)}'을 내 일일 퀘스트에 추가했어요`)); return; }
     case "delpost": e.stopPropagation(); if (S.armed === "dp"+pid){ S.armed = null; const inPost = S.view.name === "post"; run(() => api.delPost(pid), () => { closeSheet(); toast("스토리를 삭제했어요"); if (inPost) history.back(); }); } else { arm("dp"+pid); if (S.compose) renderSheet(); } return;
     case "dpopen": c._dp = c._dp === b.dataset.k ? null : b.dataset.k; c._dpm = null; if (c._dp) c._tw = false; renderSheet(); return;
     case "dpnav": { const base = new Date((c._dpm || ((c._dp === "jd" ? S.planner.date : c[c._dp]) || today()).slice(0,8) + "01")+"T00:00"); base.setMonth(base.getMonth() + +b.dataset.v); c._dpm = dk(base.getTime()).slice(0,8) + "01"; renderSheet(); return; }
