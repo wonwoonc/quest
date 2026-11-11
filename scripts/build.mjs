@@ -41,6 +41,20 @@ export async function build() {
   }
   // Public trial for ebook readers: same bundle, trial edition switched on (wording, onboarding, hidden social parts).
   await writeFile(path.join(root,'dist/quest-tester.html'),source.replace('<title>퀘스트</title>','<title>퀘스트 테스트판</title>').replace('<html lang="ko"','<html lang="ko" data-edition="trial"'));
-  console.log('Built dist/quest.html + dist/quest-demo.html; dev index.html + demo.html');
+  // Cloudflare Pages: 출시판(본판 1.0)을 index.html로 둔 배포 폴더. 대시보드에 폴더째 올리거나 Git 연결 시 출력 폴더로 지정.
+  const cf = path.join(root,'dist/cloudflare'); await mkdir(cf,{recursive:true});
+  await writeFile(path.join(cf,'index.html'),source);
+  await writeFile(path.join(cf,'_headers'),`/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), payment=()
+  Strict-Transport-Security: max-age=31536000
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+`);
+  console.log('Built dist/quest.html + dist/quest-demo.html; dev index.html + demo.html; dist/cloudflare/');
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await build();
