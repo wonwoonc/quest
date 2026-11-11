@@ -730,26 +730,24 @@ test('economy shop tabs and reward form omit guidance while price constraints st
   const h=await profileUI();h.route('shop');
   assert.doesNotMatch(h.nodes.get('app').innerHTML,/buyrest|휴식권 구매|data-act="shop-tab"|>내역</);assert.doesNotMatch(h.nodes.get('app').innerHTML,removedEconomyGuidance);
   h.click('sheet',{k:'reward'});let markup=h.nodes.get('overlay').innerHTML;
-  assert.match(markup,/id="rw-cost"[^>]*value=""/);for(const v of [100,300,500,1000,3000])assert.match(markup,new RegExp(`data-f="cost" data-v="${v}"`));
-  assert.match(markup,/data-v="300" aria-pressed="true"/,'300 is the default preset');assert.doesNotMatch(markup,/rw-repeat|rw-daily|rw-weekly/);assert.doesNotMatch(markup,removedEconomyGuidance);
+  assert.match(markup,/id="rw-cost"[^>]*placeholder="예\) 300"[^>]*value=""/);assert.doesNotMatch(markup,/data-f="cost"|5 단위/,'no preset buttons, no 5-step rule');assert.doesNotMatch(markup,/rw-repeat|rw-daily|rw-weekly/);assert.doesNotMatch(markup,removedEconomyGuidance);
   const costField=markup.slice(markup.indexOf('<span class="lab">가격'),markup.indexOf('<span class="lab">가격')+500);
   assert.doesNotMatch(costField,/<p class="hint"/);
   h.nodes.set('rw-name',{value:'직접 정한 보상'});
   const before=h.snapshot();
-  for(const value of ['0','-5','4','7','7.5','NaN']){
+  h.nodes.set('rw-cost',{value:''});h.click('submit-reward');await h.settle();assert.deepEqual(h.snapshot(),before);assert.match(h.nodes.get('toast').innerHTML,/가격을 입력해 주세요/);
+  for(const value of ['0','-5','7.5','NaN']){
     h.nodes.set('rw-cost',{value});h.click('submit-reward');await h.settle();
     assert.deepEqual(h.snapshot(),before,`invalid price ${value} never writes`);
-    assert.match(h.nodes.get('toast').innerHTML,/가격은 5 이상, 5 단위/);
+    assert.match(h.nodes.get('toast').innerHTML,/가격은 1 이상의 정수로/);
   }
-  h.nodes.set('rw-cost',{value:'65'});h.click('submit-reward');await h.settle();
-  const r=Object.values(h.snapshot().mine).find(x=>x.kind==='reward');assert.equal(r.cost,65);
+  h.nodes.set('rw-cost',{value:'67'});h.click('submit-reward');await h.settle();
+  const r=Object.values(h.snapshot().mine).find(x=>x.kind==='reward');assert.equal(r.cost,67,'non-multiple of 5 saves');
   h.route('shop');h.click('shop-tab',{v:'personal'});assert.doesNotMatch(h.nodes.get('app').innerHTML,/data-act="wishlist"|data-act="purchase-hide"|>찜<|기록 숨김/);
   h.click('redit',{id:r.id});markup=h.nodes.get('overlay').innerHTML;
-  assert.doesNotMatch(markup,removedEconomyGuidance);assert.match(markup,/id="rw-cost"[^>]*value="65"/,'custom price shows in the custom field');
-  h.nodes.set('rw-cost',{value:'5'});h.click('submit-reward');await h.settle();
-  assert.equal(h.snapshot().mine[r.id].cost,5,'minimum valid price still saves');
-  h.click('redit',{id:r.id});h.click('cset',{f:'cost',v:'1000'});h.nodes.set('rw-cost',{value:''});h.click('submit-reward');await h.settle();
-  assert.equal(h.snapshot().mine[r.id].cost,1000,'preset chip saves when no custom price is typed');
+  assert.doesNotMatch(markup,removedEconomyGuidance);assert.match(markup,/id="rw-cost"[^>]*value="67"/,'saved price shows in the input');
+  h.nodes.set('rw-cost',{value:'1'});h.click('submit-reward');await h.settle();
+  assert.equal(h.snapshot().mine[r.id].cost,1,'minimum valid price 1 saves');
 });
 test('all activity creation/edit choices contain five tiers and retain legacy tier keys',async()=>{
   const h=await linkedUI();
@@ -1370,7 +1368,7 @@ test('reward form has a repeat switch; once rewards sell one time and cards neve
   h.click('sheet',{k:'reward'});let ov=h.nodes.get('overlay').innerHTML;
   assert.match(ov,/<b>반복<\/b>[\s\S]*data-act="rw-rep" aria-label="반복" role="switch" aria-checked="true"/);
   h.click('rw-rep');ov=h.nodes.get('overlay').innerHTML;assert.match(ov,/한 번 사면 끝나는 보상이에요[\s\S]*aria-checked="false"/);
-  h.nodes.set('rw-name',{value:'영화 한 편'});h.click('cset',{f:'cost',v:'100'});h.nodes.set('rw-cost',{value:''});
+  h.nodes.set('rw-name',{value:'영화 한 편'});h.nodes.set('rw-cost',{value:'100'});
   h.click('submit-reward');await h.settle();
   const r=Object.values(h.snapshot().mine).find(x=>x.kind==='reward');assert.equal(r.repeat,'once');
   let app=h.nodes.get('app').innerHTML;assert.doesNotMatch(app,/1회|반복/);

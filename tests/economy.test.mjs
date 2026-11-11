@@ -125,7 +125,8 @@ test('coin debt displayed separately and future earnings offset; purchase cannot
   await assert.rejects(h.api.redeem('r','bad'),/부족/);await putTask(h,'offset','epic');assert.equal(balances(h.state).debt,0);assert.equal(balances(h.state).gold,10);
 });
 test('personal price validation, planned cancellation only, hiding and deletion never refund',async()=>{
-  const h=setup({gold:100});for(const cost of [0,1,6,7.5,-5,NaN])await assert.rejects(h.api.putMine('bad',{kind:'reward',name:'bad',cost}));
+  const h=setup({gold:100});for(const cost of [0,7.5,-5,NaN,'7'])await assert.rejects(h.api.putMine('bad',{kind:'reward',name:'bad',cost}));
+  await h.api.putMine('ok1',{kind:'reward',name:'ok',cost:1});await h.api.putMine('ok7',{kind:'reward',name:'ok',cost:7});await h.api.delMine('ok1');await h.api.delMine('ok7');
   await h.api.putMine('r',{kind:'reward',name:'r',cost:25});delta(await h.api.redeem('r','a'),0,-25);delta(await h.api.purchaseAction('a','cancel'),0,25);await assert.rejects(h.api.purchaseAction('a','cancel'));
   await h.api.redeem('r','b');await h.api.purchaseAction('b','use');await assert.rejects(h.api.purchaseAction('b','cancel'));delta(await h.api.purchaseAction('b','hide'),0,0);delta(await h.api.delMine('b'),0,0);assert.equal(balances(h.state).gold,75);
   await assert.rejects(h.api.putMine('a',{...h.state.mine.a,state:'planned'}),/전용 명령/);

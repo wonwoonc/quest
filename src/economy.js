@@ -166,7 +166,7 @@ export function processEconomy(s,before,at,me='me') {
   }
   milestones(s,at);
 }
-export function validatePrice(cost){if(!Number.isSafeInteger(cost)||cost<5||cost%5)throw new Error('가격은 5 이상, 5 단위 정수로 입력해 주세요.');}
+export function validatePrice(cost){if(!Number.isSafeInteger(cost)||cost<1)throw new Error('가격은 1 이상의 정수로 입력해 주세요.');}
 function spend(s,source,cost,at){validatePrice(cost);if(balances(s).raw<cost)throw new Error('사용 가능한 코인이 부족해요.');event(s.economy,at,'spend',source,0,-cost);}
 export function redeemPersonal(s,rewardId,id,at){const r=s.mine[rewardId];if(r?.kind!=='reward')throw new Error('보상을 찾을 수 없습니다.');validatePrice(r.cost);const e=s.economy;if(e.purchases[id])throw new Error('중복 구매 ID입니다.');const date=koreaDate(at),week=weekOf(date),rows=Object.values(e.purchases).filter(p=>p.rewardId===rewardId&&p.state!=='cancelled');if(r.repeat==='once'&&rows.length)throw new Error('1회 보상은 한 번만 교환할 수 있어요.');if(r.dailyLimit&&rows.filter(p=>koreaDate(p.at)===date).length>=r.dailyLimit)throw new Error('일일 교환 한도에 도달했어요.');if(r.weeklyLimit&&rows.filter(p=>weekOf(koreaDate(p.at))===week).length>=r.weeklyLimit)throw new Error('주간 교환 한도에 도달했어요.');spend(s,key('personal',id),r.cost,at);const p={id,kind:'buy',name:r.name,cost:r.cost,rewardId,state:'planned',at,img:r.img||null};e.purchases[id]={...p};s.mine[id]={...p};}
 export function purchaseStyle(s,itemId,id,at){const e=s.economy,item=CATALOG.find(x=>x.id===itemId&&x.cost);if(!item)throw new Error('상품이 없습니다.');if(e.inventory[itemId]||e.purchases[id])throw new Error('이미 보유한 상품 또는 중복 구매입니다.');spend(s,key('style',id),item.cost,at);e.inventory[itemId]={source:'shop',purchase:id};e.purchases[id]={id,itemId,name:item.name,cost:item.cost,state:'owned',at,kind:'style'};}
