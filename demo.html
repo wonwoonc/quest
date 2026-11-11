@@ -316,7 +316,7 @@ button.row:active,[role=button].row:active{background:var(--fill)}
 .bio{font-size:15px;color:var(--sub);margin:14px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
 
 /* forms & sheets */
-input[type=text],input[type=url],input[type=date],textarea{width:100%;background:var(--fill);border:2px solid transparent;border-radius:14px;padding:13px 15px;font-size:17px;-webkit-appearance:none;appearance:none}
+input[type=text],input[type=url],input[type=date],input[type=email],input[type=password],textarea{width:100%;background:var(--fill);border:2px solid transparent;border-radius:14px;padding:13px 15px;font-size:17px;-webkit-appearance:none;appearance:none}
 input:focus,textarea:focus{border-color:var(--accent);outline:none;background:var(--card)}
 textarea{resize:none;line-height:1.55}
 input::placeholder,textarea::placeholder{color:var(--muted)}
@@ -1233,6 +1233,14 @@ body.onboarding #app[data-v="login"]{max-width:440px;margin:clamp(24px,8vh,88px)
 .pgplan{display:flex;flex-wrap:wrap;gap:4px 10px;margin:2px 0 6px}.pgplan .pmeta{margin-left:0}
 .login-divider{font-size:13px;color:var(--muted);margin:20px 0 10px}
 .btn.kakao-signup{background:#FEE500;color:#191919}
+.authcard{text-align:left}.authcard .login-brand,.authcard .authh,.authcard .login-copy{text-align:center}.authh{font-size:26px;line-height:1.4;margin:14px 0 10px;font-weight:800;text-wrap:balance}
+.authf{margin-bottom:12px}.authcard form .btn{margin-top:6px}.authlink{display:block;margin:14px auto 0;text-align:center;font-weight:600}.authcard .login-divider{text-align:center}
+.authcard .btn+.btn{margin-top:10px}.autherr{color:var(--warn);font-size:14px;font-weight:600;margin:4px 0 8px}.authinfo{color:var(--accent);font-size:14px;font-weight:600;margin:4px 0 8px}
+.authagree{display:flex;flex-direction:column;gap:2px;margin:6px 0 12px;padding:12px 14px;background:var(--fill);border-radius:14px}.authagree .toggle{margin:6px 0}
+.authdoc{margin:0 0 4px 28px;font-size:13px}.authdoc summary{color:var(--muted);cursor:pointer}.authdoc .helplist{margin:8px 0 4px;max-height:260px;overflow:auto}
+.authwrap{display:flex;flex-direction:column;gap:12px}.authwrap .login-brand,.authwrap .authh,.authwrap .login-copy{text-align:center}.authwrap .login-copy{margin-bottom:8px}
+.authchoice{display:flex;flex-direction:column;gap:12px}.authopt{display:flex;flex-direction:column;gap:4px;text-align:left;border:2px solid transparent;width:100%;color:inherit}.authopt:hover{border-color:var(--accent)}.authopt b{font-size:17px}.authopt small{color:var(--muted);font-size:13px}
+.warn-t{color:var(--warn)}
 /* 더보기 · 메뉴 순서 · 첫 게임 · 체험판 안내 · 백업 안내 */
 .navitem .nvic{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--fill);color:var(--sub);flex:none}
 .navitem .nvic svg{width:20px;height:20px}

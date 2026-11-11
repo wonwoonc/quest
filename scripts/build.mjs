@@ -18,7 +18,7 @@ export async function bundle(entry) {
       deps.push(dep); return `const {${bindings}} = __require(${JSON.stringify(dep)});`;
     });
     const exports = [];
-    code = code.replace(/^export\s+(function|const)\s+(\w+)/gm, (_, kind, name) => { exports.push(name); return kind+' '+name; });
+    code = code.replace(/^export\s+(async\s+function|function|const)\s+(\w+)/gm, (_, kind, name) => { exports.push(name); return kind+' '+name; });
     if (/^\s*(import|export)\s+(?!:)/m.test(code) || /\bimport\s*\(\s*['"]/.test(code)) throw new Error('Unsupported module syntax: '+name);
     modules.set(name, `function(__require,__exports){\n"use strict";\n${code}\nObject.assign(__exports,{${exports.join(',')}});\n}`);
     for (const dep of deps) await visit(dep);
@@ -41,9 +41,11 @@ export async function build() {
   }
   // Public trial for ebook readers: same bundle, trial edition switched on (wording, onboarding, hidden social parts).
   await writeFile(path.join(root,'dist/quest-tester.html'),source.replace('<title>퀘스트</title>','<title>퀘스트 테스트판</title>').replace('<html lang="ko"','<html lang="ko" data-edition="trial"'));
-  // Cloudflare Pages: 출시판(본판 1.0)을 index.html로 둔 배포 폴더. 대시보드에 폴더째 올리거나 Git 연결 시 출력 폴더로 지정.
+  // Cloudflare Pages: 출시판(본판 1.0 + 로그인)을 index.html로 둔 배포 폴더. 대시보드에 폴더째 올리거나 Git 연결 시 출력 폴더로 지정.
   const cf = path.join(root,'dist/cloudflare'); await mkdir(cf,{recursive:true});
-  await writeFile(path.join(cf,'index.html'),source);
+  // 배포판: 본판 화면 + Supabase 로그인·동기화(cloud-entry.js). 아티팩트용 dist/quest.html은 서버 연결 없이 그대로 둔다.
+  const cloudJs = await bundle('cloud-entry.js');
+  await writeFile(path.join(cf,'index.html'),shell.replace('<!--APP_ENTRY-->', '<script>\n'+cloudJs.replace(/<\/script/gi,'<\\/script')+'\n</script>'));
   await writeFile(path.join(cf,'_headers'),`/*
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY

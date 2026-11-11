@@ -33,7 +33,7 @@ test('both build products contain one self-contained syntactically valid script,
 });
 test('legacy UI is explicitly dependency-injected ESM, preferences never touch old key', async () => {
   const js = await readFile(root+'/src/legacy-app.js','utf8');
-  assert.match(js,/export function startLegacyApp\(\{runtime, storage, seed = null\}\)/);
+  assert.match(js,/export function startLegacyApp\(\{runtime, storage, seed = null, account = null\}\)/);
   assert.doesNotMatch(js,/localStorage|lq2:|quest:v1/);
   assert.match(js,/const LS = storage.preferences/);
   assert.match(js,/planner:\{cond:70, emo:null, share:false\}/);
@@ -41,4 +41,14 @@ test('legacy UI is explicitly dependency-injected ESM, preferences never touch o
 test('bundler rejects implicit global concatenation by giving every module its own wrapper', async () => {
   const js = await bundle('entry.js');
   for (const module of ['entry.js','bootstrap.js','storage.js','runtime.js','legacy-app.js','backups.js']) assert.ok(js.includes(JSON.stringify(module)+':function(__require,__exports)'));
+});
+
+test('Cloudflare build carries the Supabase login; the artifact/tester builds never contact a server', async () => {
+  const {readFile} = await import('node:fs/promises');
+  const cf = await readFile(new URL('../dist/cloudflare/index.html', import.meta.url), 'utf8');
+  assert.match(cf, /rqoghflmyxpoqrhydgce\.supabase\.co/); assert.match(cf, /sb_publishable_/); assert.match(cf, /data-auth-form/);
+  assert.doesNotMatch(cf, /sb_secret_|service_role/, 'no secret keys in the public bundle');
+  for (const f of ['quest.html', 'quest-tester.html', 'quest-demo.html']) assert.doesNotMatch(await readFile(new URL('../dist/' + f, import.meta.url), 'utf8'), /supabase\.co/, f);
+  const sql = await readFile(new URL('../supabase/setup.sql', import.meta.url), 'utf8');
+  assert.match(sql, /enable row level security/); assert.match(sql, /security definer set search_path = ''/); assert.match(sql, /on delete cascade/);
 });

@@ -2,7 +2,7 @@ import {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, econo
 import {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete} from './notes.js';
 import {LEGAL_META, TERMS, PRIVACY} from './legal.js';
 import {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} from './day-activities.js';
-export function startLegacyApp({runtime, storage, seed = null}) {
+export function startLegacyApp({runtime, storage, seed = null, account = null}) {
 const entryParams = new URLSearchParams(location.search || '');
 // UI routes only. These flags are not an authentication/session boundary.
 const requestedScreen = entryParams.get('screen') || document.documentElement.dataset.entryScreen;
@@ -1309,11 +1309,14 @@ function viewSettings(){
     <div class="row" style="flex-wrap:wrap"><span class="t"><b>숨길 단어</b><small>이 단어가 들어간 답글은 보이지 않아요</small></span></div>
     <form class="addline" data-form="hide" style="padding-top:0"><input type="text" id="set-hide" placeholder="단어 입력 후 추가" value="${D("set-hide")}" aria-label="숨길 단어"><button class="btn sm sec" type="submit">추가</button></form>
     ${st.hidden.length ? `<div class="chips" style="padding:0 20px 14px">${st.hidden.map((w,i) => `<button class="chip" data-act="unhide" data-i="${i}">${esc(w)} ✕</button>`).join("")}</div>` : ""}</section>`;
+  if (account) h += `<p class="sect3">로그인</p><section class="card tight"><div class="row"><span class="t"><b>${esc(account.email || "로그인한 계정")}</b><small>이메일 계정 · 기록이 계정에 저장돼요</small></span></div>
+    <button class="row" data-act="acct-logout"><span class="t"><b>로그아웃</b><small>이 기기에서 로그아웃하고 기기의 기록 사본을 지워요</small></span>${I.chev}</button>
+    <button class="row" data-act="acct-delete"><span class="t"><b class="warn-t">회원 탈퇴</b><small>계정과 서버의 모든 기록을 지워요</small></span>${I.chev}</button></section>`;
   h += `<p class="sect3">데이터</p><section class="card tight">
     <button class="row" data-act="bkexp"><span class="t"><b>백업 내보내기</b><small>${!TRIAL ? "지금까지 기록을 JSON 파일로 저장" : LS.get("lastBackup", 0) ? `마지막 백업 ${fmtD(koreaDate(LS.get("lastBackup", 0)))}` : "아직 백업한 적이 없어요"}</small></span>${I.chev}</button>
     <button class="row" data-act="bkimp"><span class="t"><b>백업 불러오기</b><small>저장한 JSON 파일로 복원</small></span>${I.chev}</button>
     <button class="row" data-act="bkreset"><span class="t"><b>전체 초기화</b><small>모든 기록을 지우고 처음부터</small></span>${I.chev}</button></section>`;
-  h += `<p class="sect3">정보</p><section class="card tight">${TRIAL ? `<div class="row"><span class="t"><b>체험판</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>` : `<div class="row"><span class="t"><b>저장 위치</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>`}<div class="row"><span class="t"><b>앱 버전</b><small>${APP_VERSION}</small></span></div>${TRIAL ? "" : `<button class="row" data-act="sheet" data-k="terms"><span class="t"><b>이용약관</b></span>${I.chev}</button><button class="row" data-act="sheet" data-k="privacy"><span class="t"><b>개인정보처리방침</b></span>${I.chev}</button>${safeUrl(LEGAL_META.contactUrl) ? `<a class="row" href="${esc(safeUrl(LEGAL_META.contactUrl))}" target="_blank" rel="noopener noreferrer"><span class="t"><b>문의하기</b><small>카카오톡 오픈채팅</small></span>${I.chev}</a>` : `<div class="row"><span class="t"><b>문의하기</b><small>카카오톡 오픈채팅 · 준비 중</small></span></div>`}`}<button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
+  h += `<p class="sect3">정보</p><section class="card tight">${TRIAL ? `<div class="row"><span class="t"><b>체험판</b><small>기록은 이 기기의 이 브라우저에만 저장돼요</small></span></div>` : `<div class="row"><span class="t"><b>저장 위치</b><small>${account ? "계정에 저장돼 여러 기기에서 이어서 쓸 수 있어요" : "기록은 이 기기의 이 브라우저에만 저장돼요"}</small></span></div>`}<div class="row"><span class="t"><b>앱 버전</b><small>${APP_VERSION}</small></span></div>${TRIAL ? "" : `<button class="row" data-act="sheet" data-k="terms"><span class="t"><b>이용약관</b></span>${I.chev}</button><button class="row" data-act="sheet" data-k="privacy"><span class="t"><b>개인정보처리방침</b></span>${I.chev}</button>${safeUrl(LEGAL_META.contactUrl) ? `<a class="row" href="${esc(safeUrl(LEGAL_META.contactUrl))}" target="_blank" rel="noopener noreferrer"><span class="t"><b>문의하기</b><small>카카오톡 오픈채팅</small></span>${I.chev}</a>` : `<div class="row"><span class="t"><b>문의하기</b><small>카카오톡 오픈채팅 · 준비 중</small></span></div>`}`}<button class="row" data-act="sheet" data-k="oss"><span class="t"><b>오픈소스 라이선스</b><small>폰트 · 아이콘 출처</small></span>${I.chev}</button></section>`;
   return h;
 }
 
@@ -2191,6 +2194,8 @@ document.addEventListener("click", e => {
       else if (C.mode === "month"){ d.setDate(1); d.setMonth(d.getMonth()+n); C.date = dk(d.getTime()); } else { d.setFullYear(d.getFullYear()+n); C.date = dk(d.getTime()); } break; }
     case "ctoday": S.cal.date = today(); S.tlTop = S.wgTop = null; S.yCenter = true; break;
     case "cpick": S.cal.date = b.dataset.v; if (b.dataset.m) S.cal.mode = b.dataset.m; S.tlTop = S.wgTop = null; break;
+    case "acct-logout": if (account) account.signOut().catch(e => toast(esc(e.message || "로그아웃하지 못했어요"))); return;
+    case "acct-delete": if (account) ask({t:"정말 탈퇴할까요?", d:"계정과 서버에 저장된 모든 기록(캐릭터, 퀘스트, 미션, 저널, 자료실, 상점)이 지워지고 되돌릴 수 없어요. 필요하면 먼저 설정 → 백업 내보내기로 기록을 저장해 두세요.", ok:"탈퇴하기"}, () => { toast("탈퇴를 처리하고 있어요…"); account.deleteAccount().catch(e => toast(esc(e.message || "탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요."))); }); return;
     case "dpane": { if (!["daily", "mission", "journal"].includes(b.dataset.v)) return; S.dashPane = b.dataset.v; render(); return; }
     case "cdaystep": { const v = b.dataset.v; if (activityDate(v) !== v || v >= today()) return; S.view = {name:"calday", date:v}; render(); window.scrollTo?.(0, 0); return; }
     case "cdate": { const v = b.dataset.v; if (activityDate(v) !== v) return;
@@ -2517,7 +2522,7 @@ const initial = saved || seed || storage.empty();
 if (!saved) storage.save(initial);
 storage.hydrate(S, initial);
 if(!S.economy)storage.commit(S,next=>migrateEconomy(next,Date.now(),S.me));
-if (!entryScreen && !hasProfile()) entryScreen = 'login';
+if (!entryScreen && !hasProfile()) entryScreen = account ? 'character' : 'login';
 /* 백업 안내: 체험판을 3일 넘게 쓰는 동안 백업이 없으면 한 번 띄우고, 그래도 백업하지 않으면 14일마다 다시 띄운다. */
 if (hasProfile() && !LS.get("firstSeen", 0)) LS.set("firstSeen", Date.now());
 const bkDue = () => { const now = Date.now(), first = LS.get("firstSeen", 0), last = Math.max(LS.get("lastBackup", 0), LS.get("bkNudgeAt", 0));
