@@ -77,6 +77,7 @@ export function toView(me, rows){
   for (const r of [...(rows.replies || []), ...(rows.myReplies || [])]){
     if (!ID.test(String(r.id)) || !feed[r.post_id] || !UUID.test(String(r.author)) || replies[r.id]) continue;
     replies[r.id] = {id:r.id, postId:r.post_id, author:m(r.author), text:str(r.text, 2000), parentId:ID.test(String(r.parent_id || '')) ? r.parent_id : null, likes:{}, createdAt:time(r.at)};
+    if (r.edited_at) replies[r.id].editedAt = time(r.edited_at);
   }
   for (const r of rows.myReplies || []) if (r.hidden === true && replies[r.id] && replies[r.id].author === ME) replies[r.id].modHidden = true;
   for (const r of rows.rlikes || []) if (replies[r.reply_id] && UUID.test(String(r.user_id))) replies[r.reply_id].likes[m(r.user_id)] = time(r.at);
@@ -99,7 +100,7 @@ export function toView(me, rows){
 }
 
 const postKey = p => JSON.stringify({data:cleanPost(p), at:time(p.createdAt)});
-const replyKey = r => JSON.stringify({post_id:r.postId, parent_id:r.parentId || null, text:r.text, at:time(r.createdAt)});
+const replyKey = r => JSON.stringify({post_id:r.postId, parent_id:r.parentId || null, text:r.text, at:time(r.createdAt), edited_at:r.editedAt ? time(r.editedAt) : null});
 
 /* 내 기록 + 서버 보기 → 화면에 쓸 기록. 내 글·답글은 내 기록이 기준이고, 남의 것과 공감·팔로우는 서버가 기준. */
 export function mergeView(snap, view){
@@ -143,7 +144,7 @@ export function diff(a, b, me){
   const inList = ids => 'in.(' + ids.map(encodeURIComponent).join(',') + ')';
   if (b.profile && a.profile !== b.profile){ const p = JSON.parse(b.profile); ops.push({method:'POST', path:'/rest/v1/profiles_pub?on_conflict=user_id', prefer:'resolution=merge-duplicates,return=minimal', body:{user_id:me, ...p}}); }
   const posts = add(a.posts, b.posts); if (posts.length) ops.push({method:'POST', path:'/rest/v1/posts?on_conflict=id', prefer:'resolution=merge-duplicates,return=minimal', body:posts.map(id => ({id, author:me, ...JSON.parse(b.posts[id])}))});
-  const replies = add(a.replies, b.replies); for (const id of replies) ops.push({method:'POST', path:'/rest/v1/replies?on_conflict=id', prefer:'resolution=ignore-duplicates,return=minimal', body:{id, author:me, ...JSON.parse(b.replies[id])}});
+  const replies = add(a.replies, b.replies); for (const id of replies) ops.push({method:'POST', path:'/rest/v1/replies?on_conflict=id', prefer:'resolution=merge-duplicates,return=minimal', body:{id, author:me, ...JSON.parse(b.replies[id])}});
   const likes = Object.keys(b.likes).filter(k => !(k in a.likes)); if (likes.length) ops.push({method:'POST', path:'/rest/v1/post_likes?on_conflict=post_id,user_id', prefer:'resolution=ignore-duplicates,return=minimal', body:likes.map(id => ({post_id:id, user_id:me, at:b.likes[id]}))});
   const rlikes = Object.keys(b.rlikes).filter(k => !(k in a.rlikes)); if (rlikes.length) ops.push({method:'POST', path:'/rest/v1/reply_likes?on_conflict=reply_id,user_id', prefer:'resolution=ignore-duplicates,return=minimal', body:rlikes.map(id => ({reply_id:id, user_id:me, at:b.rlikes[id]}))});
   const fol = Object.keys(b.follows).filter(k => !(k in a.follows)); if (fol.length) ops.push({method:'POST', path:'/rest/v1/follows?on_conflict=follower,followee', prefer:'resolution=ignore-duplicates,return=minimal', body:fol.map(u => ({follower:me, followee:u, at:b.follows[u]}))});
@@ -206,8 +207,8 @@ export function createCommunity({rest, me, sign = async () => [], upload = async
       q('/rest/v1/profiles_pub?select=user_id,private,data&limit=1000'),
       q('/rest/v1/posts?select=id,author,data,at&order=created_at.desc&limit=300'),
       q(`/rest/v1/posts?select=id,author,data,at,hidden&author=eq.${id}`),
-      q('/rest/v1/replies?select=id,post_id,author,parent_id,text,at&order=created_at.desc&limit=3000'),
-      q(`/rest/v1/replies?select=id,post_id,author,parent_id,text,at,hidden&author=eq.${id}`),
+      q('/rest/v1/replies?select=id,post_id,author,parent_id,text,at,edited_at&order=created_at.desc&limit=3000'),
+      q(`/rest/v1/replies?select=id,post_id,author,parent_id,text,at,edited_at,hidden&author=eq.${id}`),
       q('/rest/v1/post_likes?select=post_id,user_id,at&limit=10000'),
       q('/rest/v1/reply_likes?select=reply_id,user_id,at&limit=10000'),
       q('/rest/v1/follows?select=follower,followee,accepted,at&limit=10000'),

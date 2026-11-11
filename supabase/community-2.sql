@@ -58,6 +58,10 @@ create trigger posts_keep_hidden before insert or update on public.posts for eac
 alter table public.replies add column if not exists hidden boolean not null default false;
 drop trigger if exists replies_keep_hidden on public.replies;
 create trigger replies_keep_hidden before insert or update on public.replies for each row execute function public.posts_keep_hidden();
+alter table public.replies add column if not exists edited_at bigint; -- 답글 수정 시각
+drop policy if exists "replies update own" on public.replies;
+create policy "replies update own" on public.replies for update to authenticated using (author = (select auth.uid())) with check (author = (select auth.uid()) and exists (select 1 from public.posts p where p.id = post_id));
+grant update on public.replies to authenticated;
 drop policy if exists "replies read" on public.replies;
 create policy "replies read" on public.replies for select to authenticated
   using ((author = (select auth.uid()) or (not hidden and public.can_see(author))) and exists (select 1 from public.posts p where p.id = post_id));

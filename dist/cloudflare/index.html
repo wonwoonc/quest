@@ -1685,6 +1685,7 @@ function createAPI({state, storage, id, now = Date.now, color = '#3DBE8B'}) {
     like:write((s, key, value) => { const p = doc(s.feed,key); p.reactions = {...p.reactions, [me]:value ? {k:'heart', at:now()} : 0}; }),
     join:write((s, key) => { const p = doc(s.feed,key); p.joiners = {...p.joiners, [me]:now()}; }),
     addReply:write((s, pid, text, parentId) => { doc(s.feed,pid); const key = id(); s.replies[key] = {id:key, postId:pid, author:me, text, parentId:parentId || null, likes:{}, createdAt:now()}; }),
+    editReply:write((s, key, text) => { const r = doc(s.replies,key); if (r.author !== me) throw new Error('내 답글만 고칠 수 있어요.'); r.text = String(text); r.editedAt = now(); }),
     delReply:write((s, key) => { if (doc(s.replies,key).author !== me) throw new Error('내 답글만 지울 수 있어요.'); delete s.replies[key]; }),
     likeReply:write((s, key, value) => { const r = doc(s.replies,key); r.likes = {...r.likes, [me]:value ? now() : 0}; }),
     follow:write((s, user, value) => { const key = me+'~'+user; if (value) s.follows[key] = {from:me, to:user, at:now()}; else delete s.follows[key]; }),
@@ -3454,7 +3455,7 @@ function viewPost(){
 function replyRow(c, child, line){
   const lk = on((c.likes||{})[S.me]), n = Object.values(c.likes||{}).filter(on).length, parent = c.parentId && S.replies[c.parentId];
   return `<div class="reply ${child?"child":""}"${canAct() && (c.author === S.me || !TRIAL) ? ` data-rid="${esc(c.id)}"` : ""}><div class="rail">${av(c.author, child?28:36)}${line ? '<span class="ln"></span>' : ""}</div>
-    <div class="body"><div class="ph"><button class="nm" data-act="profile" data-u="${esc(c.author)}">${esc(nameOf(c.author))}</button><span class="pillLv">Lv.${statsOf(c.author).L}</span><time>${ago(c.createdAt)}</time></div>
+    <div class="body"><div class="ph"><button class="nm" data-act="profile" data-u="${esc(c.author)}">${esc(nameOf(c.author))}</button><span class="pillLv">Lv.${statsOf(c.author).L}</span><time>${ago(c.createdAt)}${c.editedAt ? " · 수정됨" : ""}</time></div>
       ${parent && child ? `<div class="to">${esc(nameOf(parent.author))}님에게 답글</div>` : ""}${c.modHidden && c.author === S.me ? `<p class="modnote">운영자가 숨긴 답글이에요. 지금은 나에게만 보여요.</p>` : ""}<p class="txt">${esc(c.text)}</p>
       <div class="acts"><button class="ab ${lk?"on":""}" data-act="rlike" data-c="${c.id}" ${canAct() && c.author !== S.me ? "" : "disabled"} aria-pressed="${lk}" aria-label="답글 공감">${lk?I.heartOn:I.heart}${n?`<span class="num">${n}</span>`:""}</button>
         <button class="ab" data-act="reply" data-p="${c.postId}" data-c="${parent ? c.parentId : c.id}" data-to="${c.id}" ${canAct()?"":"disabled"} aria-label="답글 달기">${I.reply}<span>답글</span></button></div></div></div>`;
@@ -3909,9 +3910,12 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
       ? item("editpost", "수정", "글과 수치 기록을 고쳐요") + item("ptoggle-reply", p.noReply ? "답글 기능 켜기" : "답글 기능 끄기", p.noReply ? "지금은 답글을 받을 수 없어요" : "") + item("ptoggle-likes", p.hideLikes ? "공감 수 보이기" : "공감 수 숨기기", p.hideLikes ? "다른 사람에게 공감 수가 안 보여요" : "") + item("delpost", S.armed === "dp"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", "", true)
       : item("follow", f ? "팔로우 취소" : "팔로우", "") + item("phide", "이 스토리 숨기기", "커뮤니티에서 다시 보이지 않아요") + item("block", S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true) + (TRIAL ? "" : item("preport", "신고", "부적절한 스토리를 운영자에게 알려요", true))}</div>`); }
   if (c.type === "rmenu"){ const r = S.replies[c.rid]; if (!r){ closeSheet(); return; } const a = r.author;
-    if (a === S.me) return sheetWrap("내 답글", "", `<div class="sheetlist mlist"><button class="row mitem warn" data-act="rdelreply" data-c="${esc(r.id)}"><span class="t"><b>${S.armed === "rx"+r.id ? "한 번 더 누르면 삭제돼요" : "삭제"}</b><small>삭제한 답글은 되돌릴 수 없어요</small></span></button></div>`);
+    if (a === S.me) return sheetWrap("내 답글", "", `<div class="sheetlist mlist"><button class="row mitem" data-act="reditreply" data-c="${esc(r.id)}"><span class="t"><b>수정</b><small>답글 내용을 고쳐요</small></span></button><button class="row mitem warn" data-act="rdelreply" data-c="${esc(r.id)}"><span class="t"><b>${S.armed === "rx"+r.id ? "한 번 더 누르면 삭제돼요" : "삭제"}</b><small>삭제한 답글은 되돌릴 수 없어요</small></span></button></div>`);
     return sheetWrap(esc(nameOf(a)) + "님의 답글", "", `<div class="sheetlist mlist"><button class="row mitem warn" data-act="rreport" data-c="${esc(r.id)}"><span class="t"><b>신고</b><small>부적절한 답글을 운영자에게 알려요</small></span></button>
       <button class="row mitem warn" data-act="block" data-u="${esc(a)}"><span class="t"><b>${S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단"}</b><small>이 사람의 스토리와 답글이 모두 안 보여요</small></span></button></div>`); }
+  if (c.type === "replyedit"){ const r = S.replies[c.rid]; if (!r){ closeSheet(); return; }
+    return sheetWrap("답글 수정", "", `<textarea id="re-text" rows="4" maxlength="500" placeholder="답글">${esc(S.drafts["re-text"] ?? r.text)}</textarea>
+    <button class="btn big full" style="margin-top:12px" data-act="submit-replyedit" ${S.busy?"disabled":""}>저장하기</button>`); }
   if (c.type === "navedit"){ const order = navOrder(), up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>`, dn = up.replace("M6 15l6-6 6 6", "M6 9l6 6 6-6");
     const row = (h, i) => { const [l, svg] = NAV[h]; return `<div class="row navedit-row"><span class="nvic">${svg}</span><span class="t"><b>${l}</b></span><button class="iconbtn" data-act="nav-mv" data-v="${h}" data-d="-1" aria-label="${l} 위로" ${i ? "" : "disabled"}>${up}</button><button class="iconbtn" data-act="nav-mv" data-v="${h}" data-d="1" aria-label="${l} 아래로" ${i < order.length - 1 ? "" : "disabled"}>${dn}</button></div>`; };
     return sheetWrap("메뉴 순서", "", `<p class="navedit-hint">화살표로 순서를 바꿔요. 휴대폰에서는 위의 ${NAV_BAR}개가 하단 메뉴에 보여요. 전체 메뉴는 왼쪽 위 메뉴 버튼에서 열 수 있어요.</p>
@@ -4252,6 +4256,10 @@ document.addEventListener("click", e => {
     case "umenu": openSheet({type:"umenu", u}); return;
     case "ureport": case "preport": { closeSheet(); const done = () => toast("신고가 접수됐어요. 검토 후 조치할게요");
       if (!community) return done(); community.report(a === "preport" ? "post" : "user", a === "preport" ? pid : u).then(done, e => toast(esc(e.message || "신고하지 못했어요. 잠시 후 다시 시도해 주세요."))); return; }
+    case "reditreply": closeSheet(); delete S.drafts["re-text"]; openSheet({type:"replyedit", rid:b.dataset.c}); return;
+    case "submit-replyedit": { const text = ($("#re-text").value||"").trim(); if (!text){ toast("답글을 적어 주세요"); return; } const rid = c.rid;
+      if (!S.replies[rid] || S.replies[rid].text === text){ closeSheet(); return; }
+      run(() => api.editReply(rid, text), () => { delete S.drafts["re-text"]; closeSheet(); toast("답글을 수정했어요"); }); return; }
     case "rdelreply": { const rid = b.dataset.c; if (S.armed !== "rx"+rid){ arm("rx"+rid); renderSheet(); return; } S.armed = null;
       run(() => api.delReply(rid), () => { closeSheet(); toast("답글을 삭제했어요"); }); return; }
     case "rreport": { const rid = b.dataset.c; closeSheet();
@@ -5004,6 +5012,7 @@ function toView(me, rows){
   for (const r of [...(rows.replies || []), ...(rows.myReplies || [])]){
     if (!ID.test(String(r.id)) || !feed[r.post_id] || !UUID.test(String(r.author)) || replies[r.id]) continue;
     replies[r.id] = {id:r.id, postId:r.post_id, author:m(r.author), text:str(r.text, 2000), parentId:ID.test(String(r.parent_id || '')) ? r.parent_id : null, likes:{}, createdAt:time(r.at)};
+    if (r.edited_at) replies[r.id].editedAt = time(r.edited_at);
   }
   for (const r of rows.myReplies || []) if (r.hidden === true && replies[r.id] && replies[r.id].author === ME) replies[r.id].modHidden = true;
   for (const r of rows.rlikes || []) if (replies[r.reply_id] && UUID.test(String(r.user_id))) replies[r.reply_id].likes[m(r.user_id)] = time(r.at);
@@ -5026,7 +5035,7 @@ function toView(me, rows){
 }
 
 const postKey = p => JSON.stringify({data:cleanPost(p), at:time(p.createdAt)});
-const replyKey = r => JSON.stringify({post_id:r.postId, parent_id:r.parentId || null, text:r.text, at:time(r.createdAt)});
+const replyKey = r => JSON.stringify({post_id:r.postId, parent_id:r.parentId || null, text:r.text, at:time(r.createdAt), edited_at:r.editedAt ? time(r.editedAt) : null});
 
 /* 내 기록 + 서버 보기 → 화면에 쓸 기록. 내 글·답글은 내 기록이 기준이고, 남의 것과 공감·팔로우는 서버가 기준. */
 function mergeView(snap, view){
@@ -5070,7 +5079,7 @@ function diff(a, b, me){
   const inList = ids => 'in.(' + ids.map(encodeURIComponent).join(',') + ')';
   if (b.profile && a.profile !== b.profile){ const p = JSON.parse(b.profile); ops.push({method:'POST', path:'/rest/v1/profiles_pub?on_conflict=user_id', prefer:'resolution=merge-duplicates,return=minimal', body:{user_id:me, ...p}}); }
   const posts = add(a.posts, b.posts); if (posts.length) ops.push({method:'POST', path:'/rest/v1/posts?on_conflict=id', prefer:'resolution=merge-duplicates,return=minimal', body:posts.map(id => ({id, author:me, ...JSON.parse(b.posts[id])}))});
-  const replies = add(a.replies, b.replies); for (const id of replies) ops.push({method:'POST', path:'/rest/v1/replies?on_conflict=id', prefer:'resolution=ignore-duplicates,return=minimal', body:{id, author:me, ...JSON.parse(b.replies[id])}});
+  const replies = add(a.replies, b.replies); for (const id of replies) ops.push({method:'POST', path:'/rest/v1/replies?on_conflict=id', prefer:'resolution=merge-duplicates,return=minimal', body:{id, author:me, ...JSON.parse(b.replies[id])}});
   const likes = Object.keys(b.likes).filter(k => !(k in a.likes)); if (likes.length) ops.push({method:'POST', path:'/rest/v1/post_likes?on_conflict=post_id,user_id', prefer:'resolution=ignore-duplicates,return=minimal', body:likes.map(id => ({post_id:id, user_id:me, at:b.likes[id]}))});
   const rlikes = Object.keys(b.rlikes).filter(k => !(k in a.rlikes)); if (rlikes.length) ops.push({method:'POST', path:'/rest/v1/reply_likes?on_conflict=reply_id,user_id', prefer:'resolution=ignore-duplicates,return=minimal', body:rlikes.map(id => ({reply_id:id, user_id:me, at:b.rlikes[id]}))});
   const fol = Object.keys(b.follows).filter(k => !(k in a.follows)); if (fol.length) ops.push({method:'POST', path:'/rest/v1/follows?on_conflict=follower,followee', prefer:'resolution=ignore-duplicates,return=minimal', body:fol.map(u => ({follower:me, followee:u, at:b.follows[u]}))});
@@ -5133,8 +5142,8 @@ function createCommunity({rest, me, sign = async () => [], upload = async () => 
       q('/rest/v1/profiles_pub?select=user_id,private,data&limit=1000'),
       q('/rest/v1/posts?select=id,author,data,at&order=created_at.desc&limit=300'),
       q(`/rest/v1/posts?select=id,author,data,at,hidden&author=eq.${id}`),
-      q('/rest/v1/replies?select=id,post_id,author,parent_id,text,at&order=created_at.desc&limit=3000'),
-      q(`/rest/v1/replies?select=id,post_id,author,parent_id,text,at,hidden&author=eq.${id}`),
+      q('/rest/v1/replies?select=id,post_id,author,parent_id,text,at,edited_at&order=created_at.desc&limit=3000'),
+      q(`/rest/v1/replies?select=id,post_id,author,parent_id,text,at,edited_at,hidden&author=eq.${id}`),
       q('/rest/v1/post_likes?select=post_id,user_id,at&limit=10000'),
       q('/rest/v1/reply_likes?select=reply_id,user_id,at&limit=10000'),
       q('/rest/v1/follows?select=follower,followee,accepted,at&limit=10000'),

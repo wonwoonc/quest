@@ -32,6 +32,7 @@ create table if not exists public.replies (
   created_at timestamptz not null default now()
 );
 alter table public.replies add column if not exists hidden boolean not null default false; -- 운영자 숨김(community-2.sql)
+alter table public.replies add column if not exists edited_at bigint; -- 답글 수정 시각
 create index if not exists replies_post on public.replies (post_id);
 
 -- 3) 공감
@@ -146,6 +147,7 @@ create policy "replies insert own" on public.replies for insert to authenticated
   with check (author = (select auth.uid()) and exists (select 1 from public.posts p where p.id = post_id and coalesce((p.data->>'noReply')::boolean, false) = false));
 create policy "replies delete own or post owner" on public.replies for delete to authenticated
   using (author = (select auth.uid()) or exists (select 1 from public.posts p where p.id = post_id and p.author = (select auth.uid())));
+create policy "replies update own" on public.replies for update to authenticated using (author = (select auth.uid())) with check (author = (select auth.uid()) and exists (select 1 from public.posts p where p.id = post_id));
 
 create policy "post likes read" on public.post_likes for select to authenticated using (exists (select 1 from public.posts p where p.id = post_id));
 create policy "post likes insert own" on public.post_likes for insert to authenticated
@@ -177,6 +179,7 @@ revoke all on public.profiles_pub, public.posts, public.replies, public.post_lik
 grant select, insert, update on public.profiles_pub to authenticated;
 grant select, insert, update, delete on public.posts to authenticated;
 grant select, insert, delete on public.replies, public.post_likes, public.reply_likes, public.blocks to authenticated;
+grant update on public.replies to authenticated;
 grant select, insert, update, delete on public.follows to authenticated;
 grant insert on public.reports to authenticated;
 
