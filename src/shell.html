@@ -134,6 +134,16 @@ button.row:active,[role=button].row:active{background:var(--fill)}
 .row.new{background:color-mix(in srgb,var(--accent-soft) 60%,transparent)}
 .chev{color:var(--muted);flex:none}
 .check{width:30px;height:30px;border-radius:50%;border:2px solid var(--chk);background:var(--card);flex:none;display:grid;place-items:center;color:transparent;padding:0;transition:transform .12s}
+.barmeta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:5px}
+.barmeta.lft > span:first-child{color:var(--sub);font-weight:700}
+.barmeta.lft{justify-content:flex-start;gap:10px}
+.coinm{color:var(--muted);font-weight:500;opacity:.85}
+.wdp .barmeta{margin-top:2px}
+.sttiles{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sttiles div{background:var(--seg);border-radius:12px;padding:6px 6px;display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center}
+.sttiles small{font-size:10px;color:var(--muted);font-weight:700}.sttiles b{font-size:13px;font-weight:800;white-space:nowrap}
+.check.bump{animation:pop .35s}
+@media (prefers-reduced-motion:reduce){.check.bump{animation:none}}
 .check.on{background:var(--done);border-color:var(--done);color:#fff}
 .check svg{width:16px;height:16px}
 .fire{color:var(--sub);font-weight:700}
