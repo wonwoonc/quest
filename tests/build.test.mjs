@@ -52,3 +52,12 @@ test('Cloudflare build carries the Supabase login; the artifact/tester builds ne
   const sql = await readFile(new URL('../supabase/setup.sql', import.meta.url), 'utf8');
   assert.match(sql, /enable row level security/); assert.match(sql, /security definer set search_path = ''/); assert.match(sql, /on delete cascade/);
 });
+
+test('public pages for store listings: /privacy renders the full policy, /delete-account explains in-app and email deletion', async () => {
+  const {readFile} = await import('node:fs/promises');
+  const pv = await readFile(new URL('../dist/cloudflare/privacy.html', import.meta.url), 'utf8');
+  assert.match(pv, /<title>개인정보처리방침 · 퀘스트<\/title>/); assert.match(pv, /1\. 처리 목적[\s\S]*5\. 처리 위탁과 국외 이전[\s\S]*Supabase[\s\S]*10\. 개인정보 보호책임자[\s\S]*12\. 방침의 변경/);
+  assert.match(pv, /\(주\)원운컴퍼니/); assert.doesNotMatch(pv, /class="tbd"|<script/);
+  const del = await readFile(new URL('../dist/cloudflare/delete-account.html', import.meta.url), 'utf8');
+  assert.match(del, /회원 탈퇴[\s\S]*mailto:wonwoonc10@gmail\.com[\s\S]*삭제되는 정보[\s\S]*보관되는 정보[\s\S]*3개월/); assert.doesNotMatch(del, /<script/);
+});

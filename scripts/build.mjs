@@ -46,6 +46,9 @@ export async function build() {
   // 배포판: 본판 화면 + Supabase 로그인·동기화(cloud-entry.js). 아티팩트용 dist/quest.html은 서버 연결 없이 그대로 둔다.
   const cloudJs = await bundle('cloud-entry.js');
   await writeFile(path.join(cf,'index.html'),shell.replace('<!--APP_ENTRY-->', '<script>\n'+cloudJs.replace(/<\/script/gi,'<\\/script')+'\n</script>'));
+  // 앱 없이 열리는 공개 페이지(앱스토어 등록용): /privacy, /delete-account
+  const {publicPages} = await import('./public-pages.mjs');
+  for (const [file, html] of Object.entries(await publicPages(root))) await writeFile(path.join(cf, file), html);
   await writeFile(path.join(cf,'_headers'),`/*
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
