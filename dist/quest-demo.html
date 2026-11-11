@@ -2978,7 +2978,7 @@ function viewDaily(){
   <div class="subhead"><h2>보관 <span class="num">${ar.length}</span></h2></div><section class="card tight qlist plarch">${ar.map(q => { const st = streakOf(q); return `<div class="row"><span class="t tap" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><b>${esc(q.name)}</b><small>${[repeatLabel(q), `총 ${st.total}회`].join(" · ")}</small></span><button class="btn sec xs" data-act="unarch" data-id="${q.id}">보관 해제</button></div>`; }).join("") || `<p class="empty-row">보관한 일일 퀘스트가 없어요. 잠시 쉬고 싶은 일일 퀘스트는 수정 창에서 보관할 수 있어요.</p>`}</section>`;
 }
 const plCard = g => pgCard(g).replace(/<div class="pgsubs">[\s\S]*?<\/div>\s*<\/section>$/, "</section>");
-/* 퀘스트 메뉴: 메인 퀘스트만. 칩 전체/진행/대기/달성. 카드에는 스테이지 진행 수(스테이지 a/b)만, 연결된 스테이지 목록은 상세 화면에서. 일일 퀘스트는 대시보드 일일 칩의 '관리'에서. */
+/* 퀘스트 메뉴: 메인 퀘스트만. 칩 전체/진행/대기/달성. 카드에 스테이지 표시 없음(스테이지는 상세 화면에서). 일일 퀘스트는 대시보드 일일 칩의 '관리'에서. */
 function viewPlan(){
   const all = goalsOf(S.me), Q = QM();
   const act = all.filter(g => g.status !== "done" && !isPlanned(g)).sort(gOrder), later = all.filter(g => g.status !== "done" && isPlanned(g)).sort(gOrder), done = all.filter(g => g.status === "done").sort((a,b) => (b.doneAt || 0) - (a.doneAt || 0));
@@ -2986,7 +2986,7 @@ function viewPlan(){
   const tab = Q.ptab, T = t => tab === "all" || tab === t;
   const addC = `<button class="card subc subadd pladdc" data-act="sheet" data-k="add" data-v="big"><span class="wd-plus">+</span><b>메인 퀘스트 생성</b></button>`;
   /* 모바일은 위아래 한 줄씩, PC는 여러 줄 격자(.plgrid). 전체 칩의 달성은 최근 3개 + '달성 전체 보기'. */
-  const sec = (t, list, extra = "", empty = "", more = "") => `<div class="subhead"><h2>${t} <span class="num">${list.length}</span></h2></div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(plCard).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
+  const sec = (t, list, extra = "", empty = "", more = "") => `<div class="subhead"><h2>${t} <span class="num">${list.length}</span></h2></div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => plCard(g).replace(/<span>🔗 스테이지 [^<]*<\/span>/, "")).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
   let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태">${[["all","전체",all.length],["active","진행",act.length],["later","대기",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
   if (BD_ON) h = brainDump() + h;
   if (T("active")) h += sec("진행 중", act, addC);
