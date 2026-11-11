@@ -34,7 +34,7 @@ function showAuth(initial){ if (auth) auth.unmount(); auth = mountAuth({root, bo
 async function enter(notice){
   if (!auth) showAuth({view:'loading'}); else auth.set({view:'loading', info:'', error:''});
   let st, view = null;
-  comm = createCommunity({rest:cloud.rest, me:() => cloud.user().id, onState:s => bar('comm', s)});
+  comm = createCommunity({rest:cloud.rest, sign:cloud.sign, upload:cloud.upload, me:() => cloud.user().id, onState:s => bar('comm', s)});
   try { [st, view] = await Promise.all([loadState({cloud, ls, key:KEY, backup:download}), comm.fetchView().catch(() => null)]); } // 커뮤니티를 못 불러와도 앱은 시작한다
   catch (e) {
     if (!cloud.user()) return showAuth({view:'login', error:e.message});
@@ -74,7 +74,7 @@ function start(notice, st, view){
     email:cloud.user().email,
     async signOut(){ await Promise.all([sync.flush(), comm.flush()]); if ((sync.pending() || comm.pending()) && !(await app.confirm('아직 저장하지 못한 기록이 있어요. 지금 로그아웃하면 저장하지 못한 내용은 사라져요. 그래도 로그아웃할까요?'))) return;
       await cloud.signOut(); leave(() => host.location.replace(site)); },
-    async deleteAccount(){ await cloud.deleteAccount(); leave(() => host.location.replace(site)); }
+    async deleteAccount(){ await comm.purgeMedia(); await cloud.deleteAccount(); leave(() => host.location.replace(site)); }
   };
   // 백업 불러오기·전체 삭제 뒤 새로고침: 서버에 저장한 다음에 새로고침한다(기록이 메모리에만 있으므로).
   const reload = async () => {

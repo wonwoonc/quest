@@ -413,6 +413,7 @@ body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}bo
 .drw button{display:flex;align-items:center;gap:14px;width:100%;padding:12px 14px;border:0;border-radius:14px;background:none;color:var(--muted);font-size:16px;font-weight:500;text-align:left}
 .drw button svg{width:24px;height:24px;flex:none}.drw button:active{background:var(--fill)}
 .drw [aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.modnote{margin:6px 0 4px;padding:8px 12px;border-radius:10px;background:var(--fill);color:var(--muted);font-size:13px}
 .freqs .row{gap:8px}.freqs .row .btn{flex:none}
 .drw-foot{margin-top:auto;padding-top:10px;border-top:1px solid var(--line)}
 .ch h2 .cnt{font-size:14px;color:var(--accent);margin-left:4px}
@@ -1344,7 +1345,7 @@ function showAuth(initial){ if (auth) auth.unmount(); auth = mountAuth({root, bo
 async function enter(notice){
   if (!auth) showAuth({view:'loading'}); else auth.set({view:'loading', info:'', error:''});
   let st, view = null;
-  comm = createCommunity({rest:cloud.rest, me:() => cloud.user().id, onState:s => bar('comm', s)});
+  comm = createCommunity({rest:cloud.rest, sign:cloud.sign, upload:cloud.upload, me:() => cloud.user().id, onState:s => bar('comm', s)});
   try { [st, view] = await Promise.all([loadState({cloud, ls, key:KEY, backup:download}), comm.fetchView().catch(() => null)]); } // 커뮤니티를 못 불러와도 앱은 시작한다
   catch (e) {
     if (!cloud.user()) return showAuth({view:'login', error:e.message});
@@ -1384,7 +1385,7 @@ function start(notice, st, view){
     email:cloud.user().email,
     async signOut(){ await Promise.all([sync.flush(), comm.flush()]); if ((sync.pending() || comm.pending()) && !(await app.confirm('아직 저장하지 못한 기록이 있어요. 지금 로그아웃하면 저장하지 못한 내용은 사라져요. 그래도 로그아웃할까요?'))) return;
       await cloud.signOut(); leave(() => host.location.replace(site)); },
-    async deleteAccount(){ await cloud.deleteAccount(); leave(() => host.location.replace(site)); }
+    async deleteAccount(){ await comm.purgeMedia(); await cloud.deleteAccount(); leave(() => host.location.replace(site)); }
   };
   // 백업 불러오기·전체 삭제 뒤 새로고침: 서버에 저장한 다음에 새로고침한다(기록이 메모리에만 있으므로).
   const reload = async () => {
@@ -2314,7 +2315,9 @@ const pendingTo = u => !!(S.followPending && S.followPending[u]);
 const followReqs = () => (S.followReqs || []).filter(x => !isBlocked(x.uid));
 const isFollowing = (a, b) => !!S.follows[keyOf(a)+"~"+keyOf(b)] && !(a === S.me && pendingTo(b));
 const folLabel = u => isFollowing(S.me, u) ? "팔로잉" : pendingTo(u) ? "요청됨" : "팔로우";
-function chibi(color, L, face, size){ const src = face && (face.startsWith("data:") ? face : S.media[face]);
+/* 사진 주소: 이 기기 기록(S.media) 또는 배포판 커뮤니티에서 받은 다른 사람 사진의 임시 주소(S.remote) */
+const mediaSrc = k => (k && (S.media[k] || (S.remote && S.remote[k]))) || "";
+function chibi(color, L, face, size){ const src = face && (face.startsWith("data:") ? face : mediaSrc(face));
   const fc = src ? `<span class="cface"><img src="${esc(src)}" alt="" draggable="false"></span>` : `<span class="cface" data-k="${esc(face)}"></span>`;
   return `<span class="chibi" style="width:${size}px;height:${size}px" aria-hidden="true"><svg viewBox="0 0 100 100"><ellipse cx="50" cy="97" rx="20" ry="3" fill="#000" opacity=".12"/>
     <rect x="39" y="78" width="9" height="16" rx="4" fill="#2B3440"/><rect x="52" y="78" width="9" height="16" rx="4" fill="#2B3440"/>
@@ -2324,9 +2327,9 @@ function chibi(color, L, face, size){ const src = face && (face.startsWith("data
     <rect x="32" y="55" width="36" height="30" rx="11" fill="${color}"/><rect x="32" y="55" width="36" height="30" rx="11" fill="#fff" opacity=".12"/>
     ${L >= 5 ? `<rect x="32" y="76" width="36" height="4.5" fill="#E5404F"/>` : ""}${L >= 20 ? `<path d="M40 5l5 5 5-7 5 7 5-5-2 9H42z" fill="#F5B53A"/>` : ""}</svg>${fc}</span>`; }
 const faceOf = uid => prof(uid).face || "";
-function fullbody(image, size){ const src = image && (image.startsWith('data:') ? image : S.media[image]);
+function fullbody(image, size){ const src = image && (image.startsWith('data:') ? image : mediaSrc(image));
   return `<span class="avatar-fullbody" style="width:${size}px;height:${size}px"${src ? '' : ` data-k="${esc(image)}"`}>${src ? `<img src="${esc(src)}" alt="전신 캐릭터" draggable="false">` : ''}</span>`; }
-function photoAv(image, size){ const src = image && (image.startsWith('data:') ? image : S.media[image]);
+function photoAv(image, size){ const src = image && (image.startsWith('data:') ? image : mediaSrc(image));
   return `<span class="avatar-photo" style="width:${size}px;height:${size}px"${src ? '' : ` data-k="${esc(image)}"`}>${src ? `<img src="${esc(src)}" alt="프로필 사진" draggable="false">` : ''}</span>`; }
 const fig = (uid, size, inner) => faceOf(uid) ? (prof(uid).avatarStyle === 'photo' ? photoAv(faceOf(uid), size) : prof(uid).avatarStyle === 'fullbody' ? fullbody(faceOf(uid), size) : chibi(colorOf(uid), statsOf(uid).L, faceOf(uid), size)) : spriteImg(colorOf(uid), statsOf(uid).L, inner || Math.round(size*.64));
 const av = (uid, size, act = true) => `<${act?`button data-act="profile" data-u="${esc(uid)}" aria-label="${esc(nameOf(uid))} 프로필"`:"span"} class="av ${uid===S.me?'eco-avatar':''}" style="width:${size}px;height:${size}px">${fig(uid, size)}</${act?"button":"span"}>`;
@@ -3390,11 +3393,11 @@ function postRow(p, o = {}){
     <div class="body">
       <div class="ph"><button class="nm" data-act="profile" data-u="${esc(a)}">${esc(nameOf(a))}</button><span class="pillLv">Lv.${s.L}</span><time>${ago(p.createdAt)}${p.editedAt ? " · 수정됨" : ""}</time>
         ${showFollow ? `<button class="btn ${fol || pendingTo(a) ? "sec" : "soft"} sm fol" data-act="follow" data-u="${esc(a)}">${folLabel(a)}</button>` : ""}${hasProfile() && S.canWrite ? `<button class="pmenu" data-act="pmenu" data-p="${p.id}" aria-label="게시물 메뉴">${I.menu}</button>` : ""}</div>
-      ${refHtml(p)}
+      ${p.modHidden && a === S.me ? `<p class="modnote">운영자가 숨긴 스토리예요. 지금은 나에게만 보여요.</p>` : ""}${refHtml(p)}
 
       ${metricFor(p)}
       ${p.text ? `<div class="txtwrap"><p class="txt" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}>${esc(p.text)}</p><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
-      ${imgs ? `<div class="media" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}><div class="car ${imgs>1?"multi":""}">${Array.from({length:imgs}, (_,i) => { const k = p.id+"~"+i; return `<div class="pimg" data-k="${k}">${S.media[k]?`<img src="${esc(S.media[k])}" alt="" draggable="false">`:""}</div>`; }).join("")}</div><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
+      ${imgs ? `<div class="media" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}><div class="car ${imgs>1?"multi":""}">${Array.from({length:imgs}, (_,i) => { const k = p.id+"~"+i; return `<div class="pimg" data-k="${k}">${mediaSrc(k)?`<img src="${esc(mediaSrc(k))}" alt="" draggable="false">`:""}</div>`; }).join("")}</div><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
       <div class="acts">
         <button class="ab ${lk?"on":""}" data-act="like" data-p="${p.id}" ${canAct() && a !== S.me ? "" : "disabled"} aria-pressed="${lk}" aria-label="공감">${lk ? I.heartOn : I.heart}${n?`<span class="num">${n}</span>`:""}</button>
         <button class="ab" data-act="${o.focus && !p.noReply ? "reply" : "open"}" data-p="${p.id}" aria-label="답글" ${o.focus && p.noReply ? "disabled" : ""}>${I.reply}${reps.length?`<span class="num">${reps.length}</span>`:""}</button>
@@ -3534,7 +3537,7 @@ function storyComposer(){
     ${ph.length ? `<div class="thumbs">${ph.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="inunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
     ${sel || selQ ? `<span class="qsel"><button class="btn soft sm" data-act="qpick">${sel ? esc(goalLabel(sel)) : "🔥 " + esc(selQ.name)}</button><button class="qx" data-act="inref" data-v="" aria-label="퀘스트 연결 빼기">×</button></span>` : ""}
     ${sel && sel.metric ? (() => { const lv = lastVal(sel); return `<div class="field svalf"><label class="lab" for="ps-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lv)}${esc(sel.metric.unit)} · 목표 ${numFmt(sel.metric.target)}${esc(sel.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ps-val" placeholder="${numFmt(lv)}" value="${D("ps-val")}"><span>${esc(sel.metric.unit)}</span></div></div>`; })() : ""}
-    <div class="sact"><div class="sbtns"><button class="btn sec sm ibtn" data-act="qpick">${I.target}퀘스트</button>${community ? "" : `<button class="btn sec sm ibtn" data-act="inphoto" ${ph.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진</button>`}</div><button class="btn sm" data-act="inpost" ${S.busy?"disabled":""}>공유하기</button></div></section>`;
+    <div class="sact"><div class="sbtns"><button class="btn sec sm ibtn" data-act="qpick">${I.target}퀘스트</button><button class="btn sec sm ibtn" data-act="inphoto" ${ph.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진</button></div><button class="btn sm" data-act="inpost" ${S.busy?"disabled":""}>공유하기</button></div></section>`;
 }
 function profHead(uid){ const mine = uid === S.me, p = prof(uid), posts = feedSorted().filter(x => x.author === uid);
   const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
@@ -3688,7 +3691,7 @@ let scT = 0; window.addEventListener("scroll", () => { clearTimeout(scT); scT = 
 function loadMedia(root){
   root.querySelectorAll("[data-k]").forEach(el => {
     const k = el.dataset.k;
-    if (S.media[k]){ if (!el.querySelector("img")) el.innerHTML = `<img src="${esc(S.media[k])}" alt="" draggable="false">`; return; }
+    if (mediaSrc(k)){ const im = el.querySelector("img"), src = mediaSrc(k); if (!im) el.innerHTML = `<img src="${esc(src)}" alt="" draggable="false">`; return; }
     if (S.mediaLoading.has(k) || !api) return; S.mediaLoading.add(k);
     api.getMedia(k).then(src => { if (src){ S.media[k] = src; schedule(); } }).catch(() => {});
   });
@@ -4033,7 +4036,7 @@ function postSheet(quick){
       linkChips(r ? r.id : null, "cref", "연결", false)}
     ${pj && pj.metric ? `<div class="field"><label class="lab" for="po-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lastV)}${esc(pj.metric.unit)} · 목표 ${numFmt(pj.metric.target)}${esc(pj.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="po-val" placeholder="${numFmt(lastV)}" value="${D("po-val")}"><span>${esc(pj.metric.unit)}</span></div></div>` : ""}
     <div class="field"><textarea id="po-text" rows="4" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("po-text")}</textarea></div>
-    ${community ? "" : `<div class="field"><span class="lab">사진 <span class="hint">최대 ${MAX_IMGS}장</span></span><div class="thumbs">${c.photos.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="cunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}${c.photos.length < MAX_IMGS ? `<button class="addph" data-act="cphoto">+ 사진</button>` : ""}</div></div>`}
+    <div class="field"><span class="lab">사진 <span class="hint">최대 ${MAX_IMGS}장</span></span><div class="thumbs">${c.photos.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="cunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}${c.photos.length < MAX_IMGS ? `<button class="addph" data-act="cphoto">+ 사진</button>` : ""}</div></div>
     <button class="btn big full" data-act="submit-post" ${S.busy?"disabled":""}>공유하기</button>`);
 }
 function replySheet(){
@@ -4558,7 +4561,7 @@ if (!entryScreen && bkDue()){ LS.set("bkNudgeAt", Date.now()); openSheet({type:"
 /* 배포판 커뮤니티: 서버에서 받은 스토리·답글·팔로우를 화면 상태에 넣는다(저장은 하지 않음). 무언가 입력하는 중이면 미룬다. */
 const adopt = (snap, extra = {}) => { if (S.compose) return false;
   try { storage.hydrate(S, snap); } catch { return false; }
-  S.followPending = extra.pending || {}; S.followReqs = extra.requests || []; schedule(); return true; };
+  S.followPending = extra.pending || {}; S.followReqs = extra.requests || []; S.remote = extra.remote || {}; schedule(); return true; };
 return {state:S, api, snapshot:() => storage.capture(S), confirm:askAsync, notify:msg => toast(esc(msg)), refresh:schedule, adopt};
 }
 
@@ -4602,10 +4605,10 @@ const TERMS = [
 const PRIVACY = [
   ["안내", `<p>${M.operator}(이하 "운영자")는 개인정보 보호법에 따라 이용자의 개인정보를 보호하고 관련 고충을 처리하기 위해 이 방침을 공개해요.</p>`],
   ["1. 처리 목적", `<ul><li>회원 가입과 본인 확인, 계정 관리</li><li>퀘스트·미션·저널 등 기록의 저장과 여러 기기 간 동기화</li><li>스토리·답글·공감 등 커뮤니티 기능 제공</li><li>신고 처리, 부정 이용 방지, 문의 응대</li></ul>`],
-  ["2. 처리하는 항목", `<ul><li><b>가입 시</b> 이메일 주소, 비밀번호(암호화해 저장하며 운영자도 볼 수 없어요). 카카오 로그인을 도입하면 그때 받는 항목을 이 방침에 추가해 알려요.</li><li><b>이용 중 입력</b> 캐릭터 이름과 사진, 메인 퀘스트·스테이지·미션·일일 퀘스트, 저널, 자료실 노트와 첨부 파일, 상점 보상, 스토리·답글·첨부 사진</li><li><b>자동 생성</b> 접속 일시, 기기·브라우저 정보, 서비스 이용 기록</li><li><b>신고할 때</b> 신고한 대상(스토리·계정)과 신고한 계정</li></ul><p><b>다른 이용자에게 공개되는 정보</b> 닉네임, 소개, 캐릭터 색, 레벨, 커뮤니티에 공유한 스토리와 답글, 공감, 팔로우 관계. 계정을 비공개로 하면 내가 수락한 팔로워에게만 스토리가 보여요. 퀘스트·미션·저널·자료실 등 공유하지 않은 기록은 다른 이용자에게 보이지 않아요.</p><p>저널과 노트에는 건강 상태나 감정처럼 민감한 내용을 적지 않도록 주의해 주세요. 운영자는 이를 따로 분석하거나 이용하지 않아요.</p>`],
+  ["2. 처리하는 항목", `<ul><li><b>가입 시</b> 이메일 주소, 비밀번호(암호화해 저장하며 운영자도 볼 수 없어요). 카카오 로그인을 도입하면 그때 받는 항목을 이 방침에 추가해 알려요.</li><li><b>이용 중 입력</b> 캐릭터 이름과 사진, 메인 퀘스트·스테이지·미션·일일 퀘스트, 저널, 자료실 노트와 첨부 파일, 상점 보상, 스토리·답글·첨부 사진</li><li><b>자동 생성</b> 접속 일시, 기기·브라우저 정보, 서비스 이용 기록</li><li><b>신고할 때</b> 신고한 대상(스토리·계정)과 신고한 계정</li></ul><p><b>다른 이용자에게 공개되는 정보</b> 닉네임, 소개, 캐릭터 색과 프로필 사진, 레벨, 커뮤니티에 공유한 스토리(사진 포함)와 답글, 공감, 팔로우 관계. 계정을 비공개로 하면 내가 수락한 팔로워에게만 스토리가 보여요. 퀘스트·미션·저널·자료실 등 공유하지 않은 기록은 다른 이용자에게 보이지 않아요.</p><p>저널과 노트에는 건강 상태나 감정처럼 민감한 내용을 적지 않도록 주의해 주세요. 운영자는 이를 따로 분석하거나 이용하지 않아요.</p>`],
   ["3. 보유와 이용 기간", `<p>탈퇴할 때까지 보유하고, 탈퇴하면 지체 없이 파기해요. 다만 법령이 보존을 요구하는 정보는 그 기간 동안 따로 보관해요.</p><ul><li>서비스 접속 기록: 3개월 (통신비밀보호법)</li></ul><p>1년 동안 로그인하지 않으면 미리 알린 뒤 정보를 분리 보관하거나 파기할 수 있어요.</p>`],
   ["4. 제3자 제공", `<p>이용자의 동의 없이 개인정보를 외부에 제공하지 않아요. 법령에 근거가 있거나 수사기관이 법에 정한 절차로 요청한 경우는 예외예요.</p>`],
-  ["5. 처리 위탁과 국외 이전", `<p>서비스 운영을 위해 아래 업체에 처리를 맡겨요.</p><ul><li><b>회원 인증·기록 저장</b> Supabase Inc.(미국) · 저장 지역 대한민국 서울 · 가입부터 탈퇴까지 보관</li><li><b>웹사이트 전송</b> Cloudflare, Inc.(미국) · 서비스 화면 전송과 접속 기록 처리</li></ul><p>위탁 업체나 국외 이전 내용이 바뀌면 이 방침을 고쳐 알려요.</p>`],
+  ["5. 처리 위탁과 국외 이전", `<p>서비스 운영을 위해 아래 업체에 처리를 맡겨요.</p><ul><li><b>회원 인증·기록 저장</b> Supabase Inc.(미국) · 저장 지역 대한민국 서울 · 가입부터 탈퇴까지 보관</li><li><b>웹사이트 전송</b> Cloudflare, Inc.(미국) · 서비스 화면 전송과 접속 기록 처리</li><li><b>신고 알림 메일 발송</b> Resend, Inc.(미국) · 신고가 접수되면 신고 대상과 신고한 계정의 이메일을 운영자에게 메일로 전달 · 발송 후 Resend 보관 기간이 지나면 삭제</li></ul><p>위탁 업체나 국외 이전 내용이 바뀌면 이 방침을 고쳐 알려요.</p>`],
   ["6. 이용자의 권리", `<p>이용자는 언제든 자신의 개인정보를 열람·정정·삭제하거나 처리 정지를 요구할 수 있어요. 대부분은 앱 설정에서 직접 할 수 있고, 그 밖의 요청은 문의하기로 보내 주면 지체 없이 처리해요. 설정의 데이터 내보내기로 내 기록을 파일로 받을 수도 있어요.</p>`],
   ["7. 파기 절차와 방법", `<p>보유 기간이 끝나거나 처리 목적을 달성한 정보는 지체 없이 파기해요. 전자 파일은 복구할 수 없는 방법으로 지우고, 서버 백업에 남은 사본도 백업 보관 주기가 지나면 함께 지워져요.</p>`],
   ["8. 안전성 확보 조치", `<ul><li>모든 통신은 암호화(HTTPS)해서 주고받아요</li><li>개인정보에 접근할 수 있는 사람을 최소한으로 제한해요</li><li>다른 이용자의 비공개 기록에 접근할 수 없도록 계정별 접근 권한을 설정해요</li><li>접속 기록을 보관하고 이상 접근을 점검해요</li></ul>`],
@@ -4766,13 +4769,14 @@ function createCloud({fetch, ls, url = CLOUD_URL, key = CLOUD_KEY, site = '', no
     expires_at:Number(data.expires_at) || Math.floor(now() / 1000) + (Number(data.expires_in) || 3600), user:{id:user.id, email:user.email || ''}});
   const redirect = site ? '?redirect_to=' + encodeURIComponent(site) : '';
 
-  async function call(path, {method = 'GET', body, auth = false, prefer} = {}) {
+  async function call(path, {method = 'GET', body, auth = false, prefer, raw = false, type = 'application/json', upsert = false} = {}) {
     const headers = {apikey:key};
-    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    if (body !== undefined) headers['Content-Type'] = raw ? type : 'application/json';
+    if (upsert) headers['x-upsert'] = 'true';
     if (prefer) headers.Prefer = prefer;
     if (auth){ await fresh(); if (!session) throw fail('session_not_found'); headers.Authorization = 'Bearer ' + session.access_token; }
     let res;
-    try { res = await fetch(url + path, {method, headers, body:body === undefined ? undefined : JSON.stringify(body)}); }
+    try { res = await fetch(url + path, {method, headers, body:body === undefined ? undefined : raw ? body : JSON.stringify(body)}); }
     catch { throw fail('network'); }
     const text = await res.text(); let data = null;
     try { data = text ? JSON.parse(text) : null; } catch { data = null; }
@@ -4826,6 +4830,10 @@ function createCloud({fetch, ls, url = CLOUD_URL, key = CLOUD_KEY, site = '', no
     },
     // 커뮤니티 표(supabase/community.sql) 읽기·쓰기. 응답이 없으면 null.
     rest:(path, o = {}) => call(path, {...o, auth:true}),
+    // 사진 저장소(비공개 media 버킷): 올리기, 볼 수 있는 사진의 1시간짜리 주소 받기
+    upload:(path, bytes, type) => call('/storage/v1/object/media/' + path, {method:'POST', body:bytes, raw:true, type, upsert:true, auth:true}),
+    sign:async paths => { const rows = await call('/storage/v1/object/sign/media', {method:'POST', body:{expiresIn:3600, paths}, auth:true});
+      return (Array.isArray(rows) ? rows : []).filter(r => r && r.signedURL && !r.error).map(r => ({path:r.path, url:url + '/storage/v1' + (r.signedURL.startsWith('/') ? '' : '/') + r.signedURL})); },
     async deleteAccount(){ await call('/rest/v1/rpc/delete_my_account', {method:'POST', body:{}, auth:true}); keep(null); },
     meta:() => read(META_KEY),
     setMeta:m => write(META_KEY, m)
@@ -4937,10 +4945,30 @@ function cleanPost(d){
   if (typeof p.value === 'number' && Number.isFinite(p.value)) out.value = p.value;
   if (p.noReply === true) out.noReply = true;
   if (p.hideLikes === true) out.hideLikes = true;
+  if (Number.isInteger(p.imgs) && p.imgs > 0) out.imgs = Math.min(p.imgs, 4);
   return out;
 }
-const cleanProfile = (uid, priv, d) => { const p = plain(d) ? d : {};
-  return {uid, nick:str(p.nick, 40) || '모험가', bio:str(p.bio, 300), color:COLOR.test(p.color || '') ? p.color : '#3DBE8B', private:!!priv, stats:{xp:time(p.xp)}}; };
+const FACEV = /^[a-z0-9]{1,16}$/, STYLES = new Set(['photo', 'fullbody']);
+// 다른 사람의 프로필 사진은 'rf~<계정 id>' 키로 가리키고, 실제 주소는 서명된 임시 주소(remote)로 받는다.
+const cleanProfile = (uid, priv, d) => { const p = plain(d) ? d : {}, face = FACEV.test(p.face || '') ? p.face : '';
+  return {uid, nick:str(p.nick, 40) || '모험가', bio:str(p.bio, 300), color:COLOR.test(p.color || '') ? p.color : '#3DBE8B', private:!!priv, stats:{xp:time(p.xp)},
+    face:face ? 'rf~' + uid : null, faceV:face || null, avatarStyle:face && STYLES.has(p.avatarStyle) ? p.avatarStyle : null}; };
+const facePath = (uid, v) => `${uid}/p/face-${v}`;
+const photoPath = (uid, postId, i) => `${uid}/s/${postId}~${i}`;
+// 볼 사진 목록: 남의 스토리 사진과 프로필 사진(내 것은 이 기기 기록에 있다)
+function mediaPaths(me, view, rows){
+  const out = [], authors = new Map((rows || []).map(r => [r.id, r.author]));
+  for (const p of Object.values(view.feed)) if (p.author !== ME && p.imgs) for (let i = 0; i < p.imgs; i++) out.push({key:`${p.id}~${i}`, path:photoPath(authors.get(p.id) || p.author, p.id, i)});
+  for (const p of Object.values(view.profiles)) if (p.faceV) out.push({key:p.face, path:facePath(p.uid, p.faceV)});
+  return out;
+}
+const hash = s => { let h = 5381; for (let i = 0; i < s.length; i += Math.max(1, Math.floor(s.length / 4096))) h = (h * 33 + s.charCodeAt(i)) >>> 0; return (h.toString(36) + s.length.toString(36)).slice(0, 16); };
+const faceData = (snap, me) => { const f = me && me.face; if (!f || typeof f !== 'string') return ''; const v = f.startsWith('data:') ? f : (snap.media || {})[f]; return typeof v === 'string' && v.startsWith('data:image/') ? v : ''; };
+function dataBytes(src){
+  const m = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(src || '')); if (!m) return null;
+  const bin = atob(m[2]), bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return {type:m[1], bytes};
+}
 
 /* 서버 행 → 앱 형태. me: 내 계정 id. */
 function toView(me, rows){
@@ -4949,8 +4977,10 @@ function toView(me, rows){
   for (const r of rows.profiles || []) if (r.user_id !== me && UUID.test(r.user_id)) profiles[r.user_id] = cleanProfile(r.user_id, r.private, r.data);
   for (const r of [...(rows.posts || []), ...(rows.myPosts || [])]){
     if (!ID.test(String(r.id)) || !UUID.test(String(r.author)) || feed[r.id]) continue;
-    feed[r.id] = {...cleanPost(r.data), id:r.id, author:m(r.author), imgs:0, reactions:{}, joiners:{}, createdAt:time(r.at)};
+    const c = cleanPost(r.data);
+    feed[r.id] = {...c, id:r.id, author:m(r.author), imgs:c.imgs || 0, reactions:{}, joiners:{}, createdAt:time(r.at)};
   }
+  for (const r of rows.myPosts || []) if (r.hidden === true && feed[r.id] && feed[r.id].author === ME) feed[r.id].modHidden = true;
   for (const r of rows.likes || []) if (feed[r.post_id] && UUID.test(String(r.user_id))) feed[r.post_id].reactions[m(r.user_id)] = {k:'heart', at:time(r.at)};
   for (const r of [...(rows.replies || []), ...(rows.myReplies || [])]){
     if (!ID.test(String(r.id)) || !feed[r.post_id] || !UUID.test(String(r.author)) || replies[r.id]) continue;
@@ -4983,7 +5013,8 @@ function mergeView(snap, view){
   const s = {...snap};
   const feed = {};
   for (const [id, p] of Object.entries(view.feed)) feed[id] = p;
-  for (const [id, p] of Object.entries(snap.feed || {})) if (p && p.author === ME) feed[id] = {...p, reactions:view.feed[id] ? view.feed[id].reactions : {}};
+  for (const [id, p] of Object.entries(snap.feed || {})) if (p && p.author === ME){ const sv = view.feed[id];
+    feed[id] = {...p, reactions:sv ? sv.reactions : {}}; if (sv && sv.modHidden) feed[id].modHidden = true; else delete feed[id].modHidden; }
   // 남의 스토리에 내가 누른 공감은 서버 기준(view.feed에 이미 있음)
   const replies = {};
   for (const [id, r] of Object.entries(view.replies)) replies[id] = r;
@@ -5007,7 +5038,8 @@ function extract(snap){
     rlikes:Object.fromEntries(Object.values(replies).filter(r => r && r.author !== ME && on((r.likes || {})[ME]) && ID.test(String(r.id))).map(r => [r.id, time(r.likes[ME])])),
     follows:Object.fromEntries(Object.values(snap.follows || {}).filter(f => f && f.from === ME && UUID.test(String(f.to))).map(f => [f.to, time(f.at)])),
     blocks:Array.isArray(blocked) ? [...new Set(blocked.filter(u => UUID.test(String(u))))].sort() : [],
-    profile:me ? JSON.stringify({private:!!me.private, data:{nick:str(me.nick, 40), bio:str(me.bio, 300), color:COLOR.test(me.color || '') ? me.color : '#3DBE8B', xp}}) : ''
+    profile:me ? JSON.stringify({private:!!me.private, data:{nick:str(me.nick, 40), bio:str(me.bio, 300), color:COLOR.test(me.color || '') ? me.color : '#3DBE8B', xp,
+      ...(faceData(snap, me) ? {face:hash(faceData(snap, me)), avatarStyle:STYLES.has(me.avatarStyle) ? me.avatarStyle : null} : {})}}) : ''
   };
 }
 
@@ -5030,6 +5062,11 @@ function diff(a, b, me){
   const delReplies = gone(a.replies, b.replies).filter(id => !delPosts.includes(JSON.parse(a.replies[id]).post_id));
   if (delReplies.length) ops.push({method:'DELETE', path:`/rest/v1/replies?author=eq.${me}&id=${inList(delReplies)}`});
   if (delPosts.length) ops.push({method:'DELETE', path:`/rest/v1/posts?author=eq.${me}&id=${inList(delPosts)}`});
+  // 지운 스토리의 사진, 바뀌기 전 프로필 사진은 저장소에서도 지운다.
+  const files = delPosts.flatMap(id => { const n = (JSON.parse(a.posts[id]).data || {}).imgs || 0; return Array.from({length:n}, (_, i) => photoPath(me, id, i)); });
+  const oldFace = a.profile ? (JSON.parse(a.profile).data || {}).face : '', newFace = b.profile ? (JSON.parse(b.profile).data || {}).face : '';
+  if (oldFace && oldFace !== newFace && b.profile) files.push(facePath(me, oldFace));
+  if (files.length) ops.push({method:'DELETE', path:'/storage/v1/object/media', body:{prefixes:files}});
   return ops;
 }
 
@@ -5045,15 +5082,36 @@ function ownOnly(snap){
 }
 
 /* 서버와 주고받기. rest(path, {method, body, prefer}) → JSON. */
-function createCommunity({rest, me, delay = 1200, setTimer = setTimeout, clearTimer = clearTimeout, onState = () => {}}){
-  let base = null, want = null, timer = null, running = null;
+function createCommunity({rest, me, sign = async () => [], upload = async () => {}, now = Date.now, delay = 1200, setTimer = setTimeout, clearTimer = clearTimeout, onState = () => {}}){
+  let base = null, want = null, wantSnap = null, timer = null, running = null;
+  const signed = new Map(), uploaded = new Set();
+  // 서명 주소는 1시간짜리: 45분 안에 받은 것은 다시 쓰고(사진이 깜빡이지 않게), 나머지만 새로 받는다.
+  async function remoteFor(list){
+    const fresh = p => { const s = signed.get(p); return s && now() - s.at < 45 * 60000; };
+    const need = [...new Set(list.map(x => x.path).filter(p => !fresh(p)))];
+    for (let i = 0; i < need.length; i += 100){
+      try { for (const r of await sign(need.slice(i, i + 100))) signed.set(r.path, {url:r.url, at:now()}); } catch { /* 사진 없이 보여 준다 */ }
+    }
+    const out = {}; for (const x of list){ const s = signed.get(x.path); if (s) out[x.key] = s.url; } return out;
+  }
+  async function put(path, src){
+    if (uploaded.has(path)) return; const d = dataBytes(src); if (!d) return;
+    try { await upload(path, d.bytes, d.type); uploaded.add(path); }
+    catch (e) { if (e && e.code === 'network') throw e; /* 거절된 사진(너무 큼 등)은 건너뛴다 */ }
+  }
+  // 스토리·프로필을 올리기 전에 그 사진부터 올린다.
+  async function uploadsFor(op, snap){
+    if (!snap) return;
+    if (op.method === 'POST' && op.path.startsWith('/rest/v1/posts?')) for (const p of op.body) for (let i = 0; i < (p.data.imgs || 0); i++) await put(photoPath(me(), p.id, i), (snap.media || {})[`${p.id}~${i}`]);
+    if (op.method === 'POST' && op.path.startsWith('/rest/v1/profiles_pub?') && op.body.data && op.body.data.face) await put(facePath(me(), op.body.data.face), faceData(snap, (snap.profiles || {})[ME]));
+  }
   const q = (path, o) => rest(path, o);
   async function fetchView(){
     const id = encodeURIComponent(me());
     const [profiles, posts, myPosts, replies, myReplies, likes, rlikes, follows, blocks] = await Promise.all([
       q('/rest/v1/profiles_pub?select=user_id,private,data&limit=1000'),
       q('/rest/v1/posts?select=id,author,data,at&order=created_at.desc&limit=300'),
-      q(`/rest/v1/posts?select=id,author,data,at&author=eq.${id}`),
+      q(`/rest/v1/posts?select=id,author,data,at,hidden&author=eq.${id}`),
       q('/rest/v1/replies?select=id,post_id,author,parent_id,text,at&order=created_at.desc&limit=3000'),
       q(`/rest/v1/replies?select=id,post_id,author,parent_id,text,at&author=eq.${id}`),
       q('/rest/v1/post_likes?select=post_id,user_id,at&limit=10000'),
@@ -5062,15 +5120,16 @@ function createCommunity({rest, me, delay = 1200, setTimer = setTimeout, clearTi
       q(`/rest/v1/blocks?select=blocked&blocker=eq.${id}`)
     ]);
     const meRow = (profiles || []).find(r => r.user_id === me());
-    return toView(me(), {profiles, posts, myPosts, replies, myReplies, likes, rlikes, follows, blocks, me:meRow});
+    const view = toView(me(), {profiles, posts, myPosts, replies, myReplies, likes, rlikes, follows, blocks, me:meRow});
+    view.remote = await remoteFor(mediaPaths(me(), view, posts)); return view;
   }
   async function run(){
     while (want && base){
-      const target = want, ops = diff(base, target, me());
+      const target = want, snap = wantSnap, ops = diff(base, target, me());
       if (!ops.length){ if (want === target) want = null; break; }
       onState('saving');
       for (const op of ops){
-        try { await q(op.path, op); }
+        try { await uploadsFor(op, snap); await q(op.path, op); }
         catch (e) {
           if (e && e.code === 'network'){ onState('offline', e); return; }
           // 서버가 거절한 요청(이미 지워진 스토리에 답글 등)은 건너뛴다. 계속 붙잡고 있으면 다음 저장도 막힌다.
@@ -5084,17 +5143,29 @@ function createCommunity({rest, me, delay = 1200, setTimer = setTimeout, clearTi
   return {
     fetchView,
     // 서버 보기를 화면에 넣은 뒤 호출: 그때부터 서버와 내 기록의 차이를 올린다(처음에는 서버에 없던 내 글을 올림).
-    ready(view, snap){ base = view.mine; want = extract(snap); if (timer) clearTimer(timer); timer = setTimer(() => { timer = null; flush(); }, 0); },
+    ready(view, snap){ base = view.mine; want = extract(snap); wantSnap = snap; if (timer) clearTimer(timer); timer = setTimer(() => { timer = null; flush(); }, 0); },
     // 내 기록이 바뀔 때마다 호출: 바뀐 몫을 모아서 올린다.
-    change(snap){ if (!base) return; want = extract(snap); if (timer) clearTimer(timer); timer = setTimer(() => { timer = null; flush(); }, delay); },
+    change(snap){ if (!base) return; want = extract(snap); wantSnap = snap; if (timer) clearTimer(timer); timer = setTimer(() => { timer = null; flush(); }, delay); },
     flush, pending:() => !!want || !!running,
     accept:async uid => q(`/rest/v1/follows?follower=eq.${encodeURIComponent(uid)}&followee=eq.${encodeURIComponent(me())}`, {method:'PATCH', body:{accepted:true}, prefer:'return=minimal'}),
     reject:async uid => q(`/rest/v1/follows?follower=eq.${encodeURIComponent(uid)}&followee=eq.${encodeURIComponent(me())}`, {method:'DELETE'}),
+    // 회원 탈퇴 전: 내 사진을 저장소에서 모두 지운다(계정 삭제만으로는 저장소 파일이 지워지지 않는다).
+    async purgeMedia(){
+      for (const kind of ['s', 'p']){
+        for (let guard = 0; guard < 50; guard++){
+          let list; try { list = await q('/storage/v1/object/list/media', {method:'POST', body:{prefix:`${me()}/${kind}`, limit:500, offset:0}}); }
+          catch (e) { if (e && e.code === 'network') throw e; break; } // 저장소가 아직 없으면 지울 사진도 없다
+          const names = (Array.isArray(list) ? list : []).map(x => x && x.name).filter(Boolean);
+          if (!names.length) break;
+          await q('/storage/v1/object/media', {method:'DELETE', body:{prefixes:names.map(n => `${me()}/${kind}/${n}`)}});
+        }
+      }
+    },
     report:async (type, target, reason = '') => q('/rest/v1/reports', {method:'POST', body:{reporter:me(), target_type:type, target_id:String(target).slice(0, 64), reason:String(reason).slice(0, 500)}, prefer:'return=minimal'})
   };
 }
 
-Object.assign(__exports,{ME,cleanRef,cleanPost,toView,mergeView,extract,diff,ownOnly,createCommunity});
+Object.assign(__exports,{ME,cleanRef,cleanPost,facePath,photoPath,mediaPaths,dataBytes,toView,mergeView,extract,diff,ownOnly,createCommunity});
 },
 "auth-screen.js":function(__require,__exports){
 "use strict";

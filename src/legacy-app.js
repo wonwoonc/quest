@@ -345,7 +345,9 @@ const pendingTo = u => !!(S.followPending && S.followPending[u]);
 const followReqs = () => (S.followReqs || []).filter(x => !isBlocked(x.uid));
 const isFollowing = (a, b) => !!S.follows[keyOf(a)+"~"+keyOf(b)] && !(a === S.me && pendingTo(b));
 const folLabel = u => isFollowing(S.me, u) ? "팔로잉" : pendingTo(u) ? "요청됨" : "팔로우";
-function chibi(color, L, face, size){ const src = face && (face.startsWith("data:") ? face : S.media[face]);
+/* 사진 주소: 이 기기 기록(S.media) 또는 배포판 커뮤니티에서 받은 다른 사람 사진의 임시 주소(S.remote) */
+const mediaSrc = k => (k && (S.media[k] || (S.remote && S.remote[k]))) || "";
+function chibi(color, L, face, size){ const src = face && (face.startsWith("data:") ? face : mediaSrc(face));
   const fc = src ? `<span class="cface"><img src="${esc(src)}" alt="" draggable="false"></span>` : `<span class="cface" data-k="${esc(face)}"></span>`;
   return `<span class="chibi" style="width:${size}px;height:${size}px" aria-hidden="true"><svg viewBox="0 0 100 100"><ellipse cx="50" cy="97" rx="20" ry="3" fill="#000" opacity=".12"/>
     <rect x="39" y="78" width="9" height="16" rx="4" fill="#2B3440"/><rect x="52" y="78" width="9" height="16" rx="4" fill="#2B3440"/>
@@ -355,9 +357,9 @@ function chibi(color, L, face, size){ const src = face && (face.startsWith("data
     <rect x="32" y="55" width="36" height="30" rx="11" fill="${color}"/><rect x="32" y="55" width="36" height="30" rx="11" fill="#fff" opacity=".12"/>
     ${L >= 5 ? `<rect x="32" y="76" width="36" height="4.5" fill="#E5404F"/>` : ""}${L >= 20 ? `<path d="M40 5l5 5 5-7 5 7 5-5-2 9H42z" fill="#F5B53A"/>` : ""}</svg>${fc}</span>`; }
 const faceOf = uid => prof(uid).face || "";
-function fullbody(image, size){ const src = image && (image.startsWith('data:') ? image : S.media[image]);
+function fullbody(image, size){ const src = image && (image.startsWith('data:') ? image : mediaSrc(image));
   return `<span class="avatar-fullbody" style="width:${size}px;height:${size}px"${src ? '' : ` data-k="${esc(image)}"`}>${src ? `<img src="${esc(src)}" alt="전신 캐릭터" draggable="false">` : ''}</span>`; }
-function photoAv(image, size){ const src = image && (image.startsWith('data:') ? image : S.media[image]);
+function photoAv(image, size){ const src = image && (image.startsWith('data:') ? image : mediaSrc(image));
   return `<span class="avatar-photo" style="width:${size}px;height:${size}px"${src ? '' : ` data-k="${esc(image)}"`}>${src ? `<img src="${esc(src)}" alt="프로필 사진" draggable="false">` : ''}</span>`; }
 const fig = (uid, size, inner) => faceOf(uid) ? (prof(uid).avatarStyle === 'photo' ? photoAv(faceOf(uid), size) : prof(uid).avatarStyle === 'fullbody' ? fullbody(faceOf(uid), size) : chibi(colorOf(uid), statsOf(uid).L, faceOf(uid), size)) : spriteImg(colorOf(uid), statsOf(uid).L, inner || Math.round(size*.64));
 const av = (uid, size, act = true) => `<${act?`button data-act="profile" data-u="${esc(uid)}" aria-label="${esc(nameOf(uid))} 프로필"`:"span"} class="av ${uid===S.me?'eco-avatar':''}" style="width:${size}px;height:${size}px">${fig(uid, size)}</${act?"button":"span"}>`;
@@ -1421,11 +1423,11 @@ function postRow(p, o = {}){
     <div class="body">
       <div class="ph"><button class="nm" data-act="profile" data-u="${esc(a)}">${esc(nameOf(a))}</button><span class="pillLv">Lv.${s.L}</span><time>${ago(p.createdAt)}${p.editedAt ? " · 수정됨" : ""}</time>
         ${showFollow ? `<button class="btn ${fol || pendingTo(a) ? "sec" : "soft"} sm fol" data-act="follow" data-u="${esc(a)}">${folLabel(a)}</button>` : ""}${hasProfile() && S.canWrite ? `<button class="pmenu" data-act="pmenu" data-p="${p.id}" aria-label="게시물 메뉴">${I.menu}</button>` : ""}</div>
-      ${refHtml(p)}
+      ${p.modHidden && a === S.me ? `<p class="modnote">운영자가 숨긴 스토리예요. 지금은 나에게만 보여요.</p>` : ""}${refHtml(p)}
 
       ${metricFor(p)}
       ${p.text ? `<div class="txtwrap"><p class="txt" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}>${esc(p.text)}</p><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
-      ${imgs ? `<div class="media" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}><div class="car ${imgs>1?"multi":""}">${Array.from({length:imgs}, (_,i) => { const k = p.id+"~"+i; return `<div class="pimg" data-k="${k}">${S.media[k]?`<img src="${esc(S.media[k])}" alt="" draggable="false">`:""}</div>`; }).join("")}</div><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
+      ${imgs ? `<div class="media" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}><div class="car ${imgs>1?"multi":""}">${Array.from({length:imgs}, (_,i) => { const k = p.id+"~"+i; return `<div class="pimg" data-k="${k}">${mediaSrc(k)?`<img src="${esc(mediaSrc(k))}" alt="" draggable="false">`:""}</div>`; }).join("")}</div><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
       <div class="acts">
         <button class="ab ${lk?"on":""}" data-act="like" data-p="${p.id}" ${canAct() && a !== S.me ? "" : "disabled"} aria-pressed="${lk}" aria-label="공감">${lk ? I.heartOn : I.heart}${n?`<span class="num">${n}</span>`:""}</button>
         <button class="ab" data-act="${o.focus && !p.noReply ? "reply" : "open"}" data-p="${p.id}" aria-label="답글" ${o.focus && p.noReply ? "disabled" : ""}>${I.reply}${reps.length?`<span class="num">${reps.length}</span>`:""}</button>
@@ -1565,7 +1567,7 @@ function storyComposer(){
     ${ph.length ? `<div class="thumbs">${ph.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="inunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
     ${sel || selQ ? `<span class="qsel"><button class="btn soft sm" data-act="qpick">${sel ? esc(goalLabel(sel)) : "🔥 " + esc(selQ.name)}</button><button class="qx" data-act="inref" data-v="" aria-label="퀘스트 연결 빼기">×</button></span>` : ""}
     ${sel && sel.metric ? (() => { const lv = lastVal(sel); return `<div class="field svalf"><label class="lab" for="ps-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lv)}${esc(sel.metric.unit)} · 목표 ${numFmt(sel.metric.target)}${esc(sel.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ps-val" placeholder="${numFmt(lv)}" value="${D("ps-val")}"><span>${esc(sel.metric.unit)}</span></div></div>`; })() : ""}
-    <div class="sact"><div class="sbtns"><button class="btn sec sm ibtn" data-act="qpick">${I.target}퀘스트</button>${community ? "" : `<button class="btn sec sm ibtn" data-act="inphoto" ${ph.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진</button>`}</div><button class="btn sm" data-act="inpost" ${S.busy?"disabled":""}>공유하기</button></div></section>`;
+    <div class="sact"><div class="sbtns"><button class="btn sec sm ibtn" data-act="qpick">${I.target}퀘스트</button><button class="btn sec sm ibtn" data-act="inphoto" ${ph.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진</button></div><button class="btn sm" data-act="inpost" ${S.busy?"disabled":""}>공유하기</button></div></section>`;
 }
 function profHead(uid){ const mine = uid === S.me, p = prof(uid), posts = feedSorted().filter(x => x.author === uid);
   const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
@@ -1719,7 +1721,7 @@ let scT = 0; window.addEventListener("scroll", () => { clearTimeout(scT); scT = 
 function loadMedia(root){
   root.querySelectorAll("[data-k]").forEach(el => {
     const k = el.dataset.k;
-    if (S.media[k]){ if (!el.querySelector("img")) el.innerHTML = `<img src="${esc(S.media[k])}" alt="" draggable="false">`; return; }
+    if (mediaSrc(k)){ const im = el.querySelector("img"), src = mediaSrc(k); if (!im) el.innerHTML = `<img src="${esc(src)}" alt="" draggable="false">`; return; }
     if (S.mediaLoading.has(k) || !api) return; S.mediaLoading.add(k);
     api.getMedia(k).then(src => { if (src){ S.media[k] = src; schedule(); } }).catch(() => {});
   });
@@ -2064,7 +2066,7 @@ function postSheet(quick){
       linkChips(r ? r.id : null, "cref", "연결", false)}
     ${pj && pj.metric ? `<div class="field"><label class="lab" for="po-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lastV)}${esc(pj.metric.unit)} · 목표 ${numFmt(pj.metric.target)}${esc(pj.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="po-val" placeholder="${numFmt(lastV)}" value="${D("po-val")}"><span>${esc(pj.metric.unit)}</span></div></div>` : ""}
     <div class="field"><textarea id="po-text" rows="4" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("po-text")}</textarea></div>
-    ${community ? "" : `<div class="field"><span class="lab">사진 <span class="hint">최대 ${MAX_IMGS}장</span></span><div class="thumbs">${c.photos.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="cunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}${c.photos.length < MAX_IMGS ? `<button class="addph" data-act="cphoto">+ 사진</button>` : ""}</div></div>`}
+    <div class="field"><span class="lab">사진 <span class="hint">최대 ${MAX_IMGS}장</span></span><div class="thumbs">${c.photos.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="cunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}${c.photos.length < MAX_IMGS ? `<button class="addph" data-act="cphoto">+ 사진</button>` : ""}</div></div>
     <button class="btn big full" data-act="submit-post" ${S.busy?"disabled":""}>공유하기</button>`);
 }
 function replySheet(){
@@ -2589,6 +2591,6 @@ if (!entryScreen && bkDue()){ LS.set("bkNudgeAt", Date.now()); openSheet({type:"
 /* 배포판 커뮤니티: 서버에서 받은 스토리·답글·팔로우를 화면 상태에 넣는다(저장은 하지 않음). 무언가 입력하는 중이면 미룬다. */
 const adopt = (snap, extra = {}) => { if (S.compose) return false;
   try { storage.hydrate(S, snap); } catch { return false; }
-  S.followPending = extra.pending || {}; S.followReqs = extra.requests || []; schedule(); return true; };
+  S.followPending = extra.pending || {}; S.followReqs = extra.requests || []; S.remote = extra.remote || {}; schedule(); return true; };
 return {state:S, api, snapshot:() => storage.capture(S), confirm:askAsync, notify:msg => toast(esc(msg)), refresh:schedule, adopt};
 }

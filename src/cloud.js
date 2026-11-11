@@ -38,13 +38,14 @@ export function createCloud({fetch, ls, url = CLOUD_URL, key = CLOUD_KEY, site =
     expires_at:Number(data.expires_at) || Math.floor(now() / 1000) + (Number(data.expires_in) || 3600), user:{id:user.id, email:user.email || ''}});
   const redirect = site ? '?redirect_to=' + encodeURIComponent(site) : '';
 
-  async function call(path, {method = 'GET', body, auth = false, prefer} = {}) {
+  async function call(path, {method = 'GET', body, auth = false, prefer, raw = false, type = 'application/json', upsert = false} = {}) {
     const headers = {apikey:key};
-    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    if (body !== undefined) headers['Content-Type'] = raw ? type : 'application/json';
+    if (upsert) headers['x-upsert'] = 'true';
     if (prefer) headers.Prefer = prefer;
     if (auth){ await fresh(); if (!session) throw fail('session_not_found'); headers.Authorization = 'Bearer ' + session.access_token; }
     let res;
-    try { res = await fetch(url + path, {method, headers, body:body === undefined ? undefined : JSON.stringify(body)}); }
+    try { res = await fetch(url + path, {method, headers, body:body === undefined ? undefined : raw ? body : JSON.stringify(body)}); }
     catch { throw fail('network'); }
     const text = await res.text(); let data = null;
     try { data = text ? JSON.parse(text) : null; } catch { data = null; }
@@ -98,6 +99,10 @@ export function createCloud({fetch, ls, url = CLOUD_URL, key = CLOUD_KEY, site =
     },
     // 커뮤니티 표(supabase/community.sql) 읽기·쓰기. 응답이 없으면 null.
     rest:(path, o = {}) => call(path, {...o, auth:true}),
+    // 사진 저장소(비공개 media 버킷): 올리기, 볼 수 있는 사진의 1시간짜리 주소 받기
+    upload:(path, bytes, type) => call('/storage/v1/object/media/' + path, {method:'POST', body:bytes, raw:true, type, upsert:true, auth:true}),
+    sign:async paths => { const rows = await call('/storage/v1/object/sign/media', {method:'POST', body:{expiresIn:3600, paths}, auth:true});
+      return (Array.isArray(rows) ? rows : []).filter(r => r && r.signedURL && !r.error).map(r => ({path:r.path, url:url + '/storage/v1' + (r.signedURL.startsWith('/') ? '' : '/') + r.signedURL})); },
     async deleteAccount(){ await call('/rest/v1/rpc/delete_my_account', {method:'POST', body:{}, auth:true}); keep(null); },
     meta:() => read(META_KEY),
     setMeta:m => write(META_KEY, m)

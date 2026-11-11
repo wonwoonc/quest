@@ -37,10 +37,30 @@ export function cleanPost(d){
   if (typeof p.value === 'number' && Number.isFinite(p.value)) out.value = p.value;
   if (p.noReply === true) out.noReply = true;
   if (p.hideLikes === true) out.hideLikes = true;
+  if (Number.isInteger(p.imgs) && p.imgs > 0) out.imgs = Math.min(p.imgs, 4);
   return out;
 }
-const cleanProfile = (uid, priv, d) => { const p = plain(d) ? d : {};
-  return {uid, nick:str(p.nick, 40) || '모험가', bio:str(p.bio, 300), color:COLOR.test(p.color || '') ? p.color : '#3DBE8B', private:!!priv, stats:{xp:time(p.xp)}}; };
+const FACEV = /^[a-z0-9]{1,16}$/, STYLES = new Set(['photo', 'fullbody']);
+// 다른 사람의 프로필 사진은 'rf~<계정 id>' 키로 가리키고, 실제 주소는 서명된 임시 주소(remote)로 받는다.
+const cleanProfile = (uid, priv, d) => { const p = plain(d) ? d : {}, face = FACEV.test(p.face || '') ? p.face : '';
+  return {uid, nick:str(p.nick, 40) || '모험가', bio:str(p.bio, 300), color:COLOR.test(p.color || '') ? p.color : '#3DBE8B', private:!!priv, stats:{xp:time(p.xp)},
+    face:face ? 'rf~' + uid : null, faceV:face || null, avatarStyle:face && STYLES.has(p.avatarStyle) ? p.avatarStyle : null}; };
+export const facePath = (uid, v) => `${uid}/p/face-${v}`;
+export const photoPath = (uid, postId, i) => `${uid}/s/${postId}~${i}`;
+// 볼 사진 목록: 남의 스토리 사진과 프로필 사진(내 것은 이 기기 기록에 있다)
+export function mediaPaths(me, view, rows){
+  const out = [], authors = new Map((rows || []).map(r => [r.id, r.author]));
+  for (const p of Object.values(view.feed)) if (p.author !== ME && p.imgs) for (let i = 0; i < p.imgs; i++) out.push({key:`${p.id}~${i}`, path:photoPath(authors.get(p.id) || p.author, p.id, i)});
+  for (const p of Object.values(view.profiles)) if (p.faceV) out.push({key:p.face, path:facePath(p.uid, p.faceV)});
+  return out;
+}
+const hash = s => { let h = 5381; for (let i = 0; i < s.length; i += Math.max(1, Math.floor(s.length / 4096))) h = (h * 33 + s.charCodeAt(i)) >>> 0; return (h.toString(36) + s.length.toString(36)).slice(0, 16); };
+const faceData = (snap, me) => { const f = me && me.face; if (!f || typeof f !== 'string') return ''; const v = f.startsWith('data:') ? f : (snap.media || {})[f]; return typeof v === 'string' && v.startsWith('data:image/') ? v : ''; };
+export function dataBytes(src){
+  const m = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(src || '')); if (!m) return null;
+  const bin = atob(m[2]), bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return {type:m[1], bytes};
+}
 
 /* 서버 행 → 앱 형태. me: 내 계정 id. */
 export function toView(me, rows){
@@ -49,8 +69,10 @@ export function toView(me, rows){
   for (const r of rows.profiles || []) if (r.user_id !== me && UUID.test(r.user_id)) profiles[r.user_id] = cleanProfile(r.user_id, r.private, r.data);
   for (const r of [...(rows.posts || []), ...(rows.myPosts || [])]){
     if (!ID.test(String(r.id)) || !UUID.test(String(r.author)) || feed[r.id]) continue;
-    feed[r.id] = {...cleanPost(r.data), id:r.id, author:m(r.author), imgs:0, reactions:{}, joiners:{}, createdAt:time(r.at)};
+    const c = cleanPost(r.data);
+    feed[r.id] = {...c, id:r.id, author:m(r.author), imgs:c.imgs || 0, reactions:{}, joiners:{}, createdAt:time(r.at)};
   }
+  for (const r of rows.myPosts || []) if (r.hidden === true && feed[r.id] && feed[r.id].author === ME) feed[r.id].modHidden = true;
   for (const r of rows.likes || []) if (feed[r.post_id] && UUID.test(String(r.user_id))) feed[r.post_id].reactions[m(r.user_id)] = {k:'heart', at:time(r.at)};
   for (const r of [...(rows.replies || []), ...(rows.myReplies || [])]){
     if (!ID.test(String(r.id)) || !feed[r.post_id] || !UUID.test(String(r.author)) || replies[r.id]) continue;
@@ -83,7 +105,8 @@ export function mergeView(snap, view){
   const s = {...snap};
   const feed = {};
   for (const [id, p] of Object.entries(view.feed)) feed[id] = p;
-  for (const [id, p] of Object.entries(snap.feed || {})) if (p && p.author === ME) feed[id] = {...p, reactions:view.feed[id] ? view.feed[id].reactions : {}};
+  for (const [id, p] of Object.entries(snap.feed || {})) if (p && p.author === ME){ const sv = view.feed[id];
+    feed[id] = {...p, reactions:sv ? sv.reactions : {}}; if (sv && sv.modHidden) feed[id].modHidden = true; else delete feed[id].modHidden; }
   // 남의 스토리에 내가 누른 공감은 서버 기준(view.feed에 이미 있음)
   const replies = {};
   for (const [id, r] of Object.entries(view.replies)) replies[id] = r;
@@ -107,7 +130,8 @@ export function extract(snap){
     rlikes:Object.fromEntries(Object.values(replies).filter(r => r && r.author !== ME && on((r.likes || {})[ME]) && ID.test(String(r.id))).map(r => [r.id, time(r.likes[ME])])),
     follows:Object.fromEntries(Object.values(snap.follows || {}).filter(f => f && f.from === ME && UUID.test(String(f.to))).map(f => [f.to, time(f.at)])),
     blocks:Array.isArray(blocked) ? [...new Set(blocked.filter(u => UUID.test(String(u))))].sort() : [],
-    profile:me ? JSON.stringify({private:!!me.private, data:{nick:str(me.nick, 40), bio:str(me.bio, 300), color:COLOR.test(me.color || '') ? me.color : '#3DBE8B', xp}}) : ''
+    profile:me ? JSON.stringify({private:!!me.private, data:{nick:str(me.nick, 40), bio:str(me.bio, 300), color:COLOR.test(me.color || '') ? me.color : '#3DBE8B', xp,
+      ...(faceData(snap, me) ? {face:hash(faceData(snap, me)), avatarStyle:STYLES.has(me.avatarStyle) ? me.avatarStyle : null} : {})}}) : ''
   };
 }
 
@@ -130,6 +154,11 @@ export function diff(a, b, me){
   const delReplies = gone(a.replies, b.replies).filter(id => !delPosts.includes(JSON.parse(a.replies[id]).post_id));
   if (delReplies.length) ops.push({method:'DELETE', path:`/rest/v1/replies?author=eq.${me}&id=${inList(delReplies)}`});
   if (delPosts.length) ops.push({method:'DELETE', path:`/rest/v1/posts?author=eq.${me}&id=${inList(delPosts)}`});
+  // 지운 스토리의 사진, 바뀌기 전 프로필 사진은 저장소에서도 지운다.
+  const files = delPosts.flatMap(id => { const n = (JSON.parse(a.posts[id]).data || {}).imgs || 0; return Array.from({length:n}, (_, i) => photoPath(me, id, i)); });
+  const oldFace = a.profile ? (JSON.parse(a.profile).data || {}).face : '', newFace = b.profile ? (JSON.parse(b.profile).data || {}).face : '';
+  if (oldFace && oldFace !== newFace && b.profile) files.push(facePath(me, oldFace));
+  if (files.length) ops.push({method:'DELETE', path:'/storage/v1/object/media', body:{prefixes:files}});
   return ops;
 }
 
@@ -145,15 +174,36 @@ export function ownOnly(snap){
 }
 
 /* 서버와 주고받기. rest(path, {method, body, prefer}) → JSON. */
-export function createCommunity({rest, me, delay = 1200, setTimer = setTimeout, clearTimer = clearTimeout, onState = () => {}}){
-  let base = null, want = null, timer = null, running = null;
+export function createCommunity({rest, me, sign = async () => [], upload = async () => {}, now = Date.now, delay = 1200, setTimer = setTimeout, clearTimer = clearTimeout, onState = () => {}}){
+  let base = null, want = null, wantSnap = null, timer = null, running = null;
+  const signed = new Map(), uploaded = new Set();
+  // 서명 주소는 1시간짜리: 45분 안에 받은 것은 다시 쓰고(사진이 깜빡이지 않게), 나머지만 새로 받는다.
+  async function remoteFor(list){
+    const fresh = p => { const s = signed.get(p); return s && now() - s.at < 45 * 60000; };
+    const need = [...new Set(list.map(x => x.path).filter(p => !fresh(p)))];
+    for (let i = 0; i < need.length; i += 100){
+      try { for (const r of await sign(need.slice(i, i + 100))) signed.set(r.path, {url:r.url, at:now()}); } catch { /* 사진 없이 보여 준다 */ }
+    }
+    const out = {}; for (const x of list){ const s = signed.get(x.path); if (s) out[x.key] = s.url; } return out;
+  }
+  async function put(path, src){
+    if (uploaded.has(path)) return; const d = dataBytes(src); if (!d) return;
+    try { await upload(path, d.bytes, d.type); uploaded.add(path); }
+    catch (e) { if (e && e.code === 'network') throw e; /* 거절된 사진(너무 큼 등)은 건너뛴다 */ }
+  }
+  // 스토리·프로필을 올리기 전에 그 사진부터 올린다.
+  async function uploadsFor(op, snap){
+    if (!snap) return;
+    if (op.method === 'POST' && op.path.startsWith('/rest/v1/posts?')) for (const p of op.body) for (let i = 0; i < (p.data.imgs || 0); i++) await put(photoPath(me(), p.id, i), (snap.media || {})[`${p.id}~${i}`]);
+    if (op.method === 'POST' && op.path.startsWith('/rest/v1/profiles_pub?') && op.body.data && op.body.data.face) await put(facePath(me(), op.body.data.face), faceData(snap, (snap.profiles || {})[ME]));
+  }
   const q = (path, o) => rest(path, o);
   async function fetchView(){
     const id = encodeURIComponent(me());
     const [profiles, posts, myPosts, replies, myReplies, likes, rlikes, follows, blocks] = await Promise.all([
       q('/rest/v1/profiles_pub?select=user_id,private,data&limit=1000'),
       q('/rest/v1/posts?select=id,author,data,at&order=created_at.desc&limit=300'),
-      q(`/rest/v1/posts?select=id,author,data,at&author=eq.${id}`),
+      q(`/rest/v1/posts?select=id,author,data,at,hidden&author=eq.${id}`),
       q('/rest/v1/replies?select=id,post_id,author,parent_id,text,at&order=created_at.desc&limit=3000'),
       q(`/rest/v1/replies?select=id,post_id,author,parent_id,text,at&author=eq.${id}`),
       q('/rest/v1/post_likes?select=post_id,user_id,at&limit=10000'),
@@ -162,15 +212,16 @@ export function createCommunity({rest, me, delay = 1200, setTimer = setTimeout, 
       q(`/rest/v1/blocks?select=blocked&blocker=eq.${id}`)
     ]);
     const meRow = (profiles || []).find(r => r.user_id === me());
-    return toView(me(), {profiles, posts, myPosts, replies, myReplies, likes, rlikes, follows, blocks, me:meRow});
+    const view = toView(me(), {profiles, posts, myPosts, replies, myReplies, likes, rlikes, follows, blocks, me:meRow});
+    view.remote = await remoteFor(mediaPaths(me(), view, posts)); return view;
   }
   async function run(){
     while (want && base){
-      const target = want, ops = diff(base, target, me());
+      const target = want, snap = wantSnap, ops = diff(base, target, me());
       if (!ops.length){ if (want === target) want = null; break; }
       onState('saving');
       for (const op of ops){
-        try { await q(op.path, op); }
+        try { await uploadsFor(op, snap); await q(op.path, op); }
         catch (e) {
           if (e && e.code === 'network'){ onState('offline', e); return; }
           // 서버가 거절한 요청(이미 지워진 스토리에 답글 등)은 건너뛴다. 계속 붙잡고 있으면 다음 저장도 막힌다.
@@ -184,12 +235,24 @@ export function createCommunity({rest, me, delay = 1200, setTimer = setTimeout, 
   return {
     fetchView,
     // 서버 보기를 화면에 넣은 뒤 호출: 그때부터 서버와 내 기록의 차이를 올린다(처음에는 서버에 없던 내 글을 올림).
-    ready(view, snap){ base = view.mine; want = extract(snap); if (timer) clearTimer(timer); timer = setTimer(() => { timer = null; flush(); }, 0); },
+    ready(view, snap){ base = view.mine; want = extract(snap); wantSnap = snap; if (timer) clearTimer(timer); timer = setTimer(() => { timer = null; flush(); }, 0); },
     // 내 기록이 바뀔 때마다 호출: 바뀐 몫을 모아서 올린다.
-    change(snap){ if (!base) return; want = extract(snap); if (timer) clearTimer(timer); timer = setTimer(() => { timer = null; flush(); }, delay); },
+    change(snap){ if (!base) return; want = extract(snap); wantSnap = snap; if (timer) clearTimer(timer); timer = setTimer(() => { timer = null; flush(); }, delay); },
     flush, pending:() => !!want || !!running,
     accept:async uid => q(`/rest/v1/follows?follower=eq.${encodeURIComponent(uid)}&followee=eq.${encodeURIComponent(me())}`, {method:'PATCH', body:{accepted:true}, prefer:'return=minimal'}),
     reject:async uid => q(`/rest/v1/follows?follower=eq.${encodeURIComponent(uid)}&followee=eq.${encodeURIComponent(me())}`, {method:'DELETE'}),
+    // 회원 탈퇴 전: 내 사진을 저장소에서 모두 지운다(계정 삭제만으로는 저장소 파일이 지워지지 않는다).
+    async purgeMedia(){
+      for (const kind of ['s', 'p']){
+        for (let guard = 0; guard < 50; guard++){
+          let list; try { list = await q('/storage/v1/object/list/media', {method:'POST', body:{prefix:`${me()}/${kind}`, limit:500, offset:0}}); }
+          catch (e) { if (e && e.code === 'network') throw e; break; } // 저장소가 아직 없으면 지울 사진도 없다
+          const names = (Array.isArray(list) ? list : []).map(x => x && x.name).filter(Boolean);
+          if (!names.length) break;
+          await q('/storage/v1/object/media', {method:'DELETE', body:{prefixes:names.map(n => `${me()}/${kind}/${n}`)}});
+        }
+      }
+    },
     report:async (type, target, reason = '') => q('/rest/v1/reports', {method:'POST', body:{reporter:me(), target_type:type, target_id:String(target).slice(0, 64), reason:String(reason).slice(0, 500)}, prefer:'return=minimal'})
   };
 }

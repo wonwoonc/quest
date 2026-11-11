@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {toView, mergeView, extract, diff, ownOnly, cleanPost, createCommunity, ME} from '../src/community.js';
+import {toView, mergeView, extract, diff, ownOnly, cleanPost, createCommunity, mediaPaths, dataBytes, ME} from '../src/community.js';
 import {emptySnapshot, validateSnapshot} from '../src/storage.js';
 
 const A = '11111111-1111-4111-8111-111111111111', B = '22222222-2222-4222-8222-222222222222', C = '33333333-3333-4333-8333-333333333333';
@@ -45,7 +45,8 @@ test('community merge: my stories stay mine (with server likes), others come fro
   // 처음 연결: 서버에 없던 내 글만 올린다
   const ops = diff(v.mine, extract(m), A);
   assert.deepEqual(ops.map(o => o.method + ' ' + o.path.split('?')[0]), ['POST /rest/v1/profiles_pub', 'POST /rest/v1/posts']);
-  assert.deepEqual(ops[1].body.map(x => x.id), ['new1']); assert.equal(ops[1].body[0].author, A); assert.equal(ops[1].body[0].data.text, '아직 안 올린 글');
+  assert.deepEqual(ops[1].body.map(x => x.id), ['pa1', 'new1'], 'my story with photos is re-sent with its photo count');
+  assert.equal(ops[1].body[0].data.imgs, 2); assert.equal(ops[1].body[1].author, A); assert.equal(ops[1].body[1].data.text, '아직 안 올린 글');
   // 내 기록에는 내 몫만 저장
   const own = ownOnly(m);
   assert.deepEqual(Object.keys(own.feed).sort(), ['new1', 'pa1']); assert.deepEqual(own.feed.pa1.reactions, {});
@@ -90,6 +91,40 @@ test('community sync: waits for the first server view, uploads in order, keeps u
   assert.deepEqual(calls, ['POST /rest/v1/reports', 'PATCH /rest/v1/follows', 'DELETE /rest/v1/follows']);
 });
 
+test('community photos: my photos upload before the story; others\' photos and faces come as signed links (reused, not re-signed every minute); hidden stories are labelled for the author', async () => {
+  const JPG = 'data:image/jpeg;base64,' + Buffer.from('jpeg-bytes').toString('base64');
+  assert.deepEqual([...dataBytes(JPG).bytes].map(c => String.fromCharCode(c)).join(''), 'jpeg-bytes'); assert.equal(dataBytes('data:image/svg+xml;base64,AA=='), null);
+  const r = rows(); r.posts[0].data.imgs = 2; r.profiles[1].data.face = 'abc12'; r.profiles[1].data.avatarStyle = 'photo'; r.myPosts[0].hidden = true;
+  const v = toView(A, r);
+  assert.equal(v.feed.pb1.imgs, 2); assert.equal(v.profiles[B].face, 'rf~' + B); assert.equal(v.profiles[B].avatarStyle, 'photo'); assert.equal(v.feed.pa1.modHidden, true);
+  assert.deepEqual(mediaPaths(A, v, r.posts), [{key:'pb1~0', path:`${B}/s/pb1~0`}, {key:'pb1~1', path:`${B}/s/pb1~1`}, {key:'rf~' + B, path:`${B}/p/face-abc12`}]);
+  const local = {...emptySnapshot(), profiles:{me:{uid:'me', nick:'나', face:'face-1', avatarStyle:'photo'}}, media:{'face-1':JPG}, feed:{pa1:{id:'pa1', author:ME, text:'내 글', imgs:0, reactions:{}, joiners:{}, createdAt:1000}}};
+  assert.equal(mergeView(local, v).feed.pa1.modHidden, true);
+  // 업로드·서명 흐름
+  const calls = []; let t = 0, signs = 0;
+  const rest = async (path, o = {}) => { calls.push((o.method || 'GET') + ' ' + path.split('?')[0]); return path.startsWith('/rest/v1/posts?') && !o.method ? r.posts : path.startsWith('/rest/v1/profiles_pub') && !o.method ? r.profiles : []; };
+  const c = createCommunity({rest, me:() => A, now:() => t, setTimer:fn => { fn(); return 1; }, clearTimer:() => {},
+    sign:async paths => { signs++; return paths.map(p => ({path:p, url:'https://x.supabase.co/storage/v1/object/sign/media/' + p + '?token=' + t})); },
+    upload:async (path, bytes, type) => { calls.push('UPLOAD ' + path + ' ' + type + ' ' + bytes.length); }});
+  let view = await c.fetchView(); assert.match(view.remote['pb1~1'], /pb1~1\?token=0$/); assert.match(view.remote['rf~' + B], /face-abc12/); assert.equal(signs, 1);
+  t = 10 * 60000; view = await c.fetchView(); assert.equal(signs, 1, 'fresh links are reused'); assert.match(view.remote['pb1~0'], /token=0$/);
+  t = 50 * 60000; view = await c.fetchView(); assert.equal(signs, 2); assert.match(view.remote['pb1~0'], /token=3000000$/);
+  calls.length = 0;
+  const snap = mergeView(local, view); c.ready(view, snap); await c.flush(); calls.length = 0;
+  const s2 = structuredClone(snap); s2.feed.p9 = {id:'p9', author:ME, text:'사진 스토리', imgs:1, reactions:{}, joiners:{}, createdAt:5}; s2.media['p9~0'] = JPG;
+  c.change(s2); await c.flush();
+  assert.deepEqual(calls, [`UPLOAD ${A}/s/p9~0 image/jpeg 10`, 'POST /rest/v1/posts']);
+  // 스토리를 지우면 사진도 저장소에서 지운다
+  calls.length = 0; const s3 = structuredClone(s2); delete s3.feed.p9; c.change(s3); await c.flush();
+  assert.deepEqual(calls, ['DELETE /rest/v1/posts', 'DELETE /storage/v1/object/media']);
+  // 회원 탈퇴 전 사진 정리: 목록 → 삭제 → 빈 목록
+  let listed = 0; const purgeCalls = [];
+  const p = createCommunity({rest:async (path, o = {}) => { purgeCalls.push(o.method + ' ' + path + (o.body && o.body.prefixes ? ' ' + o.body.prefixes.join(',') : ''));
+    return path.includes('/list/') ? (listed++ % 2 === 0 ? [{name:'x~0'}] : []) : null; }, me:() => A});
+  await p.purgeMedia();
+  assert.deepEqual(purgeCalls, ['POST /storage/v1/object/list/media', `DELETE /storage/v1/object/media ${A}/s/x~0`, 'POST /storage/v1/object/list/media', 'POST /storage/v1/object/list/media', `DELETE /storage/v1/object/media ${A}/p/x~0`, 'POST /storage/v1/object/list/media']);
+});
+
 test('community SQL: row level security on every table, private accounts need approval, blocks hide both ways, reports are insert-only', async () => {
   const sql = await readFile(new URL('../supabase/community.sql', import.meta.url), 'utf8');
   for (const t of ['profiles_pub', 'posts', 'replies', 'post_likes', 'reply_likes', 'follows', 'blocks', 'reports']){
@@ -100,4 +135,9 @@ test('community SQL: row level security on every table, private accounts need ap
   assert.match(sql, /new\.accepted := not coalesce\(\(select p\.private/);
   assert.match(sql, /grant insert on public\.reports to authenticated;/); assert.doesNotMatch(sql, /on public\.reports for select/);
   assert.match(sql, /revoke all on public\.profiles_pub[^;]*from anon/);
+  const sql2 = await readFile(new URL('../supabase/community-2.sql', import.meta.url), 'utf8');
+  assert.match(sql2, /values \('media', 'media', false,/); assert.match(sql2, /on storage\.objects for select to authenticated using \(bucket_id = 'media' and public\.media_visible\(name\)\)/);
+  assert.match(sql2, /if tg_op = 'INSERT' then new\.hidden := false; else new\.hidden := old\.hidden; end if;/);
+  assert.match(sql2, /vault\.decrypted_secrets where name = 'resend_api_key'/); assert.doesNotMatch(sql2, /re_[A-Za-z0-9]{8,}/, 'no real API key in the file');
+  assert.match(sql, /not hidden and public\.can_see\(author\)/, 'base script keeps the hidden rule if it is run again');
 });

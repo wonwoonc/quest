@@ -18,6 +18,7 @@ create table if not exists public.posts (
   at         bigint not null,
   created_at timestamptz not null default now()
 );
+alter table public.posts add column if not exists hidden boolean not null default false; -- 운영자 숨김(community-2.sql)
 create index if not exists posts_created on public.posts (created_at desc);
 create index if not exists posts_author on public.posts (author);
 
@@ -132,7 +133,7 @@ create policy "profiles read" on public.profiles_pub for select to authenticated
 create policy "profiles write own" on public.profiles_pub for insert to authenticated with check (user_id = (select auth.uid()));
 create policy "profiles update own" on public.profiles_pub for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
-create policy "posts read" on public.posts for select to authenticated using (public.can_see(author));
+create policy "posts read" on public.posts for select to authenticated using (author = (select auth.uid()) or (not hidden and public.can_see(author)));
 create policy "posts insert own" on public.posts for insert to authenticated with check (author = (select auth.uid()));
 create policy "posts update own" on public.posts for update to authenticated using (author = (select auth.uid())) with check (author = (select auth.uid()));
 create policy "posts delete own" on public.posts for delete to authenticated using (author = (select auth.uid()));
