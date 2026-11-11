@@ -479,7 +479,7 @@ const NAV = {
   "#shop": ["상점", `${I.bag}`, v => v === "shop"],
   "#cal": ["캘린더", `${I.cal}`, v => v === "cal"]
 };
-const NAV_DEFAULT = ["#qmanage", "#dash", "#me", "#feed", "#notes", "#shop", "#cal"], NAV_BAR = 5;
+const NAV_DEFAULT = ["#qmanage", "#dash", "#feed", "#me", "#notes", "#shop", "#cal"], NAV_BAR = 5;
 const navOrder = () => { const saved = LS.get("navOrder", []), list = (Array.isArray(saved) ? saved : []).filter((h, i, a) => Object.hasOwn(NAV, h) && a.indexOf(h) === i);
   return [...list, ...NAV_DEFAULT.filter(h => !list.includes(h))]; };
 const MENU_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></svg>`;
