@@ -1297,12 +1297,14 @@ test('trial: community notice, no report, no social notification settings, no de
   assert.doesNotMatch(set,/data-act="setn"|data-act="setpriv"|차단한 계정|로컬|서버|프로토타입/);assert.match(set,/체험판/);assert.match(set,/아직 백업한 적이 없어요/);
   h.route('feed');assert.doesNotMatch(h.nodes.get('topbar').innerHTML,/data-v="activity"/);
 });
-test('main edition: checklist yes, no trial notice or reminder; settings = 계정/화면/데이터/정보 without unconnected social settings',async()=>{
+test('main edition: checklist yes, no trial notice or reminder; settings = 계정/화면/알림/개인정보 보호/데이터/정보',async()=>{
   const h=await profileUI();h.route('qmanage');assert.match(h.nodes.get('app').innerHTML,/첫 게임 시작하기[\s\S]*일일 퀘스트 하나 만들기/,'main edition also shows the checklist');
   h.route('feed');assert.doesNotMatch(h.nodes.get('app').innerHTML,/정식 버전에서 열려요/);
   h.route('settings');const set=h.nodes.get('app').innerHTML;
-  assert.equal((set.match(/class="sect3">([^<]+)</g)||[]).map(x=>x.replace(/.*>/,'').replace(/<$/,'')).join(','),'계정,화면,데이터,정보');
-  assert.doesNotMatch(set,/data-act="setn"|data-k="blk"|숨길 단어|로컬 비공개 표시|data-act="setpriv"|저장 위치|프로토타입|로컬 테스트 프로필|data-act="acct-/,'no account rows without login; no unconnected social settings');
+  assert.equal((set.match(/class="sect3">([^<]+)</g)||[]).map(x=>x.replace(/.*>/,'').replace(/<$/,'')).join(','),'계정,화면,알림,개인정보 보호,데이터,정보');
+  assert.doesNotMatch(set,/로컬 비공개 표시|저장 위치|프로토타입|로컬 테스트 프로필|data-act="acct-|함께하기/,'no account rows without login');
+  assert.match(set,/data-act="setn" data-k="like"[\s\S]*data-k="follow"[\s\S]*<b>계정 비공개<\/b>[\s\S]*data-act="setpriv"[\s\S]*차단한 계정[\s\S]*숨길 단어/);
+  const p0=!!h.snapshot().profiles.me.private;h.click('setpriv');await h.settle();assert.equal(h.snapshot().profiles.me.private,!p0,'switch flips');assert.match(h.nodes.get('toast').innerHTML,p0?/공개로 바꿨어요/:/비공개로 바꿨어요/);
   assert.match(set,/화면 모드[\s\S]*data-act="theme"[\s\S]*data-act="navedit"/);assert.match(set,/앱 버전<\/b><small>1\.0</);assert.match(set,/기록 파일로 저장[\s\S]*파일에서 기록 불러오기[\s\S]*기록 전체 삭제/);
   h.route('feed');assert.match(h.nodes.get('topbar').innerHTML,/data-v="activity"/);
   const trialLogin=harness(undefined,'',{trial:true}),html=await readFile(root+'/dist/quest-tester.html','utf8');
@@ -1316,6 +1318,18 @@ test('mobile dashboard chips: 일일/미션/저널, mission by default, switchin
   assert.match(html,/class="wd-bot" data-pane="mission"/);assert.doesNotMatch(html,/wd-mprof|lvstrip|class="card pcard"/,'no profile card on mobile dashboard');assert.match(html,/wd-sec dp-daily[\s\S]*wd-sec dp-mission[\s\S]*wd-sec dp-journal/);
   h.click('dpane',{v:'journal'});html=h.nodes.get('app').innerHTML;assert.match(html,/data-pane="journal"/);assert.match(html,/data-v="journal" aria-pressed="true"/);
   h.click('dpane',{v:'bogus'});assert.match(h.nodes.get('app').innerHTML,/data-pane="journal"/);assert.deepEqual(h.snapshot(),before);
+});
+test('daily quests: time order with chained habits kept after their predecessor; 하고 쉬기 / N일마다 have a start date',async()=>{
+  const base=await profileUI(),saved=base.snapshot(),q=(id,name,o={})=>({id,kind:'quest',name,repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:true,done:{},...o});
+  saved.mine={...saved.mine,a:q('a','저녁 운동',{time:'19:00',createdAt:1}),b:q('b','아침 물',{time:'07:00',createdAt:2}),c:q('c','시간 없음',{createdAt:3}),d:q('d','물 마신 뒤 스트레칭',{afterId:'b',createdAt:4})};
+  const h=await profileUI(saved);h.route('daily');const html=h.nodes.get('app').innerHTML;
+  const order=['아침 물','물 마신 뒤 스트레칭','저녁 운동','시간 없음'].map(n=>html.indexOf(n));assert.ok(order.every((x,i)=>x>0&&(i===0||x>order[i-1])),'07:00 → chained → 19:00 → no time: '+order);
+  h.click('sheet',{k:'add',v:'daily'});
+  for(const [v,re] of [['runrest',/2일 하기[\s\S]*1일 쉬기[\s\S]*시작일[\s\S]*data-act="dpopen" data-k="ranchor"[\s\S]*오늘부터 2일 하고 1일 쉬어요/],['every',/일마다[\s\S]*시작일[\s\S]*data-k="ranchor"[\s\S]*오늘부터 3일마다 해요 \(하루 하고 2일 쉬기\)/]]){
+    h.click('rpt',{v});assert.match(h.nodes.get('overlay').innerHTML,re,v);
+  }
+  h.click('dpopen',{k:'ranchor'});const d=h.nodes.get('overlay').innerHTML.match(/data-act="dppick" data-k="ranchor" data-v="(\d{4}-\d\d-\d\d)"/g);assert.ok(d&&d.length>20,'calendar opens');
+  const last=d[d.length-1].match(/data-v="([^"]+)"/)[1];h.click('dppick',{k:'ranchor',v:last});assert.match(h.nodes.get('overlay').innerHTML,new RegExp(`${+last.slice(5,7)}월 ${+last.slice(8,10)}일부터 3일마다 해요`));
 });
 test('release info: terms, privacy policy and contact in main edition only; sheets render every section',async()=>{
   const h=await profileUI();h.route('settings');const set=h.nodes.get('app').innerHTML;
