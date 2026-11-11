@@ -1086,7 +1086,7 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
 .wd-merge{display:flex;flex-direction:column;gap:12px}
 .card.today{min-height:88px;padding-top:14px;padding-bottom:14px;gap:12px;align-items:center}
 .card.today .ringwrap{width:48px;height:48px}
-.jtoday .jicon{display:grid;place-items:center;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:24px}.card.today.jtoday .jicon .ei,.card.today.jtoday .jicon svg{width:26px;height:26px;display:block}
+.jtoday .jicon{display:grid;place-items:center;border-radius:50%;background:var(--fill);color:var(--sub);font-size:24px}.card.today.jtoday .jicon .ei,.card.today.jtoday .jicon svg{width:26px;height:26px;display:block}
 .jlist .wdlog{cursor:pointer}
 .card.today .ringwrap svg{width:48px;height:48px}
 .card.today .ringwrap b{font-size:13px}
@@ -2387,10 +2387,10 @@ function diaryForm(d, P, sheet = false){ const dt = P.date || today(), t0 = toda
 const diaryPost = key => Object.values(S.feed).find(p => p.author === S.me && p.ref && p.ref.type === "diary" && p.ref.id === key);
 /* 대시보드 저널 칩: 오늘의 미션처럼 요약 카드 + 목록 카드. 목록 카드에 최근 저널(오늘 포함 3개)과 쓰기·수정 버튼. */
 function logToday(){ const d = S.mine["d-"+today()];
-  const head = `<section class="card today jtoday"><div class="ringwrap jicon">${d && EMOI[d.emo] ? EMOI[d.emo] : "📓"}</div><div class="tinfo"><small>오늘의 저널</small><h2>${d ? "오늘 기록을 남겼어요" : "오늘의 기록을 남겨 보세요"}</h2><p>${d ? `컨디션 ${esc(d.cond ?? "-")}%${d.emo ? ` · ${esc(d.emo)}` : ""}` : ""}</p></div></section>`;
+  const head = `<section class="card today jtoday"><div class="ringwrap jicon">${d && EMOI[d.emo] ? EMOI[d.emo] : "📓"}</div><div class="tinfo"><small>오늘의 저널</small></div></section>`;
   if (S.planner.edit) return head + diaryCard();
   const all = mineOf("diary").sort((a,b) => (b.date||"") < (a.date||"") ? -1 : 1), ds = all.slice(0, 3);
-  const row = x => { const t = pd(x.date); return `<div class="row wdlog" data-act="journal-view" data-id="${esc(x.id)}" role="button" tabindex="0"><span class="em">${EMOI[x.emo] || "💭"}</span><span class="t"><b>${x.date === today() ? "오늘" : `${t.getMonth()+1}월 ${t.getDate()}일 ${WD[t.getDay()]}`} · 컨디션 ${esc(x.cond ?? "-")}%</b><small>${esc(x.text || "일기 없이 기록만 남겼어요.")}</small></span></div>`; };
+  const row = x => { const t = pd(x.date); return `<div class="row wdlog" data-act="journal-view" data-id="${esc(x.id)}" role="button" tabindex="0"><span class="em">${EMOI[x.emo] || "💭"}</span><span class="t"><b>${x.date === today() ? "오늘" : `${t.getMonth()+1}월 ${t.getDate()}일 ${WD[t.getDay()]}`}</b><small>컨디션 ${esc(x.cond ?? "-")}%${x.emo ? ` · ${esc(x.emo)}` : ""}</small></span></div>`; };
   return head + `<section class="card tight qlist jlist">${ds.length ? `<p class="grp">최근 저널 <span class="num">${all.length}</span></p>${ds.map(row).join("")}${all.length > 3 ? `<button class="morebtn" data-act="wdlogs">전체 보기</button>` : ""}` : `<p class="empty-row">아직 남긴 저널이 없어요.</p>`}
     <button class="tadd-pill" data-act="sheet" data-k="diary">${d ? "오늘 저널 수정" : "+ 저널 쓰기"}</button></section>`; }
 function diaryList0(){
@@ -2560,7 +2560,7 @@ function viewToday(){
   } else if (!total) h += `<p class="empty-row">오늘 할 일일 퀘스트가 없어요.</p>`;
   h += todo.map(row).join("");
   const archived = mineOf("quest").filter(q => q.active === false).length;
-  h += done.map(row).join("") + `<div class="qfoot2"><button class="tadd-pill" data-act="hset" aria-label="일일 퀘스트 관리"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M4 12h16M4 18h7"/><circle cx="17" cy="6" r="2"/><circle cx="14" cy="18" r="2"/></svg>퀘스트 관리${archived ? ` <em class="num">보관 ${archived}</em>` : ""}</button></div></section>`;
+  h += done.map(row).join("") + `<div class="qfoot2"><button class="tadd-pill" data-act="hset" aria-label="일일 퀘스트 관리">+ 퀘스트 관리${archived ? ` <em class="num">보관 ${archived}</em>` : ""}</button></div></section>`;
   return h;
 }
 function goalRow(p, nested = false){
@@ -2729,7 +2729,7 @@ function ntRewardLine(d, area){
 }
 function jCard(d){
   const [y, m, dd] = d.date.split("-").map(Number), wd = "일월화수목금토"[new Date(y, m-1, dd).getDay()];
-  return `<article class="card ntcard jcard" data-act="journal-view" data-id="${d.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic("journal")}저널</span><small class="num">${m}.${dd}</small></div><h3>${m}월 ${dd}일 ${wd}요일</h3><button class="btn sec xs jedit" data-act="dedit" data-id="${d.id}">수정</button><p class="ntsub">컨디션 ${esc(d.cond ?? "-")}%${d.emo ? ` · ${esc(d.emo)}` : ""}</p>${d.text ? `<p class="ntbody">${clip(d.text, 140)}</p>` : ""}</article>`;
+  return `<article class="card ntcard jcard" data-act="journal-view" data-id="${d.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic("journal")}저널</span><small class="num">${m}.${dd}</small></div><h3>${m}월 ${dd}일 ${wd}요일</h3><button class="btn sec xs jedit" data-act="dedit" data-id="${d.id}">수정</button><p class="ntsub">컨디션 ${esc(d.cond ?? "-")}%${d.emo ? ` · ${esc(d.emo)}` : ""}</p></article>`;
 }
 function ntCard(n){
   const {cat, f} = ntN(n), C = noteDrawer(S, cat), pj = n.projectId && S.projects[n.projectId], d = new Date(n.updatedAt || n.createdAt || Date.now());
@@ -3010,7 +3010,7 @@ function viewPlan(){
   const sec = (t, list, extra = "", empty = "", more = "", btn = "") => `<div class="subhead${btn ? " dqhead" : ""}"><h2>${t} <span class="num">${list.length}</span></h2>${btn}</div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => plCard(g).replace(/<span>🔗 스테이지 [^<]*<\/span>/, "")).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
   let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태">${[["all","전체",all.length],["active","진행",act.length],["later","대기",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
   if (BD_ON) h = brainDump() + h;
-  if (T("active")) h += sec("진행 중", act, "", "진행 중인 메인 퀘스트가 없어요. '+ 생성'으로 이루고 싶은 큰 목표를 만들어 보세요.", "", `<button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">+ 생성</button>`);
+  if (T("active")) h += sec("진행 중", act, "", "진행 중인 메인 퀘스트가 없어요. '+ 생성'으로 이루고 싶은 목표를 만들어 보세요.", "", `<button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">+ 생성</button>`);
   if (T("later") && (later.length || tab === "later")) h += sec("대기 중", later, "", "시작일이 아직 오지 않은 메인 퀘스트가 여기에 모여요.");
   if (T("done") && (done.length || tab === "done")) h += sec("달성", done, "", "달성한 메인 퀘스트가 여기에 모여요.", tab === "all" && done.length > 3 ? `<button class="btn sec full qmmore" data-act="pl-tab" data-v="done">달성 전체 보기 <span class="num">${done.length}</span></button>` : "");
   return h;
@@ -3423,7 +3423,7 @@ function viewProfile(){
       if (dn.length) h += `<p class="sect3">${pt === "sub" ? "✓ 완료" : "🏆 달성"} ${dn.length}</p>` + dn.map(pgCard).join("");
     }
   }
-  else h += (mine && S.canWrite ? storyComposer() : "") + (posts.length ? posts.slice(0, S.profN || 20).map(x => `<article class="card feedcard">${postRow(x)}</article>`).join("") + (posts.length > (S.profN || 20) ? `<div class="feedmore" id="profmore">스토리를 더 불러오고 있어요</div>` : "") : `<div class="card empty"><strong>아직 스토리가 없어요</strong>${mine ? "일일 퀘스트를 해내고 공유해 보세요." : ""}</div>`);
+  else h += (mine && S.canWrite ? storyComposer() : "") + (posts.length ? posts.slice(0, S.profN || 20).map(x => `<article class="card feedcard">${postRow(x)}</article>`).join("") + (posts.length > (S.profN || 20) ? `<div class="feedmore" id="profmore">스토리를 더 불러오고 있어요</div>` : "") : `<div class="card empty"><strong>아직 스토리가 없어요</strong></div>`);
   return h;
 }
 function faceBlock(face, making, color, state = {}){
