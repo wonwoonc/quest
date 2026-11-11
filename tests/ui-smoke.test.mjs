@@ -272,13 +272,13 @@ test('legacy main goal without deadline still accepts task progress and stats up
   snapshot.mine.task = {id:'task',kind:'mission',name:'연결된 미션',projectId:'legacy',lv:'normal',done:false};
   h = await profileUI(snapshot);
   h.route('me');
-  assert.match(h.nodes.get('app').innerHTML,/0 \/ 100 XP/);
+  assert.match(h.nodes.get('app').innerHTML,/role="progressbar" aria-label="레벨 진행도"/);assert.doesNotMatch(h.nodes.get('app').innerHTML,/XP|코인/);
   h.click('mcheck',{id:'task'}); await h.settle();
   const saved = h.snapshot();
   assert.equal(saved.mine.task.done,true);
   assert.deepEqual(saved.projects.legacy.progress,{done:1,total:1});
   assert.equal(saved.projects.legacy.end,'');
-  assert.match(h.nodes.get('app').innerHTML,/30 \/ 100 XP/); // Approved normal task tier 3 = 30 XP, not legacy 10.
+  assert.match(h.nodes.get('app').innerHTML,/aria-valuenow="30"/); // Approved normal task tier 3 = 30 XP (of 100), not legacy 10.
   assert.deepEqual(h.alerts,[]);
 });
 
@@ -366,7 +366,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   for (const k of ['아이디어','참고자료','학습','메모','+ 서랍']) assert.ok(app().includes(k),k);
   const notes = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'note'), xp = () => balances(h.snapshot()).xp;
   const x0 = xp();
-  h.click('nt-new'); h.click('nt-kind',{v:'idea'}); assert.match(ov(),/\+10 XP · \+10 코인/);
+  h.click('nt-new'); h.click('nt-kind',{v:'idea'}); assert.match(ov(),/완성 조건/); assert.doesNotMatch(ov(),/XP|코인/);
   h.nodes.set('nf-title',{value:'레이드 퀘스트'}); h.nodes.set('nf-why',{value:'같이 하면 끝까지 간다'}); h.click('submit-note'); await h.settle();
   assert.equal(notes().length,1); assert.equal(xp(),x0,'incomplete note gives nothing');
   const n0 = notes()[0]; h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-next',{value:'매일 아침 서비스 조사'}); h.click('submit-note'); await h.settle();
@@ -380,7 +380,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   h.click('nt-edit',{id:n0.id}); h.click('nt-del',{id:n0.id}); h.click('nt-del',{id:n0.id}); await h.settle();
   assert.equal(notes().length,0); assert.equal(xp(),x0,'deleting reverses the reward');
   // learning: detail screen with chapters (Cornell notes per chapter) and wrap-up
-  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/학습 목표/); assert.doesNotMatch(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'강의'}); assert.match(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'책'}); assert.doesNotMatch(ov(),/id="nf-url"/); assert.match(ov(),/\+30 XP · \+30 코인/);
+  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/학습 목표/); assert.doesNotMatch(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'강의'}); assert.match(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'책'}); assert.doesNotMatch(ov(),/id="nf-url"/); assert.doesNotMatch(ov(),/XP|코인/);
   h.nodes.set('nf-title',{value:'데이터 분석 입문'}); h.click('submit-note'); await h.settle();
   const L = notes()[0]; assert.equal(L.cat,'learn'); assert.match(app(),/id="nted"/); assert.doesNotMatch(app(),/목차/); assert.match(app(),/완성 조건: 상태를 완료로 바꾸기/);
   h.click('ln-st',{v:'학습 중'}); await h.settle(); assert.equal(xp(),x0); assert.equal(h.snapshot().mine[L.id].f.status,'학습 중');
@@ -773,7 +773,7 @@ function assertDifficultySelector(html,kind){
     assert.ok(markup.includes(`<span class="e">${own[key].e}</span>`));
     assert.ok(markup.includes(`<b>${own[key].n}`));
     const reward=activityReward(kind,key);
-    assert.ok(markup.includes(`<small>+${reward.xp} XP · +${reward.coins} 코인</small>`));
+    assert.doesNotMatch(markup,/XP|코인/,`no payout text for ${reward.xp}`);
     const text=visibleText(markup);
     assert.ok(text.includes(own[key].n));
     const name=markup.match(/<b>([^<]+)/)[1];
@@ -818,7 +818,7 @@ test('dashboard/profile/shop omit the entire economy summary and retain balances
       assert.doesNotMatch(html,/data-act="shop-tab"/);
     }else{
       assert.match(html,/Lv\.\d+/);assert.match(html,/role="progressbar" aria-label="레벨 진행도"/);
-      assert.match(html,/class="num coinm"/);assert.match(html,/\d+ \/ [\d,]+ XP/);
+      assert.doesNotMatch(html,/XP|코인|🪙/);
     }
     assert.deepEqual(h.snapshot(),before);
   }
@@ -912,12 +912,12 @@ for(const field of ['lv','hlv'])test(`${field}: difficulty chips rerender the se
 });
 test('completion UI uses approved amounts, confirmation protects undo, manual goal completion is possible',async()=>{
   const h=await linkedUI();h.route('today');h.click('mcheck',{id:'tm'});await h.settle();
-  assert.match(h.nodes.get('toast').innerHTML,/30 XP · 60 코인/);
+  assert.doesNotMatch(h.nodes.get('toast').innerHTML,/XP|코인/);assert.ok(h.snapshot().economy.claims[JSON.stringify(['task','tm'])]?.xp>0||Object.values(h.snapshot().economy.claims).some(c=>c.active&&c.xp>0),'reward still granted');
   const before=h.snapshot();h.click('mcheck',{id:'tm'});await h.settle();assert.deepEqual(h.snapshot(),before,'undo waits for the in-app confirmation');
   assert.match(h.nodes.get('overlay').innerHTML,/완료를 취소할까요\?/);h.click('cfno');await h.settle();assert.deepEqual(h.snapshot(),before,'cancel keeps completion');
   h.click('mcheck',{id:'tm'});h.click('cfok');await h.settle();assert.equal(h.snapshot().mine.tm.done,false);
-  assert.match(h.nodes.get('toast').innerHTML,/-30 XP · -60 코인/);
-  h.click('project',{p:'main'});assert.doesNotMatch(h.nodes.get('app').innerHTML,/활동일·주간 횟수 제한 없음|지금 완료 시|같은 목표는 평생 한 번만 지급/);assert.match(h.nodes.get('app').innerHTML,/최대 200 XP · 100 코인/);
+  assert.doesNotMatch(h.nodes.get('toast').innerHTML,/XP|코인/);
+  h.click('project',{p:'main'});assert.doesNotMatch(h.nodes.get('app').innerHTML,/활동일·주간 횟수 제한 없음|지금 완료 시|같은 목표는 평생 한 번만 지급/);assert.doesNotMatch(h.nodes.get('app').innerHTML,/XP|코인/);
   h.click('pdone',{p:'main'});h.click('pdone',{p:'main'});await h.settle();
   assert.equal(h.snapshot().projects.main.status,'done');
   const claim=h.snapshot().economy.claims[JSON.stringify(['goal','main'])];assert.equal(claim.xp,200);assert.equal(claim.coins,100);
@@ -929,7 +929,7 @@ for(const xp of [106919,106920,106920+1000000])test(`level UI stays finite at XP
     h.route(route);
     const html=h.nodes.get('app').innerHTML;assert.doesNotMatch(html,/NaN|Infinity|0 \/ 0 XP|다음 레벨까지 0 XP/);
     assert.match(html,/aria-valuemax="100"/);
-    if(xp>=106920){assert.match(html,/MAX/);assert.match(html,/width:100%/);assert.doesNotMatch(html,/다음 레벨까지/);}
+    if(xp>=106920){assert.match(html,/width:100%/);assert.doesNotMatch(html,/다음 레벨까지/);}
     else assert.match(html,/Lv\.99/);
   }
 });
@@ -1184,10 +1184,10 @@ test('uploaded profile photo renders as the profile picture, not a chibi face ov
   const h=await profileUI(saved);h.route('dash');const html=h.nodes.get('app').innerHTML;
   assert.match(html,/class="avatar-photo"[^>]*><img src="data:image\/png;base64,AAAA" alt="프로필 사진"/);assert.doesNotMatch(html,/class="cface"/);
 });
-test('profile card opens the 능력치 page with level, XP, coins and stats; profile edit has no color picker',async()=>{
+test('profile card opens the 능력치 page with level and stats (no XP/coin numbers); profile edit has no color picker',async()=>{
   const h=await profileUI();h.route('dash');h.click('sheet',{k:'profile'});assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/data-act="swatch"|옷 색/);h.click('sheet-close');
   h.route('stats');const html=h.nodes.get('app').innerHTML;assert.match(h.nodes.get('topbar').innerHTML,/프로필/);h.click('areainfo',{v:'health'});assert.match(h.nodes.get('overlay').innerHTML,/체력 · 건강[\s\S]*몸을 돌보는/);
-  assert.match(html,/총 경험치[\s\S]*보유 코인[\s\S]*class="statcard"/);assert.doesNotMatch(html,/최장 연속/);
+  assert.match(html,/Lv\.\d+[\s\S]*class="statcard"/);assert.doesNotMatch(html,/총 경험치|보유 코인|XP/);assert.doesNotMatch(html,/최장 연속/);
 });
 test('story menu opens on the 스토리 tab after visiting another menu',async()=>{
   const h=await profileUI();h.route('me');h.click('ptab',{t:'goals'});assert.match(h.nodes.get('app').innerHTML,/data-act="ptab" data-t="goals" aria-pressed="true"/);

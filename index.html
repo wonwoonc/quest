@@ -94,7 +94,6 @@ html,*{scrollbar-color:var(--sbt) var(--card)}
 .bar{display:block;height:8px;background:var(--track);border-radius:4px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--xp);border-radius:4px;transition:width .7s cubic-bezier(.2,.8,.2,1)}
 .bar.green i{background:var(--done)}
-.barmeta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:5px}
 .btnrow{display:flex;gap:8px;margin-top:18px}
 .btnrow .btn{flex:1}
 
@@ -225,9 +224,6 @@ button.row:active,[role=button].row:active{background:var(--fill)}
 .ab.on{color:var(--heart)}
 .ab.on svg{animation:pop .35s}
 @keyframes pop{40%{transform:scale(1.3)}}
-.xpop{position:fixed;z-index:95;transform:translateY(-50%);pointer-events:none;font-size:12.5px;font-weight:800;color:var(--gold);background:var(--card);border-radius:999px;padding:3px 9px;box-shadow:0 2px 8px rgb(0 0 0 / .12);white-space:nowrap;animation:xpop 1s ease-out forwards}
-@keyframes xpop{0%{opacity:0;transform:translate(-4px,-50%)}15%{opacity:1;transform:translate(0,-50%)}75%{opacity:1}100%{opacity:0;transform:translate(0,-90%)}}
-@media (prefers-reduced-motion:reduce){.xpop{animation:none}}
 .ab:disabled{opacity:.45;cursor:default}
 .likers{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:14px;color:var(--sub)}
 .likers b{font-weight:700;color:var(--ink)}
@@ -284,7 +280,6 @@ button.row:active,[role=button].row:active{background:var(--fill)}
 .tags{display:flex;flex-wrap:wrap;gap:6px}
 .tag{font-size:12.5px;font-weight:700;border-radius:8px;padding:3px 9px;background:var(--fill);color:var(--sub)}
 .tag.dd{background:var(--accent-soft);color:var(--accent)}
-.tag.rw{background:var(--xp-soft);color:var(--gold)}
 .prog{display:flex;align-items:center;gap:12px;margin:16px 0 0}
 .prog .bar{flex:1}
 .prog span{font-size:14px;font-weight:700;white-space:nowrap}
@@ -437,9 +432,6 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .ymon .ymini i.l2{color:#fff}
 .ymon .ymini i.t{outline:1.5px solid var(--accent);color:var(--accent);font-weight:800}
 .dtext{white-space:pre-wrap;margin:6px 0 0;line-height:1.6}
-.coinm{color:var(--muted);font-weight:500;opacity:.85}
-.barmeta.lft > span:first-child{color:var(--sub);font-weight:700}
-.barmeta.lft{justify-content:flex-start;gap:10px}
 .dsum{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;gap:6px}
 .dsum b{display:block;font-size:20px;font-weight:800}
 .dsum span{font-size:12px;color:var(--muted)}
@@ -572,9 +564,6 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .stpf .av .avatar-photo{border-radius:0;width:100%!important;height:100%!important}
 .stpi h2{margin:0;font-size:20px;font-weight:800}.stpi p{margin:2px 0 8px;font-size:13px;color:var(--muted)}
 .stbio{grid-column:1 / -1;margin:0}
-.sttiles{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.sttiles div{background:var(--seg);border-radius:12px;padding:6px 6px;display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center}
-.sttiles small{font-size:10px;color:var(--muted);font-weight:700}.sttiles b{font-size:13px;font-weight:800;white-space:nowrap}
 .stcard2 .ch{margin-bottom:10px}
 @media (min-width:700px){.stcard2 .stbody{justify-content:center;gap:72px}.stcard2 .radar{margin:0!important}}
 .strow .stn{border:0;background:none;padding:0;text-align:left;color:var(--ink);cursor:pointer;text-decoration:underline dotted color-mix(in srgb,var(--muted) 60%,transparent);text-underline-offset:4px}
@@ -972,7 +961,6 @@ body.reo-lock{touch-action:none;overscroll-behavior:none}
 .lvup .hint{display:block;margin:12px 2px 0}
 .lvup-btns{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
-.wdp .barmeta{margin-top:2px}
 .wd-top{display:grid;grid-template-columns:minmax(210px,236px) minmax(0,1fr);gap:24px 24px;align-items:start}
 .wd-top > .wd-sec{margin-top:0}
 .wd-bot{grid-column:1/-1;border-top:1px solid var(--line);padding-top:28px;margin-top:8px;display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.12fr) minmax(0,.88fr);gap:24px;align-items:start}
