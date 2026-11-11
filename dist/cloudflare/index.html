@@ -414,7 +414,7 @@ body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}bo
 .drw button svg{width:24px;height:24px;flex:none}.drw button:active{background:var(--fill)}
 .drw [aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
 .modnote{margin:6px 0 4px;padding:8px 12px;border-radius:10px;background:var(--fill);color:var(--muted);font-size:13px}
-.reply .acts .rrep{margin-left:auto;color:var(--muted);font-size:12px}
+.reply[data-rid]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .freqs .row{gap:8px}.freqs .row .btn{flex:none}
 .drw-foot{margin-top:auto;padding-top:10px;border-top:1px solid var(--line)}
 .ch h2 .cnt{font-size:14px;color:var(--accent);margin-left:4px}
@@ -3452,11 +3452,11 @@ function viewPost(){
 }
 function replyRow(c, child, line){
   const lk = on((c.likes||{})[S.me]), n = Object.values(c.likes||{}).filter(on).length, parent = c.parentId && S.replies[c.parentId];
-  return `<div class="reply ${child?"child":""}"><div class="rail">${av(c.author, child?28:36)}${line ? '<span class="ln"></span>' : ""}</div>
+  return `<div class="reply ${child?"child":""}"${!TRIAL && canAct() && c.author !== S.me ? ` data-rid="${esc(c.id)}"` : ""}><div class="rail">${av(c.author, child?28:36)}${line ? '<span class="ln"></span>' : ""}</div>
     <div class="body"><div class="ph"><button class="nm" data-act="profile" data-u="${esc(c.author)}">${esc(nameOf(c.author))}</button><span class="pillLv">Lv.${statsOf(c.author).L}</span><time>${ago(c.createdAt)}</time></div>
       ${parent && child ? `<div class="to">${esc(nameOf(parent.author))}님에게 답글</div>` : ""}${c.modHidden && c.author === S.me ? `<p class="modnote">운영자가 숨긴 답글이에요. 지금은 나에게만 보여요.</p>` : ""}<p class="txt">${esc(c.text)}</p>
       <div class="acts"><button class="ab ${lk?"on":""}" data-act="rlike" data-c="${c.id}" ${canAct() && c.author !== S.me ? "" : "disabled"} aria-pressed="${lk}" aria-label="답글 공감">${lk?I.heartOn:I.heart}${n?`<span class="num">${n}</span>`:""}</button>
-        <button class="ab" data-act="reply" data-p="${c.postId}" data-c="${parent ? c.parentId : c.id}" data-to="${c.id}" ${canAct()?"":"disabled"} aria-label="답글 달기">${I.reply}<span>답글</span></button>${!TRIAL && canAct() && c.author !== S.me ? `<button class="ab rrep" data-act="rreport" data-c="${c.id}" aria-label="답글 신고"><span>${S.armed === "rr"+c.id ? "한 번 더 누르면 신고돼요" : "신고"}</span></button>` : ""}</div></div></div>`;
+        <button class="ab" data-act="reply" data-p="${c.postId}" data-c="${parent ? c.parentId : c.id}" data-to="${c.id}" ${canAct()?"":"disabled"} aria-label="답글 달기">${I.reply}<span>답글</span></button></div></div></div>`;
 }
 
 /* ================= goal ================= */
@@ -3907,6 +3907,9 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     return sheetWrap(mine ? "내 스토리" : esc(nameOf(a)) + "님의 스토리", "", `<div class="sheetlist mlist">${mine
       ? item("editpost", "수정", "글과 수치 기록을 고쳐요") + item("ptoggle-reply", p.noReply ? "답글 기능 켜기" : "답글 기능 끄기", p.noReply ? "지금은 답글을 받을 수 없어요" : "") + item("ptoggle-likes", p.hideLikes ? "공감 수 보이기" : "공감 수 숨기기", p.hideLikes ? "다른 사람에게 공감 수가 안 보여요" : "") + item("delpost", S.armed === "dp"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", "", true)
       : item("follow", f ? "팔로우 취소" : "팔로우", "") + item("phide", "이 스토리 숨기기", "커뮤니티에서 다시 보이지 않아요") + item("block", S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단", "이 사람의 스토리와 답글이 모두 안 보여요", true) + (TRIAL ? "" : item("preport", "신고", "부적절한 스토리를 운영자에게 알려요", true))}</div>`); }
+  if (c.type === "rmenu"){ const r = S.replies[c.rid]; if (!r){ closeSheet(); return; } const a = r.author;
+    return sheetWrap(esc(nameOf(a)) + "님의 답글", "", `<div class="sheetlist mlist"><button class="row mitem warn" data-act="rreport" data-c="${esc(r.id)}"><span class="t"><b>신고</b><small>부적절한 답글을 운영자에게 알려요</small></span></button>
+      <button class="row mitem warn" data-act="block" data-u="${esc(a)}"><span class="t"><b>${S.armed === "bl"+a ? "한 번 더 누르면 차단돼요" : "차단"}</b><small>이 사람의 스토리와 답글이 모두 안 보여요</small></span></button></div>`); }
   if (c.type === "navedit"){ const order = navOrder(), up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>`, dn = up.replace("M6 15l6-6 6 6", "M6 9l6 6 6-6");
     const row = (h, i) => { const [l, svg] = NAV[h]; return `<div class="row navedit-row"><span class="nvic">${svg}</span><span class="t"><b>${l}</b></span><button class="iconbtn" data-act="nav-mv" data-v="${h}" data-d="-1" aria-label="${l} 위로" ${i ? "" : "disabled"}>${up}</button><button class="iconbtn" data-act="nav-mv" data-v="${h}" data-d="1" aria-label="${l} 아래로" ${i < order.length - 1 ? "" : "disabled"}>${dn}</button></div>`; };
     return sheetWrap("메뉴 순서", "", `<p class="navedit-hint">화살표로 순서를 바꿔요. 휴대폰에서는 위의 ${NAV_BAR}개가 하단 메뉴에 보여요. 전체 메뉴는 왼쪽 위 메뉴 버튼에서 열 수 있어요.</p>
@@ -4148,6 +4151,14 @@ let tapT = null, tapKey = null;
   document.addEventListener("pointerup", () => end(true), true);
   document.addEventListener("pointercancel", () => end(!!drag), true);
   document.addEventListener("contextmenu", e => { if (e.target.closest("[data-reo]")) e.preventDefault(); });
+  /* 답글 길게 누르기(PC는 오른쪽 클릭): 신고·차단 메뉴 */
+  let lp = null; const lpEnd = () => { if (lp){ clearTimeout(lp.t); lp = null; } };
+  const rmenu = rid => { if (S.compose && S.compose.type === "rmenu") return; if (navigator.vibrate) try { navigator.vibrate(12); } catch {} openSheet({type:"rmenu", rid}); };
+  document.addEventListener("pointerdown", e => { if (e.button > 0) return; const el = e.target.closest(".reply[data-rid]"); if (!el || e.target.closest("button,a,textarea,input")) return;
+    lpEnd(); lp = {x:e.clientX, y:e.clientY, t:setTimeout(() => { lp = null; rmenu(el.dataset.rid); }, 500)}; });
+  document.addEventListener("pointermove", e => { if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 10) lpEnd(); }, {passive:true});
+  ["pointerup", "pointercancel", "scroll"].forEach(t => document.addEventListener(t, lpEnd, {passive:true, capture:t === "scroll"}));
+  document.addEventListener("contextmenu", e => { const el = e.target.closest(".reply[data-rid]"); if (!el) return; e.preventDefault(); lpEnd(); rmenu(el.dataset.rid); });
   document.addEventListener("click", e => { if (S._reoJust && Date.now() - S._reoJust < 400){ e.stopPropagation(); e.preventDefault(); S._reoJust = 0; } }, true);
 })();
 document.addEventListener("click", e => {
@@ -4234,12 +4245,12 @@ document.addEventListener("click", e => {
     case "dopen": S.openDiary = S.openDiary === id ? null : id; if (S.compose && S.compose.type === "logs") renderSheet(); break;
     case "theme": LS.set("theme", b.dataset.v); applyTheme(); break;
     case "setn": { const st = getSet(); st.notif[b.dataset.k] = !st.notif[b.dataset.k]; run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
-    case "block": { if (S.armed !== "bl"+u){ arm("bl"+u); if (S.compose) renderSheet(); return; } S.armed = null; const st = getSet(); if (S.compose && (S.compose.type === "pmenu" || S.compose.type === "umenu")) closeSheet();
+    case "block": { if (S.armed !== "bl"+u){ arm("bl"+u); if (S.compose) renderSheet(); return; } S.armed = null; const st = getSet(); if (S.compose && (S.compose.type === "pmenu" || S.compose.type === "umenu" || S.compose.type === "rmenu")) closeSheet();
       run(async () => { await api.putMine("settings", {kind:"settings", ...st, blocked:[...new Set([...st.blocked, u])]}); if (isFollowing(S.me, u)) await api.follow(u, false); }, () => toast(`${esc(nameOf(u))}님을 차단했어요`)); return; }
     case "umenu": openSheet({type:"umenu", u}); return;
     case "ureport": case "preport": { closeSheet(); const done = () => toast("신고가 접수됐어요. 검토 후 조치할게요");
       if (!community) return done(); community.report(a === "preport" ? "post" : "user", a === "preport" ? pid : u).then(done, e => toast(esc(e.message || "신고하지 못했어요. 잠시 후 다시 시도해 주세요."))); return; }
-    case "rreport": { const rid = b.dataset.c; if (S.armed !== "rr"+rid){ arm("rr"+rid); schedule(); return; } S.armed = null; schedule();
+    case "rreport": { const rid = b.dataset.c; closeSheet();
       const done = () => toast("신고가 접수됐어요. 검토 후 조치할게요"); if (!community) return done();
       community.report("reply", rid).then(done, e => toast(esc(e.message || "신고하지 못했어요. 잠시 후 다시 시도해 주세요."))); return; }
     case "freq-ok": case "freq-no": { if (!community) return; const ok = a === "freq-ok";
