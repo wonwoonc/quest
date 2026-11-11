@@ -1148,6 +1148,11 @@ test('nav › 퀘스트: main quests only, chips 전체/진행/대기/달성 fil
   h.click('pl-tab',{v:'done'});html=h.nodes.get('app').innerHTML;assert.match(html,/달성 메인/);assert.doesNotMatch(html,/메인 A|대기 메인/);
   h.click('pl-tab',{v:'active'});html=h.nodes.get('app').innerHTML;assert.match(html,/메인 A[\s\S]*메인 퀘스트 생성/);assert.doesNotMatch(html,/대기 메인|달성 메인/);
   h.click('pl-tab',{v:'bogus'});assert.match(h.nodes.get('app').innerHTML,/data-v="all" aria-pressed="true"/);
+  assert.doesNotMatch(h.nodes.get('app').innerHTML,/plgrid hsc/,'no horizontal scroller');
+  const many=h.snapshot();for(let i=0;i<5;i++)many.projects['d'+i]={id:'d'+i,owner:'me',title:'달성 '+i,status:'done',doneAt:10+i};
+  const k=await profileUI(many);k.route('qmanage');let a=k.nodes.get('app').innerHTML;
+  assert.equal((a.match(/class="card pgc done"/g)||[]).length,3,'전체 shows 3 latest achieved');assert.match(a,/달성 4[\s\S]*달성 3[\s\S]*달성 2[\s\S]*data-act="pl-tab" data-v="done">달성 전체 보기 <span class="num">6/);
+  k.click('pl-tab',{v:'done'});a=k.nodes.get('app').innerHTML;assert.equal((a.match(/class="card pgc done"/g)||[]).length,6);assert.doesNotMatch(a,/달성 전체 보기/);
 });
 test('대시보드 일일 › 관리: opens the 일일 퀘스트 page (cards + 보관), archived can be restored',async()=>{
   const base=await profileUI(),saved=base.snapshot();
