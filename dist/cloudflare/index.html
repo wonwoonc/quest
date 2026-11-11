@@ -3211,7 +3211,7 @@ function viewSettings(){
   const st = getSet(), me = prof(S.me), th = LS.get("theme", "system");
   let h = `<p class="sect3">계정</p><section class="card tight">
     <button class="row" data-act="sheet" data-k="profile"><span class="t"><b>프로필 편집</b><small>닉네임 · 소개 · 프로필 사진</small></span>${I.chev}</button>
-    ${TRIAL ? "" : `<div class="row"><span class="t"><b>로컬 비공개 표시</b><small>화면 필터만 적용 · 서버 접근 제어/승인 기능 없음</small></span>${sw("setpriv", !!me.private)}</div>`}</section>`;
+    </section>`;
   if (!TRIAL) h += `<p class="sect3">알림</p><section class="card tight">${[["like","공감","내 글과 답글에 공감했을 때"],["reply","답글","내 글에 답글이 달렸을 때"],["follow","팔로우","새 팔로워가 생겼을 때"],["join","함께하기","내 일일 퀘스트를 함께 시작했을 때"]].map(([k,l,d]) => `<div class="row"><span class="t"><b>${l}</b><small>${d}</small></span>${sw("setn", st.notif[k], `data-k="${k}"`)}</div>`).join("")}</section>`;
   h += `<p class="sect3">메뉴</p><section class="card tight"><button class="row" data-act="navedit"><span class="t"><b>메뉴 순서</b><small>${navOrder().slice(0, NAV_BAR).map(h0 => NAV[h0][0]).join(" · ")} · 더보기</small></span>${I.chev}</button></section>`;
   h += `<p class="sect3">화면</p><section class="card"><div class="ch" style="margin-bottom:10px"><h2 style="font-size:16px">화면 모드</h2></div><div class="seg sm">${[["system","시스템"],["light","라이트"],["dark","다크"]].map(([k,l]) => `<button data-act="theme" data-v="${k}" aria-pressed="${th===k}">${l}</button>`).join("")}</div></section>`;
@@ -4119,7 +4119,6 @@ document.addEventListener("click", e => {
     case "dopen": S.openDiary = S.openDiary === id ? null : id; if (S.compose && S.compose.type === "logs") renderSheet(); break;
     case "theme": LS.set("theme", b.dataset.v); applyTheme(); break;
     case "setn": { const st = getSet(); st.notif[b.dataset.k] = !st.notif[b.dataset.k]; run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
-    case "setpriv": { const pr = !prof(S.me).private; run(() => api.saveProfile({private:pr}), () => toast(pr ? "🔒 로컬 비공개 표시를 켰어요 (서버 접근 제어 없음)" : "로컬 비공개 표시를 껐어요 (서버 접근 제어 없음)")); return; }
     case "block": { if (S.armed !== "bl"+u){ arm("bl"+u); if (S.compose) renderSheet(); return; } S.armed = null; const st = getSet(); if (S.compose && (S.compose.type === "pmenu" || S.compose.type === "umenu")) closeSheet();
       run(async () => { await api.putMine("settings", {kind:"settings", ...st, blocked:[...new Set([...st.blocked, u])]}); if (isFollowing(S.me, u)) await api.follow(u, false); }, () => toast(`${esc(nameOf(u))}님을 차단했어요`)); return; }
     case "umenu": openSheet({type:"umenu", u}); return;

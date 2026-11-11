@@ -1301,7 +1301,7 @@ test('main edition keeps the development app: checklist yes, but no trial notice
   const h=await profileUI();h.route('qmanage');assert.match(h.nodes.get('app').innerHTML,/첫 게임 시작하기[\s\S]*일일 퀘스트 하나 만들기/,'main edition also shows the checklist');
   h.route('feed');assert.doesNotMatch(h.nodes.get('app').innerHTML,/정식 버전에서 열려요/);
   h.route('settings');const set=h.nodes.get('app').innerHTML;
-  assert.match(set,/data-act="setn"/);assert.match(set,/로컬 비공개 표시/);assert.match(set,/저장 위치/);assert.match(set,/앱 버전<\/b><small>1\.0</);assert.doesNotMatch(set,/프로토타입|로컬 테스트 프로필/);assert.match(set,/지금까지 기록을 JSON 파일로 저장/);
+  assert.match(set,/data-act="setn"/);assert.doesNotMatch(set,/로컬 비공개 표시|data-act="setpriv"/);assert.match(set,/저장 위치/);assert.match(set,/앱 버전<\/b><small>1\.0</);assert.doesNotMatch(set,/프로토타입|로컬 테스트 프로필/);assert.match(set,/지금까지 기록을 JSON 파일로 저장/);
   h.route('feed');assert.match(h.nodes.get('topbar').innerHTML,/data-v="activity"/);
   const trialLogin=harness(undefined,'',{trial:true}),html=await readFile(root+'/dist/quest-tester.html','utf8');
   assert.match(html,/<html lang="ko" data-edition="trial"/);assert.match(html,/<title>퀘스트 테스트판<\/title>/);
