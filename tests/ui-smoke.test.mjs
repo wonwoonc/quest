@@ -500,7 +500,7 @@ test('past month date buttons open the day records page; back returns to the sam
   h.click('cstep',{v:'1'}); assert.match(h.nodes.get('app').innerHTML,/2026년 12월/);
   h.click('cstep',{v:'-1'}); assert.match(h.nodes.get('app').innerHTML,/2026년 11월/);
   h.click('cmode',{v:'week'}); assert.match(h.nodes.get('app').innerHTML,/class="wgrid"/);
-  h.click('cmode',{v:'month'}); assert.match(h.nodes.get('app').innerHTML,/지난 날짜는 기록 보기/);
+  h.click('cmode',{v:'month'}); assert.match(h.nodes.get('app').innerHTML,/class="mgrid|data-act="cdate"/); assert.doesNotMatch(h.nodes.get('app').innerHTML,/지난 날짜는 기록 보기/);
 });
 test('day records page journal view never initializes editor; story and goals navigate; today/future open the day tab',async()=>{
   const h = await calendarActivityUI(), before = h.snapshot();
@@ -991,7 +991,7 @@ for(const wide of [true,false])for(const mini of [false,true]){
     const tree=layoutTree(next.nodes.get('app').innerHTML);
     assert.equal(tree.children.length,1,'no economy summary sibling outside dashboard');
     const grid=tree.children[0];assert.ok(grid.classes.includes('wd-top'));
-    assert.deepEqual(grid.children.map(n=>n.classes[0]),['wd-pcol','wd-goals','wd-bot'],'profile/goal/bottom grid order with no empty summary row');
+    assert.deepEqual(grid.children.map(n=>n.classes[0]),['wd-pcol','wd-goals','wd-chips','wd-bot'],'profile/goal/chips/bottom grid order with no empty summary row');
     assert.ok(grid.children[0].children.length>0,'profile column remains populated');
     assert.ok(grid.children[1].children.length>0,'goals column remains populated');
     assert.doesNotMatch(next.nodes.get('app').innerHTML,removedEconomySummary);
@@ -1297,6 +1297,13 @@ test('main edition keeps the development app: checklist yes, but no trial notice
   assert.match(html,/<html lang="ko" data-edition="trial"/);assert.match(html,/<title>퀘스트 테스트판<\/title>/);
   vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],trialLogin.context);trialLogin.flush();
   const login=trialLogin.nodes.get('app').innerHTML;assert.match(login,/>바로 시작하기</);assert.doesNotMatch(login,/카카오|개발 미리보기/);
+});
+test('mobile dashboard chips: 일일/미션/저널, mission by default, switching panes keeps data unchanged',async()=>{
+  const h=await profileUI();h.route('dash');let html=h.nodes.get('app').innerHTML;const before=h.snapshot();
+  assert.match(html,/class="wd-chips" role="tablist"[\s\S]*data-v="daily"[^>]*>일일[\s\S]*data-v="mission" aria-selected="true">미션[\s\S]*data-v="journal"[^>]*>저널/);
+  assert.match(html,/class="wd-bot" data-pane="mission"/);assert.match(html,/wd-sec dp-daily[\s\S]*wd-sec dp-mission[\s\S]*wd-sec dp-journal/);
+  h.click('dpane',{v:'journal'});html=h.nodes.get('app').innerHTML;assert.match(html,/data-pane="journal"/);assert.match(html,/data-v="journal" aria-selected="true"/);
+  h.click('dpane',{v:'bogus'});assert.match(h.nodes.get('app').innerHTML,/data-pane="journal"/);assert.deepEqual(h.snapshot(),before);
 });
 test('release info: terms, privacy policy and contact in main edition only; sheets render every section',async()=>{
   const h=await profileUI();h.route('settings');const set=h.nodes.get('app').innerHTML;

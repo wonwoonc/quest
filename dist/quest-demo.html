@@ -995,6 +995,7 @@ body.reo-lock{touch-action:none;overscroll-behavior:none}
 body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
 .wd-top{display:grid;grid-template-columns:minmax(210px,236px) minmax(0,1fr);gap:24px 24px;align-items:start}
 .wd-top > .wd-sec{margin-top:0}
+.wd-chips{display:none}
 .wd-bot{grid-column:1/-1;border-top:1px solid var(--line);padding-top:28px;margin-top:8px;display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.12fr) minmax(0,.88fr);gap:24px;align-items:start}
 @media (min-width:1024px){#app[data-v="dash"]{max-width:1192px;margin-left:auto;margin-right:auto}}
 .wd-tl{display:contents}
@@ -1120,7 +1121,14 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
   .wd-ggrid > .wd-addcard:only-child{flex-basis:100%}
   .wd-fix,.wd-top .wd-stack{height:auto}
   .wd-tl > .wd-sec{border-top:1px solid var(--line);padding-top:28px;margin-top:12px}
-  .wd-bot{margin-top:12px}
+  .wd-bot{margin-top:0;border-top:0;padding-top:12px}
+  .wd-chips{position:sticky;top:calc(56px + env(safe-area-inset-top,0px));z-index:19;display:flex;gap:8px;background:var(--bg);margin:4px -16px 0;padding:10px 16px;border-bottom:1px solid var(--line)}
+  .wd-chips button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:999px;padding:9px 6px;font-size:14.5px;font-weight:700}
+  .wd-chips button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .wd-chips .num{font-size:12px;font-weight:700;opacity:.8}
+  .wd-chips .ck{display:inline-grid;width:16px;height:16px}.wd-chips .ck svg{width:16px;height:16px}
+  .wd-bot[data-pane="daily"] .dp-mission,.wd-bot[data-pane="daily"] .dp-journal,.wd-bot[data-pane="mission"] .dp-daily,.wd-bot[data-pane="mission"] .dp-journal,.wd-bot[data-pane="journal"] .dp-daily,.wd-bot[data-pane="journal"] .dp-mission{display:none}
+  .wd-bot .wd-tl > .wd-sec{border-top:0;padding-top:0;margin-top:0}
   .wd-fix > .card + .card,.wd-top .wd-stack:not(.wd-logst) > .card:last-child,.wd-logst > .card:last-child{flex:none;overflow:visible;min-height:0}
   .wd-ggrid .pgc .qcover{aspect-ratio:16/8}
   .wd-ggrid > .pgc{padding-bottom:4px;gap:6px}
@@ -2632,7 +2640,6 @@ function viewCal(){
   } else if (mode === "month"){
     const first = new Date(D0.getFullYear(), D0.getMonth(), 1), start = monStart(dk(first.getTime())), mo = D0.getMonth();
     const activities = dayActivityIndex();
-    h += `<p class="hint">지난 날짜는 기록 보기 · 오늘부터는 일정 보기</p>`;
     h += `<section class="card mgrid mtask"><div class="wk">${["월","화","수","목","금","토","일"].map(w => `<span>${w}</span>`).join("")}</div><div class="days">`;
     const monthHabits = habitView();
     for (let i = 0; i < 42; i++){ const d = addD(start, i), x = pd(d); if (i >= 35 && x.getMonth() !== mo) break; const l = byTime(by[d] || []); const hq = habitsOn(d), mh = monthHabits(d);
@@ -3340,6 +3347,13 @@ function webProfCard(uid){
     ${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ""}
     <div class="counts ccl"><button data-act="dstory"><b class="num">${posts}</b><span>스토리</span></button><button data-act="flist" data-v="followers" data-u="${esc(uid)}"><b class="num">${followers}</b><span>팔로워</span></button><button data-act="flist" data-v="following" data-u="${esc(uid)}"><b class="num">${following}</b><span>팔로잉</span></button></div></section>`;
 }
+// 모바일 대시보드: 일일 / 미션 / 저널 칩으로 한 칸씩 보여 준다. 기본은 미션(앱을 다시 열면 미션으로 돌아감). PC는 CSS로 칩을 숨기고 전부 보여 준다.
+function dashChips(){ const k = today(), pane = S.dashPane || "mission";
+  const hs = habitsOn(k), hDone = hs.filter(q => (q.done || {})[k]).length;
+  const ms = mineOf("mission"), mDone = ms.filter(m => m.done && m.doneAt && dk(m.doneAt) === k).length, mLeft = ms.filter(m => !m.done && dueOf(m) && (dueOf(m) <= k && !m.period || (m.period && isToday(m)))).length;
+  const wrote = mineOf("diary").some(x => x.date === k);
+  const chip = (v, label, badge) => `<button role="tab" data-act="dpane" data-v="${v}" aria-selected="${pane === v}">${label}${badge}</button>`;
+  return `<div class="wd-chips" role="tablist" aria-label="오늘 보기">${chip("daily", "일일", hs.length ? `<span class="num">${hDone}/${hs.length}</span>` : "")}${chip("mission", "미션", mDone + mLeft ? `<span class="num">${mDone}/${mDone + mLeft}</span>` : "")}${chip("journal", "저널", wrote ? `<span class="ck">${I.check}</span>` : "")}</div>`; }
 function viewWebDash(){
   const uid = S.me, gs = goalsOf(uid).filter(g => g.status !== "done" && !isPlanned(g)).sort(gOrder);
   const save = S.qTab; S.qTab = "daily"; let d = viewToday(); S.qTab = save;
@@ -3354,10 +3368,10 @@ function viewWebDash(){
   const goals = `${strip(gs, "메인 퀘스트", "big", "이루고 싶은 큰 목표를 세워 보세요")}
 `;
   let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}<div class="wd-mprof">${profHead(uid).replace('<div class="stage">', '<div class="stage" data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기">')}</div></div><div class="wd-goals">${goals}</div>
-      <div class="wd-bot"><div class="wd-sec"><div class="wd-stack">${d}</div></div>
-      <div class="wd-tl"><div class="wd-sec"><div class="wd-merge wd-fix">${(() => { S._noToday = true; S._noTime = true; let tt; try{ tt = taskTab({noUp:true}); } finally { S._noToday = false; S._noTime = false; }
+      ${dashChips()}<div class="wd-bot" data-pane="${S.dashPane || "mission"}"><div class="wd-sec dp-daily"><div class="wd-stack">${d}</div></div>
+      <div class="wd-tl"><div class="wd-sec dp-mission"><div class="wd-merge wd-fix">${(() => { S._noToday = true; S._noTime = true; let tt; try{ tt = taskTab({noUp:true}); } finally { S._noToday = false; S._noTime = false; }
         return tt; })()}</div></div>
-        <div class="wd-sec"><div class="wd-stack wd-logst">${logToday()}${(() => { const ds = mineOf("diary").filter(x => x.date !== today()).sort((a,b) => (b.date||"") < (a.date||"") ? -1 : 1).slice(0, 3);
+        <div class="wd-sec dp-journal"><div class="wd-stack wd-logst">${logToday()}${(() => { const ds = mineOf("diary").filter(x => x.date !== today()).sort((a,b) => (b.date||"") < (a.date||"") ? -1 : 1).slice(0, 3);
           return ds.length ? `<section class="card tight wd-logs"><div class="ch"><h2>최근 저널</h2><button class="side btnlink" data-act="wdlogs">전체 보기</button></div>${ds.map(x => { const t = pd(x.date); return `<div class="row wdlog"><span class="em">${EMOI[x.emo] || "💭"}</span><span class="t"><b>${t.getMonth()+1}월 ${t.getDate()}일 ${WD[t.getDay()]} · 컨디션 ${esc(x.cond ?? "-")}%</b><small>${esc(x.text || "일기 없이 기록만 남겼어요.")}</small></span></div>`; }).join("")}</section>` : ""; })()}</div></div></div></div></div>`;
   return h;
 }
@@ -3997,6 +4011,7 @@ document.addEventListener("click", e => {
       else if (C.mode === "month"){ d.setDate(1); d.setMonth(d.getMonth()+n); C.date = dk(d.getTime()); } else { d.setFullYear(d.getFullYear()+n); C.date = dk(d.getTime()); } break; }
     case "ctoday": S.cal.date = today(); S.tlTop = S.wgTop = null; S.yCenter = true; break;
     case "cpick": S.cal.date = b.dataset.v; if (b.dataset.m) S.cal.mode = b.dataset.m; S.tlTop = S.wgTop = null; break;
+    case "dpane": { if (!["daily", "mission", "journal"].includes(b.dataset.v)) return; S.dashPane = b.dataset.v; render(); return; }
     case "cdaystep": { const v = b.dataset.v; if (activityDate(v) !== v || v >= today()) return; S.view = {name:"calday", date:v}; render(); window.scrollTo?.(0, 0); return; }
     case "cdate": { const v = b.dataset.v; if (activityDate(v) !== v) return;
       if (v < today()){ S.calKeep = true; push({name:"calday", date:v}, "#calday"); return; }
