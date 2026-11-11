@@ -1106,7 +1106,7 @@ test('nav › 퀘스트: bulk status change, archive, task move and confirmed de
   saved.mine.qa={id:'qa',kind:'quest',name:'관리 일일',repeat:{type:'daily'},days:[],lv:'easy',active:true,done:{},createdAt:1};
   saved.mine.t1={id:'t1',kind:'mission',name:'관리 미션',due:'2099-01-01',time:'10:00',projectId:'s1',lv:'normal',done:false,createdAt:1};
   const h=await profileUI(saved);assert.match(h.nodes.get('nav').innerHTML,/href="#qmanage"[^>]*>[\s\S]*?<span>퀘스트<\/span>/);
-  h.route('qmanage');assert.match(h.nodes.get('topbar').innerHTML,/퀘스트/);assert.match(h.nodes.get('app').innerHTML,/class="subhead dqhead"><h2>메인 퀘스트 <span class="num">\d+<\/span><\/h2><button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">\+ 생성<\/button><\/div><div class="seg pltabs"/);h.click('pl-mode',{v:'tidy'});assert.match(h.nodes.get('app').innerHTML,/메인 하나/);
+  h.route('qmanage');assert.match(h.nodes.get('topbar').innerHTML,/퀘스트/);assert.match(h.nodes.get('app').innerHTML,/<div class="seg pltabs"[\s\S]*class="subhead dqhead"><h2>진행 중 <span class="num">\d+<\/span><\/h2><button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">\+ 생성<\/button><\/div>/);h.click('pl-mode',{v:'tidy'});assert.match(h.nodes.get('app').innerHTML,/메인 하나/);
   h.click('qm-sel',{id:'m1'});h.click('qm-sel',{id:'m2'});assert.match(h.nodes.get('app').innerHTML,/<b>2<\/b>개 선택/);
   h.click('qm-do',{v:'planned'});await h.settle();assert.equal(h.snapshot().projects.m1.status,'planned');assert.equal(h.snapshot().projects.m2.status,'planned');
   h.click('qm-tab',{v:'daily'});h.click('qm-sel',{id:'qa'});h.click('qm-do',{v:'arch'});await h.settle();assert.equal(h.snapshot().mine.qa.active,false);
@@ -1142,7 +1142,7 @@ test('nav › 퀘스트: main quests only, chips 전체/진행/대기/달성 fil
   saved.mine.qa={id:'qa',kind:'quest',name:'일일 C',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:true,done:{},createdAt:1};
   const h=await profileUI(saved);h.route('qmanage');let html=h.nodes.get('app').innerHTML;
   assert.match(html,/data-v="all" aria-pressed="true">전체 <span class="num">3[\s\S]*data-v="active"[^>]*>진행 <span class="num">1[\s\S]*data-v="later"[^>]*>대기 <span class="num">1[\s\S]*data-v="done"[^>]*>달성 <span class="num">1/);
-  assert.match(html,/메인 퀘스트 <span class="num">3[\s\S]*data-v="big">\+ 생성[\s\S]*진행 중 <span class="num">1[\s\S]*메인 A[\s\S]*대기 중 <span class="num">1[\s\S]*대기 메인[\s\S]*달성 <span class="num">1[\s\S]*달성 메인/);
+  assert.match(html,/진행 중 <span class="num">1<\/span><\/h2><button[^>]*data-v="big">\+ 생성[\s\S]*메인 A[\s\S]*대기 중 <span class="num">1[\s\S]*대기 메인[\s\S]*달성 <span class="num">1[\s\S]*달성 메인/);
   assert.doesNotMatch(html,/일일 C|data-v="sub"|data-v="daily"|class="pgsubs"|스테이지 0\/1/);
   h.click('pl-tab',{v:'later'});html=h.nodes.get('app').innerHTML;assert.match(html,/대기 메인/);assert.doesNotMatch(html,/메인 A|달성 메인/);
   h.click('pl-tab',{v:'done'});html=h.nodes.get('app').innerHTML;assert.match(html,/달성 메인/);assert.doesNotMatch(html,/메인 A|대기 메인/);

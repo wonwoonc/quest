@@ -2987,10 +2987,10 @@ function viewPlan(){
   if (!["all", "active", "later", "done"].includes(Q.ptab)) Q.ptab = "all";
   const tab = Q.ptab, T = t => tab === "all" || tab === t;
   /* 모바일은 위아래 한 줄씩, PC는 여러 줄 격자(.plgrid). 전체 칩의 달성은 최근 3개 + '달성 전체 보기'. */
-  const sec = (t, list, extra = "", empty = "", more = "") => `<div class="subhead"><h2>${t} <span class="num">${list.length}</span></h2></div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => plCard(g).replace(/<span>🔗 스테이지 [^<]*<\/span>/, "")).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
-  let h = `<div class="subhead dqhead"><h2>메인 퀘스트 <span class="num">${all.length}</span></h2><button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">+ 생성</button></div><div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태">${[["all","전체",all.length],["active","진행",act.length],["later","대기",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
+  const sec = (t, list, extra = "", empty = "", more = "", btn = "") => `<div class="subhead${btn ? " dqhead" : ""}"><h2>${t} <span class="num">${list.length}</span></h2>${btn}</div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => plCard(g).replace(/<span>🔗 스테이지 [^<]*<\/span>/, "")).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
+  let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태">${[["all","전체",all.length],["active","진행",act.length],["later","대기",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
   if (BD_ON) h = brainDump() + h;
-  if (T("active")) h += sec("진행 중", act, "", "진행 중인 메인 퀘스트가 없어요. 위의 '+ 생성'으로 이루고 싶은 큰 목표를 만들어 보세요.");
+  if (T("active")) h += sec("진행 중", act, "", "진행 중인 메인 퀘스트가 없어요. '+ 생성'으로 이루고 싶은 큰 목표를 만들어 보세요.", "", `<button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">+ 생성</button>`);
   if (T("later") && (later.length || tab === "later")) h += sec("대기 중", later, "", "시작일이 아직 오지 않은 메인 퀘스트가 여기에 모여요.");
   if (T("done") && (done.length || tab === "done")) h += sec("달성", done, "", "달성한 메인 퀘스트가 여기에 모여요.", tab === "all" && done.length > 3 ? `<button class="btn sec full qmmore" data-act="pl-tab" data-v="done">달성 전체 보기 <span class="num">${done.length}</span></button>` : "");
   return h;
