@@ -414,6 +414,7 @@ body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}bo
 .drw button svg{width:24px;height:24px;flex:none}.drw button:active{background:var(--fill)}
 .drw [aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
 .modnote{margin:6px 0 4px;padding:8px 12px;border-radius:10px;background:var(--fill);color:var(--muted);font-size:13px}
+.reply .acts .rrep{margin-left:auto;color:var(--muted);font-size:12px}
 .freqs .row{gap:8px}.freqs .row .btn{flex:none}
 .drw-foot{margin-top:auto;padding-top:10px;border-top:1px solid var(--line)}
 .ch h2 .cnt{font-size:14px;color:var(--accent);margin-left:4px}
@@ -3453,9 +3454,9 @@ function replyRow(c, child, line){
   const lk = on((c.likes||{})[S.me]), n = Object.values(c.likes||{}).filter(on).length, parent = c.parentId && S.replies[c.parentId];
   return `<div class="reply ${child?"child":""}"><div class="rail">${av(c.author, child?28:36)}${line ? '<span class="ln"></span>' : ""}</div>
     <div class="body"><div class="ph"><button class="nm" data-act="profile" data-u="${esc(c.author)}">${esc(nameOf(c.author))}</button><span class="pillLv">Lv.${statsOf(c.author).L}</span><time>${ago(c.createdAt)}</time></div>
-      ${parent && child ? `<div class="to">${esc(nameOf(parent.author))}님에게 답글</div>` : ""}<p class="txt">${esc(c.text)}</p>
+      ${parent && child ? `<div class="to">${esc(nameOf(parent.author))}님에게 답글</div>` : ""}${c.modHidden && c.author === S.me ? `<p class="modnote">운영자가 숨긴 답글이에요. 지금은 나에게만 보여요.</p>` : ""}<p class="txt">${esc(c.text)}</p>
       <div class="acts"><button class="ab ${lk?"on":""}" data-act="rlike" data-c="${c.id}" ${canAct() && c.author !== S.me ? "" : "disabled"} aria-pressed="${lk}" aria-label="답글 공감">${lk?I.heartOn:I.heart}${n?`<span class="num">${n}</span>`:""}</button>
-        <button class="ab" data-act="reply" data-p="${c.postId}" data-c="${parent ? c.parentId : c.id}" data-to="${c.id}" ${canAct()?"":"disabled"} aria-label="답글 달기">${I.reply}<span>답글</span></button></div></div></div>`;
+        <button class="ab" data-act="reply" data-p="${c.postId}" data-c="${parent ? c.parentId : c.id}" data-to="${c.id}" ${canAct()?"":"disabled"} aria-label="답글 달기">${I.reply}<span>답글</span></button>${!TRIAL && canAct() && c.author !== S.me ? `<button class="ab rrep" data-act="rreport" data-c="${c.id}" aria-label="답글 신고"><span>${S.armed === "rr"+c.id ? "한 번 더 누르면 신고돼요" : "신고"}</span></button>` : ""}</div></div></div>`;
 }
 
 /* ================= goal ================= */
@@ -4238,6 +4239,9 @@ document.addEventListener("click", e => {
     case "umenu": openSheet({type:"umenu", u}); return;
     case "ureport": case "preport": { closeSheet(); const done = () => toast("신고가 접수됐어요. 검토 후 조치할게요");
       if (!community) return done(); community.report(a === "preport" ? "post" : "user", a === "preport" ? pid : u).then(done, e => toast(esc(e.message || "신고하지 못했어요. 잠시 후 다시 시도해 주세요."))); return; }
+    case "rreport": { const rid = b.dataset.c; if (S.armed !== "rr"+rid){ arm("rr"+rid); schedule(); return; } S.armed = null; schedule();
+      const done = () => toast("신고가 접수됐어요. 검토 후 조치할게요"); if (!community) return done();
+      community.report("reply", rid).then(done, e => toast(esc(e.message || "신고하지 못했어요. 잠시 후 다시 시도해 주세요."))); return; }
     case "freq-ok": case "freq-no": { if (!community) return; const ok = a === "freq-ok";
       community[ok ? "accept" : "reject"](u).then(() => { S.followReqs = (S.followReqs || []).filter(x => x.uid !== u); toast(ok ? "팔로우 요청을 수락했어요" : "팔로우 요청을 거절했어요"); schedule(); community.refresh(); }, e => toast(esc(e.message || "처리하지 못했어요"))); return; }
     case "unblock": { if (S.compose && S.compose.type === "umenu") closeSheet(); const st = getSet(); run(() => api.putMine("settings", {kind:"settings", ...st, blocked:st.blocked.filter(x => x !== u)}), () => toast("차단을 해제했어요")); return; }
@@ -4986,6 +4990,7 @@ function toView(me, rows){
     if (!ID.test(String(r.id)) || !feed[r.post_id] || !UUID.test(String(r.author)) || replies[r.id]) continue;
     replies[r.id] = {id:r.id, postId:r.post_id, author:m(r.author), text:str(r.text, 2000), parentId:ID.test(String(r.parent_id || '')) ? r.parent_id : null, likes:{}, createdAt:time(r.at)};
   }
+  for (const r of rows.myReplies || []) if (r.hidden === true && replies[r.id] && replies[r.id].author === ME) replies[r.id].modHidden = true;
   for (const r of rows.rlikes || []) if (replies[r.reply_id] && UUID.test(String(r.user_id))) replies[r.reply_id].likes[m(r.user_id)] = time(r.at);
   for (const f of rows.follows || []){
     if (!UUID.test(String(f.follower)) || !UUID.test(String(f.followee))) continue;
@@ -5018,7 +5023,8 @@ function mergeView(snap, view){
   // 남의 스토리에 내가 누른 공감은 서버 기준(view.feed에 이미 있음)
   const replies = {};
   for (const [id, r] of Object.entries(view.replies)) replies[id] = r;
-  for (const [id, r] of Object.entries(snap.replies || {})) if (r && r.author === ME && feed[r.postId]) replies[id] = {...r, likes:view.replies[id] ? view.replies[id].likes : {}};
+  for (const [id, r] of Object.entries(snap.replies || {})) if (r && r.author === ME && feed[r.postId]){ const sv = view.replies[id];
+    replies[id] = {...r, likes:sv ? sv.likes : {}}; if (sv && sv.modHidden) replies[id].modHidden = true; else delete replies[id].modHidden; }
   s.feed = feed; s.replies = replies; s.follows = {...view.follows};
   for (const u of Object.keys(view.pending)) s.follows[ME + '~' + u] = {from:ME, to:u, at:view.mine.follows[u] || 0};
   const own = (snap.profiles || {})[ME];
@@ -5113,7 +5119,7 @@ function createCommunity({rest, me, sign = async () => [], upload = async () => 
       q('/rest/v1/posts?select=id,author,data,at&order=created_at.desc&limit=300'),
       q(`/rest/v1/posts?select=id,author,data,at,hidden&author=eq.${id}`),
       q('/rest/v1/replies?select=id,post_id,author,parent_id,text,at&order=created_at.desc&limit=3000'),
-      q(`/rest/v1/replies?select=id,post_id,author,parent_id,text,at&author=eq.${id}`),
+      q(`/rest/v1/replies?select=id,post_id,author,parent_id,text,at,hidden&author=eq.${id}`),
       q('/rest/v1/post_likes?select=post_id,user_id,at&limit=10000'),
       q('/rest/v1/reply_likes?select=reply_id,user_id,at&limit=10000'),
       q('/rest/v1/follows?select=follower,followee,accepted,at&limit=10000'),

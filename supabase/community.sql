@@ -31,6 +31,7 @@ create table if not exists public.replies (
   at         bigint not null,
   created_at timestamptz not null default now()
 );
+alter table public.replies add column if not exists hidden boolean not null default false; -- 운영자 숨김(community-2.sql)
 create index if not exists replies_post on public.replies (post_id);
 
 -- 3) 공감
@@ -140,7 +141,7 @@ create policy "posts delete own" on public.posts for delete to authenticated usi
 
 -- 답글: 볼 수 있는 스토리에만, 답글을 끈 스토리에는 못 단다. 지우기는 답글 쓴 사람 또는 스토리 주인.
 create policy "replies read" on public.replies for select to authenticated
-  using (public.can_see(author) and exists (select 1 from public.posts p where p.id = post_id));
+  using ((author = (select auth.uid()) or (not hidden and public.can_see(author))) and exists (select 1 from public.posts p where p.id = post_id));
 create policy "replies insert own" on public.replies for insert to authenticated
   with check (author = (select auth.uid()) and exists (select 1 from public.posts p where p.id = post_id and coalesce((p.data->>'noReply')::boolean, false) = false));
 create policy "replies delete own or post owner" on public.replies for delete to authenticated

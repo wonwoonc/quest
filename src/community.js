@@ -78,6 +78,7 @@ export function toView(me, rows){
     if (!ID.test(String(r.id)) || !feed[r.post_id] || !UUID.test(String(r.author)) || replies[r.id]) continue;
     replies[r.id] = {id:r.id, postId:r.post_id, author:m(r.author), text:str(r.text, 2000), parentId:ID.test(String(r.parent_id || '')) ? r.parent_id : null, likes:{}, createdAt:time(r.at)};
   }
+  for (const r of rows.myReplies || []) if (r.hidden === true && replies[r.id] && replies[r.id].author === ME) replies[r.id].modHidden = true;
   for (const r of rows.rlikes || []) if (replies[r.reply_id] && UUID.test(String(r.user_id))) replies[r.reply_id].likes[m(r.user_id)] = time(r.at);
   for (const f of rows.follows || []){
     if (!UUID.test(String(f.follower)) || !UUID.test(String(f.followee))) continue;
@@ -110,7 +111,8 @@ export function mergeView(snap, view){
   // 남의 스토리에 내가 누른 공감은 서버 기준(view.feed에 이미 있음)
   const replies = {};
   for (const [id, r] of Object.entries(view.replies)) replies[id] = r;
-  for (const [id, r] of Object.entries(snap.replies || {})) if (r && r.author === ME && feed[r.postId]) replies[id] = {...r, likes:view.replies[id] ? view.replies[id].likes : {}};
+  for (const [id, r] of Object.entries(snap.replies || {})) if (r && r.author === ME && feed[r.postId]){ const sv = view.replies[id];
+    replies[id] = {...r, likes:sv ? sv.likes : {}}; if (sv && sv.modHidden) replies[id].modHidden = true; else delete replies[id].modHidden; }
   s.feed = feed; s.replies = replies; s.follows = {...view.follows};
   for (const u of Object.keys(view.pending)) s.follows[ME + '~' + u] = {from:ME, to:u, at:view.mine.follows[u] || 0};
   const own = (snap.profiles || {})[ME];
@@ -205,7 +207,7 @@ export function createCommunity({rest, me, sign = async () => [], upload = async
       q('/rest/v1/posts?select=id,author,data,at&order=created_at.desc&limit=300'),
       q(`/rest/v1/posts?select=id,author,data,at,hidden&author=eq.${id}`),
       q('/rest/v1/replies?select=id,post_id,author,parent_id,text,at&order=created_at.desc&limit=3000'),
-      q(`/rest/v1/replies?select=id,post_id,author,parent_id,text,at&author=eq.${id}`),
+      q(`/rest/v1/replies?select=id,post_id,author,parent_id,text,at,hidden&author=eq.${id}`),
       q('/rest/v1/post_likes?select=post_id,user_id,at&limit=10000'),
       q('/rest/v1/reply_likes?select=reply_id,user_id,at&limit=10000'),
       q('/rest/v1/follows?select=follower,followee,accepted,at&limit=10000'),

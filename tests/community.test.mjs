@@ -94,9 +94,9 @@ test('community sync: waits for the first server view, uploads in order, keeps u
 test('community photos: my photos upload before the story; others\' photos and faces come as signed links (reused, not re-signed every minute); hidden stories are labelled for the author', async () => {
   const JPG = 'data:image/jpeg;base64,' + Buffer.from('jpeg-bytes').toString('base64');
   assert.deepEqual([...dataBytes(JPG).bytes].map(c => String.fromCharCode(c)).join(''), 'jpeg-bytes'); assert.equal(dataBytes('data:image/svg+xml;base64,AA=='), null);
-  const r = rows(); r.posts[0].data.imgs = 2; r.profiles[1].data.face = 'abc12'; r.profiles[1].data.avatarStyle = 'photo'; r.myPosts[0].hidden = true;
+  const r = rows(); r.posts[0].data.imgs = 2; r.profiles[1].data.face = 'abc12'; r.profiles[1].data.avatarStyle = 'photo'; r.myPosts[0].hidden = true; r.myReplies[0].hidden = true;
   const v = toView(A, r);
-  assert.equal(v.feed.pb1.imgs, 2); assert.equal(v.profiles[B].face, 'rf~' + B); assert.equal(v.profiles[B].avatarStyle, 'photo'); assert.equal(v.feed.pa1.modHidden, true);
+  assert.equal(v.feed.pb1.imgs, 2); assert.equal(v.profiles[B].face, 'rf~' + B); assert.equal(v.profiles[B].avatarStyle, 'photo'); assert.equal(v.feed.pa1.modHidden, true); assert.equal(v.replies.ra1.modHidden, true); assert.ok(!v.replies.rb1.modHidden);
   assert.deepEqual(mediaPaths(A, v, r.posts), [{key:'pb1~0', path:`${B}/s/pb1~0`}, {key:'pb1~1', path:`${B}/s/pb1~1`}, {key:'rf~' + B, path:`${B}/p/face-abc12`}]);
   const local = {...emptySnapshot(), profiles:{me:{uid:'me', nick:'나', face:'face-1', avatarStyle:'photo'}}, media:{'face-1':JPG}, feed:{pa1:{id:'pa1', author:ME, text:'내 글', imgs:0, reactions:{}, joiners:{}, createdAt:1000}}};
   assert.equal(mergeView(local, v).feed.pa1.modHidden, true);
@@ -140,4 +140,5 @@ test('community SQL: row level security on every table, private accounts need ap
   assert.match(sql2, /if tg_op = 'INSERT' then new\.hidden := false; else new\.hidden := old\.hidden; end if;/);
   assert.match(sql2, /vault\.decrypted_secrets where name = 'resend_api_key'/); assert.doesNotMatch(sql2, /re_[A-Za-z0-9]{8,}/, 'no real API key in the file');
   assert.match(sql, /not hidden and public\.can_see\(author\)/, 'base script keeps the hidden rule if it is run again');
+  assert.match(sql2, /create trigger replies_keep_hidden/); assert.match(sql2, /target_type = 'reply'/);
 });
