@@ -12,14 +12,14 @@ const snap = (nick, extra = {}) => ({...emptySnapshot(), at:1, profiles:nick ? {
 function fakeSupabase({confirm = true} = {}){
   const users = new Map(), rows = new Map(), log = []; let tick = 0, offline = false;
   const res = (status, body) => ({ok:status < 400, status, text:async () => body === undefined ? '' : JSON.stringify(body), json:async () => body});
-  const tokenFor = id => ({access_token:'at-' + id + '-' + (++tick), refresh_token:'rt-' + id, expires_in:3600, user:{id, email:users.get(id).email}});
+  const tokenFor = id => ({access_token:'at-' + id + '-' + (++tick), refresh_token:'rt-' + id, expires_in:3600, user:{id, email:users.get(id).email, user_metadata:users.get(id).meta}});
   const who = h => { const t = (h.Authorization || '').replace('Bearer ', ''); const m = /^at-(\w+)-/.exec(t); return m ? m[1] : null; };
   async function fetch(url, {method = 'GET', headers = {}, body} = {}){
     if (offline) throw new TypeError('Failed to fetch');
     const u = new URL(url), p = u.pathname, data = body ? JSON.parse(body) : null; log.push({method, path:p + u.search, headers, data});
     assert.equal(headers.apikey, 'pk', 'publishable key on every call');
     if (p === '/auth/v1/signup'){ if ([...users.values()].some(x => x.email === data.email)) return res(422, {error_code:'user_already_exists'});
-      const id = 'u' + (users.size + 1); users.set(id, {email:data.email, pw:data.password, ok:!confirm}); return res(200, confirm ? {id, email:data.email} : tokenFor(id)); }
+      const id = 'u' + (users.size + 1); users.set(id, {email:data.email, pw:data.password, ok:!confirm, meta:data.data || {}}); return res(200, confirm ? {id, email:data.email} : tokenFor(id)); }
     if (p === '/auth/v1/token' && u.searchParams.get('grant_type') === 'password'){ const e = [...users].find(([, x]) => x.email === data.email && x.pw === data.password);
       if (!e) return res(400, {error_code:'invalid_credentials'}); if (!e[1].ok) return res(400, {error_code:'email_not_confirmed'}); return res(200, tokenFor(e[0])); }
     if (p === '/auth/v1/token') { const id = String(data.refresh_token).replace('rt-', ''); return users.has(id) ? res(200, tokenFor(id)) : res(400, {error_code:'refresh_token_not_found'}); }
@@ -38,14 +38,15 @@ const make = (sb, ls = memLS(), extra = {}) => ({ls, cloud:createCloud({fetch:sb
 
 test('cloud auth: sign-up needs email confirmation, sign-in stores the session, error codes become Korean messages', async () => {
   const sb = fakeSupabase(), {cloud, ls} = make(sb);
-  assert.deepEqual(await cloud.signUp('a@b.co', 'password1'), {confirm:true});
+  assert.deepEqual(await cloud.signUp('a@b.co', 'password1', '모험가'), {confirm:true});
+  assert.deepEqual(sb.log[0].data.data, {nick:'모험가'}, 'nickname saved as user metadata');
   assert.match(sb.log[0].path, /redirect_to=https%3A%2F%2Fmyquestline\.pages\.dev%2F/);
   await assert.rejects(cloud.signIn('a@b.co', 'password1'), /이메일 인증/);
   sb.confirmAll();
   await assert.rejects(cloud.signIn('a@b.co', 'wrong'), /이메일 또는 비밀번호/);
   await assert.rejects(cloud.signUp('a@b.co', 'password1'), /이미 가입된/);
   const user = await cloud.signIn('a@b.co', 'password1');
-  assert.equal(user.email, 'a@b.co'); assert.ok(JSON.parse(ls.getItem(SESSION_KEY)).refresh_token);
+  assert.equal(user.email, 'a@b.co'); assert.equal(user.nick, '모험가'); assert.ok(JSON.parse(ls.getItem(SESSION_KEY)).refresh_token);
   assert.equal(make(sb, ls).cloud.user().id, user.id, 'session survives reload');
   sb.setOffline(true); await assert.rejects(cloud.pull(), e => e.code === 'network' && /인터넷/.test(e.message)); sb.setOffline(false);
   await cloud.signOut(); assert.equal(cloud.user(), null); assert.equal(ls.getItem(SESSION_KEY), null);
@@ -145,6 +146,7 @@ test('auth screen: login / sign-up (required consents + terms) / sent / choice v
   assert.match(login, /data-auth-form="login"[\s\S]*id="auth-email"[\s\S]*id="auth-pw"[\s\S]*로그인[\s\S]*비밀번호를 잊으셨나요[\s\S]*이메일로 가입하기/);
   assert.ok(!login.includes('<x>@a.co')); assert.match(login, /&lt;x&gt;@a\.co/);
   const su = authView({view:'signup'});
+  assert.match(su, /id="auth-nick"[^>]*maxlength="20"[\s\S]*id="auth-email"/);
   assert.match(su, /만 14세 이상[\s\S]*이용약관에 동의[\s\S]*이용약관 보기[\s\S]*개인정보 수집·이용에 동의[\s\S]*개인정보처리방침 보기/);
   assert.equal((su.match(/class="auth-req"/g) || []).length, 3); assert.match(su, /제1조 목적/);
   assert.match(authView({view:'sent', email:'a@b.co'}), /인증 메일을 보냈어요[\s\S]*a@b\.co[\s\S]*data-auth="resend"/);
