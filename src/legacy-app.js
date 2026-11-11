@@ -727,7 +727,7 @@ function viewToday(){
   } else if (!total) h += `<p class="empty-row">오늘 할 일일 퀘스트가 없어요.</p>`;
   h += todo.map(row).join("");
   const archived = mineOf("quest").filter(q => q.active === false).length;
-  h += done.map(row).join("") + `<div class="qfoot2"><button class="tadd-pill" data-act="sheet" data-k="add" data-v="daily">+ 퀘스트 생성</button><button class="archbtn" data-act="hset" aria-label="일일 퀘스트 관리"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M4 12h16M4 18h7"/><circle cx="17" cy="6" r="2"/><circle cx="14" cy="18" r="2"/></svg>관리${archived ? ` <em class="num">보관 ${archived}</em>` : ""}</button></div></section>`;
+  h += done.map(row).join("") + `<div class="qfoot2"><button class="tadd-pill" data-act="hset" aria-label="일일 퀘스트 관리"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M4 12h16M4 18h7"/><circle cx="17" cy="6" r="2"/><circle cx="14" cy="18" r="2"/></svg>퀘스트 관리${archived ? ` <em class="num">보관 ${archived}</em>` : ""}</button></div></section>`;
   return h;
 }
 function goalRow(p, nested = false){
@@ -1163,7 +1163,7 @@ function viewDaily(){
   if (!hasProfile()) return viewToday();
   const qs = chainSort(mineOf("quest").filter(q => q.active !== false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0)));
   const ar = mineOf("quest").filter(q => q.active === false).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
-  return `<div class="subhead"><h2>일일 퀘스트 <span class="num">${qs.length}</span></h2></div><div class="dqstack">${qs.map(dailyCard).join("")}<button class="card subc subadd pladdc dqadd" data-act="sheet" data-k="add" data-v="daily"><span class="wd-plus">+</span><b>일일 퀘스트 생성</b></button></div>
+  return `<div class="subhead"><h2>일일 퀘스트 <span class="num">${qs.length}</span></h2></div><div class="dqstack"><button class="card subc subadd pladdc dqadd" data-act="sheet" data-k="add" data-v="daily"><span class="wd-plus">+</span><b>일일 퀘스트 생성</b></button>${qs.map(dailyCard).join("")}</div>
   <div class="subhead"><h2>보관 <span class="num">${ar.length}</span></h2></div><section class="card tight qlist plarch">${ar.map(q => { const st = streakOf(q); return `<div class="row"><span class="t tap" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><b>${esc(q.name)}</b><small>${[repeatLabel(q), `총 ${st.total}회`].join(" · ")}</small></span><button class="btn sec xs" data-act="unarch" data-id="${q.id}">보관 해제</button></div>`; }).join("") || `<p class="empty-row">보관한 일일 퀘스트가 없어요. 잠시 쉬고 싶은 일일 퀘스트는 수정 창에서 보관할 수 있어요.</p>`}</section>`;
 }
 const plCard = g => pgCard(g).replace(/<div class="pgsubs">[\s\S]*?<\/div>\s*<\/section>$/, "</section>");

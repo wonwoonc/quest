@@ -1159,10 +1159,10 @@ test('대시보드 일일 › 관리: opens the 일일 퀘스트 page (cards + �
   saved.mine.qz={id:'qz',kind:'quest',name:'쉬는 습관',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:false,done:{},createdAt:1};
   saved.mine.qo={id:'qo',kind:'quest',name:'안 하는 날',repeat:{type:'weekly',days:[]},days:[],lv:'easy',active:true,done:{},createdAt:2};
   saved.mine.qd={id:'qd',kind:'quest',name:'매일 습관',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:true,done:{},createdAt:3};
-  const h=await profileUI(saved);h.route('dash');h.click('dpane',{v:'daily'});assert.match(h.nodes.get('app').innerHTML,/data-act="hset" aria-label="일일 퀘스트 관리"[\s\S]*관리 <em class="num">보관 1/);
+  const h=await profileUI(saved);h.route('dash');h.click('dpane',{v:'daily'});assert.match(h.nodes.get('app').innerHTML,/class="tadd-pill" data-act="hset" aria-label="일일 퀘스트 관리">[\s\S]*?퀘스트 관리 <em class="num">보관 1/);assert.doesNotMatch(h.nodes.get('app').innerHTML,/\+ 퀘스트 생성|class="archbtn"/);
   h.click('hset');assert.equal(h.context.location.hash,'#daily');h.route('daily');assert.match(h.nodes.get('topbar').innerHTML,/data-act="back"[\s\S]*일일 퀘스트/);
   let o=h.nodes.get('app').innerHTML;
-  assert.match(o,/일일 퀘스트 <span class="num">2[\s\S]*class="card pgc dqc"[\s\S]*(안 하는 날|매일 습관)[\s\S]*일일 퀘스트 생성[\s\S]*보관 <span class="num">1[\s\S]*쉬는 습관[\s\S]*data-act="unarch" data-id="qz"/);
+  assert.match(o,/일일 퀘스트 <span class="num">2[\s\S]*일일 퀘스트 생성[\s\S]*class="card pgc dqc"[\s\S]*(안 하는 날|매일 습관)[\s\S]*보관 <span class="num">1[\s\S]*쉬는 습관[\s\S]*data-act="unarch" data-id="qz"/);
   h.click('unarch',{id:'qz'});await h.settle();assert.equal(h.snapshot().mine.qz.active,true);assert.doesNotMatch(h.nodes.get('app').innerHTML,/data-act="unarch"/);
 });
 test('퀘스트 › 메인 (today view): covers and sub/task toggles start folded and open on tap',async()=>{
