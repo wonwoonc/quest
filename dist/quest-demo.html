@@ -3717,7 +3717,8 @@ function chainSort(qs){ const ids = new Set(qs.map(q => q.id)), out = [], seen =
 function preserveSheetDrafts() {
   document.querySelectorAll('.sheet input[id], .sheet textarea[id]').forEach(el => { if(!['checkbox','radio','file'].includes(el.type)) S.drafts[el.id]=el.value; });
 }
-function sheetWrap(title, desc, body){ const creation=false,sub=title.startsWith('스테이지');$("#overlay").innerHTML = `<div class="scrim" data-act="sheet-bg"><div class="sheet" role="dialog" aria-modal="true"><h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}</div></div>`; initTW(); }
+let sheetDrawn = null; const sheetTops = new WeakMap();
+function sheetWrap(title, desc, body){ const creation=false,sub=title.startsWith('스테이지');/* 같은 팝업을 다시 그릴 때(삭제 버튼 두 번 누르기, 확인창에서 돌아오기 등)는 스크롤 위치를 유지한다 */ const oldSh = $("#overlay .sheet"); if (oldSh && sheetDrawn && typeof sheetDrawn === "object") sheetTops.set(sheetDrawn, oldSh.scrollTop); const keepTop = S.compose && typeof S.compose === "object" ? sheetTops.get(S.compose) || 0 : 0; sheetDrawn = S.compose; $("#overlay").innerHTML = `<div class="scrim" data-act="sheet-bg"><div class="sheet" role="dialog" aria-modal="true"><h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}</div></div>`; initTW();  if (keepTop){ const ns = $("#overlay .sheet"); if (ns) ns.scrollTop = keepTop; } }
 /* 뒤로가기로 팝업 닫기: 팝업이 열리면 기록을 하나 쌓고, 뒤로가기(popstate)가 오면 팝업만 닫는다 */
 let sheetHist = false, popSkip = false;
 const HS = typeof history !== "undefined" && history && history.pushState ? history : null;
