@@ -415,8 +415,6 @@ body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}bo
 .drw button{display:flex;align-items:center;gap:14px;width:100%;padding:12px 14px;border:0;border-radius:14px;background:none;color:var(--muted);font-size:16px;font-weight:500;text-align:left}
 .drw button svg{width:24px;height:24px;flex:none}.drw button:active{background:var(--fill)}
 .drw [aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
-.stp{margin-left:6px;font-style:normal;font-size:12px;font-weight:700;color:var(--accent)}
-.stpend{margin:12px 0 0;font-size:13px;color:var(--muted)}.stpend b{color:var(--accent)}
 .lvup-gain{margin:0 0 12px;text-align:center;font-size:14px;color:var(--sub)}.lvup-gain b{color:var(--accent)}
 .modnote{margin:6px 0 4px;padding:8px 12px;border-radius:10px;background:var(--fill);color:var(--muted);font-size:13px}
 .reply[data-rid]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
@@ -2562,13 +2560,10 @@ function viewStats(){
 }
 function statCard(){
   const sp = areaSplit(), xp = sp.applied, vals = AREAS.map(([k]) => Math.floor(xp[k]));
-  // 모은 능력치: 적용 후 값에서 지금 값을 뺀 만큼(소수점은 합친 뒤 버림)
-  const pend = AREAS.map(([k], i) => Math.floor(xp[k] + sp.pending[k]) - vals[i]), pendN = pend.reduce((a, b) => a + b, 0);
-  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><button class="stn" data-act="areainfo" data-v="${k}" aria-label="${n} 정보 보기"><b>${n}</b></button><b class="stl num">${fmt(vals[i])}${pend[i] > 0 ? `<em class="stp" aria-label="모은 능력치 ${pend[i]}">+${fmt(pend[i])}</em>` : ""}</b></div>`).join("");
+  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><button class="stn" data-act="areainfo" data-v="${k}" aria-label="${n} 정보 보기"><b>${n}</b></button><b class="stl num">${fmt(vals[i])}</b></div>`).join("");
   const top = Math.max(...vals), low = Math.min(...vals), best = AREAS[vals.indexOf(top)], weak = AREAS[vals.indexOf(low)];
   return `<section class="statcard">${top > 0 ? `<p class="stsum">강점 <b>${best[1]}</b> · 보완 <b>${weak[1]}</b></p>` : ""}
     <div class="stbody"><div class="strows">${rows}</div>${radarSvg(vals)}</div>
-    ${pendN > 0 ? `<p class="stpend">모은 능력치 <b class="num">+${fmt(pendN)}</b> · 다음 레벨 업 때 적용돼요</p>` : ""}
 </section>`;
 }
 const gOrder = (a,b) => ((a.order ?? 1e9) - (b.order ?? 1e9)) || (isPlanned(a) - isPlanned(b)) || ((a.end||"9") < (b.end||"9") ? -1 : (a.end||"9") > (b.end||"9") ? 1 : 0);
@@ -3067,7 +3062,7 @@ function viewPlan(){
   const sec = (t, list, extra = "", empty = "", more = "", btn = "") => `<div class="subhead${btn ? " dqhead" : ""}"><h2>${t} <span class="num">${list.length}</span></h2>${btn}</div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => plCard(g).replace(/<span>🔗 스테이지 [^<]*<\/span>/, "")).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
   let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태">${[["all","전체",all.length],["active","진행",act.length],["later","대기",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
   if (BD_ON) h = brainDump() + h;
-  if (T("active")) h += sec("진행 중", act, "", "진행 중인 메인 퀘스트가 없어요. '+ 생성'으로 이루고 싶은 목표를 만들어 보세요.", "", `<button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">+ 생성</button>`);
+  if (T("active")) h += sec("진행 중", act, "", "이루고 싶은 목표를 퀘스트로 만들어 보세요.", "", `<button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">+ 생성</button>`);
   if (T("later") && (later.length || tab === "later")) h += sec("대기 중", later, "", "시작일이 아직 오지 않은 메인 퀘스트가 여기에 모여요.");
   if (T("done") && (done.length || tab === "done")) h += sec("달성", done, "", "달성한 메인 퀘스트가 여기에 모여요.", tab === "all" && done.length > 3 ? `<button class="btn sec full qmmore" data-act="pl-tab" data-v="done">달성 전체 보기 <span class="num">${done.length}</span></button>` : "");
   return h;

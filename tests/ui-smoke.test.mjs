@@ -1124,8 +1124,7 @@ test('stats: single life-area chip on main/daily feeds numeric area XP; sub task
   assert.deepEqual(h.snapshot().mine.qa.area,['growth','money'],'at most two areas');
   h.route('dash');assert.doesNotMatch(h.nodes.get('app').innerHTML,/class="statcard"/);assert.match(h.nodes.get('app').innerHTML,/data-act="statsheet"/);h.route('stats');assert.match(h.nodes.get('app').innerHTML,/능력치[\s\S]*체력<\/b><\/button><b class="stl num">0<\/b><\/div>/);
   // 능력치는 모아 두었다가 레벨 업 때 적용: Lv.1에서는 0 + 모은 능력치 +3
-  h.click('mcheck',{id:'t1'});await h.settle();h.route('stats');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><\/button><b class="stl num">0<em class="stp"[^>]*>\+3<\/em><\/b><\/div>/);
-  assert.match(h.nodes.get('app').innerHTML,/모은 능력치 <b class="num">\+3<\/b> · 다음 레벨 업 때 적용돼요/);
+  h.click('mcheck',{id:'t1'});await h.settle();h.route('stats');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><\/button><b class="stl num">0<\/b><\/div>/);assert.doesNotMatch(h.nodes.get('app').innerHTML,/모은 능력치|class="stp"/);
   // 레벨 업하면 적용된다(경험치를 넉넉히 더해 Lv.2로)
   const lv=h.snapshot();lv.economy.events.push({seq:lv.economy.events.length+1,at:Date.now()+1000,date:T,type:'issue',source:'bonus',xp:200,coins:0});lv.economy.claims.bonus={xp:200,coins:0,active:true,kind:'weekly',date:T,week:'x',daily:false,projects:[],nonactivity:true};
   const h2=await profileUI(lv);h2.route('stats');assert.match(h2.nodes.get('app').innerHTML,/체력<\/b><\/button><b class="stl num">3<\/b><\/div>/);assert.doesNotMatch(h2.nodes.get('app').innerHTML,/모은 능력치/);
