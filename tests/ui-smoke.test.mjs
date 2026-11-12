@@ -1132,6 +1132,17 @@ test('stats: single life-area chip on main/daily feeds numeric area XP; sub task
   const h2=await profileUI(lv);h2.route('stats');assert.match(h2.nodes.get('app').innerHTML,/체력<\/b><\/button><b class="stl num">3<\/b><\/div>/);assert.doesNotMatch(h2.nodes.get('app').innerHTML,/모은 능력치/);
   h.click('mcheck',{id:'t1'});h.click('cfok');await h.settle();h.route('stats');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><\/button><b class="stl num">0<\/b><\/div>/);
 });
+test('daily quest made with 매일 can be switched to 하고 쉬기 / N일마다 without being asked for weekdays',async()=>{
+  const base=await profileUI(),saved=base.snapshot();
+  saved.mine.qa={id:'qa',kind:'quest',name:'물 마시기',repeat:{type:'daily'},days:[],lv:'easy',time:'09:00',active:true,done:{},createdAt:1};
+  const h=await profileUI(saved);
+  for(const [v,type] of [['runrest','runrest'],['every','every']]){
+    h.click('hedit',{id:'qa'});h.click('rpt',{v});h.nodes.set('he-name',{value:'물 마시기'});h.click('submit-hedit');await h.settle();
+    assert.equal(h.snapshot().mine.qa.repeat.type,type);assert.ok(!h.nodes.get('toast').innerHTML.includes('요일을 골라 주세요'));
+  }
+  h.click('hedit',{id:'qa'});h.click('rpt',{v:'weekly'});h.nodes.set('he-name',{value:'물 마시기'});h.click('submit-hedit');await h.settle();
+  assert.equal(h.snapshot().mine.qa.repeat.type,'every','매주는 요일을 골라야 저장된다');assert.match(h.nodes.get('toast').innerHTML,/요일을 골라 주세요/);
+});
 test('level-up popup shows how much each stat rose (+N) from the points saved up during the level',async()=>{
   const base=await profileUI(),saved=base.snapshot(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
   saved.projects={m1:{id:'m1',owner:'me',title:'마라톤',end:'2099-12-31',status:'active',area:['health']}};

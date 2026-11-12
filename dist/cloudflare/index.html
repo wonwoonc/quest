@@ -4524,7 +4524,8 @@ document.addEventListener("click", e => {
     openSheet({type:"hedit", id, place:q.place || "", after:q.afterId ? "" : (q.after || ""), afterId:q.afterId || null, area:areasOf(q), days:((r.days||q.days||[])).slice(), hlv:lvKey(q.lv), time:q.time||"09:00", rpt:r.type,
       rweeks:r.weeks||2, revery:r.every||3, rday:r.day||15, rmonths:r.months||3, ron:r.on||2, roff:r.off||1,
       ranchor:r.anchor || activityDate(q.createdAt) || today()}); return; }
-    case "submit-hedit": { const q = S.mine[c.id], name = ($("#he-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (dupQ(name, c.id)){ toast(DUPMSG); return; } if (!c.days.length){ toast("요일을 골라 주세요"); return; }
+    case "submit-hedit": { const q = S.mine[c.id], name = ($("#he-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (dupQ(name, c.id)){ toast(DUPMSG); return; }
+      // 요일은 매주·격주일 때만 필요(매일·하고 쉬기·N일마다·매월은 요일 없음)
       const rp2 = buildRepeat(c); if (needsDays(rp2.type) && !rp2.days.length){ toast("요일을 골라 주세요"); return; }
       if (!c.time){ toast("시간을 골라 주세요"); return; } run(() => api.putMine(c.id, {...q, name, ...readPlan(c, true), time:c.time, repeat:rp2, days:rp2.days||[], lv:c.hlv, area:c.area||[]}), () => { closeSheet(); toast("저장했어요"); }); return; }
     case "htoggle": { const q = S.mine[c.id]; run(() => api.putMine(c.id, {...q, active:q.active === false}), () => { closeSheet(); toast(q.active === false ? "보관을 해제했어요" : "보관했어요"); }); return; }
