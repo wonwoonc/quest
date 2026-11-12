@@ -961,7 +961,7 @@ function viewNotes(){
   const chip = (k, l, n) => `<button class="chip" data-act="nt-cat" data-v="${k}" aria-pressed="${cat === k}">${l}${n ? ` <span class="num">${n}</span>` : ""}</button>`;
   const jBtn = `<button class="btn" data-act="sheet" data-k="diary">+ 저널 추가</button>`;
   return `<div class="nttools"><input type="search" id="nt-q" placeholder="${cat === "journal" ? "저널 검색" : "자료 검색"}" value="${esc(S.ntQ || "")}" aria-label="자료 검색">${cat === "journal" ? jBtn : `<button class="btn" data-act="nt-new">+ 자료 추가</button>`}</div>
-    <div class="chips ntcats" role="group" aria-label="서랍">${chip("all", "전체", all.length)}${DR.filter(d => !d.hidden || d.k === cat).map(d => chip(d.k, `${nic(d.ic)}${esc(d.l)}`, all.filter(n => ntN(n).cat === d.k).length)).join("")}${chip("journal", `${nic("journal")}저널`, jAll.length)}<button class="chip ntmng" data-act="dr-manage">+ 서랍</button></div>
+    <div class="chips ntcats" role="group" aria-label="서랍" data-swipe>${chip("all", "전체", all.length)}${DR.filter(d => !d.hidden || d.k === cat).map(d => chip(d.k, `${nic(d.ic)}${esc(d.l)}`, all.filter(n => ntN(n).cat === d.k).length)).join("")}${chip("journal", `${nic("journal")}저널`, jAll.length)}<button class="chip ntmng" data-act="dr-manage">+ 서랍</button></div>
     ${cat === "journal" ? (jList.length ? `<div class="ntgrid">${jList.map(jCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 저널이 없어요" : "저널 서랍이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 저널 추가」로 오늘 하루를 남겨 보세요."}</section>`) : ""}
     ${cat === "journal" ? "" : list.length ? `<div class="ntgrid">${list.map(ntCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : cat !== "all" ? `${esc(noteDrawer(S, cat).l)} 서랍이 비어 있어요` : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 자료 추가」로 첫 자료를 담아 보세요."}</section>`}`;
 }
@@ -1212,7 +1212,7 @@ function viewPlan(){
   const tab = Q.ptab, T = t => tab === "all" || tab === t;
   /* 모바일은 위아래 한 줄씩, PC는 여러 줄 격자(.plgrid). 전체 칩의 달성은 최근 3개 + '달성 전체 보기'. */
   const sec = (t, list, extra = "", empty = "", more = "", btn = "") => `<div class="subhead${btn ? " dqhead" : ""}"><h2>${t} <span class="num">${list.length}</span></h2>${btn}</div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => plCard(g).replace(/<span>🔗 스테이지 [^<]*<\/span>/, "")).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
-  let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태">${[["all","전체",all.length],["active","진행",act.length],["later","대기",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
+  let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태" data-swipe>${[["all","전체",all.length],["active","진행",act.length],["later","대기",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
   if (BD_ON) h = brainDump() + h;
   if (T("active")) h += sec("진행 중", act, "", "이루고 싶은 목표를 퀘스트로 만들어 보세요.", "", `<button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">+ 생성</button>`);
   if (T("later") && (later.length || tab === "later")) h += sec("대기 중", later, "", "시작일이 아직 오지 않은 메인 퀘스트가 여기에 모여요.");
@@ -1611,7 +1611,7 @@ function dashChips(){ const k = today(), pane = S.dashPane || "mission";
   const ms = mineOf("mission"), mDone = ms.filter(m => m.done && m.doneAt && dk(m.doneAt) === k).length, mLeft = ms.filter(m => !m.done && dueOf(m) && (dueOf(m) <= k && !m.period || (m.period && isToday(m)))).length;
   const wrote = mineOf("diary").some(x => x.date === k);
   const chip = (v, label, badge) => `<button data-act="dpane" data-v="${v}" aria-pressed="${pane === v}">${label}${badge}</button>`;
-  return `<div class="wd-chips"><div class="seg" role="group" aria-label="오늘 보기">${chip("daily", "일일", hs.length ? `<span class="num">${hDone}/${hs.length}</span>` : "")}${chip("mission", "미션", mDone + mLeft ? `<span class="num">${mDone}/${mDone + mLeft}</span>` : "")}${chip("journal", "저널", wrote ? `<span class="ck">${I.check}</span>` : "")}</div></div>`; }
+  return `<div class="wd-chips"><div class="seg" role="group" aria-label="오늘 보기" data-swipe>${chip("daily", "일일", hs.length ? `<span class="num">${hDone}/${hs.length}</span>` : "")}${chip("mission", "미션", mDone + mLeft ? `<span class="num">${mDone}/${mDone + mLeft}</span>` : "")}${chip("journal", "저널", wrote ? `<span class="ck">${I.check}</span>` : "")}</div></div>`; }
 function viewWebDash(){
   const uid = S.me, gs = goalsOf(uid).filter(g => g.status !== "done" && !isPlanned(g)).sort(gOrder);
   const save = S.qTab; S.qTab = "daily"; let d = viewToday(); S.qTab = save;
@@ -1733,9 +1733,25 @@ function renderPill(){
   setHtml(el, `<button data-act="newpill">↑ <span class="stackav">${who.map(u => av(u, 20, false)).join("")}</span>새 스토리 ${items.length}개</button>`);
 }
 let scT = 0; window.addEventListener("scroll", () => { clearTimeout(scT); scT = setTimeout(() => { if (S.view.name === "feed") renderPill(); }, 120); }, {passive:true});
+/* 가로로 넘치는 칩 줄: 다시 그려도 처음으로 돌아가지 않고, 선택한 칩이 보이게 가운데로 맞춘다 */
+function keepChipsInView(root){ root.querySelectorAll("[data-swipe], .chips, .seg").forEach(el => { if (el.scrollWidth <= el.clientWidth + 1) return; const on = el.querySelector('[aria-pressed="true"]'); if (!on) return;
+  const want = on.offsetLeft - el.offsetLeft - (el.clientWidth - on.offsetWidth) / 2; el.scrollLeft = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, want)); }); }
+/* 화면을 옆으로 밀면 칩도 옆으로(퀘스트·대시보드·자료실): 손가락을 왼쪽으로 밀면 다음 칩, 오른쪽이면 이전 칩 */
+{ let sw = null;
+  document.addEventListener("touchstart", e => { sw = null; if (S.compose || e.touches.length !== 1) return; const t = e.target;
+    // 화면 본문 어디서든(글 아래 빈 곳 포함). 상단·메뉴·팝업, 입력칸, 가로로 넘기는 영역은 제외
+    if (!t.closest || t.closest("#topbar,#nav,.nav,#drawer,#overlay,#toast,#replybar,input,textarea,select,[contenteditable],.chips,.seg,.car,[data-reo],.twc,.tlscroll,.wgrid")) return;
+    for (let el = t; el && el !== document.body; el = el.parentElement){ if (el.scrollWidth > el.clientWidth + 24 && /(auto|scroll)/.test(getComputedStyle(el).overflowX)) return; }
+    const g = $("#app [data-swipe]"); if (!g) return; sw = {x:e.touches[0].clientX, y:e.touches[0].clientY, at:Date.now(), g}; }, {passive:true});
+  document.addEventListener("touchend", e => { const s0 = sw; sw = null; if (!s0 || !e.changedTouches.length) return;
+    const dx = e.changedTouches[0].clientX - s0.x, dy = e.changedTouches[0].clientY - s0.y;
+    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6 || Date.now() - s0.at > 700 || !document.contains(s0.g)) return;
+    const bs = [...s0.g.querySelectorAll("button[data-act]")].filter(b => !b.disabled && b.offsetParent), i = bs.findIndex(b => b.getAttribute("aria-pressed") === "true");
+    const nb = bs[i + (dx < 0 ? 1 : -1)]; if (i >= 0 && nb) nb.click(); }, {passive:true});
+}
 /* 긴 스토리 글: 다섯 줄까지만 보여 주고, 실제로 잘린 글에만 '더보기'를 띄운다 */
 function markClamped(root){ root.querySelectorAll(".txt.pclamp").forEach(el => { const b = el.parentNode.querySelector(".tmore"); if (b) b.hidden = !(el.scrollHeight > el.clientHeight + 2); }); }
-function loadMedia(root){ markClamped(root);
+function loadMedia(root){ markClamped(root); keepChipsInView(root);
   root.querySelectorAll("[data-k]").forEach(el => {
     const k = el.dataset.k;
     if (mediaSrc(k)){ const im = el.querySelector("img"), src = mediaSrc(k); if (!im) el.innerHTML = `<img src="${esc(src)}" alt="" draggable="false">`; return; }
@@ -2223,11 +2239,13 @@ document.addEventListener("click", e => {
   if (e.target.closest("a.ntlink")) return;
   const b = e.target.closest("[data-act]"); if (!b) return;
   const a = b.dataset.act, pid = b.dataset.p, u = b.dataset.u, id = b.dataset.id, c = S.compose;
-  const CONF = {pdel:1, tdel:1, hdel:1, delpost:1, rdel:1, block:1, ldel:1, rolldel:1};
+  const CONF = {pdel:1, tdel:1, hdel:1, delpost:1, rdel:1, block:1, ldel:1, rolldel:1, "nt-del":1, "dr-del":1, "bd-del":1, "bd-rm":1, rdelreply:1};
   if (CONF[a] && !b.dataset.confirmed){ e.stopPropagation();
     const sp = a === "pdel" && isProj(S.projects[pid]);
-    const key = {pdel:"px"+pid, tdel:"td"+(c && c.id), hdel:"hd"+(c && c.id), delpost:"dp"+pid, rdel:"rd"+(c && c.id), block:"bl"+u, ldel:"ld"+id, rolldel:"rolldel"}[a];
-    const msg = {pdel:sp ? ["스테이지를 삭제할까요?", "연결된 미션도 함께 삭제돼요."] : ["메인 퀘스트를 삭제할까요?", "아래 스테이지와 연결된 미션도 함께 삭제돼요."], tdel:["미션을 삭제할까요?", ""], hdel:["일일 퀘스트를 삭제할까요?", "지금까지 쌓은 연속 기록도 함께 사라져요."], delpost:["스토리를 삭제할까요?", "공감과 답글도 함께 삭제돼요."], rdel:["보상을 삭제할까요?", ""], block:["이 사람을 차단할까요?", "이 사람의 스토리와 답글이 모두 안 보여요."], rolldel:[`지난 미션 ${mineOf("mission").filter(m => !m.done && m.origDue && m.origDue < today() && m.due === today()).length}개를 삭제할까요?`, "오늘로 넘어온 미션만 삭제돼요. 되돌릴 수 없어요."], ldel:["저널을 삭제할까요?", diaryPost(id) ? "커뮤니티에 공유한 스토리도 함께 삭제돼요." : ""]}[a];
+    const key = {pdel:"px"+pid, tdel:"td"+(c && c.id), hdel:"hd"+(c && c.id), delpost:"dp"+pid, rdel:"rd"+(c && c.id), block:"bl"+u, ldel:"ld"+id, rolldel:"rolldel", "nt-del":"nd"+id, "dr-del":"dd"+(c && c.edit), "bd-del":"bd"+id, "bd-rm":"bx"+id, rdelreply:"rx"+b.dataset.c}[a];
+    const msg = {pdel:sp ? ["스테이지를 삭제할까요?", "연결된 미션도 함께 삭제돼요."] : ["메인 퀘스트를 삭제할까요?", "아래 스테이지와 연결된 미션도 함께 삭제돼요."], tdel:["미션을 삭제할까요?", ""], hdel:["일일 퀘스트를 삭제할까요?", "지금까지 쌓은 연속 기록도 함께 사라져요."], delpost:["스토리를 삭제할까요?", "공감과 답글도 함께 삭제돼요."], rdel:["보상을 삭제할까요?", ""], block:["이 사람을 차단할까요?", "이 사람의 스토리와 답글이 모두 안 보여요."], rolldel:[`지난 미션 ${mineOf("mission").filter(m => !m.done && m.origDue && m.origDue < today() && m.due === today()).length}개를 삭제할까요?`, "오늘로 넘어온 미션만 삭제돼요. 되돌릴 수 없어요."], ldel:["저널을 삭제할까요?", diaryPost(id) ? "커뮤니티에 공유한 스토리도 함께 삭제돼요." : ""],
+      "nt-del":["자료를 삭제할까요?", "첨부한 파일도 함께 삭제돼요. 되돌릴 수 없어요."], "dr-del":["서랍을 삭제할까요?", "서랍 안의 자료는 메모 서랍으로 옮겨져요."],
+      "bd-del":["이 생각을 삭제할까요?", "되돌릴 수 없어요."], "bd-rm":["이 생각을 삭제할까요?", "되돌릴 수 없어요."], rdelreply:["답글을 삭제할까요?", "삭제한 답글은 되돌릴 수 없어요."]}[a];
     S.pend = {key, data:{...b.dataset}}; S.parentSheet = c || null; S.compose = {type:"confirm", t:msg[0], d:msg[1], ok:a === "block" ? "차단" : "삭제"}; renderSheet(); return; }
   switch (a){
     case "preview-login":

@@ -10,10 +10,12 @@ function harness(snapshot, search = '', {trial = false} = {}) {
   if (snapshot) data.set('quest:foundation:empty:v2',JSON.stringify(snapshot));
   const node = id => ({id,innerHTML:'',textContent:'',dataset:{},style:{},classList:{add(){},remove(){},toggle(){},contains(){return false}},addEventListener(){},querySelector:() => null,querySelectorAll:() => [],getBoundingClientRect:() => ({top:0,height:0})});
   for (const id of ['app','topbar','nav','drawer','overlay','toast','pill','replybar','fileIn','characterUploadIn','characterCameraIn','demo-label']) nodes.set(id,node(id));
-  const body = node('body');
+  const body = node('body'); body.appendChild = () => {};
   const document = {body,activeElement:null,documentElement:{dataset:trial ? {edition:'trial'} : {},style:{setProperty(){}},removeAttribute(){},setAttribute(){}},
     querySelector:s => s.startsWith('#') ? nodes.get(s.slice(1)) || null : null,
     querySelectorAll:() => [], getElementById:id => nodes.get(id) || null,
+    // 확인 팝업 '삭제' → 숨은 버튼을 만들어 원래 동작을 다시 누르는 흐름을 흉내 낸다
+    createElement:() => { const el = {dataset:{}, hidden:false, remove(){}, click(){ const target = {closest:sel => sel === '[data-act]' ? el : null}; for (const fn of (events.click || [])) fn({target,preventDefault(){},stopPropagation(){}}); }}; return el; },
     addEventListener:(name,fn) => (events[name] ||= []).push(fn),removeEventListener(){}};
   const context = vm.createContext({console,document,Date,Math,URL,URLSearchParams,Blob,FormData,
     localStorage:{getItem:k => data.get(k) ?? null,setItem:(k,v) => data.set(k,v),removeItem:k => data.delete(k)},
@@ -356,8 +358,8 @@ test.skip('brain dump (UI hidden: BD_ON=false): pour lines in, inline guide, hid
   h.nodes.set('ta-name',{value:'세탁소 들르기'}); h.click('dppick',{k:'due',v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.name === '세탁소 들르기'));
   assert.deepEqual(dumps().map(d => d.text),['이상한 생각']);
-  { const d0 = dumps()[0]; h.click('bd-rm',{id:d0.id}); await h.settle(); assert.equal(dumps().length,1,'first tap only arms'); assert.match(h.nodes.get('app').innerHTML,/bdxa/); }
-  const odd = dumps()[0]; h.click('bd-del',{id:odd.id}); assert.equal(dumps().length,1); h.click('bd-del',{id:odd.id}); await h.settle();
+  // 모든 삭제는 확인 팝업: 누르면 팝업만 뜨고, 팝업에서 삭제를 눌러야 지워진다
+  const odd = dumps()[0]; h.click('bd-del',{id:odd.id}); assert.equal(dumps().length,1); assert.match(h.nodes.get('overlay').innerHTML,/이 생각을 삭제할까요\?/); h.click('cfok'); await h.settle();
   assert.equal(dumps().length,0);
 });
 test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once, task link, custom drawer, legacy mapping',async () => {
@@ -377,7 +379,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   assert.match(ov(),/어디로 보낼까요/); assert.match(ov(),/ntsendo rec" data-act="nt-send" data-v="daily"/); h.click('nt-send',{v:'task'});
   h.nodes.set('ta-name',{value:'매일 아침 서비스 조사'}); h.click('dppick',{k:'due',v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.noteId === n0.id)); assert.match(app(),/미션 진행 중/);
-  h.click('nt-edit',{id:n0.id}); h.click('nt-del',{id:n0.id}); h.click('nt-del',{id:n0.id}); await h.settle();
+  h.click('nt-edit',{id:n0.id}); h.click('nt-del',{id:n0.id}); assert.match(h.nodes.get('overlay').innerHTML,/자료를 삭제할까요\?/); assert.equal(notes().length,1); h.click('cfok'); await h.settle();
   assert.equal(notes().length,0); assert.equal(xp(),x0,'deleting reverses the reward');
   // learning: detail screen with chapters (Cornell notes per chapter) and wrap-up
   h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/학습 목표/); assert.doesNotMatch(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'강의'}); assert.match(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'책'}); assert.doesNotMatch(ov(),/id="nf-url"/); assert.doesNotMatch(ov(),/XP|코인/);
