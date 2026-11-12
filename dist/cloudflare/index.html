@@ -215,6 +215,8 @@ button.row:active,[role=button].row:active{background:var(--fill)}
 .txtwrap{position:relative}
 .txt{margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:1.6;cursor:pointer;touch-action:manipulation}
 .focus .txt{font-size:18px;cursor:default}
+.txt.pclamp{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.tmore{display:block;border:0;background:none;padding:2px 0 0;margin:0;color:var(--muted);font:inherit;font-size:14px;font-weight:600;cursor:pointer}.tmore[hidden]{display:none}
 .media{position:relative;margin-top:10px;touch-action:manipulation}
 .car{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
 .car::-webkit-scrollbar{display:none}
@@ -413,6 +415,9 @@ body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}bo
 .drw button{display:flex;align-items:center;gap:14px;width:100%;padding:12px 14px;border:0;border-radius:14px;background:none;color:var(--muted);font-size:16px;font-weight:500;text-align:left}
 .drw button svg{width:24px;height:24px;flex:none}.drw button:active{background:var(--fill)}
 .drw [aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.stp{margin-left:6px;font-style:normal;font-size:12px;font-weight:700;color:var(--accent)}
+.stpend{margin:12px 0 0;font-size:13px;color:var(--muted)}.stpend b{color:var(--accent)}
+.lvup-gain{margin:0 0 12px;text-align:center;font-size:14px;color:var(--sub)}.lvup-gain b{color:var(--accent)}
 .modnote{margin:6px 0 4px;padding:8px 12px;border-radius:10px;background:var(--fill);color:var(--muted);font-size:13px}
 .reply[data-rid]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .freqs .row{gap:8px}.freqs .row .btn{flex:none}
@@ -486,7 +491,7 @@ body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}bo
 .pgtop .st.dd{color:var(--sub);background:var(--fill)}
 .plback{display:flex;align-items:center;gap:8px}
 .nttools{display:flex;gap:8px}.nttools input{flex:1;min-width:0;border:0;background:var(--card);border-radius:14px;padding:12px 14px;font:inherit;font-size:15px;color:var(--ink)}.nttools .btn{padding:12px 16px;font-size:15px}
-.ntcats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-top:12px}.ntcats::-webkit-scrollbar{display:none}.ntcats .chip{flex:none}.ntcats .num{font-size:12px;opacity:.7;margin-left:2px}
+.ntcats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-top:12px}.ntcats::-webkit-scrollbar{display:none}.ntcats .chip{flex:none}.ntcats .chip:not([aria-pressed="true"]){background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}.ntcats .num{font-size:12px;opacity:.7;margin-left:2px}
 .ntgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:12px}
 .card.ntcard{padding:16px 18px;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}.ntcard .nttop{display:flex;justify-content:space-between;align-items:center}.ntcat{font-size:12.5px;font-weight:700;color:var(--sub);background:var(--fill);border-radius:8px;padding:3px 8px}.ntcard .nttop small{color:var(--muted);font-size:12px}
 .ntcard h3{margin:2px 0 0;font-size:16px;line-height:1.35;word-break:break-word}.ntbody{margin:0;font-size:14px;line-height:1.5;color:var(--sub);white-space:pre-line;word-break:break-word;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
@@ -1044,7 +1049,7 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
 .rc-t b{font-size:15px}
 .rc-t small{font-size:12.5px;color:var(--sub)}
 .rc-b{display:flex;gap:8px;justify-content:flex-end}
-@media (max-width:1023px){#app[data-v="feed"] > *{margin-left:-12px;margin-right:-12px}#app[data-v="feed"] > .card{border-radius:14px}#app[data-v="feed"] > .sect{padding-left:16px}#app[data-v="feed"] .feedcard .txt{font-size:15px}#app[data-v="feed"] > .feedcard .tp{padding:0 12px 0 8px;column-gap:6px}}
+@media (max-width:1023px){#app[data-v="feed"] > *{margin-left:-12px;margin-right:-12px}#app[data-v="feed"] > .card{border-radius:14px}#app[data-v="feed"] > .sect{padding-left:16px}#app[data-v="feed"] .feedcard .txt{font-size:16.5px;font-weight:500;line-height:1.55}#app[data-v="feed"] > .feedcard .tp{padding:0 12px 0 8px;column-gap:6px}}
 /* 44px touch targets without changing visual size */
 .check,.qx,.editp,.dedit,.tadd-pill,.wchk,.wd-rnav{position:relative}
 .check::after,.pdots::after,.cvtog::after,.wd-rnav::after,.wd-cgear::after,.qx::after,.qccam::after,.iconbtn::after{content:"";position:absolute;inset:-7px;border-radius:50%}
@@ -1971,7 +1976,7 @@ Object.assign(__exports,{NOTE_POOL,BASE_DRAWERS,noteDrawers,noteDrawer,noteNorm,
 },
 "legacy-app.js":function(__require,__exports){
 "use strict";
-const {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, koreaDate, economySummary, migrateEconomy} = __require("economy.js");
+const {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, levelStart, koreaDate, economySummary, migrateEconomy} = __require("economy.js");
 const {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete} = __require("notes.js");
 const {LEGAL_META, TERMS, PRIVACY} = __require("legal.js");
 const {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} = __require("day-activities.js");
@@ -2430,8 +2435,9 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   if (S.pop){ const pp = S.pop; if (Date.now() - pp.at > 2000) S.pop = null; else { const el = [...document.querySelectorAll(`.check.on[data-id="${pp.id}"]`)].find(x => x.offsetParent); if (el){ S.pop = null; el.classList.remove("bump"); requestAnimationFrame(() => el.classList.add("bump")); } } }
   if (MY && hasProfile()){
     /* 퀘스트·미션·저널·자료실에서 생긴 경험치는 화면에 숫자를 띄우지 않는다(S.quietXp). 레벨업 팝업은 항상 띄운다. */
-    if (S.lastXp != null && MY.xp > S.lastXp){ if (MY.L > S.lastLv) levelUp(MY.L); else if (!announced && !S.quietXp) toast(`경험치 <b>+${MY.xp - S.lastXp} XP</b>`); S.quietXp = false; }
+    if (S.lastXp != null && MY.xp > S.lastXp){ if (MY.L > S.lastLv) levelUp(MY.L, S.lastPend); else if (!announced && !S.quietXp) toast(`경험치 <b>+${MY.xp - S.lastXp} XP</b>`); S.quietXp = false; }
     S.lastXp = MY.xp; S.lastLv = MY.L;
+    { const sp = areaSplit(); S.lastPend = AREAS.map(([k, n]) => [n, Math.floor(sp.applied[k] + sp.pending[k]) - Math.floor(sp.applied[k])]).filter(x => x[1] > 0); }
   }
 }
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
@@ -2630,7 +2636,21 @@ const areasOf = x => (x && Array.isArray(x.area) ? x.area : []).filter(k => AREA
 const areaUp = pid => { let id = pid, n = 0; while (id && S.projects[id] && n++ < 6){ const a = areasOf(S.projects[id]); if (a.length) return a; id = S.projects[id].parentId; } return []; };
 function areaField(c){ const on = c.area || [];
   return `<div class="field"><span class="lab">영역</span><div class="chips">${AREAS.map(([k,n,e,l]) => `<button class="chip achip" data-act="aset" data-v="${k}" aria-pressed="${on.includes(k)}">${aIcon(k)}${l}</button>`).join("")}</div></div>`; }
-function areaXp(){
+/* 능력치는 모아 두었다가 레벨이 오를 때 적용한다.
+ * 지금 레벨에 도달한 순간(누적 경험치가 그 레벨 시작점을 넘은 마지막 시각)까지 얻은 점수만 적용, 그 뒤 점수는 '모은 능력치'. Lv.1에서는 모두 모으는 중. */
+function statCutoff(){
+  const ev = ((S.economy && S.economy.events) || []).slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
+  const L = economyLevel(ev.reduce((n, r) => n + (r.xp || 0), 0)).L; if (L <= 1) return {cut:-Infinity, at:{}};
+  const th = levelStart(L), at = {}; let run = 0, cut = -Infinity;
+  for (const r of ev){ const was = run; run += r.xp || 0; if (was < th && run >= th) cut = r.at; if (r.type === "issue" || r.type === "restore") at[r.source] = r.at; }
+  return {cut, at};
+}
+function areaSplit(){
+  const applied = Object.fromEntries(AREA_KEYS.map(k => [k, 0])), pending = {...applied}, {cut, at} = statCutoff();
+  const all = areaXp((src, k, v) => { const t = at[src]; (t == null ? !(cut === -Infinity) : t <= cut) ? applied[k] += v : pending[k] += v; });
+  return {applied, pending, all};
+}
+function areaXp(each = null){
   const out = Object.fromEntries(AREA_KEYS.map(k => [k, 0]));
   for (const [src, c] of Object.entries((S.economy && S.economy.claims) || {})){
     if (!c || !c.active || c.nonactivity) continue; let k; try{ k = JSON.parse(src); } catch { continue; } if (!Array.isArray(k)) continue;
@@ -2642,7 +2662,7 @@ function areaXp(){
     else if (c.kind === "note" || c.kind === "study") a = ntArea(S.mine[k[1]]);
     /* stat points, deliberately much smaller than XP: daily 1–3, task 1–5, sub quest 5, main quest 15 */
     const pt = c.kind === "habit" ? Math.ceil(xp / 10) : c.kind === "note" || c.kind === "study" ? xp / 10 : c.kind === "task" ? Math.max(1, Math.round(xp / 10)) : c.kind === "subDone" ? 5 : 15;
-    a.forEach(x => out[x] += pt / a.length);
+    a.forEach(x => { out[x] += pt / a.length; if (each) each(src, x, pt / a.length); });
   }
   return out;
 }
@@ -2668,11 +2688,14 @@ function viewStats(){
     <section class="card stcard2"><div class="ch"><h2>능력치</h2></div>${statCard()}</section>`;
 }
 function statCard(){
-  const xp = areaXp(), vals = AREAS.map(([k]) => Math.floor(xp[k]));
-  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><button class="stn" data-act="areainfo" data-v="${k}" aria-label="${n} 정보 보기"><b>${n}</b></button><b class="stl num">${fmt(vals[i])}</b></div>`).join("");
+  const sp = areaSplit(), xp = sp.applied, vals = AREAS.map(([k]) => Math.floor(xp[k]));
+  // 모은 능력치: 적용 후 값에서 지금 값을 뺀 만큼(소수점은 합친 뒤 버림)
+  const pend = AREAS.map(([k], i) => Math.floor(xp[k] + sp.pending[k]) - vals[i]), pendN = pend.reduce((a, b) => a + b, 0);
+  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><button class="stn" data-act="areainfo" data-v="${k}" aria-label="${n} 정보 보기"><b>${n}</b></button><b class="stl num">${fmt(vals[i])}${pend[i] > 0 ? `<em class="stp" aria-label="모은 능력치 ${pend[i]}">+${fmt(pend[i])}</em>` : ""}</b></div>`).join("");
   const top = Math.max(...vals), low = Math.min(...vals), best = AREAS[vals.indexOf(top)], weak = AREAS[vals.indexOf(low)];
   return `<section class="statcard">${top > 0 ? `<p class="stsum">강점 <b>${best[1]}</b> · 보완 <b>${weak[1]}</b></p>` : ""}
     <div class="stbody"><div class="strows">${rows}</div>${radarSvg(vals)}</div>
+    ${pendN > 0 ? `<p class="stpend">모은 능력치 <b class="num">+${fmt(pendN)}</b> · 다음 레벨 업 때 적용돼요</p>` : ""}
 </section>`;
 }
 const gOrder = (a,b) => ((a.order ?? 1e9) - (b.order ?? 1e9)) || (isPlanned(a) - isPlanned(b)) || ((a.end||"9") < (b.end||"9") ? -1 : (a.end||"9") > (b.end||"9") ? 1 : 0);
@@ -3390,7 +3413,7 @@ function spark(vals, w = 96, h = 40){
 }
 function postRow(p, o = {}){
   const a = p.author, s = statsOf(a), lk = liked(p), n0 = likeN(p), n = p.hideLikes && a !== S.me ? 0 : n0, reps = repliesOf(p.id), imgs = p.imgs || 0;
-  const showFollow = !o.inThread && hasProfile() && a !== S.me && S.canWrite, fol = isFollowing(S.me, a);
+  const showFollow = !o.inThread && S.view.name !== "profile" && hasProfile() && a !== S.me && S.canWrite, fol = isFollowing(S.me, a);
   return `<div class="tp ${o.focus?"focus":""}">
     <div class="rail">${av(a, 40)}${o.line ? '<span class="ln"></span>' : ""}</div>
     <div class="body">
@@ -3399,7 +3422,7 @@ function postRow(p, o = {}){
       ${p.modHidden && a === S.me ? `<p class="modnote">운영자가 숨긴 스토리예요. 지금은 나에게만 보여요.</p>` : ""}${refHtml(p)}
 
       ${metricFor(p)}
-      ${p.text ? `<div class="txtwrap"><p class="txt" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}>${esc(p.text)}</p><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
+      ${p.text ? `<div class="txtwrap"><p class="txt${o.focus || (S.openPosts && S.openPosts[p.id]) ? "" : " pclamp"}" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}>${esc(p.text)}</p><button class="tmore" data-act="pmore" data-p="${p.id}" hidden>더보기</button><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
       ${imgs ? `<div class="media" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}><div class="car ${imgs>1?"multi":""}">${Array.from({length:imgs}, (_,i) => { const k = p.id+"~"+i; return `<div class="pimg" data-k="${k}">${mediaSrc(k)?`<img src="${esc(mediaSrc(k))}" alt="" draggable="false">`:""}</div>`; }).join("")}</div><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
       <div class="acts">
         <button class="ab ${lk?"on":""}" data-act="like" data-p="${p.id}" ${canAct() && a !== S.me ? "" : "disabled"} aria-pressed="${lk}" aria-label="공감">${lk ? I.heartOn : I.heart}${n?`<span class="num">${n}</span>`:""}</button>
@@ -3598,8 +3621,7 @@ function viewProfile(){
   let h = mine ? profHead(uid).replace('<div class="stage">', '<div class="stage" data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기">') : profHead(uid);
   if (!mine && (isBlocked(uid) || (p.private && !isFollowing(S.me, uid)))) return h + `<div class="card empty"><strong>${isBlocked(uid) ? "차단한 계정이에요" : "🔒 비공개 계정이에요"}</strong>${isBlocked(uid) ? "차단을 해제하면 다시 볼 수 있어요." : "팔로우하면 게시물과 퀘스트를 볼 수 있어요."}</div>`;
   /* 내 스토리 화면은 스토리만 보여 준다(오늘 할 일은 대시보드, 지난 저널은 자료실·캘린더). 다른 사람 프로필은 스토리·퀘스트 칩을 둔다. */
-  if (mine) S.profTab = "posts";
-  else h += `<div class="segwrap"><button class="helpdot" data-act="ptabhelp" data-v="" aria-label="탭 설명 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r="1.3" fill="currentColor" stroke="none"/></svg></button><div class="seg" role="group" aria-label="보기"><button data-act="ptab" data-t="posts" aria-pressed="${S.profTab==="posts"}">스토리</button><button data-act="ptab" data-t="goals" aria-pressed="${S.profTab==="goals"}">퀘스트</button></div></div>`;
+  S.profTab = "posts"; // 다른 사람 프로필도 스토리만 보여 준다(퀘스트 보기 칩 없음)
   if (S.profTab === "goals"){ const pt = S.pqTab === "sub" ? "main" : (S.pqTab || "main");
     h += `<div class="seg sm2" role="group" aria-label="퀘스트 종류">${[["daily","일일"],["main","메인"]].map(([k,l]) => `<button data-act="pqtab" data-t="${k}" aria-pressed="${pt===k}">${l}</button>`).join("")}</div>`;
     if (pt === "daily"){
@@ -3691,7 +3713,9 @@ function renderPill(){
   setHtml(el, `<button data-act="newpill">↑ <span class="stackav">${who.map(u => av(u, 20, false)).join("")}</span>새 스토리 ${items.length}개</button>`);
 }
 let scT = 0; window.addEventListener("scroll", () => { clearTimeout(scT); scT = setTimeout(() => { if (S.view.name === "feed") renderPill(); }, 120); }, {passive:true});
-function loadMedia(root){
+/* 긴 스토리 글: 다섯 줄까지만 보여 주고, 실제로 잘린 글에만 '더보기'를 띄운다 */
+function markClamped(root){ root.querySelectorAll(".txt.pclamp").forEach(el => { const b = el.parentNode.querySelector(".tmore"); if (b) b.hidden = !(el.scrollHeight > el.clientHeight + 2); }); }
+function loadMedia(root){ markClamped(root);
   root.querySelectorAll("[data-k]").forEach(el => {
     const k = el.dataset.k;
     if (mediaSrc(k)){ const im = el.querySelector("img"), src = mediaSrc(k); if (!im) el.innerHTML = `<img src="${esc(src)}" alt="" draggable="false">`; return; }
@@ -3931,7 +3955,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
       <li><b>일일 퀘스트</b><span>주기적으로 반복하는 습관이에요.<br>예) 물 2리터 마시기</span></li>
     </ol>
     <div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
-  if (c.type === "levelup") return sheetWrap(`Lv.${c.L} 달성`, "", `<div class="lvup"><p class="lvup-msg">레벨이 올랐어요</p>${viewStats()}<div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
+  if (c.type === "levelup") return sheetWrap(`Lv.${c.L} 달성`, "", `<div class="lvup"><p class="lvup-msg">레벨이 올랐어요</p>${(c.gains || []).length ? `<p class="lvup-gain">모은 능력치 적용 · ${c.gains.map(([n, v]) => `${n} <b class="num">+${fmt(v)}</b>`).join(" · ")}</p>` : ""}${viewStats()}<div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
   if (c.type === "areainfo"){ const A = AREAS.find(a => a[0] === c.k); if (!A){ closeSheet(); return; } const [k, n, , l] = A;
     const gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done" && areasOf(p).includes(k)), qs = mineOf("quest").filter(q => q.active !== false && areasOf(q).includes(k));
     const rows = [...gs.map(p => `<button class="row" data-act="project" data-p="${p.id}"><span class="ic sq ok">${p.parentId ? "🔗" : "🎯"}</span><span class="t"><b>${esc(p.title)}</b><small>${p.parentId ? "스테이지" : "메인 퀘스트"}</small></span>${I.chev}</button>`), ...qs.map(q => `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq"><svg class="rpic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2.5l3 3-3 3"/><path d="M4 11v-1.5a4 4 0 0 1 4-4h12"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 13v1.5a4 4 0 0 1-4 4H4"/></svg></span><span class="t"><b>${esc(q.name)}</b><small>일일 퀘스트</small></span>${I.chev}</button>`)].join("");
@@ -4071,7 +4095,7 @@ function ask(o, cb){ S.parentSheet = S.compose && S.compose.type !== "confirm" ?
 function askAsync(text){ return new Promise(res => { let done = false; ask({t:text, ok:"확인"}, () => { done = true; res(true); }); const c0 = S.compose; const iv = setInterval(() => { if (S.compose !== c0 && !done){ clearInterval(iv); res(false); } else if (done) clearInterval(iv); }, 200); }); }
 let tt = 0;
 function toast(html, ms = 2200){ const t = $("#toast"); t.innerHTML = html; t.classList.toggle("act", /data-act=/.test(html)); t.classList.toggle("mid", !!($("#overlay").innerHTML || "").trim()); t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), ms); }
-function levelUp(L){ if (S.compose || !hasProfile()){ toast(`<b>Lv.${L} 달성!</b>`); return; } openSheet({type:"levelup", L}); }
+function levelUp(L, gains = []){ if (S.compose || !hasProfile()){ toast(`<b>Lv.${L} 달성!</b>${gains.length ? " 능력치가 올랐어요" : ""}`); return; } openSheet({type:"levelup", L, gains}); }
 function burstAt(el){ if (!el) return; const t = (el.parentElement && el.parentElement.querySelector(":scope > .burst")) || el.querySelector(".burst"); if (!t) return; t.classList.remove("go"); void t.offsetWidth; t.classList.add("go"); }
 
 /* ================= navigation ================= */
@@ -4260,6 +4284,7 @@ document.addEventListener("click", e => {
     case "submit-replyedit": { const text = ($("#re-text").value||"").trim(); if (!text){ toast("답글을 적어 주세요"); return; } const rid = c.rid;
       if (!S.replies[rid] || S.replies[rid].text === text){ closeSheet(); return; }
       run(() => api.editReply(rid, text), () => { delete S.drafts["re-text"]; closeSheet(); toast("답글을 수정했어요"); }); return; }
+    case "pmore": S.openPosts = {...(S.openPosts || {}), [pid]:true}; schedule(); return;
     case "rdelreply": { const rid = b.dataset.c; if (S.armed !== "rx"+rid){ arm("rx"+rid); renderSheet(); return; } S.armed = null;
       run(() => api.delReply(rid), () => { closeSheet(); toast("답글을 삭제했어요"); }); return; }
     case "rreport": { const rid = b.dataset.c; closeSheet();

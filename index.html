@@ -215,6 +215,8 @@ button.row:active,[role=button].row:active{background:var(--fill)}
 .txtwrap{position:relative}
 .txt{margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:1.6;cursor:pointer;touch-action:manipulation}
 .focus .txt{font-size:18px;cursor:default}
+.txt.pclamp{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.tmore{display:block;border:0;background:none;padding:2px 0 0;margin:0;color:var(--muted);font:inherit;font-size:14px;font-weight:600;cursor:pointer}.tmore[hidden]{display:none}
 .media{position:relative;margin-top:10px;touch-action:manipulation}
 .car{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
 .car::-webkit-scrollbar{display:none}
@@ -413,6 +415,9 @@ body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}bo
 .drw button{display:flex;align-items:center;gap:14px;width:100%;padding:12px 14px;border:0;border-radius:14px;background:none;color:var(--muted);font-size:16px;font-weight:500;text-align:left}
 .drw button svg{width:24px;height:24px;flex:none}.drw button:active{background:var(--fill)}
 .drw [aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.stp{margin-left:6px;font-style:normal;font-size:12px;font-weight:700;color:var(--accent)}
+.stpend{margin:12px 0 0;font-size:13px;color:var(--muted)}.stpend b{color:var(--accent)}
+.lvup-gain{margin:0 0 12px;text-align:center;font-size:14px;color:var(--sub)}.lvup-gain b{color:var(--accent)}
 .modnote{margin:6px 0 4px;padding:8px 12px;border-radius:10px;background:var(--fill);color:var(--muted);font-size:13px}
 .reply[data-rid]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .freqs .row{gap:8px}.freqs .row .btn{flex:none}
@@ -486,7 +491,7 @@ body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}bo
 .pgtop .st.dd{color:var(--sub);background:var(--fill)}
 .plback{display:flex;align-items:center;gap:8px}
 .nttools{display:flex;gap:8px}.nttools input{flex:1;min-width:0;border:0;background:var(--card);border-radius:14px;padding:12px 14px;font:inherit;font-size:15px;color:var(--ink)}.nttools .btn{padding:12px 16px;font-size:15px}
-.ntcats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-top:12px}.ntcats::-webkit-scrollbar{display:none}.ntcats .chip{flex:none}.ntcats .num{font-size:12px;opacity:.7;margin-left:2px}
+.ntcats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-top:12px}.ntcats::-webkit-scrollbar{display:none}.ntcats .chip{flex:none}.ntcats .chip:not([aria-pressed="true"]){background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}.ntcats .num{font-size:12px;opacity:.7;margin-left:2px}
 .ntgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:12px}
 .card.ntcard{padding:16px 18px;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}.ntcard .nttop{display:flex;justify-content:space-between;align-items:center}.ntcat{font-size:12.5px;font-weight:700;color:var(--sub);background:var(--fill);border-radius:8px;padding:3px 8px}.ntcard .nttop small{color:var(--muted);font-size:12px}
 .ntcard h3{margin:2px 0 0;font-size:16px;line-height:1.35;word-break:break-word}.ntbody{margin:0;font-size:14px;line-height:1.5;color:var(--sub);white-space:pre-line;word-break:break-word;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
@@ -1044,7 +1049,7 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
 .rc-t b{font-size:15px}
 .rc-t small{font-size:12.5px;color:var(--sub)}
 .rc-b{display:flex;gap:8px;justify-content:flex-end}
-@media (max-width:1023px){#app[data-v="feed"] > *{margin-left:-12px;margin-right:-12px}#app[data-v="feed"] > .card{border-radius:14px}#app[data-v="feed"] > .sect{padding-left:16px}#app[data-v="feed"] .feedcard .txt{font-size:15px}#app[data-v="feed"] > .feedcard .tp{padding:0 12px 0 8px;column-gap:6px}}
+@media (max-width:1023px){#app[data-v="feed"] > *{margin-left:-12px;margin-right:-12px}#app[data-v="feed"] > .card{border-radius:14px}#app[data-v="feed"] > .sect{padding-left:16px}#app[data-v="feed"] .feedcard .txt{font-size:16.5px;font-weight:500;line-height:1.55}#app[data-v="feed"] > .feedcard .tp{padding:0 12px 0 8px;column-gap:6px}}
 /* 44px touch targets without changing visual size */
 .check,.qx,.editp,.dedit,.tadd-pill,.wchk,.wd-rnav{position:relative}
 .check::after,.pdots::after,.cvtog::after,.wd-rnav::after,.wd-cgear::after,.qx::after,.qccam::after,.iconbtn::after{content:"";position:absolute;inset:-7px;border-radius:50%}

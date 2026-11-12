@@ -1123,7 +1123,12 @@ test('stats: single life-area chip on main/daily feeds numeric area XP; sub task
   h.click('hedit',{id:'qa'});h.click('aset',{v:'growth'});h.click('aset',{v:'money'});h.click('aset',{v:'career'});h.nodes.set('he-name',{value:'독서'});h.click('submit-hedit');await h.settle();
   assert.deepEqual(h.snapshot().mine.qa.area,['growth','money'],'at most two areas');
   h.route('dash');assert.doesNotMatch(h.nodes.get('app').innerHTML,/class="statcard"/);assert.match(h.nodes.get('app').innerHTML,/data-act="statsheet"/);h.route('stats');assert.match(h.nodes.get('app').innerHTML,/능력치[\s\S]*체력<\/b><\/button><b class="stl num">0<\/b><\/div>/);
-  h.click('mcheck',{id:'t1'});await h.settle();h.route('stats');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><\/button><b class="stl num">3<\/b><\/div>/);
+  // 능력치는 모아 두었다가 레벨 업 때 적용: Lv.1에서는 0 + 모은 능력치 +3
+  h.click('mcheck',{id:'t1'});await h.settle();h.route('stats');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><\/button><b class="stl num">0<em class="stp"[^>]*>\+3<\/em><\/b><\/div>/);
+  assert.match(h.nodes.get('app').innerHTML,/모은 능력치 <b class="num">\+3<\/b> · 다음 레벨 업 때 적용돼요/);
+  // 레벨 업하면 적용된다(경험치를 넉넉히 더해 Lv.2로)
+  const lv=h.snapshot();lv.economy.events.push({seq:lv.economy.events.length+1,at:Date.now()+1000,date:T,type:'issue',source:'bonus',xp:200,coins:0});lv.economy.claims.bonus={xp:200,coins:0,active:true,kind:'weekly',date:T,week:'x',daily:false,projects:[],nonactivity:true};
+  const h2=await profileUI(lv);h2.route('stats');assert.match(h2.nodes.get('app').innerHTML,/체력<\/b><\/button><b class="stl num">3<\/b><\/div>/);assert.doesNotMatch(h2.nodes.get('app').innerHTML,/모은 능력치/);
   h.click('mcheck',{id:'t1'});h.click('cfok');await h.settle();h.route('stats');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><\/button><b class="stl num">0<\/b><\/div>/);
 });
 test('main quest page shows sub quests as cards with progress and next task',async()=>{
@@ -1195,15 +1200,16 @@ test('profile card opens the 능력치 page with level, XP, coins and stats; pro
   h.route('stats');const html=h.nodes.get('app').innerHTML;assert.match(h.nodes.get('topbar').innerHTML,/프로필/);h.click('areainfo',{v:'health'});assert.match(h.nodes.get('overlay').innerHTML,/체력 · 건강[\s\S]*몸을 돌보는/);
   assert.match(html,/총 경험치[\s\S]*보유 코인[\s\S]*class="statcard"/);assert.doesNotMatch(html,/최장 연속/);
 });
-test('my story page shows stories only (no 퀘스트/저널 chips); stale tab state cannot reopen them',async()=>{
+test('story pages (mine and others) show stories only (no 퀘스트/저널 chips); stale tab state cannot reopen them',async()=>{
   const h=await profileUI();h.route('me');let html=h.nodes.get('app').innerHTML;
   assert.doesNotMatch(html,/class="segwrap"|data-act="ptab"|data-t="diary"|id="pl-text"/);
   h.click('ptab',{t:'goals'});html=h.nodes.get('app').innerHTML;assert.doesNotMatch(html,/data-act="qtab"|data-act="ptab"/);
   h.click('ptab',{t:'diary'});assert.doesNotMatch(h.nodes.get('app').innerHTML,/id="pl-text"|data-act="pemo"/);
   const saved=h.snapshot();saved.profiles={...(saved.profiles||{}),other:{name:'다른 모험가',color:'#3DBE8B'}};saved.projects={...saved.projects,og:{id:'og',owner:'other',title:'남의 메인',status:'active'}};
   const o=await profileUI(saved);o.click('profile',{u:'other'});html=o.nodes.get('app').innerHTML;
-  assert.match(html,/data-act="ptab" data-t="posts"[^>]*>스토리[\s\S]*data-act="ptab" data-t="goals"[^>]*>퀘스트/);assert.doesNotMatch(html,/data-t="diary"/);
-  o.click('ptab',{t:'goals'});assert.match(o.nodes.get('app').innerHTML,/남의 메인/);
+  // 다른 사람 프로필도 스토리만: 퀘스트 칩 없음, 카드에 팔로우 버튼 없음
+  assert.doesNotMatch(html,/data-act="ptab"|class="segwrap"/);
+  o.click('ptab',{t:'goals'});assert.doesNotMatch(o.nodes.get('app').innerHTML,/남의 메인/);
 });
 test('overdue main/sub quests show a red "N일 지남" badge and no end-date tag',async()=>{
   const base=await profileUI(),saved=base.snapshot(),past=new Date(Date.now()+9*3600000-3*86400000).toISOString().slice(0,10);
