@@ -415,6 +415,7 @@ body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}bo
 .drw button{display:flex;align-items:center;gap:14px;width:100%;padding:12px 14px;border:0;border-radius:14px;background:none;color:var(--muted);font-size:16px;font-weight:500;text-align:left}
 .drw button svg{width:24px;height:24px;flex:none}.drw button:active{background:var(--fill)}
 .drw [aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.stup{margin-left:6px;font-style:normal;font-size:13px;font-weight:700;color:var(--accent)}
 .modnote{margin:6px 0 4px;padding:8px 12px;border-radius:10px;background:var(--fill);color:var(--muted);font-size:13px}
 .reply[data-rid]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .freqs .row{gap:8px}.freqs .row .btn{flex:none}
@@ -2432,8 +2433,9 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   if (S.pop){ const pp = S.pop; if (Date.now() - pp.at > 2000) S.pop = null; else { const el = [...document.querySelectorAll(`.check.on[data-id="${pp.id}"]`)].find(x => x.offsetParent); if (el){ S.pop = null; el.classList.remove("bump"); requestAnimationFrame(() => el.classList.add("bump")); } } }
   if (MY && hasProfile()){
     /* 퀘스트·미션·저널·자료실에서 생긴 경험치는 화면에 숫자를 띄우지 않는다(S.quietXp). 레벨업 팝업은 항상 띄운다. */
-    if (S.lastXp != null && MY.xp > S.lastXp){ if (MY.L > S.lastLv) levelUp(MY.L); else if (!announced && !S.quietXp) toast(`경험치 <b>+${MY.xp - S.lastXp} XP</b>`); S.quietXp = false; }
+    if (S.lastXp != null && MY.xp > S.lastXp){ if (MY.L > S.lastLv){ const now = appliedStats(); levelUp(MY.L, Object.fromEntries(AREA_KEYS.map(k => [k, now[k] - ((S.lastApplied || {})[k] || 0)]))); } else if (!announced && !S.quietXp) toast(`경험치 <b>+${MY.xp - S.lastXp} XP</b>`); S.quietXp = false; }
     S.lastXp = MY.xp; S.lastLv = MY.L;
+    S.lastApplied = appliedStats(); // 레벨 업 팝업의 +N: 레벨 업 전후 적용된 능력치 차이
   }
 }
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
@@ -2646,6 +2648,7 @@ function areaSplit(){
   const all = areaXp((src, k, v) => { const t = at[src]; (t == null ? !(cut === -Infinity) : t <= cut) ? applied[k] += v : pending[k] += v; });
   return {applied, pending, all};
 }
+const appliedStats = () => { const a = areaSplit().applied; return Object.fromEntries(AREA_KEYS.map(k => [k, Math.floor(a[k])])); };
 function areaXp(each = null){
   const out = Object.fromEntries(AREA_KEYS.map(k => [k, 0]));
   for (const [src, c] of Object.entries((S.economy && S.economy.claims) || {})){
@@ -2672,7 +2675,7 @@ function radarSvg(lv, size = 200){
   const labels = AREAS.map(([k,n0], i) => { const [x,y] = pt(i, 1.28).split(","); return `<text x="${x}" y="${(+y + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--sub)">${n0}</text>`; }).join("");
   return `<svg class="radar" viewBox="-26 -4 ${size + 52} ${size + 8}" role="img" aria-label="능력치 ${AREAS.map(([k,n0], i) => `${n0} ${lv[i]}`).join(", ")}">${rings}${axes}${shape}${dots}${labels}</svg>`;
 }
-function viewStats(){
+function viewStats(gains = null){
   if (!hasProfile()) return viewToday();
   const s = statsOf(S.me), p = prof(S.me);
   const tiles = [["레벨", `Lv.${s.L}`], ["총 경험치", `${fmt(s.xp)} XP`], ["보유 코인", `🪙 ${fmt(s.gold)}`]];
@@ -2681,11 +2684,11 @@ function viewStats(){
       <div class="barmeta lft"><span class="num">${s.need === 0 ? "MAX" : `Lv.${s.L + 1}까지 ${fmt(s.cur)} / ${fmt(s.need)} XP`}</span></div></div>
     ${p.bio ? `<p class="bio stbio">${esc(p.bio)}</p>` : ""}
     <div class="sttiles">${tiles.map(([l, v]) => `<div><small>${l}</small><b class="num">${v}</b></div>`).join("")}</div></section>
-    <section class="card stcard2"><div class="ch"><h2>능력치</h2></div>${statCard()}</section>`;
+    <section class="card stcard2"><div class="ch"><h2>능력치</h2></div>${statCard(gains)}</section>`;
 }
-function statCard(){
+function statCard(gains = null){
   const sp = areaSplit(), xp = sp.applied, vals = AREAS.map(([k]) => Math.floor(xp[k]));
-  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><button class="stn" data-act="areainfo" data-v="${k}" aria-label="${n} 정보 보기"><b>${n}</b></button><b class="stl num">${fmt(vals[i])}</b></div>`).join("");
+  const rows = AREAS.map(([k,n], i) => `<div class="strow"><span class="ste">${aIcon(k)}</span><button class="stn" data-act="areainfo" data-v="${k}" aria-label="${n} 정보 보기"><b>${n}</b></button><b class="stl num">${fmt(vals[i])}${gains && gains[k] > 0 ? `<em class="stup">+${fmt(gains[k])}</em>` : ""}</b></div>`).join("");
   const top = Math.max(...vals), low = Math.min(...vals), best = AREAS[vals.indexOf(top)], weak = AREAS[vals.indexOf(low)];
   return `<section class="statcard">${top > 0 ? `<p class="stsum">강점 <b>${best[1]}</b> · 보완 <b>${weak[1]}</b></p>` : ""}
     <div class="stbody"><div class="strows">${rows}</div>${radarSvg(vals)}</div>
@@ -3948,7 +3951,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
       <li><b>일일 퀘스트</b><span>주기적으로 반복하는 습관이에요.<br>예) 물 2리터 마시기</span></li>
     </ol>
     <div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
-  if (c.type === "levelup") return sheetWrap(`Lv.${c.L} 달성`, "", `<div class="lvup"><p class="lvup-msg">레벨이 올랐어요</p>${viewStats()}<div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
+  if (c.type === "levelup") return sheetWrap(`Lv.${c.L} 달성`, "", `<div class="lvup"><p class="lvup-msg">레벨이 올랐어요</p>${viewStats(c.gains)}<div class="lvup-btns"><button class="btn primary" data-act="sheet-close">확인</button></div></div>`);
   if (c.type === "areainfo"){ const A = AREAS.find(a => a[0] === c.k); if (!A){ closeSheet(); return; } const [k, n, , l] = A;
     const gs = Object.values(S.projects).filter(p => p.owner === S.me && p.status !== "done" && areasOf(p).includes(k)), qs = mineOf("quest").filter(q => q.active !== false && areasOf(q).includes(k));
     const rows = [...gs.map(p => `<button class="row" data-act="project" data-p="${p.id}"><span class="ic sq ok">${p.parentId ? "🔗" : "🎯"}</span><span class="t"><b>${esc(p.title)}</b><small>${p.parentId ? "스테이지" : "메인 퀘스트"}</small></span>${I.chev}</button>`), ...qs.map(q => `<button class="row" data-act="hedit" data-id="${q.id}"><span class="ic sq"><svg class="rpic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2.5l3 3-3 3"/><path d="M4 11v-1.5a4 4 0 0 1 4-4h12"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 13v1.5a4 4 0 0 1-4 4H4"/></svg></span><span class="t"><b>${esc(q.name)}</b><small>일일 퀘스트</small></span>${I.chev}</button>`)].join("");
@@ -4088,7 +4091,7 @@ function ask(o, cb){ S.parentSheet = S.compose && S.compose.type !== "confirm" ?
 function askAsync(text){ return new Promise(res => { let done = false; ask({t:text, ok:"확인"}, () => { done = true; res(true); }); const c0 = S.compose; const iv = setInterval(() => { if (S.compose !== c0 && !done){ clearInterval(iv); res(false); } else if (done) clearInterval(iv); }, 200); }); }
 let tt = 0;
 function toast(html, ms = 2200){ const t = $("#toast"); t.innerHTML = html; t.classList.toggle("act", /data-act=/.test(html)); t.classList.toggle("mid", !!($("#overlay").innerHTML || "").trim()); t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), ms); }
-function levelUp(L){ if (S.compose || !hasProfile()){ toast(`<b>Lv.${L} 달성!</b>`); return; } openSheet({type:"levelup", L}); }
+function levelUp(L, gains = {}){ if (S.compose || !hasProfile()){ toast(`<b>Lv.${L} 달성!</b>`); return; } openSheet({type:"levelup", L, gains}); }
 function burstAt(el){ if (!el) return; const t = (el.parentElement && el.parentElement.querySelector(":scope > .burst")) || el.querySelector(".burst"); if (!t) return; t.classList.remove("go"); void t.offsetWidth; t.classList.add("go"); }
 
 /* ================= navigation ================= */

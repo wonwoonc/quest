@@ -1130,6 +1130,15 @@ test('stats: single life-area chip on main/daily feeds numeric area XP; sub task
   const h2=await profileUI(lv);h2.route('stats');assert.match(h2.nodes.get('app').innerHTML,/체력<\/b><\/button><b class="stl num">3<\/b><\/div>/);assert.doesNotMatch(h2.nodes.get('app').innerHTML,/모은 능력치/);
   h.click('mcheck',{id:'t1'});h.click('cfok');await h.settle();h.route('stats');assert.match(h.nodes.get('app').innerHTML,/체력<\/b><\/button><b class="stl num">0<\/b><\/div>/);
 });
+test('level-up popup shows how much each stat rose (+N) from the points saved up during the level',async()=>{
+  const base=await profileUI(),saved=base.snapshot(),T=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+  saved.projects={m1:{id:'m1',owner:'me',title:'마라톤',end:'2099-12-31',status:'active',area:['health']}};
+  for(const i of [1,2,3])saved.mine['t'+i]={id:'t'+i,kind:'mission',name:'달리기'+i,due:T,projectId:'m1',lv:'epic',done:false,createdAt:i};
+  const h=await profileUI(saved);
+  h.click('mcheck',{id:'t1'});await h.settle();assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/Lv\.2 달성/);
+  h.click('mcheck',{id:'t2'});await h.settle();const html=h.nodes.get('overlay').innerHTML;
+  assert.match(html,/Lv\.2 달성/);assert.match(html,/체력<\/b><\/button><b class="stl num">\d+<em class="stup">\+10<\/em><\/b>/);assert.doesNotMatch(html,/지력<\/b><\/button><b class="stl num">\d+<em/);
+});
 test('main quest page shows sub quests as cards with progress and next task',async()=>{
   const base=await profileUI(),saved=base.snapshot();
   saved.projects={m1:{id:'m1',owner:'me',title:'마라톤',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'기초 체력',end:'2099-12-31',status:'active'},s2:{id:'s2',owner:'me',parentId:'m1',title:'10km',end:'2099-12-31',status:'planned'}};
