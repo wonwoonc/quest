@@ -516,11 +516,22 @@ function firstGame(){
     <span class="bar"><i style="width:${n / steps.length * 100}%"></i></span>
     ${n === steps.length ? `<p class="fgdone">여섯 단계를 모두 해냈어요. 이제 같은 방식으로 다음 퀘스트를 깨 나가면 돼요.</p>` : `<ol class="fgl">${steps.map(([t, d, ok, act, btn], i) => `<li class="${ok ? "ok" : i === next ? "now" : ""}"><span class="fgc" aria-hidden="true">${ok ? I.check : i + 1}</span><span class="t"><b>${t}</b>${i === next ? `<small>${d}</small>` : ""}</span>${i === next ? `<button class="btn sm" ${act}>${btn}</button>` : ""}</li>`).join("")}</ol>`}</section>`;
 }
+/* 답글 입력: 스레드 화면 아래 입력창에 바로 쓰고 오른쪽 보내기 버튼으로 올린다. 답글의 '답글'을 누르면 그 사람에게 다는 답글이 된다. */
+const SEND_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>`;
 function renderReplyBar(){
   const p = S.view.name === "post" && S.feed[S.view.pid], show = p && canAct() && !p.noReply;
   document.body.classList.toggle("has-replybar", !!show);
-  setHtml($("#replybar"), show ? `<div class="replybar"><button data-act="reply" data-p="${p.id}">${av(S.me, 30, false)}<span>${p.author === S.me ? "답글 남기기…" : esc(nameOf(p.author))+"님에게 답글 남기기…"}</span></button></div>` : "");
+  if (!show){ setHtml($("#replybar"), ""); return; }
+  if (S.replyFor !== p.id){ S.replyFor = p.id; S.replyTo = null; S.replyCid = null; }
+  const to = S.replyTo && S.replies[S.replyTo], who = to ? to.author : p.author;
+  const old = $("#rb-text"), typed = old ? old.value : (S.drafts["rb-text"] || "");
+  const changed = setHtml($("#replybar"), `<div class="replybar"><div class="rbbox">${to ? `<div class="rbto"><span>${esc(nameOf(who))}님에게 답글</span><button type="button" data-act="rbto-x" aria-label="답글 대상 취소">취소</button></div>` : ""}
+    <div class="rbrow">${av(S.me, 30, false)}<textarea id="rb-text" rows="1" maxlength="500" placeholder="${who === S.me ? "답글 남기기…" : esc(nameOf(who)) + "님에게 답글 남기기…"}" aria-label="답글 입력"></textarea>
+    <button type="button" class="rbsend" data-act="send-reply" data-p="${p.id}" aria-label="답글 보내기" disabled>${SEND_SVG}</button></div></div></div>`);
+  if (changed){ const t = $("#rb-text"); if (t){ t.value = typed; rbFit(t); } }
 }
+function rbFit(t){ t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 120) + "px"; const b = $(".rbsend"); if (b) b.disabled = !t.value.trim() || S.busy; }
+document.addEventListener("input", e => { if (e.target && e.target.id === "rb-text"){ S.drafts["rb-text"] = e.target.value; rbFit(e.target); } });
 
 /* ================= 오늘 ================= */
 function charCard(uid, extra = "", nameExtra = ""){
@@ -2380,7 +2391,13 @@ document.addEventListener("click", e => {
       run(() => api.follow(u, f), () => { if (S.compose && S.compose.type === "flist") renderSheet(); }); toast(ask0 ? `${esc(nameOf(u))}님에게 팔로우를 요청했어요` : f ? `${esc(nameOf(u))}님을 팔로우했어요` : "팔로우를 취소했어요"); } return;
     case "like": { const p = S.feed[pid]; if (!p || !canAct() || p.author === S.me) return; const was = liked(p); run(() => api.like(pid, !was)); if (!was) burstAt(b.closest(".body").querySelector("[data-dt]")); return; }
     case "rlike": { const r = S.replies[b.dataset.c]; if (!r) return; run(() => api.likeReply(r.id, !on((r.likes||{})[S.me]))); return; }
-    case "reply": if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"reply", pid, cid:b.dataset.c || null, to:b.dataset.to || b.dataset.c || null}); setTimeout(() => { const t = $("#rp-text"); t && t.focus(); }, 60); return;
+    case "reply": { if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } const p0 = S.feed[pid]; if (!p0) return; if (p0.noReply){ toast("답글을 막아 둔 스토리예요"); return; }
+      const focus = () => setTimeout(() => { const t = $("#rb-text"); if (t){ t.focus(); try { t.setSelectionRange(t.value.length, t.value.length); } catch {} } }, 80);
+      if (!(S.view.name === "post" && S.view.pid === pid)){ openPost(pid); S.replyFor = pid; S.replyTo = b.dataset.to || b.dataset.c || null; S.replyCid = b.dataset.c || null; schedule(); focus(); return; }
+      S.replyTo = b.dataset.to || b.dataset.c || null; S.replyCid = b.dataset.c || null; renderReplyBar(); focus(); return; }
+    case "rbto-x": S.replyTo = null; S.replyCid = null; renderReplyBar(); { const t = $("#rb-text"); t && t.focus(); } return;
+    case "send-reply": { const t = $("#rb-text"), text = (t && t.value || "").trim(); if (!text){ toast("답글을 적어 주세요"); return; } const p0 = pid, cid = S.replyCid;
+      run(() => api.addReply(p0, text, cid), () => { delete S.drafts["rb-text"]; const t2 = $("#rb-text"); if (t2){ t2.value = ""; rbFit(t2); t2.blur(); } S.replyTo = null; S.replyCid = null; renderReplyBar(); toast("답글을 남겼어요"); }); return; }
     case "delpost": e.stopPropagation(); if (S.armed === "dp"+pid){ S.armed = null; const inPost = S.view.name === "post"; run(() => api.delPost(pid), () => { closeSheet(); toast("스토리를 삭제했어요"); if (inPost) history.back(); }); } else { arm("dp"+pid); if (S.compose) renderSheet(); } return;
     case "dpopen": c._dp = c._dp === b.dataset.k ? null : b.dataset.k; c._dpm = null; if (c._dp) c._tw = false; renderSheet(); return;
     case "dpnav": { const base = new Date((c._dpm || ((c._dp === "jd" ? S.planner.date : c[c._dp]) || today()).slice(0,8) + "01")+"T00:00"); base.setMonth(base.getMonth() + +b.dataset.v); c._dpm = dk(base.getTime()).slice(0,8) + "01"; renderSheet(); return; }

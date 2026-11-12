@@ -282,7 +282,13 @@ button.row:active,[role=button].row:active{background:var(--fill)}
 .reply .ab svg{width:18px;height:18px}
 .reply .ab{font-size:13px;padding:5px 8px}
 .replybar{position:fixed;left:0;right:0;bottom:calc(62px + env(safe-area-inset-bottom,0px));z-index:25;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));background:var(--bg)}
-.replybar button{display:flex;align-items:center;gap:10px;width:100%;max-width:540px;margin:0 auto;border:0;background:var(--card);border-radius:16px;padding:10px 14px;color:var(--muted);font-size:15px;text-align:left;box-shadow:0 2px 12px rgb(0 0 0 / .06)}
+.rbbox{max-width:540px;margin:0 auto;background:var(--card);border-radius:18px;padding:8px 8px 8px 12px;box-shadow:0 2px 12px rgb(0 0 0 / .06)}
+.rbrow{display:flex;align-items:flex-end;gap:10px}.rbrow > .av{flex:none;margin-bottom:3px}
+#rb-text{flex:1;min-width:0;border:0;background:none;resize:none;padding:7px 0;font:inherit;font-size:15px;line-height:1.45;color:var(--ink);outline:none;max-height:120px;box-shadow:none}
+#rb-text::placeholder{color:var(--muted)}
+.rbsend{flex:none;width:36px;height:36px;border:0;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;cursor:pointer}.rbsend svg{width:20px;height:20px}
+.rbsend:disabled{background:var(--fill);color:var(--muted);cursor:default}
+.rbto{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 4px 6px 2px;font-size:13px;color:var(--muted)}.rbto button{border:0;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 
 /* project */
 .thead h2{font-size:24px;line-height:1.3;font-weight:800;margin:12px 0 6px;text-wrap:balance;overflow-wrap:anywhere}
@@ -1189,7 +1195,7 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
   #app > .seg,#app > .segwrap{max-width:620px}
   .thead .qcover{aspect-ratio:16/6}
   .replybar{left:244px;bottom:0;padding-left:40px;padding-right:40px}
-  .replybar button{max-width:860px}
+  .rbbox{max-width:860px}
   .rgrid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
   .tlscroll{height:min(62vh,680px)}
   .wg{grid-template-columns:56px repeat(7,minmax(120px,1fr));width:100%}
