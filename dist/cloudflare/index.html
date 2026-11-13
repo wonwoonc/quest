@@ -2447,22 +2447,24 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
   const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || v === "daily" || (v === "profile" && S.view.uid !== S.me);
-  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", daily:"일일 퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "스토리" : "");
+  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", daily:"일일 퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드"}[v] || (isMine() ? "프로필" : "");
   const n = activityItems().filter(x => x.at > actSeen).length + followReqs().length;
   setHtml($("#topbar"), `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : `<button class="iconbtn menubtn" data-act="drawer" aria-label="메뉴 열기" aria-expanded="${document.body.classList.contains("drawer")}">${MENU_SVG}</button>`}<h1${sub ? "" : ' class="tmain"'}>${title}</h1>
-    ${S.me && !TRIAL && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}`);
+    ${S.me && !TRIAL && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
+    ${hasProfile() && !isMine() && v !== "settings" ? `<a class="iconbtn" href="#me" aria-label="프로필">${PROFILE_SVG}</a>` : ""}`);
 }
 /* 메뉴: 사용자가 순서를 정한다(설정 › 메뉴 순서). 데스크탑은 사이드바에 전부 + 설정, 휴대폰은 하단에 앞의 5개 + 왼쪽 위 메뉴(서랍)에 전부 + 설정. */
 const NAV = {
   "#qmanage": ["퀘스트", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4.5h11.5l-2.2 3.75 2.2 3.75H5"/></svg>`, v => v === "qmanage"],
   "#dash": ["대시보드", `${I.dash}`, v => v === "dash"],
-  "#me": ["스토리", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5.5C9 3.5 5.5 3.5 2.5 4.5v15c3-1 6.5-1 9.5 1 3-2 6.5-2 9.5-1v-15c-3-1-6.5-1-9.5 1Z"/><path d="M12 5.5v15M5.5 8.5c1.2-.2 2.4 0 3.5.5M5.5 12c1.2-.2 2.4 0 3.5.5M15 9c1.1-.5 2.3-.7 3.5-.5M15 12.5c1.1-.5 2.3-.7 3.5-.5"/></svg>`, () => isMine()],
   "#feed": ["커뮤니티", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7.5" r="3"/><path d="M2.5 20v-2a6.5 6.5 0 0 1 13 0v2M16 4.7a3 3 0 0 1 0 5.6M18 12a6 6 0 0 1 3.5 5.5V20"/></svg>`, v => v === "feed"],
   "#notes": ["자료실", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5h-7L10 5H5a1.5 1.5 0 0 0-1.5 1.5Z"/><path d="M8 12.5h8M8 15.5h5"/></svg>`, v => v === "notes" || v === "learn"],
   "#shop": ["상점", `${I.bag}`, v => v === "shop"],
   "#cal": ["캘린더", `${I.cal}`, v => v === "cal"]
 };
-const NAV_DEFAULT = ["#qmanage", "#dash", "#feed", "#me", "#notes", "#shop", "#cal"], NAV_BAR = 5;
+const NAV_DEFAULT = ["#qmanage", "#dash", "#feed", "#shop", "#notes", "#cal"], NAV_BAR = 5;
+/* 프로필(내 스토리·캐릭터)은 메뉴가 아니라 상단 알림 옆 버튼으로 연다 */
+const PROFILE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20.2c.9-3.7 3.9-5.9 7.5-5.9s6.6 2.2 7.5 5.9"/></svg>`;
 const navOrder = () => { const saved = LS.get("navOrder", []), list = (Array.isArray(saved) ? saved : []).filter((h, i, a) => Object.hasOwn(NAV, h) && a.indexOf(h) === i);
   return [...list, ...NAV_DEFAULT.filter(h => !list.includes(h))]; };
 const MENU_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></svg>`;

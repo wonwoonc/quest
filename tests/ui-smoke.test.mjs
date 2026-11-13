@@ -1365,22 +1365,26 @@ test('release info: terms, privacy policy and contact in main edition only; shee
   h.click('sheet-close');h.click('sheet',{k:'privacy'});o=h.nodes.get('overlay').innerHTML;assert.match(o,/1\. 처리 목적[\s\S]*5\. 처리 위탁과 국외 이전[\s\S]*10\. 개인정보 보호책임자[\s\S]*12\. 방침의 변경/);
   const t=await profileUI(undefined,'',{trial:true});t.route('settings');assert.doesNotMatch(t.nodes.get('app').innerHTML,/data-k="terms"|data-k="privacy"|문의하기/);
 });
-test('menu: bottom bar = first five (quest/dash/community/story/notes); drawer + PC sidebar list everything plus settings; reorder and reset',async()=>{
+test('menu: bottom bar = quest/dash/community/shop/notes; profile moved to the top bar next to notifications; drawer + PC sidebar list everything plus settings; reorder and reset',async()=>{
   const h=await profileUI();h.route('shop');let nav=h.nodes.get('nav').innerHTML;
   const order=()=>[...h.nodes.get('nav').innerHTML.matchAll(/<a href="#(\w+)"(?: class="(nm|nset)")?/g)].map(m=>m[1]+(m[2]?'*':''));
-  assert.deepEqual(order(),['qmanage','dash','feed','me','notes','shop*','cal*','settings*']);
-  assert.doesNotMatch(nav,/navmore|더보기/);
+  assert.deepEqual(order(),['qmanage','dash','feed','shop','notes','cal*','settings*']);
+  assert.doesNotMatch(nav,/navmore|더보기|href="#me"/);
   const top=h.nodes.get('topbar').innerHTML;assert.match(top,/class="iconbtn menubtn" data-act="drawer" aria-label="메뉴 열기"/);assert.match(top,/<h1 class="tmain">상점/);assert.doesNotMatch(top,/data-v="settings"/,'gear moved to the menu');
+  assert.match(top,/<a class="iconbtn" href="#me" aria-label="프로필">/);
   const drw=h.nodes.get('drawer').innerHTML;
-  assert.deepEqual([...drw.matchAll(/data-act="navgo" data-v="(\w+)"/g)].map(m=>m[1]),['qmanage','dash','feed','me','notes','shop','cal','settings']);
+  assert.deepEqual([...drw.matchAll(/data-act="navgo" data-v="(\w+)"/g)].map(m=>m[1]),['qmanage','dash','feed','shop','notes','cal','settings']);
   assert.match(drw,/data-v="shop" aria-current="page"/);
+  h.route('me');assert.match(h.nodes.get('topbar').innerHTML,/<h1 class="tmain">프로필/);assert.doesNotMatch(h.nodes.get('topbar').innerHTML,/aria-label="프로필"/,'no profile button on the profile page itself');
   h.route('settings');assert.match(h.nodes.get('topbar').innerHTML,/data-act="back"[\s\S]*<h1>설정/,'sub pages keep back + title');assert.doesNotMatch(h.nodes.get('topbar').innerHTML,/menubtn/);
   h.click('navedit');assert.match(h.nodes.get('overlay').innerHTML,/메뉴 순서[\s\S]*하단 메뉴[\s\S]*메뉴 버튼에만/);
-  h.click('nav-mv',{v:'#cal',d:'-1'});h.click('nav-mv',{v:'#cal',d:'-1'});
-  assert.deepEqual(order(),['qmanage','dash','feed','me','cal','notes*','shop*','settings*']);
-  const prefs=JSON.parse(h.data.get('quest:foundation:empty:v2:preferences'));assert.deepEqual(prefs.navOrder,['#qmanage','#dash','#feed','#me','#cal','#notes','#shop']);
-  h.click('nav-reset');assert.deepEqual(order(),['qmanage','dash','feed','me','notes','shop*','cal*','settings*']);
+  h.click('nav-mv',{v:'#cal',d:'-1'});
+  assert.deepEqual(order(),['qmanage','dash','feed','shop','cal','notes*','settings*']);
+  const prefs=JSON.parse(h.data.get('quest:foundation:empty:v2:preferences'));assert.deepEqual(prefs.navOrder,['#qmanage','#dash','#feed','#shop','#cal','#notes']);
+  h.click('nav-reset');assert.deepEqual(order(),['qmanage','dash','feed','shop','notes','cal*','settings*']);
   h.click('sheet-close');h.click('navgo',{v:'shop'});assert.equal(h.context.location.hash,'#shop');assert.equal(h.nodes.get('overlay').innerHTML,'');
+  // 예전에 '#me'가 들어간 순서를 저장했어도 메뉴에서 빠진다
+  h.data.set('quest:foundation:empty:v2:preferences',JSON.stringify({navOrder:['#me','#notes','#dash']}));h.route('dash');assert.deepEqual(order().slice(0,3),['notes','dash','qmanage']);
 });
 test('backup reminder appears after three days of trial use without a backup, once per fourteen days',async()=>{
   const base=await profileUI(),s=base.snapshot();s.mine.m={id:'m',kind:'mission',name:'일',due:'2099-01-01',time:'09:00',done:false,createdAt:1};
