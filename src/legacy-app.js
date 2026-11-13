@@ -488,8 +488,8 @@ const navOrder = () => { const saved = LS.get("navOrder", []), list = (Array.isA
 const MENU_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></svg>`;
 function renderNav(){
   const v = S.view.name, cur = c => c ? 'aria-current="page"' : "", order = navOrder();
-  setHtml($("#nav"), `${order.map((h, i) => { const [l, svg, on] = NAV[h]; return `<a href="${h}"${i >= NAV_BAR ? ' class="nm"' : ""} ${cur(on(v))}>${svg}<span>${l}</span></a>`; }).join("")}
-    <a href="#settings" class="nset" ${cur(v === "settings")}>${I.gear}<span>설정</span></a>
+  setHtml($("#nav"), `${order.map((h, i) => { const [l, svg, on] = NAV[h]; return `<a href="${h}"${i >= NAV_BAR ? ' class="nm"' : ""} aria-label="${l}" ${cur(on(v))}>${svg}<span>${l}</span></a>`; }).join("")}
+    <a href="#settings" class="nset" aria-label="설정" ${cur(v === "settings")}>${I.gear}<span>설정</span></a>
     <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`);
   document.body.classList.toggle("navmini", !!S.navMini);
   const item = (h, l, svg, on) => `<button type="button" data-act="navgo" data-v="${h.slice(1)}" ${cur(on)}>${svg}<span>${l}</span></button>`;

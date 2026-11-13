@@ -411,7 +411,8 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);
   padding:0 max(4px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(4px,env(safe-area-inset-left,0px))}
 .nav .col{display:grid;grid-template-columns:repeat(5,1fr);height:62px}
-@media (max-width:1023.98px){.nav .nm,.nav .nset{display:none}.top h1.tmain{visibility:hidden}}
+@media (max-width:1023.98px){.nav .nm,.nav .nset{display:none}.top h1.tmain{visibility:hidden}
+  /* 휴대폰 하단 메뉴: 이름 없이 아이콘만(이름은 aria-label로 읽힘) */ .nav a span{display:none}.nav a svg{width:26px;height:26px}}
 @media (min-width:1024px){.menubtn,#drawer{display:none}}
 .drw-bg{position:fixed;inset:0;z-index:60;background:rgb(0 0 0 / .35);opacity:0;pointer-events:none;transition:opacity .2s}
 .drw{position:fixed;top:0;bottom:0;left:0;z-index:61;width:min(280px,82vw);background:var(--card);display:flex;flex-direction:column;gap:2px;overflow-y:auto;

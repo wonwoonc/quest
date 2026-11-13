@@ -1367,7 +1367,7 @@ test('release info: terms, privacy policy and contact in main edition only; shee
 });
 test('menu: bottom bar = quest/dash/community/shop/notes; profile moved to the top bar next to notifications; drawer + PC sidebar list everything plus settings; reorder and reset',async()=>{
   const h=await profileUI();h.route('shop');let nav=h.nodes.get('nav').innerHTML;
-  const order=()=>[...h.nodes.get('nav').innerHTML.matchAll(/<a href="#(\w+)"(?: class="(nm|nset)")?/g)].map(m=>m[1]+(m[2]?'*':''));
+  const order=()=>[...h.nodes.get('nav').innerHTML.matchAll(/<a href="#(\w+)"(?: class="(nm|nset)")? aria-label="[^"]*"/g)].map(m=>m[1]+(m[2]?'*':''));
   assert.deepEqual(order(),['qmanage','dash','feed','shop','notes','cal*','settings*']);
   assert.doesNotMatch(nav,/navmore|더보기|href="#me"/);
   const top=h.nodes.get('topbar').innerHTML;assert.match(top,/class="iconbtn menubtn" data-act="drawer" aria-label="메뉴 열기"/);assert.match(top,/<h1 class="tmain">상점/);assert.doesNotMatch(top,/data-v="settings"/,'gear moved to the menu');
