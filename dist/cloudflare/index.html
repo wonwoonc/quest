@@ -2752,7 +2752,7 @@ function viewToday(){
     <div class="ringwrap">${ring(done.length, total)}<b class="num">${done.length}/${total}</b></div>
     <div class="tinfo"><small>일일 퀘스트</small>
       <h2>${restDays()[today()] && !all ? "🛡️ 오늘은 쉬는 날이에요" : all ? "일일 퀘스트 완료! 🎉" : total ? `${todo.length}개 남았어요` : "오늘의 일일 퀘스트"}</h2>
-      ${all ? `<p><button class="btn soft xs" data-act="shareday">오늘 공유하기</button></p>` : ""}</div></section>`;
+</div></section>`;
   const row = x => x.q ? habitRow(x.q) : taskRow(x.m);
   h += `<section class="card tight qlist" aria-label="일일 퀘스트">`;
   if (!total && !mineOf("quest").length){
