@@ -362,7 +362,7 @@ function fullbody(image, size){ const src = image && (image.startsWith('data:') 
 function photoAv(image, size){ const src = image && (image.startsWith('data:') ? image : mediaSrc(image));
   return `<span class="avatar-photo" style="width:${size}px;height:${size}px"${src ? '' : ` data-k="${esc(image)}"`}>${src ? `<img src="${esc(src)}" alt="프로필 사진" draggable="false">` : ''}</span>`; }
 const fig = (uid, size, inner) => faceOf(uid) ? (prof(uid).avatarStyle === 'photo' ? photoAv(faceOf(uid), size) : prof(uid).avatarStyle === 'fullbody' ? fullbody(faceOf(uid), size) : chibi(colorOf(uid), statsOf(uid).L, faceOf(uid), size)) : spriteImg(colorOf(uid), statsOf(uid).L, inner || Math.round(size*.64));
-const av = (uid, size, act = true) => `<${act?`button data-act="profile" data-u="${esc(uid)}" aria-label="${esc(nameOf(uid))} 프로필"`:"span"} class="av ${uid===S.me?'eco-avatar':''}" style="width:${size}px;height:${size}px">${fig(uid, size)}</${act?"button":"span"}>`;
+const av = (uid, size, act = true) => `<${act?`button data-act="profile" data-u="${esc(uid)}" aria-label="${esc(nameOf(uid))} 프로필"`:"span"} class="av ${uid===S.me?'eco-avatar':''}" style="width:${size}px;height:${size}px;--pc:${colorOf(uid)}">${fig(uid, size)}</${act?"button":"span"}>`;
 const liked = p => on((p.reactions||{})[S.me]);
 const likeN = p => Object.values(p.reactions||{}).filter(on).length;
 const SETDEF = {notif:{like:true, reply:true, follow:true, join:true}, blocked:[], hidden:[], hidePosts:[]};

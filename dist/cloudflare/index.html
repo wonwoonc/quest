@@ -72,6 +72,8 @@ html,*{scrollbar-color:var(--sbt) var(--card)}
 .chibi .cface{position:absolute;left:19%;top:3%;width:62%;height:62%;border-radius:50%;overflow:hidden;background:var(--fill);box-shadow:0 0 0 max(1.5px,4%) #fff, 0 2px 6px rgba(0,0,0,.18)}
 .chibi .cface img{width:100%;height:100%;object-fit:cover;display:block}
 .av .chibi{margin-top:6%}
+/* 커뮤니티(목록·스레드·답글·스토리 쓰기)의 캐릭터: 프로필 카드처럼 내 색 그라데이션 둥근 네모. 크기는 그대로 */
+#app[data-v="feed"] .av,#app[data-v="post"] .av,#app[data-v="write"] .av,#replybar .av{border-radius:32%;background:linear-gradient(160deg,color-mix(in srgb,var(--pc,#3DBE8B) 22%,var(--card)),color-mix(in srgb,var(--pc,#3DBE8B) 50%,var(--card)))}
 .obstage{display:grid;place-items:center;margin:0 auto 14px;width:168px;height:168px;border-radius:32px;background:var(--fill);position:relative;overflow:hidden}
 .obstage .chibi{animation:bob 2.4s ease-in-out infinite}
 .avatar-photo{display:inline-block;flex:none;max-width:100%;border-radius:50%;overflow:hidden;background:var(--fill)}
@@ -98,6 +100,9 @@ html,*{scrollbar-color:var(--sbt) var(--card)}
 .btnrow .btn{flex:1}
 
 .av{display:grid;place-items:center;border-radius:50%;background:var(--fill);overflow:hidden;flex:none;border:0;padding:0;position:relative}
+/* 커뮤니티 캐릭터: 프로필처럼 내 색 그라데이션 배경의 둥근 사각형(크기는 그대로) */
+#app[data-v="feed"] .av,#app[data-v="post"] .av,#app[data-v="write"] .av,#replybar .av,#overlay .ctx .av{border-radius:30%;background:linear-gradient(160deg,color-mix(in srgb,var(--pc) 22%,var(--card)),color-mix(in srgb,var(--pc) 50%,var(--card)))}
+#app[data-v="feed"] .av .sprite,#app[data-v="post"] .av .sprite,#app[data-v="write"] .av .sprite,#replybar .av .sprite{width:74%;height:74%}
 .sprite{display:block}
 
 .btn{border:0;border-radius:14px;padding:14px 18px;font-weight:700;font-size:16px;background:var(--accent);color:var(--accent-ink);white-space:nowrap;transition:transform .08s}
@@ -2354,7 +2359,7 @@ function fullbody(image, size){ const src = image && (image.startsWith('data:') 
 function photoAv(image, size){ const src = image && (image.startsWith('data:') ? image : mediaSrc(image));
   return `<span class="avatar-photo" style="width:${size}px;height:${size}px"${src ? '' : ` data-k="${esc(image)}"`}>${src ? `<img src="${esc(src)}" alt="프로필 사진" draggable="false">` : ''}</span>`; }
 const fig = (uid, size, inner) => faceOf(uid) ? (prof(uid).avatarStyle === 'photo' ? photoAv(faceOf(uid), size) : prof(uid).avatarStyle === 'fullbody' ? fullbody(faceOf(uid), size) : chibi(colorOf(uid), statsOf(uid).L, faceOf(uid), size)) : spriteImg(colorOf(uid), statsOf(uid).L, inner || Math.round(size*.64));
-const av = (uid, size, act = true) => `<${act?`button data-act="profile" data-u="${esc(uid)}" aria-label="${esc(nameOf(uid))} 프로필"`:"span"} class="av ${uid===S.me?'eco-avatar':''}" style="width:${size}px;height:${size}px">${fig(uid, size)}</${act?"button":"span"}>`;
+const av = (uid, size, act = true) => `<${act?`button data-act="profile" data-u="${esc(uid)}" aria-label="${esc(nameOf(uid))} 프로필"`:"span"} class="av ${uid===S.me?'eco-avatar':''}" style="width:${size}px;height:${size}px;--pc:${colorOf(uid)}">${fig(uid, size)}</${act?"button":"span"}>`;
 const liked = p => on((p.reactions||{})[S.me]);
 const likeN = p => Object.values(p.reactions||{}).filter(on).length;
 const SETDEF = {notif:{like:true, reply:true, follow:true, join:true}, blocked:[], hidden:[], hidePosts:[]};
