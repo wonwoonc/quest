@@ -3326,7 +3326,7 @@ function metricFor(post){
   const reached = down ? cur <= m.target : cur >= m.target;
   return `<div class="metric"><div class="mv"><b>${numFmt(cur)}</b><span>${esc(m.unit)}</span>${delta ? `<em class="${good?"good":"bad"}">${delta>0?"▲":"▼"} ${numFmt(Math.abs(delta))}${esc(m.unit)}</em>` : ""}</div>
     ${spark([m.start, ...hist.slice(0, idx+1).map(x => x.value)])}<div class="mbar"><i style="width:${pct}%"></i></div>
-    <small>${numFmt(m.start)}${esc(m.unit)}에서 시작 · ${reached ? `<b>목표 ${numFmt(m.target)}${esc(m.unit)} 도달!</b>` : `목표 ${numFmt(m.target)}${esc(m.unit)}까지 <b>${numFmt(Math.abs(m.target - cur))}${esc(m.unit)}</b>`}</small></div>`;
+    <small>${numFmt(m.start)}${esc(m.unit)}에서 시작 · ${reached ? `<b>목표 ${numFmt(m.target)}${esc(m.unit)} 도달!</b>` : `목표 ${numFmt(m.target)}${esc(m.unit)}까지 <b>${numFmt(Math.abs(m.target - cur))}${esc(m.unit)}</b> · <b>${Math.round(pct)}%</b>`}</small></div>`;
 }
 function spark(vals, w = 96, h = 40){
   if (vals.length < 2) return "";
@@ -3420,7 +3420,7 @@ function viewGoal(){
     ${par ? `<button class="parentlink" data-act="project" data-p="${par.id}">🎯 ${esc(par.title)} ${I.chev}</button>` : ""}
     <div class="tags">${p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "영역" : "메인 퀘스트 영역"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}</div>
     ${pr.total ? `<div class="prog"><div class="bar green"><i style="width:${pr.done/pr.total*100}%"></i></div><span class="num">미션 ${pr.done}/${pr.total}</span></div>` : ""}
-    ${latest ? metricFor(latest) : p.metric ? `<p class="hint" style="margin:12px 0 0">📈 ${numFmt(p.metric.start)}${esc(p.metric.unit)} → 목표 ${numFmt(p.metric.target)}${esc(p.metric.unit)}</p>` : ""}
+    ${latest ? metricFor(latest) : p.metric ? `<p class="hint" style="margin:12px 0 0">📈 ${numFmt(p.metric.start)}${esc(p.metric.unit)} → 목표 ${numFmt(p.metric.target)}${esc(p.metric.unit)} · 0%</p>` : ""}
     ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요</div>` : ""}
     ${mine && p.status !== "done" ? (p.metric ? `<button class="btn soft full mlogbtn" data-act="mlog" data-p="${p.id}">📈 오늘 수치 기록 <span class="hint">나만 보기</span></button>` : `<button class="btn sec full mlogbtn" data-act="gedit" data-p="${p.id}">📈 수치 기록 켜기</button>`) : ""}
     ${mine && p.status !== "done" ? `<div class="btnrow"><button class="btn" data-act="compose" data-p="${p.id}">스토리 쓰기</button><button class="btn gold" data-act="pdone" data-p="${p.id}">${S.armed==="pd"+p.id ? "한 번 더 누르면 " + (sp ? "완료" : "달성") : (sp ? "✓ 완료" : "🏆 달성")}</button></div>` : ""}
@@ -3456,13 +3456,14 @@ async function saveCover(c){ const v = c.cover; if (!v) return null; if (v.start
 function wdMetric(g){ const m = g.metric; if (!m) return `<div class="wdm none"><div class="wdm-t"><span class="wdm-l">📈</span><b>수치 기록 없음</b></div><span class="bar"><i style="width:0%"></i></span></div>`; const cur = lastVal(g), mp = m.target !== m.start ? Math.round(Math.max(0, Math.min(100, (cur - m.start)/(m.target - m.start)*100))) : 0, u = esc(m.unit);
   return `<div class="wdm"><div class="wdm-t"><span class="wdm-l">${I.trend || "📈"}</span><b class="num">${numFmt(cur)}${u}</b><small class="num">/ ${numFmt(m.target)}${u}</small></div><span class="bar"><i style="width:${mp}%"></i></span></div>`; }
 function qHead(g){ const pr = goalProgress(g), m = g.metric, cur = m ? lastVal(g) : null, mp = m && m.target !== m.start ? Math.max(0, Math.min(100, (cur - m.start)/(m.target - m.start)*100)) : null, tp = pr.total ? Math.round(pr.done/pr.total*100) : 0, pct = Math.round(mp != null ? mp : tp);
-  return `<h3 class="qh3">${esc(g.title)}</h3><div class="pgtop">${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}<b class="pct num">${pct}%</b></div><div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">미션 ${pr.done}/${pr.total}</span></div>${wdMetric(g)}`; }
+  return `<h3 class="qh3">${esc(g.title)}</h3><div class="pgtop">${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}${mp != null ? `<b class="pct num">${pct}%</b>` : ""}</div><div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">미션 ${pr.done}/${pr.total}</span></div>${wdMetric(g)}`; }
 function pgCard(g){
   const pr = goalProgress(g), done = g.status === "done", subs = subsOf(g.id);
   const latest = valLatest(g.id);
   const m = g.metric, cur = m ? (latest ? latest.value : m.start) : null;
   const mpct = m && m.target !== m.start ? Math.max(0, Math.min(100, (cur - m.start)/(m.target - m.start)*100)) : null;
-  const pct = Math.round(done ? 100 : mpct != null ? mpct : pr.total ? pr.done/pr.total*100 : 0);
+  // %는 수치 기록이 있는 퀘스트에만 보여 준다(메인 퀘스트 화면의 수치 카드와 같은 값). 수치가 없으면 막대는 미션 완료 비율.
+  const pct = Math.round(mpct != null ? mpct : done ? 100 : pr.total ? pr.done/pr.total*100 : 0);
   const meta = [];
   if (!g.parentId) meta.push(`🔗 스테이지 ${subs.filter(x => x.status === "done").length}/${subs.length}`);
   meta.push(`✅ 미션 ${pr.done}/${pr.total}`);
@@ -3470,7 +3471,7 @@ function pgCard(g){
   return `<section class="card pgc ${done ? "done" : ""}" data-act="project" data-p="${g.id}" role="button" tabindex="0">
     ${coverHtml(g, {badge:false})}
     <h3>${esc(g.title)}${g.parentId && S.projects[g.parentId] ? `<span class="parlab">🎯 ${esc(S.projects[g.parentId].title)}</span>` : ""}</h3>
-    <div class="pgtop">${done ? `<span class="st done">🏆 ${g.doneAt ? `${new Date(g.doneAt).getMonth()+1}/${new Date(g.doneAt).getDate()} 달성` : "달성"}</span>` : `${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}`}<b class="pct num">${pct}%</b></div>
+    <div class="pgtop">${done ? `<span class="st done">🏆 ${g.doneAt ? `${new Date(g.doneAt).getMonth()+1}/${new Date(g.doneAt).getDate()} 달성` : "달성"}</span>` : `${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}`}${m ? `<b class="pct num">${pct}%</b>` : ""}</div>
     <span class="bar green big"><i style="width:${pct}%"></i></span>
     <div class="pgmeta">${meta.map(x => `<span>${x}</span>`).join("")}</div>
     ${subs.length ? `<div class="pgsubs">${subs.map(x => { const p2 = goalProgress(x); return `<button class="pgsub ${x.status === "done" ? "ok" : ""}" data-act="project" data-p="${x.id}"><span>${x.status === "done" ? "✓" : "🔗"}</span>${esc(x.title)}${p2.total && x.status !== "done" ? ` <em class="num">${p2.done}/${p2.total}</em>` : ""}</button>`; }).join("")}</div>` : ""}
