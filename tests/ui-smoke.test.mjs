@@ -1339,9 +1339,9 @@ test('main edition: checklist yes, no trial notice or reminder; settings = 계�
   vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],trialLogin.context);trialLogin.flush();
   const login=trialLogin.nodes.get('app').innerHTML;assert.match(login,/>바로 시작하기</);assert.doesNotMatch(login,/카카오|개발 미리보기/);
 });
-test('mobile dashboard chips: 일일/미션/저널, mission by default, switching panes keeps data unchanged',async()=>{
+test('mobile dashboard chips: 일퀘/미션/저널, mission by default, switching panes keeps data unchanged',async()=>{
   const h=await profileUI();h.route('dash');let html=h.nodes.get('app').innerHTML;const before=h.snapshot();
-  assert.match(html,/class="wd-chips"><div class="seg" role="group"[\s\S]*data-v="daily"[^>]*>일일[\s\S]*data-v="mission" aria-pressed="true">미션[\s\S]*data-v="journal"[^>]*>저널/);
+  assert.match(html,/class="wd-chips"><div class="seg" role="group"[\s\S]*data-v="daily"[^>]*>일퀘[\s\S]*data-v="mission" aria-pressed="true">미션[\s\S]*data-v="journal"[^>]*>저널/);
   assert.match(html,/class="wd-bot" data-pane="mission"/);assert.doesNotMatch(html,/wd-mprof|lvstrip|class="card pcard"/,'no profile card on mobile dashboard');assert.match(html,/wd-sec dp-daily[\s\S]*wd-sec dp-mission[\s\S]*wd-sec dp-journal/);
   h.click('dpane',{v:'journal'});html=h.nodes.get('app').innerHTML;assert.match(html,/data-pane="journal"/);assert.match(html,/data-v="journal" aria-pressed="true"/);
   h.click('dpane',{v:'bogus'});assert.match(h.nodes.get('app').innerHTML,/data-pane="journal"/);assert.deepEqual(h.snapshot(),before);
