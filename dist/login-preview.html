@@ -3347,7 +3347,7 @@ function viewFeed(){
   let h = (TRIAL ? `<section class="card trialnote"><b>커뮤니티는 정식 버전에서 열려요</b><p>지금은 체험판이라 다른 사람의 소식은 보이지 않아요. 내가 올린 스토리는 여기와 프로필에 쌓여요.</p></section>` : "") + (canAct() ? storyEntry() : "");
   let items = feedSorted();
   if (!items.length){
-    return h + `<div class="card empty"><strong>아직 스토리가 없어요</strong>${TRIAL ? "오늘 해낸 일을 첫 스토리로 남겨 보세요." : "퀘스트를 생성하고 각오를 공유해 보세요."}</div>` + suggestCard();
+    return h + `<div class="card empty"><strong>아직 스토리가 없어요</strong>${TRIAL ? "오늘 해낸 일을 첫 스토리로 남겨 보세요." : "첫 퀘스트를 생성하고 각오를 공유해 보세요."}</div>` + suggestCard();
   }
   const fresh = S.feedSeen ? items.filter(p => p.createdAt > S.feedSeen && p.author !== S.me) : [];
   const rest = items.filter(p => !fresh.includes(p));
