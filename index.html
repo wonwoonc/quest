@@ -984,7 +984,7 @@ body.reo-lock{touch-action:none;overscroll-behavior:none}
 .nav .wr svg{color:var(--accent);width:30px;height:30px}
 .nav .nwr{justify-content:center}.nav .nwr svg{width:22px;height:22px;box-sizing:content-box;padding:9px;border-radius:50%;background:var(--accent);color:#fff}
 @media (min-width:1024px){.nav .nwr{display:none}}
-.wrpage{max-width:640px;margin:0 auto}.wrpage .scomp{margin:0}
+
 
 #toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translate(-50%,12px);opacity:0;pointer-events:none;
   background:#2A302D;color:#fff;border-radius:14px;padding:13px 18px;font-weight:500;font-size:15px;transition:.25s;z-index:90;max-width:calc(100vw - 32px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1057,7 +1057,7 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
 .rc-t b{font-size:15px}
 .rc-t small{font-size:12.5px;color:var(--sub)}
 .rc-b{display:flex;gap:8px;justify-content:flex-end}
-@media (max-width:1023px){#app[data-v="feed"] > *{margin-left:-12px;margin-right:-12px}#app[data-v="feed"] > .card{border-radius:14px}#app[data-v="feed"] > .sect{padding-left:16px}#app[data-v="feed"] .feedcard .txt{font-size:16.5px;font-weight:500;line-height:1.55}#app[data-v="feed"] > .feedcard .tp{padding:0 12px 0 8px;column-gap:6px}}
+@media (max-width:1023px){#app[data-v="feed"] > *,#app[data-v="write"] > *{margin-left:-12px;margin-right:-12px}#app[data-v="feed"] > .card,#app[data-v="write"] > .card{border-radius:14px}#app[data-v="feed"] > .sect{padding-left:16px}#app[data-v="feed"] .feedcard .txt{font-size:16.5px;font-weight:500;line-height:1.55}#app[data-v="feed"] > .feedcard .tp{padding:0 12px 0 8px;column-gap:6px}}
 /* 44px touch targets without changing visual size */
 .check,.qx,.editp,.dedit,.tadd-pill,.wchk,.wd-rnav{position:relative}
 .check::after,.pdots::after,.cvtog::after,.wd-rnav::after,.wd-cgear::after,.qx::after,.qccam::after,.iconbtn::after{content:"";position:absolute;inset:-7px;border-radius:50%}
@@ -1190,7 +1190,7 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
   #app[data-v="profile"] > .seg,#app[data-v="profile"] > .segwrap{max-width:none}
   #app[data-v="shop"] > .seg,#app[data-v="cal"] > .seg,#app[data-v="qmanage"] > .seg{max-width:none}
   #app[data-v="shop"] .rgrid{grid-template-columns:repeat(3,1fr);gap:14px}
-  #app[data-v="feed"],#app[data-v="profile"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:600px;margin:0 auto}
+  #app[data-v="feed"],#app[data-v="profile"],#app[data-v="write"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:600px;margin:0 auto}
   #app[data-v="shop"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:860px;margin:0 auto}
   #app[data-v="stats"]{max-width:600px}
   #app[data-v="cal"]{display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:1192px;margin:0 auto}
