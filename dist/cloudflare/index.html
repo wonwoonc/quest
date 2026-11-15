@@ -990,7 +990,7 @@ body.reo-lock{touch-action:none;overscroll-behavior:none}
 .wrpick{display:flex;align-items:center;gap:10px;width:100%;padding:14px 14px;border:0;border-radius:14px;background:var(--fill);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
 .wrpick .wrl{flex:none;width:84px;font-size:14px;color:var(--muted)}.wrpick b{flex:1;min-width:0;font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
 .wrpick.on b{color:var(--ink)}.wrpick svg{flex:none;width:18px;height:18px;color:var(--muted)}.wrpick:disabled{opacity:.55;cursor:default}
-.wrchk{margin-left:auto;color:var(--accent);display:grid}.wrchk svg{width:20px;height:20px}
+.wrchk{margin-left:auto;color:var(--accent);display:grid}.mitem.wrstage{padding-left:30px}.mitem.wrstage b{font-weight:500}.wrchk svg{width:20px;height:20px}
 .wrpage > .btn{margin-top:4px}
 
 #toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translate(-50%,12px);opacity:0;pointer-events:none;
@@ -3599,7 +3599,7 @@ function viewWrite(){
   const W = S.write || (S.write = {gid:null, sid:null, photos:[]});
   const g = W.gid && S.projects[W.gid], st = W.sid && S.projects[W.sid];
   if (W.gid && !g) W.gid = null; if (W.sid && (!st || st.parentId !== W.gid)) W.sid = null;
-  const target = (W.sid && S.projects[W.sid]) || (W.gid && S.projects[W.gid]), stages = g ? subsOf(g.id).filter(x => x.status !== "done") : [];
+  const target = (W.sid && S.projects[W.sid]) || (W.gid && S.projects[W.gid]);
   const pickBtn = (kind, label, val, dis) => `<button type="button" class="wrpick${val ? " on" : ""}" data-act="wpick" data-v="${kind}" ${dis ? "disabled" : ""}><span class="wrl">${label}</span><b>${val ? esc(val) : dis ? (kind === "stage" ? (g ? "스테이지 없음" : "퀘스트를 먼저 골라요") : "") : "선택 안 함"}</b>${I.chev || ""}</button>`;
   const lv = target && target.metric ? lastVal(target) : null;
   return `<div class="wrpage"><section class="card wrcard">
@@ -3607,8 +3607,7 @@ function viewWrite(){
     ${W.photos.length ? `<div class="thumbs">${W.photos.map((src, i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="wunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
     <button class="btn sec sm ibtn" data-act="wphoto" ${W.photos.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진 <span class="hint">${W.photos.length}/${MAX_IMGS}</span></button></section>
     <section class="card wrcard wrlinks"><p class="wrh">연결</p>
-      ${pickBtn("quest", "연결 퀘스트", g ? g.title : "", false)}
-      ${pickBtn("stage", "스테이지", st ? st.title : "", !g || !stages.length)}
+      ${pickBtn("quest", "퀘스트", g ? g.title + (st ? " › " + st.title : "") : "", false)}
       ${target && target.metric ? `<div class="field svalf"><label class="lab" for="wr-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lv)}${esc(target.metric.unit)} · 목표 ${numFmt(target.metric.target)}${esc(target.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="wr-val" placeholder="${numFmt(lv)}" value="${D("wr-val")}"><span class="uval">${esc(target.metric.unit)}</span></div></div>` : ""}
     </section>
     <button class="btn big full" data-act="wpost" ${S.busy ? "disabled" : ""}>공유하기</button></div>`;
@@ -4070,10 +4069,11 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="tqset" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${par.projectId === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
     const body = gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphan.map(x => it(x, true)).join("");
     return sheetWrap("어떤 퀘스트의 미션인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 퀘스트가 없어요.</p>`}</div>${par.projectId ? `<button class="btn sec full" data-act="tqset" data-v="">연결 안 함</button>` : ""}`); }
-  if (c.type === "wpick"){ const W = S.write || {}, quest = c.kind === "quest";
-    const list = quest ? goalsOf(S.me).filter(p => p.status !== "done") : subsOf(W.gid).filter(p => p.status !== "done"), sel = quest ? W.gid : W.sid;
-    const row = (id, title, sub0) => `<button class="row mitem" data-act="wpset" data-v="${id}" aria-pressed="${sel === id || (!id && !sel)}"><span class="t"><b>${title}</b>${sub0 ? `<small>${sub0}</small>` : ""}</span>${(sel === id || (!id && !sel)) ? `<span class="wrchk" aria-hidden="true">${I.check || "✓"}</span>` : ""}</button>`;
-    return sheetWrap(quest ? "연결 퀘스트" : "스테이지", "", `<div class="sheetlist mlist">${row("", "선택 안 함", "")}${list.map(p => row(p.id, esc(p.title), quest ? (subsOf(p.id).filter(x => x.status !== "done").length ? `스테이지 ${subsOf(p.id).filter(x => x.status !== "done").length}개` : "") : "")).join("") || `<p class="hint" style="padding:12px 4px">${quest ? "진행 중인 메인 퀘스트가 없어요" : "진행 중인 스테이지가 없어요"}</p>`}</div>`); }
+  if (c.type === "wpick"){ const W = S.write || {}, sel = W.sid || W.gid || "";
+    // 메인 퀘스트 아래에 진행 중인 스테이지를 들여 써서 보여 준다. 메인 퀘스트나 스테이지 중 원하는 쪽을 고르면 된다.
+    const row = (id, title, sub0, stage) => `<button class="row mitem${stage ? " wrstage" : ""}" data-act="wpset" data-v="${id}" aria-pressed="${sel === id}"><span class="t"><b>${title}</b>${sub0 ? `<small>${sub0}</small>` : ""}</span>${sel === id ? `<span class="wrchk" aria-hidden="true">${I.check}</span>` : ""}</button>`;
+    const gs = goalsOf(S.me).filter(p => p.status !== "done");
+    return sheetWrap("퀘스트 연결", "메인 퀘스트나 그 아래 스테이지를 골라요", `<div class="sheetlist mlist">${row("", "선택 안 함", "", false)}${gs.map(g0 => row(g0.id, esc(g0.title), "메인 퀘스트", false) + subsOf(g0.id).filter(x => x.status !== "done").map(s0 => row(s0.id, esc(s0.title), "스테이지", true)).join("")).join("") || `<p class="hint" style="padding:12px 4px">진행 중인 메인 퀘스트가 없어요</p>`}</div>`); }
   if (c.type === "qpick"){ const gs = goalsOf(S.me).filter(g => g.status !== "done"), orphanSubs = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId));
     const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="inref" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${S.inRef === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
     const body = (gs.length || orphanSubs.length ? gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphanSubs.map(x => it(x, true)).join("") : "")
@@ -4307,7 +4307,8 @@ document.addEventListener("click", e => {
     case "tqclear": c.projectId = null; renderSheet(); return;
     case "wpick": openSheet({type:"wpick", kind:b.dataset.v}); return;
     case "wpset": { const W = S.write || (S.write = {gid:null, sid:null, photos:[]}); const v0 = b.dataset.v || null;
-      if (c && c.kind === "quest"){ if (W.gid !== v0){ W.gid = v0; W.sid = null; delete S.drafts["wr-val"]; } } else W.sid = v0;
+      const pj = v0 && S.projects[v0], gid = pj ? (pj.parentId || pj.id) : null, sid = pj && pj.parentId ? pj.id : null;
+      if (W.gid !== gid || W.sid !== sid) delete S.drafts["wr-val"]; W.gid = gid; W.sid = sid;
       closeSheet(); schedule(); return; }
     case "wphoto": choosePhotos(true, list => { const W = S.write; if (!W) return; W.photos = W.photos.concat(list).slice(0, MAX_IMGS); schedule(); }); return;
     case "wunphoto": S.write.photos.splice(+b.dataset.i, 1); schedule(); return;

@@ -1387,27 +1387,23 @@ test('menu: bottom bar = dash/community/+write/shop/notes; profile moved to the 
   // 예전에 '#me'가 들어간 순서를 저장했어도 메뉴에서 빠진다
   h.data.set('quest:foundation:empty:v2:preferences',JSON.stringify({navOrder:['#me','#notes','#dash']}));h.route('dash');assert.deepEqual(order().slice(0,3),['notes','dash','feed']);
 });
-test('write page (+): text, 연결 퀘스트 → 스테이지 pickers, today number for a metric quest, then shares to the community',async()=>{
+test('write page (+): one 퀘스트 button; the picker lists main quests with their stages so either can be linked; metric target asks today number; shares',async()=>{
   const base=await profileUI(),saved=base.snapshot();
   saved.projects={g1:{id:'g1',owner:'me',title:'마라톤 완주',end:'2099-12-31',status:'active',createdAt:1},
     s1:{id:'s1',owner:'me',title:'10km 달리기',parentId:'g1',end:'2099-12-31',status:'active',createdAt:2,metric:{unit:'km',start:0,target:10}},
     g2:{id:'g2',owner:'me',title:'독서',end:'2099-12-31',status:'active',createdAt:3}};
   const h=await profileUI(saved);h.route('write');let html=h.nodes.get('app').innerHTML;
   assert.match(h.nodes.get('topbar').innerHTML,/data-act="back"[\s\S]*<h1>스토리 쓰기/);
-  assert.match(html,/data-act="wpick" data-v="quest"[^>]*><span class="wrl">연결 퀘스트<\/span><b>선택 안 함/);
-  assert.match(html,/data-act="wpick" data-v="stage" disabled><span class="wrl">스테이지<\/span><b>퀘스트를 먼저 골라요/);
-  h.click('wpick',{v:'quest'});assert.match(h.nodes.get('overlay').innerHTML,/연결 퀘스트[\s\S]*마라톤 완주[\s\S]*스테이지 1개[\s\S]*독서/);
-  h.click('wpset',{v:'g1'});await h.settle();html=h.nodes.get('app').innerHTML;
-  assert.match(html,/wrpick on" data-act="wpick" data-v="quest"[^>]*><span class="wrl">연결 퀘스트<\/span><b>마라톤 완주/);
-  h.click('wpick',{v:'stage'});assert.match(h.nodes.get('overlay').innerHTML,/스테이지[\s\S]*10km 달리기/);h.click('wpset',{v:'s1'});await h.settle();html=h.nodes.get('app').innerHTML;
-  assert.match(html,/<b>10km 달리기/);assert.match(html,/id="wr-val"/,'metric stage asks today\'s number');
+  assert.equal((html.match(/data-act="wpick"/g)||[]).length,1,'only the 퀘스트 button');assert.match(html,/<span class="wrl">퀘스트<\/span><b>선택 안 함/);
+  h.click('wpick',{v:'quest'});const sh=h.nodes.get('overlay').innerHTML;
+  assert.match(sh,/선택 안 함[\s\S]*마라톤 완주<\/b><small>메인 퀘스트[\s\S]*wrstage[^>]*data-v="s1"[\s\S]*10km 달리기<\/b><small>스테이지[\s\S]*독서/);
+  h.click('wpset',{v:'g1'});await h.settle();html=h.nodes.get('app').innerHTML;assert.match(html,/<b>마라톤 완주<\/b>/);assert.doesNotMatch(html,/id="wr-val"/);
+  h.click('wpick',{v:'quest'});h.click('wpset',{v:'s1'});await h.settle();html=h.nodes.get('app').innerHTML;
+  assert.match(html,/<b>마라톤 완주 › 10km 달리기<\/b>/);assert.match(html,/id="wr-val"/,'metric stage asks today\'s number');
   h.nodes.set('wr-text',{value:'오늘 10km 중 6km!'});h.nodes.set('wr-val',{value:'6'});h.click('wpost');await h.settle();
   const posts=Object.values(h.snapshot().feed).filter(p=>p.author==='me');assert.equal(posts.length,1);
-  assert.equal(posts[0].text,'오늘 10km 중 6km!');assert.deepEqual([posts[0].ref.type,posts[0].ref.id],['project','s1']);assert.equal(posts[0].value,6);
-  assert.equal(h.context.location.hash,'#feed');
-  // 퀘스트를 바꾸면 스테이지 선택이 풀린다
-  h.route('write');h.click('wpick',{v:'quest'});h.click('wpset',{v:'g1'});h.click('wpick',{v:'stage'});h.click('wpset',{v:'s1'});h.click('wpick',{v:'quest'});h.click('wpset',{v:'g2'});await h.settle();
-  assert.match(h.nodes.get('app').innerHTML,/data-v="stage" disabled><span class="wrl">스테이지<\/span><b>스테이지 없음/);
+  assert.deepEqual([posts[0].ref.type,posts[0].ref.id,posts[0].value],['project','s1',6]);assert.equal(h.context.location.hash,'#feed');
+  h.route('write');h.click('wpick',{v:'quest'});h.click('wpset',{v:''});await h.settle();assert.match(h.nodes.get('app').innerHTML,/<b>선택 안 함/);
 });
 test('backup reminder appears after three days of trial use without a backup, once per fourteen days',async()=>{
   const base=await profileUI(),s=base.snapshot();s.mine.m={id:'m',kind:'mission',name:'일',due:'2099-01-01',time:'09:00',done:false,createdAt:1};
