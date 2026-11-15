@@ -712,7 +712,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .editp{border:0;background:var(--fill);color:var(--sub);font-size:12px;font-weight:700;border-radius:8px;padding:4px 9px;line-height:1.3;font-family:inherit}
 .scomp{display:flex;flex-direction:column;gap:10px}
 .scomp .srow{display:flex;gap:12px;align-items:flex-start}
-.scomp textarea{flex:1;min-height:0;resize:none;background:var(--fill);border:0;border-radius:14px;padding:10px 12px;font-size:15px;line-height:1.5}
+.scomp textarea{flex:1;min-height:112px;max-height:480px;overflow-y:auto;resize:none;background:var(--fill);border:0;border-radius:14px;padding:10px 12px;font-size:15px;line-height:1.5}
 .scomp .sact{display:flex;justify-content:space-between;gap:8px}
 .scomp .sbtns{display:flex;gap:8px;min-width:0;flex-wrap:wrap}
 .qsel{display:inline-flex;align-items:center;gap:2px;min-width:0}
@@ -2396,7 +2396,9 @@ function renderReplyBar(){
   if (changed){ const t = $("#rb-text"); if (t){ t.value = typed; rbFit(t); } }
 }
 function rbFit(t){ t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 120) + "px"; const b = $(".rbsend"); if (b) b.disabled = !t.value.trim() || S.busy; }
-document.addEventListener("input", e => { if (e.target && e.target.id === "rb-text"){ S.drafts["rb-text"] = e.target.value; rbFit(e.target); } });
+document.addEventListener("input", e => { if (e.target && e.target.id === "rb-text"){ S.drafts["rb-text"] = e.target.value; rbFit(e.target); } if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-grow")) growFit(e.target); });
+/* 글이 늘어나면(엔터 포함) 입력창도 같이 길어진다. 너무 길면 그 안에서 스크롤 */
+function growFit(t){ t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 480) + "px"; }
 
 /* ================= 오늘 ================= */
 function charCard(uid, extra = "", nameExtra = ""){
@@ -3455,7 +3457,7 @@ function pgCard(g){
 function storyComposer(){
   const ph = S.inPhotos || [], selQ = S.inRef && S.inRef.startsWith("q:") && S.mine[S.inRef.slice(2)], sel = selQ ? null : S.inRef && S.projects[S.inRef];
   return `<section class="card scomp">
-    <div class="srow">${av(S.me, 36, false)}<textarea id="ps-text" rows="${S.drafts["ps-text"] ? 4 : 2}" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("ps-text")}</textarea></div>
+    <div class="srow">${av(S.me, 36, false)}<textarea id="ps-text" data-grow rows="4" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("ps-text")}</textarea></div>
     ${ph.length ? `<div class="thumbs">${ph.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="inunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
     ${sel || selQ ? `<span class="qsel"><button class="btn soft sm" data-act="qpick">${sel ? esc(goalLabel(sel)) : "🔥 " + esc(selQ.name)}</button><button class="qx" data-act="inref" data-v="" aria-label="퀘스트 연결 빼기">×</button></span>` : ""}
     ${sel && sel.metric ? (() => { const lv = lastVal(sel); return `<div class="field svalf"><label class="lab" for="ps-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lv)}${esc(sel.metric.unit)} · 목표 ${numFmt(sel.metric.target)}${esc(sel.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ps-val" placeholder="${numFmt(lv)}" value="${D("ps-val")}"><span>${esc(sel.metric.unit)}</span></div></div>`; })() : ""}
@@ -3629,7 +3631,7 @@ function keepChipsInView(root){ root.querySelectorAll("[data-swipe], .chips, .se
 }
 /* 긴 스토리 글: 다섯 줄까지만 보여 주고, 실제로 잘린 글에만 '더보기'를 띄운다 */
 function markClamped(root){ root.querySelectorAll(".txt.pclamp").forEach(el => { const b = el.parentNode.querySelector(".tmore"); if (b) b.hidden = !(el.scrollHeight > el.clientHeight + 2); }); }
-function loadMedia(root){ markClamped(root); keepChipsInView(root);
+function loadMedia(root){ markClamped(root); keepChipsInView(root); root.querySelectorAll("textarea[data-grow]").forEach(growFit);
   root.querySelectorAll("[data-k]").forEach(el => {
     const k = el.dataset.k;
     if (mediaSrc(k)){ const im = el.querySelector("img"), src = mediaSrc(k); if (!im) el.innerHTML = `<img src="${esc(src)}" alt="" draggable="false">`; return; }
