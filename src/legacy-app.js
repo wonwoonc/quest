@@ -1477,7 +1477,7 @@ function likersLine(p, n){
 }
 function viewFeed(){
   if (S.me && !hasProfile() && S.canWrite && S.mode !== "loading") return onboarding();
-  let h = (TRIAL ? `<section class="card trialnote"><b>커뮤니티는 정식 버전에서 열려요</b><p>지금은 체험판이라 다른 사람의 소식은 보이지 않아요. 내가 올린 스토리는 여기와 스토리 메뉴에 쌓여요.</p></section>` : "") + (canAct() ? storyComposer() : "");
+  let h = (TRIAL ? `<section class="card trialnote"><b>커뮤니티는 정식 버전에서 열려요</b><p>지금은 체험판이라 다른 사람의 소식은 보이지 않아요. 내가 올린 스토리는 여기와 프로필에 쌓여요.</p></section>` : "") + (canAct() ? storyEntry() : "");
   let items = feedSorted();
   if (!items.length){
     return h + `<div class="card empty"><strong>아직 스토리가 없어요</strong>${TRIAL ? "오늘 해낸 일을 첫 스토리로 남겨 보세요." : "일일 퀘스트를 해내고 첫 기록을 공유해 보세요."}</div>` + suggestCard();
@@ -1594,17 +1594,20 @@ function pgCard(g){
 }
 
 /* ================= profile ================= */
-function storyComposer(){
+function storyComposer(page = false){
   const ph = S.inPhotos || [], selQ = S.inRef && S.inRef.startsWith("q:") && S.mine[S.inRef.slice(2)], sel = selQ ? null : S.inRef && S.projects[S.inRef];
   return `<section class="card scomp">
-    <div class="srow">${av(S.me, 36, false)}<textarea id="ps-text" data-grow rows="4" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("ps-text")}</textarea></div>
+    <div class="srow">${av(S.me, 36, false)}<textarea id="ps-text" data-grow rows="4"${page ? ' class="tall"' : ""} maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("ps-text")}</textarea></div>
     ${ph.length ? `<div class="thumbs">${ph.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="inunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
     ${sel || selQ ? `<span class="qsel"><button class="btn soft sm" data-act="qpick">${sel ? esc(goalLabel(sel)) : "🔥 " + esc(selQ.name)}</button><button class="qx" data-act="inref" data-v="" aria-label="퀘스트 연결 빼기">×</button></span>` : ""}
     ${sel && sel.metric ? (() => { const lv = lastVal(sel); return `<div class="field svalf"><label class="lab" for="ps-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lv)}${esc(sel.metric.unit)} · 목표 ${numFmt(sel.metric.target)}${esc(sel.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ps-val" placeholder="${numFmt(lv)}" value="${D("ps-val")}"><span>${esc(sel.metric.unit)}</span></div></div>`; })() : ""}
     <div class="sact"><div class="sbtns"><button class="btn sec sm ibtn" data-act="qpick">${I.target}퀘스트</button><button class="btn sec sm ibtn" data-act="inphoto" ${ph.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진</button></div><button class="btn sm" data-act="inpost" ${S.busy?"disabled":""}>공유하기</button></div></section>`;
 }
 /* 스토리 쓰기 페이지(하단 +): 프로필의 스토리 작성 박스와 같은 박스(같은 입력·퀘스트 연결·사진 상태를 함께 쓴다) */
-function viewWrite(){ return storyComposer(); } // 커뮤니티·프로필과 똑같은 박스
+function viewWrite(){ return storyComposer(true); }
+/* 커뮤니티 맨 위 한 줄 입구: 누르면 스토리 쓰기 페이지(+)로 */
+function storyEntry(){ const d = (S.drafts["ps-text"] || "").trim();
+  return `<a class="card sentry" href="#write" aria-label="스토리 쓰기">${av(S.me, 36, false)}<span class="sentry-t${d ? " on" : ""}">${d ? esc(d.split("\n")[0]) : "오늘의 이야기를 들려주세요"}</span>${I.camera}</a>`; }
 function profHead(uid){ const mine = uid === S.me, p = prof(uid), posts = feedSorted().filter(x => x.author === uid);
   const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
   const can = !mine && hasProfile() && S.canWrite, f = isFollowing(S.me, uid), bl = isBlocked(uid);
@@ -1676,7 +1679,7 @@ function viewProfile(){
       if (dn.length) h += `<p class="sect3">${pt === "sub" ? "✓ 완료" : "🏆 달성"} ${dn.length}</p>` + dn.map(pgCard).join("");
     }
   }
-  else h += (mine && S.canWrite ? storyComposer() : "") + (posts.length ? posts.slice(0, S.profN || 20).map(x => `<article class="card feedcard">${postRow(x)}</article>`).join("") + (posts.length > (S.profN || 20) ? `<div class="feedmore" id="profmore">스토리를 더 불러오고 있어요</div>` : "") : `<div class="card empty"><strong>아직 스토리가 없어요</strong></div>`);
+  else h += (posts.length ? posts.slice(0, S.profN || 20).map(x => `<article class="card feedcard">${postRow(x)}</article>`).join("") + (posts.length > (S.profN || 20) ? `<div class="feedmore" id="profmore">스토리를 더 불러오고 있어요</div>` : "") : `<div class="card empty"><strong>아직 스토리가 없어요</strong>${mine && S.canWrite ? `<a class="btn sm emptybtn" href="#write">첫 스토리 쓰기</a>` : ""}</div>`);
   return h;
 }
 function faceBlock(face, making, color, state = {}){

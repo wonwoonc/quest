@@ -1400,6 +1400,12 @@ test('write page (+) is the same story box as the profile (퀘스트 button list
   const posts=Object.values(h.snapshot().feed).filter(p=>p.author==='me');assert.equal(posts.length,1);
   assert.deepEqual([posts[0].ref.type,posts[0].ref.id,posts[0].value,posts[0].text],['project','s1',6,'오늘 6km!']);assert.equal(h.context.location.hash,'#feed');
 });
+test('community shows a one-line entry to the write page; profile has no story box (first-story button when empty); the write page has the tall box',async()=>{
+  const h=await profileUI();h.route('feed');let html=h.nodes.get('app').innerHTML;
+  assert.match(html,/<a class="card sentry" href="#write" aria-label="스토리 쓰기">[\s\S]*오늘의 이야기를 들려주세요/);assert.doesNotMatch(html,/class="card scomp"/);
+  h.route('me');html=h.nodes.get('app').innerHTML;assert.doesNotMatch(html,/class="card scomp"/);assert.match(html,/아직 스토리가 없어요<\/strong><a class="btn sm emptybtn" href="#write">첫 스토리 쓰기/);
+  h.route('write');assert.match(h.nodes.get('app').innerHTML,/class="card scomp"[\s\S]*id="ps-text" data-grow rows="4" class="tall"/);
+});
 test('backup reminder appears after three days of trial use without a backup, once per fourteen days',async()=>{
   const base=await profileUI(),s=base.snapshot();s.mine.m={id:'m',kind:'mission',name:'일',due:'2099-01-01',time:'09:00',done:false,createdAt:1};
   const open=async prefs=>{const h=harness(s,'',{trial:true});h.data.set('quest:foundation:empty:v2:preferences',JSON.stringify(prefs));
