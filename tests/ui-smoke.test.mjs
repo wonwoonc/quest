@@ -1167,7 +1167,7 @@ test('nav › 퀘스트: main quests only, chips 전체/진행/대기/달성 fil
   const h=await profileUI(saved);h.route('qmanage');let html=h.nodes.get('app').innerHTML;
   assert.match(html,/data-v="all" aria-pressed="true">전체 <span class="num">3[\s\S]*data-v="active"[^>]*>진행 <span class="num">1[\s\S]*data-v="later"[^>]*>대기 <span class="num">1[\s\S]*data-v="done"[^>]*>달성 <span class="num">1/);
   assert.match(html,/진행 중 <span class="num">1<\/span><\/h2><button[^>]*data-v="big">\+ 생성[\s\S]*메인 A[\s\S]*대기 중 <span class="num">1[\s\S]*대기 메인[\s\S]*달성 <span class="num">1[\s\S]*달성 메인/);
-  assert.doesNotMatch(html,/일일 C|data-v="sub"|data-v="daily"|class="pgsubs"|스테이지 0\/1/);
+  assert.doesNotMatch(html,/일일 C|data-v="sub"|data-v="daily"|class="pgsubs"/); assert.match(html, /<span>🔗 스테이지 0\/1<\/span><span>✅ 미션/);
   h.click('pl-tab',{v:'later'});html=h.nodes.get('app').innerHTML;assert.match(html,/대기 메인/);assert.doesNotMatch(html,/메인 A|달성 메인/);
   h.click('pl-tab',{v:'done'});html=h.nodes.get('app').innerHTML;assert.match(html,/달성 메인/);assert.doesNotMatch(html,/메인 A|대기 메인/);
   h.click('pl-tab',{v:'active'});html=h.nodes.get('app').innerHTML;assert.match(html,/data-v="big">\+ 생성[\s\S]*메인 A/);assert.doesNotMatch(html,/대기 메인|달성 메인|class="card subc subadd/);
