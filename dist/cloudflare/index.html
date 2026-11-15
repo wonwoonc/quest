@@ -2869,7 +2869,7 @@ function viewCal(){
   const cgs = mode === "year" ? [] : goalsOf(S.me).filter(p => p.status !== "done").sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : (a.end||"9999") > (b.end||"9999") ? 1 : 0);
   if (cgs.length){ const gi = Math.max(0, Math.min(cgs.length - 1, S.calGi || 0)), g = cgs[gi]; S.calGi = gi;
     const pr = goalProgress(g), pct = pr.total ? pr.done/pr.total*100 : 0, links = subsOf(g.id).filter(x => x.status !== "done");
-    h += `<section class="card tight mq calmq"><button class="mqh" data-act="project" data-p="${g.id}"><span class="mtop">${g.end ? `<span class="dd">${dday(g.end)}</span>` : ""}<b>${esc(g.title)}</b>${I.chev}</span>${metricBox(g)}<small>스테이지 ${subsOf(g.id).filter(y => y.status === "done").length}/${subsOf(g.id).length} · 미션 ${pr.done}/${pr.total}</small></button>${cgs.length > 1 ? `<div class="cpager"><button data-act="cgi" data-v="-1" ${gi ? "" : "disabled"} aria-label="이전 메인 퀘스트">${I.back}</button><span class="num">${gi + 1}/${cgs.length}</span><button class="fwd" data-act="cgi" data-v="1" ${gi < cgs.length - 1 ? "" : "disabled"} aria-label="다음 메인 퀘스트">${I.back}</button></div>` : ""}</section>`; }
+    h += `<section class="card tight mq calmq"><button class="mqh" data-act="project" data-p="${g.id}"><span class="mtop">${g.end ? `<span class="dd">${dday(g.end)}</span>` : ""}<b>${esc(g.title)}</b>${I.chev}</span>${metricBox(g)}<small>스테이지 ${subsOf(g.id).filter(y => y.status === "done").length}/${subsOf(g.id).length}${g.metric ? ` · 미션 ${pr.done}/${pr.total}` : ""}</small></button>${cgs.length > 1 ? `<div class="cpager"><button data-act="cgi" data-v="-1" ${gi ? "" : "disabled"} aria-label="이전 메인 퀘스트">${I.back}</button><span class="num">${gi + 1}/${cgs.length}</span><button class="fwd" data-act="cgi" data-v="1" ${gi < cgs.length - 1 ? "" : "disabled"} aria-label="다음 메인 퀘스트">${I.back}</button></div>` : ""}</section>`; }
   const title = mode === "day" ? `${D0.getMonth()+1}월 ${D0.getDate()}일 ${WD[D0.getDay()]}요일` : mode === "week" ? (() => { const a = pd(monStart(date)), b2 = pd(addD(monStart(date), 6)); return `${a.getMonth()+1}.${a.getDate()} – ${b2.getMonth()+1}.${b2.getDate()}`; })() : mode === "month" ? `${D0.getFullYear()}년 ${D0.getMonth()+1}월` : `${D0.getFullYear()}년`;
   h += `<div class="calnav"><button class="iconbtn" data-act="cstep" data-v="-1" aria-label="이전">${I.back}</button><b>${title}</b><button class="iconbtn fwd" data-act="cstep" data-v="1" aria-label="다음">${I.back}</button>${date !== t ? `<button class="btn sec xs" data-act="ctoday">오늘</button>` : ""}</div>`;
   const calTaskRow = m => taskRow(m, true, false, {showTime:false, showDate:false});
@@ -3462,7 +3462,10 @@ function metricFor(post){
   if (!valHist(pj.id).some(x => x.id === post.id)) return "";
   return msim(pj.metric, post.value);
 }
-function metricBox(g, withSpark = false){ const m = g && g.metric; if (!m) return "";
+function metricBox(g, withSpark = false){ if (!g) return ""; const m = g.metric;
+  // 수치 기록을 켜지 않은 퀘스트는 미션 완료 비율을 같은 모양으로 보여 준다.
+  if (!m){ const pr = goalProgress(g), mp = g.status === "done" ? 100 : pr.total ? Math.round(pr.done/pr.total*100) : 0;
+    return `<div class="msim"><div class="msim-t"><b class="num">${pr.done}</b><small class="num">/ ${pr.total} 미션</small><em class="num">${mp}%</em></div><span class="bar green"><i style="width:${mp}%"></i></span></div>`; }
   return msim(m, lastVal(g), withSpark ? [m.start, ...valHist(g.id).map(x => x.value)] : null); }
 function spark(vals, w = 96, h = 40){
   if (vals.length < 2) return "";
@@ -3555,7 +3558,7 @@ function viewGoal(){
     <div class="gth"><h2>${esc(p.title)}</h2>${mine ? `<button class="pmenu" data-act="gmenu" data-p="${p.id}" aria-label="${kind} 메뉴">${I.menu}</button>` : ""}</div>
     ${par ? `<button class="parentlink" data-act="project" data-p="${par.id}">🎯 ${esc(par.title)} ${I.chev}</button>` : ""}
     <div class="tags">${p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "영역" : "메인 퀘스트 영역"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}</div>
-    ${pr.total ? `<div class="prog"><span class="num">미션 ${pr.done}/${pr.total}</span></div>` : ""}
+    ${pr.total && p.metric ? `<div class="prog"><span class="num">미션 ${pr.done}/${pr.total}</span></div>` : ""}
     ${metricBox(p, true)}
     ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요</div>` : ""}
     ${mine && p.status !== "done" ? (p.metric ? `<button class="btn soft full mlogbtn" data-act="mlog" data-p="${p.id}">📈 오늘 수치 기록 <span class="hint">나만 보기</span></button>` : `<button class="btn sec full mlogbtn" data-act="gedit" data-p="${p.id}">📈 수치 기록 켜기</button>`) : ""}
@@ -3601,7 +3604,7 @@ function pgCard(g){
   const pct = Math.round(mpct != null ? mpct : done ? 100 : pr.total ? pr.done/pr.total*100 : 0);
   const meta = [];
   if (!g.parentId) meta.push(`🔗 스테이지 ${subs.filter(x => x.status === "done").length}/${subs.length}`);
-  meta.push(`✅ 미션 ${pr.done}/${pr.total}`);
+  if (m) meta.push(`✅ 미션 ${pr.done}/${pr.total}`);
   return `<section class="card pgc ${done ? "done" : ""}" data-act="project" data-p="${g.id}" role="button" tabindex="0">
     ${coverHtml(g, {badge:false})}
     <h3>${esc(g.title)}${g.parentId && S.projects[g.parentId] ? `<span class="parlab">🎯 ${esc(S.projects[g.parentId].title)}</span>` : ""}</h3>
@@ -3664,7 +3667,7 @@ function viewWebDash(){
     const nav = WEB.matches && list.length > 2 ? `<button class="wd-rnav" data-act="wdgs" data-v="-1" aria-label="이전 ${nm}">${I.back}</button><button class="wd-rnav fwd" data-act="wdgs" data-v="1" aria-label="다음 ${nm}">${I.back}</button>` : "";
     return `${nav ? `<div class="wd-ovnav">${nav}</div>` : ""}
       ${(() => { const addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 생성"><span class="wd-plus">+</span><b>${nm} 생성</b></button>`;
-        return `<div class="wd-ggrid hs">${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(?=<div class="metric">)|(?=<div class="pgmeta">)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; const subs = x.parentId ? [] : subsOf(x.id); return `<div class="wdbar"><span class="num">${x.parentId ? "" : `스테이지 ${subs.filter(y => y.status === "done").length}/${subs.length} · `}미션 ${pr.done}/${pr.total}</span></div>`; }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
+        return `<div class="wd-ggrid hs">${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(?=<div class="metric">)|(?=<div class="pgmeta">)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; const subs = x.parentId ? [] : subsOf(x.id); return `<div class="wdbar"><span class="num">${x.parentId ? "" : `스테이지 ${subs.filter(y => y.status === "done").length}/${subs.length}`}${x.metric ? `${x.parentId ? "" : " · "}미션 ${pr.done}/${pr.total}` : ""}</span></div>`; }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
   const goals = `${strip(gs, "메인 퀘스트", "big")}
 `;
   let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}</div><div class="wd-goals">${goals}</div>
