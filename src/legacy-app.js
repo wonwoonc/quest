@@ -1453,12 +1453,11 @@ function spark(vals, w = 96, h = 40){
 }
 function postRow(p, o = {}){
   const a = p.author, s = statsOf(a), lk = liked(p), n0 = likeN(p), n = p.hideLikes && a !== S.me ? 0 : n0, reps = repliesOf(p.id), imgs = p.imgs || 0;
-  const showFollow = !o.inThread && S.view.name !== "profile" && hasProfile() && a !== S.me && S.canWrite, fol = isFollowing(S.me, a);
   return `<div class="tp ${o.focus?"focus":""}">
     <div class="rail">${av(a, 40)}${o.line ? '<span class="ln"></span>' : ""}</div>
     <div class="body">
       <div class="ph"><button class="nm" data-act="profile" data-u="${esc(a)}">${esc(nameOf(a))}</button><span class="pillLv">Lv.${s.L}</span><time>${ago(p.createdAt)}${p.editedAt ? " · 수정됨" : ""}</time>
-        ${showFollow ? `<button class="btn ${fol || pendingTo(a) ? "sec" : "soft"} sm fol" data-act="follow" data-u="${esc(a)}">${folLabel(a)}</button>` : ""}${hasProfile() && S.canWrite ? `<button class="pmenu" data-act="pmenu" data-p="${p.id}" aria-label="게시물 메뉴">${I.menu}</button>` : ""}</div>
+        ${hasProfile() && S.canWrite ? `<button class="pmenu" data-act="pmenu" data-p="${p.id}" aria-label="게시물 메뉴">${I.menu}</button>` : ""}</div>
       ${p.modHidden && a === S.me ? `<p class="modnote">운영자가 숨긴 스토리예요. 지금은 나에게만 보여요.</p>` : ""}${refHtml(p)}
 
       ${metricFor(p)}
