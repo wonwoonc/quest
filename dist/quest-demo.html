@@ -3798,7 +3798,8 @@ function syncSheetHist(){
 if (HS) window.addEventListener("popstate", e => {
   if (popSkip){ popSkip = false; return; }
   if (S.compose){ sheetHist = false; closeSheet(); return; }
-  if (e.state && e.state.qsheet) HS.back();
+  if (e.state && e.state.qsheet){ HS.back(); return; }
+  if (location.hash === "#goal" && S.view.name === "project" && S.vstack && S.vstack.length){ S.view = S.vstack.pop(); schedule(); scrollTo(0,0); }
 });
 function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
   const c = S.compose; if (!c){ $("#overlay").innerHTML = ""; return; }
@@ -4042,7 +4043,8 @@ function go(name){ location.hash = "#"+name; }
 const viewKey = () => S.view.name + (S.view.uid ? ":"+S.view.uid : "") + (S.view.pid ? ":"+S.view.pid : "");
 function push(view, hash){ if (LP && view.name !== "learn") { bkSave(true); LP = null; } if (view.name === "learn" && LP && LP.id !== view.id) LP = null; S.scrolls[viewKey()] = scrollY; S.view = view; if (location.hash !== hash) location.hash = hash; schedule(); scrollTo(0,0); }
 const openPost = pid => push({name:"post", pid}, "#post");
-const openGoal = pid => { if (S.view.name === "project" && S.view.pid !== pid){ (S.vstack = S.vstack || []).push({...S.view}); } push({name:"project", pid}, "#goal"); };
+// 메인 퀘스트 → 스테이지처럼 같은 #goal 안에서 옮겨 가면 기록을 하나 쌓아, 기기 뒤로가기로 원래 퀘스트에 돌아오게 한다.
+const openGoal = pid => { if (S.view.name === "project" && S.view.pid !== pid){ (S.vstack = S.vstack || []).push({...S.view}); if (HS) try { HS.pushState({qgoal:pid}, ""); } catch(e){} } push({name:"project", pid}, "#goal"); };
 const openProfile = uid => { S.profTab = "posts"; S.profN = 20; push({name:"profile", uid}, uid === S.me ? "#me" : "#profile"); };
 function route(){
   document.body.classList.remove("drawer");
@@ -4156,7 +4158,7 @@ document.addEventListener("click", e => {
     case "cfok": { if (c && c.cb){ const cb = c.cb; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); cb(); return; } const P = S.pend; S.pend = null; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); if (!P) return; S.armed = P.key;
       const fb = document.createElement("button"); fb.hidden = true; Object.assign(fb.dataset, P.data, {confirmed:"1"}); document.body.appendChild(fb); fb.click(); fb.remove(); return; }
     case "cfno": closeSheet(); return;
-    case "back": if (S.vstack && S.vstack.length){ S.view = S.vstack.pop(); schedule(); scrollTo(0,0); return; } history.length > 1 ? history.back() : go("today"); return;
+    case "back": if (S.vstack && S.vstack.length){ if (HS){ HS.back(); return; } S.view = S.vstack.pop(); schedule(); scrollTo(0,0); return; } history.length > 1 ? history.back() : go("today"); return;
     case "go": go(b.dataset.v); return;
     case "drawer": drawer(!document.body.classList.contains("drawer")); return;
     case "drawer-x": drawer(false); return;
