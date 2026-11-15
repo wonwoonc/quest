@@ -2482,13 +2482,15 @@ function renderNav(){
   const v = S.view.name, cur = c => c ? 'aria-current="page"' : "", order = navOrder();
   // 휴대폰 하단: 앞의 두 메뉴 · 스토리 쓰기(+) · 다음 두 메뉴. PC 사이드바에서는 +를 숨긴다.
   const write = hasProfile() && S.canWrite ? `<a href="#write" class="nwr" aria-label="스토리 쓰기" ${cur(v === "write")}>${PLUS_SVG}</a>` : "";
-  setHtml($("#nav"), `${order.map((h, i) => { const [l, svg, on] = NAV[h]; return (i === 2 ? write : "") + `<a href="${h}"${i >= NAV_BAR ? ' class="nm"' : ""} aria-label="${l}" ${cur(on(v))}>${svg}<span>${l}</span></a>`; }).join("")}
+  // PC 사이드바·서랍은 퀘스트를 맨 위에(하단 메뉴에 퀘스트가 없을 때). 하단 메뉴는 메뉴 순서의 앞 4개 그대로.
+  const bar = order.slice(0, NAV_BAR), list = bar.includes("#qmanage") ? order : ["#qmanage", ...order.filter(h => h !== "#qmanage")];
+  setHtml($("#nav"), `${list.map(h => { const [l, svg, on] = NAV[h], bi = bar.indexOf(h); return (bi === 2 ? write : "") + `<a href="${h}"${bi < 0 ? ' class="nm"' : ""} aria-label="${l}" ${cur(on(v))}>${svg}<span>${l}</span></a>`; }).join("")}
     <a href="#settings" class="nset" aria-label="설정" ${cur(v === "settings")}>${I.gear}<span>설정</span></a>
     <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`);
   document.body.classList.toggle("navmini", !!S.navMini);
   const item = (h, l, svg, on) => `<button type="button" data-act="navgo" data-v="${h.slice(1)}" ${cur(on)}>${svg}<span>${l}</span></button>`;
   setHtml($("#drawer"), `<div class="drw-bg" data-act="drawer-x"></div><nav class="drw" aria-label="전체 메뉴"><p class="drw-brand">퀘스트</p>
-    ${order.map(h => item(h, NAV[h][0], NAV[h][1], NAV[h][2](v))).join("")}<div class="drw-foot">${item("#settings", "설정", I.gear, v === "settings")}</div></nav>`);
+    ${list.map(h => item(h, NAV[h][0], NAV[h][1], NAV[h][2](v))).join("")}<div class="drw-foot">${item("#settings", "설정", I.gear, v === "settings")}</div></nav>`);
 }
 function drawer(open){
   document.body.classList.toggle("drawer", open);

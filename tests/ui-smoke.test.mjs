@@ -1368,24 +1368,24 @@ test('release info: terms, privacy policy and contact in main edition only; shee
 test('menu: bottom bar = dash/community/+write/shop/notes; profile moved to the top bar next to notifications; drawer + PC sidebar list everything plus settings; reorder and reset',async()=>{
   const h=await profileUI();h.route('shop');let nav=h.nodes.get('nav').innerHTML;
   const order=()=>[...h.nodes.get('nav').innerHTML.matchAll(/<a href="#(\w+)"(?: class="(nm|nset)")? aria-label="[^"]*"/g)].map(m=>m[1]+(m[2]?'*':''));
-  assert.deepEqual(order(),['dash','feed','shop','notes','qmanage*','cal*','settings*']);
+  assert.deepEqual(order(),['qmanage*','dash','feed','shop','notes','cal*','settings*'],'PC sidebar: 퀘스트 first; bottom bar: dash/feed/shop/notes');
   assert.doesNotMatch(nav,/navmore|더보기|href="#me"/);
   assert.match(nav,/href="#feed"[^>]*>[\s\S]*?<\/a><a href="#write" class="nwr" aria-label="스토리 쓰기"[^>]*>[\s\S]*?<\/a><a href="#shop"/,'+ sits in the middle');
   const top=h.nodes.get('topbar').innerHTML;assert.match(top,/class="iconbtn menubtn" data-act="drawer" aria-label="메뉴 열기"/);assert.match(top,/<h1 class="tmain">상점/);assert.doesNotMatch(top,/data-v="settings"/,'gear moved to the menu');
   assert.match(top,/<a class="iconbtn" href="#me" aria-label="프로필">/);
   const drw=h.nodes.get('drawer').innerHTML;
-  assert.deepEqual([...drw.matchAll(/data-act="navgo" data-v="(\w+)"/g)].map(m=>m[1]),['dash','feed','shop','notes','qmanage','cal','settings']);
+  assert.deepEqual([...drw.matchAll(/data-act="navgo" data-v="(\w+)"/g)].map(m=>m[1]),['qmanage','dash','feed','shop','notes','cal','settings']);
   assert.match(drw,/data-v="shop" aria-current="page"/);
   h.route('me');assert.match(h.nodes.get('topbar').innerHTML,/<h1 class="tmain">프로필/);assert.doesNotMatch(h.nodes.get('topbar').innerHTML,/aria-label="프로필"/,'no profile button on the profile page itself');
   h.route('settings');assert.match(h.nodes.get('topbar').innerHTML,/data-act="back"[\s\S]*<h1>설정/,'sub pages keep back + title');assert.doesNotMatch(h.nodes.get('topbar').innerHTML,/menubtn/);
   h.click('navedit');assert.match(h.nodes.get('overlay').innerHTML,/메뉴 순서[\s\S]*하단 메뉴[\s\S]*메뉴 버튼에만/);
   h.click('nav-mv',{v:'#qmanage',d:'-1'});
-  assert.deepEqual(order(),['dash','feed','shop','qmanage','notes*','cal*','settings*']);
+  assert.deepEqual(order(),['dash','feed','shop','qmanage','notes*','cal*','settings*'],'퀘스트 in the bottom bar keeps its place');
   const prefs=JSON.parse(h.data.get('quest:foundation:empty:v2:preferences'));assert.deepEqual(prefs.navOrder,['#dash','#feed','#shop','#qmanage','#notes','#cal']);
-  h.click('nav-reset');assert.deepEqual(order(),['dash','feed','shop','notes','qmanage*','cal*','settings*']);
+  h.click('nav-reset');assert.deepEqual(order(),['qmanage*','dash','feed','shop','notes','cal*','settings*']);
   h.click('sheet-close');h.click('navgo',{v:'shop'});assert.equal(h.context.location.hash,'#shop');assert.equal(h.nodes.get('overlay').innerHTML,'');
   // 예전에 '#me'가 들어간 순서를 저장했어도 메뉴에서 빠진다
-  h.data.set('quest:foundation:empty:v2:preferences',JSON.stringify({navOrder:['#me','#notes','#dash']}));h.route('dash');assert.deepEqual(order().slice(0,3),['notes','dash','feed']);
+  h.data.set('quest:foundation:empty:v2:preferences',JSON.stringify({navOrder:['#me','#notes','#dash']}));h.route('dash');assert.deepEqual(order().slice(0,4),['qmanage*','notes','dash','feed']);
 });
 test('write page (+) is the same story box as the profile (퀘스트 button lists main quests with their stages, 사진, 공유하기) and goes to the community after sharing',async()=>{
   const base=await profileUI(),saved=base.snapshot();
