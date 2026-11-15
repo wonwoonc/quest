@@ -23,6 +23,11 @@
 
 *{box-sizing:border-box}
 .difficulty-selector .opt .e{display:flex;align-items:center;flex:none}
+.difficulty-selector .opts.tri{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px}
+.difficulty-selector .opts.tri .opt{flex:none;width:auto;flex-direction:row;gap:5px;padding:7px 12px 7px 10px;border-radius:999px;min-height:0}
+.difficulty-selector .opts.tri .opt .t{flex:none}
+.difficulty-selector .opts.tri .opt .t b{font-size:13px;font-weight:600}
+.difficulty-selector .opt .e svg{width:14px;height:14px}
 html{-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--f);font-size:16px;line-height:1.55;letter-spacing:-.2px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 calc(84px + env(safe-area-inset-bottom,0px))}
