@@ -1592,33 +1592,17 @@ function pgCard(g){
 }
 
 /* ================= profile ================= */
-function storyComposer(){
+function storyComposer(page = false){
   const ph = S.inPhotos || [], selQ = S.inRef && S.inRef.startsWith("q:") && S.mine[S.inRef.slice(2)], sel = selQ ? null : S.inRef && S.projects[S.inRef];
   return `<section class="card scomp">
-    <div class="srow">${av(S.me, 36, false)}<textarea id="ps-text" rows="${S.drafts["ps-text"] ? 4 : 2}" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("ps-text")}</textarea></div>
+    <div class="srow">${av(S.me, 36, false)}<textarea id="ps-text" rows="${page ? 6 : S.drafts["ps-text"] ? 4 : 2}" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("ps-text")}</textarea></div>
     ${ph.length ? `<div class="thumbs">${ph.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="inunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
     ${sel || selQ ? `<span class="qsel"><button class="btn soft sm" data-act="qpick">${sel ? esc(goalLabel(sel)) : "🔥 " + esc(selQ.name)}</button><button class="qx" data-act="inref" data-v="" aria-label="퀘스트 연결 빼기">×</button></span>` : ""}
     ${sel && sel.metric ? (() => { const lv = lastVal(sel); return `<div class="field svalf"><label class="lab" for="ps-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lv)}${esc(sel.metric.unit)} · 목표 ${numFmt(sel.metric.target)}${esc(sel.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ps-val" placeholder="${numFmt(lv)}" value="${D("ps-val")}"><span>${esc(sel.metric.unit)}</span></div></div>`; })() : ""}
     <div class="sact"><div class="sbtns"><button class="btn sec sm ibtn" data-act="qpick">${I.target}퀘스트</button><button class="btn sec sm ibtn" data-act="inphoto" ${ph.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진</button></div><button class="btn sm" data-act="inpost" ${S.busy?"disabled":""}>공유하기</button></div></section>`;
 }
-/* 스토리 쓰기 페이지(하단 +): 글 · 연결 퀘스트 · 스테이지 · 오늘의 숫자 · 사진 */
-function viewWrite(){
-  const W = S.write || (S.write = {gid:null, sid:null, photos:[]});
-  const g = W.gid && S.projects[W.gid], st = W.sid && S.projects[W.sid];
-  if (W.gid && !g) W.gid = null; if (W.sid && (!st || st.parentId !== W.gid)) W.sid = null;
-  const target = (W.sid && S.projects[W.sid]) || (W.gid && S.projects[W.gid]);
-  const pickBtn = (kind, label, val, dis) => `<button type="button" class="wrpick${val ? " on" : ""}" data-act="wpick" data-v="${kind}" ${dis ? "disabled" : ""}><span class="wrl">${label}</span><b>${val ? esc(val) : dis ? (kind === "stage" ? (g ? "스테이지 없음" : "퀘스트를 먼저 골라요") : "") : "선택 안 함"}</b>${I.chev || ""}</button>`;
-  const lv = target && target.metric ? lastVal(target) : null;
-  return `<div class="wrpage"><section class="card wrcard">
-    <div class="srow">${av(S.me, 36, false)}<textarea id="wr-text" rows="6" maxlength="1000" placeholder="오늘의 이야기를 써 보세요" aria-label="스토리">${D("wr-text")}</textarea></div>
-    ${W.photos.length ? `<div class="thumbs">${W.photos.map((src, i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="wunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
-    <button class="btn sec sm ibtn" data-act="wphoto" ${W.photos.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진 <span class="hint">${W.photos.length}/${MAX_IMGS}</span></button></section>
-    <section class="card wrcard wrlinks"><p class="wrh">연결</p>
-      ${pickBtn("quest", "퀘스트", g ? g.title + (st ? " › " + st.title : "") : "", false)}
-      ${target && target.metric ? `<div class="field svalf"><label class="lab" for="wr-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lv)}${esc(target.metric.unit)} · 목표 ${numFmt(target.metric.target)}${esc(target.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="wr-val" placeholder="${numFmt(lv)}" value="${D("wr-val")}"><span class="uval">${esc(target.metric.unit)}</span></div></div>` : ""}
-    </section>
-    <button class="btn big full" data-act="wpost" ${S.busy ? "disabled" : ""}>공유하기</button></div>`;
-}
+/* 스토리 쓰기 페이지(하단 +): 프로필의 스토리 작성 박스와 같은 박스(같은 입력·퀘스트 연결·사진 상태를 함께 쓴다) */
+function viewWrite(){ return `<div class="wrpage">${storyComposer(true)}</div>`; }
 function profHead(uid){ const mine = uid === S.me, p = prof(uid), posts = feedSorted().filter(x => x.author === uid);
   const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
   const can = !mine && hasProfile() && S.canWrite, f = isFollowing(S.me, uid), bl = isBlocked(uid);
@@ -2076,11 +2060,6 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="tqset" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${par.projectId === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
     const body = gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphan.map(x => it(x, true)).join("");
     return sheetWrap("어떤 퀘스트의 미션인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 퀘스트가 없어요.</p>`}</div>${par.projectId ? `<button class="btn sec full" data-act="tqset" data-v="">연결 안 함</button>` : ""}`); }
-  if (c.type === "wpick"){ const W = S.write || {}, sel = W.sid || W.gid || "";
-    // 메인 퀘스트 아래에 진행 중인 스테이지를 들여 써서 보여 준다. 메인 퀘스트나 스테이지 중 원하는 쪽을 고르면 된다.
-    const row = (id, title, sub0, stage) => `<button class="row mitem${stage ? " wrstage" : ""}" data-act="wpset" data-v="${id}" aria-pressed="${sel === id}"><span class="t"><b>${title}</b>${sub0 ? `<small>${sub0}</small>` : ""}</span>${sel === id ? `<span class="wrchk" aria-hidden="true">${I.check}</span>` : ""}</button>`;
-    const gs = goalsOf(S.me).filter(p => p.status !== "done");
-    return sheetWrap("퀘스트 연결", "메인 퀘스트나 그 아래 스테이지를 골라요", `<div class="sheetlist mlist">${row("", "선택 안 함", "", false)}${gs.map(g0 => row(g0.id, esc(g0.title), "메인 퀘스트", false) + subsOf(g0.id).filter(x => x.status !== "done").map(s0 => row(s0.id, esc(s0.title), "스테이지", true)).join("")).join("") || `<p class="hint" style="padding:12px 4px">진행 중인 메인 퀘스트가 없어요</p>`}</div>`); }
   if (c.type === "qpick"){ const gs = goalsOf(S.me).filter(g => g.status !== "done"), orphanSubs = Object.values(S.projects).filter(p => p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId));
     const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="inref" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${S.inRef === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
     const body = (gs.length || orphanSubs.length ? gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphanSubs.map(x => it(x, true)).join("") : "")
@@ -2195,7 +2174,7 @@ function route(){
   else if (h === "#qmanage"){ if (prev !== "qmanage") { const Q = QM(); Q.sel = []; } S.view = {name:"qmanage"}; }
   else if (h === "#me"){ if (prev !== "profile") S.profN = 20; if (!["profile","project","post","calday","activity","settings","stats"].includes(prev)) S.profTab = "posts"; S.view = {name:"profile", uid:S.me}; }
   else if (h === "#dash") S.view = {name:"dash"};
-  else if (h === "#write"){ if (!hasProfile() || !S.canWrite){ go("dash"); return; } if (prev !== "write") S.write = S.write || {gid:null, sid:null, photos:[]}; S.view = {name:"write"}; }
+  else if (h === "#write"){ if (!hasProfile() || !S.canWrite){ go("dash"); return; } S.view = {name:"write"}; }
   else if (h === "#notes") S.view = {name:"notes"};
   else if (h === "#learn" || h === "#lnpage"){ if (!(S.view.name === "learn" && S.mine[S.view.id])){ S.view = {name:"notes"}; LP = null; } }
   else if (h === "#calday"){ if (prev !== "calday") S.view = {name:"cal"}; }
@@ -2312,25 +2291,12 @@ document.addEventListener("click", e => {
     case "ppset": { const par = S.parentSheet; if (par) par.parentId = b.dataset.v; closeSheet(); return; }
     case "tqset": { const par = S.parentSheet; if (par) par.projectId = b.dataset.v || null; closeSheet(); return; }
     case "tqclear": c.projectId = null; renderSheet(); return;
-    case "wpick": openSheet({type:"wpick", kind:b.dataset.v}); return;
-    case "wpset": { const W = S.write || (S.write = {gid:null, sid:null, photos:[]}); const v0 = b.dataset.v || null;
-      const pj = v0 && S.projects[v0], gid = pj ? (pj.parentId || pj.id) : null, sid = pj && pj.parentId ? pj.id : null;
-      if (W.gid !== gid || W.sid !== sid) delete S.drafts["wr-val"]; W.gid = gid; W.sid = sid;
-      closeSheet(); schedule(); return; }
-    case "wphoto": choosePhotos(true, list => { const W = S.write; if (!W) return; W.photos = W.photos.concat(list).slice(0, MAX_IMGS); schedule(); }); return;
-    case "wunphoto": S.write.photos.splice(+b.dataset.i, 1); schedule(); return;
-    case "wpost": { const W = S.write || {gid:null, sid:null, photos:[]}, text = (($("#wr-text") || {}).value || "").trim();
-      const tgt = (W.sid && S.projects[W.sid]) || (W.gid && S.projects[W.gid]); let value;
-      const vEl = $("#wr-val"); if (vEl && vEl.value.trim()){ value = parseNum(vEl.value); if (value == null){ toast("숫자만 넣어 주세요"); return; } }
-      if (!text && !W.photos.length && value === undefined){ toast("글이나 사진을 넣어 주세요"); const t = $("#wr-text"); t && t.focus(); return; }
-      const post = {ref:tgt ? {type:"project", id:tgt.id, label:tgt.title} : null, text, mood:null}; if (value !== undefined && tgt) post.value = value;
-      run(() => api.addPost(post, W.photos), () => { delete S.drafts["wr-text"]; delete S.drafts["wr-val"]; S.write = {gid:null, sid:null, photos:[]}; toast("커뮤니티에 공유했어요"); go("feed"); }); return; }
     case "inpost": { const text = ($("#ps-text").value||"").trim(), ph = S.inPhotos || []; let value;
       const vEl = $("#ps-val"); if (vEl && vEl.value.trim()){ value = parseNum(vEl.value); if (value == null){ toast("숫자만 넣어 주세요"); return; } }
       if (!text && !ph.length && value === undefined){ toast("내용을 적어 주세요"); $("#ps-text").focus(); return; }
       const qq = S.inRef && S.inRef.startsWith("q:") && S.mine[S.inRef.slice(2)], g = !qq && S.inRef && S.projects[S.inRef], post = {ref:qq ? habitSnap(qq) : g ? {type:"project", id:g.id, label:g.title} : null, text, mood:null};
       if (value !== undefined && g) post.value = value;
-      run(() => api.addPost(post, ph), () => { delete S.drafts["ps-text"]; delete S.drafts["ps-val"]; S.inPhotos = []; S.inRef = null; toast("스토리를 공유했어요"); }); return; }
+      run(() => api.addPost(post, ph), () => { delete S.drafts["ps-text"]; delete S.drafts["ps-val"]; S.inPhotos = []; S.inRef = null; toast("스토리를 공유했어요"); if (S.view.name === "write") go("feed"); }); return; }
     case "dstory": S.profTab = "posts"; if (!u){ go("me"); return; } render(); { const w = $(".segwrap"); if (w) scrollTo({top:Math.max(0, w.getBoundingClientRect().top + scrollY - 70), behavior:"smooth"}); } return;
     case "flist": openSheet({type:"flist", kind:b.dataset.v, uid:u || S.me}); return;
     case "wdlogs": openSheet({type:"logs"}); return;
