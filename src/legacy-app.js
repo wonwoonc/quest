@@ -1599,7 +1599,7 @@ function pgCard(g){
 function storyComposer(page = false){
   const ph = S.inPhotos || [], selQ = S.inRef && S.inRef.startsWith("q:") && S.mine[S.inRef.slice(2)], sel = selQ ? null : S.inRef && S.projects[S.inRef];
   return `<section class="card scomp">
-    <div class="srow">${av(S.me, 36, false)}<textarea id="ps-text" data-grow rows="4"${page ? ' class="tall"' : ""} maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("ps-text")}</textarea></div>
+    <div class="srow">${page ? "" : av(S.me, 36, false)}<textarea id="ps-text" data-grow rows="4"${page ? ' class="tall"' : ""} maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("ps-text")}</textarea></div>
     ${ph.length ? `<div class="thumbs">${ph.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="inunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
     ${sel || selQ ? `<span class="qsel"><button class="btn soft sm" data-act="qpick">${sel ? esc(goalLabel(sel)) : "🔥 " + esc(selQ.name)}</button><button class="qx" data-act="inref" data-v="" aria-label="퀘스트 연결 빼기">×</button></span>` : ""}
     ${sel && sel.metric ? (() => { const lv = lastVal(sel); return `<div class="field svalf"><label class="lab" for="ps-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lv)}${esc(sel.metric.unit)} · 목표 ${numFmt(sel.metric.target)}${esc(sel.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ps-val" placeholder="${numFmt(lv)}" value="${D("ps-val")}"><span>${esc(sel.metric.unit)}</span></div></div>`; })() : ""}
@@ -1609,7 +1609,7 @@ function storyComposer(page = false){
 function viewWrite(){ return storyComposer(true); }
 /* 커뮤니티 맨 위 한 줄 입구: 누르면 스토리 쓰기 페이지(+)로 */
 function storyEntry(){ const d = (S.drafts["ps-text"] || "").trim();
-  return `<a class="card sentry" href="#write" aria-label="스토리 쓰기">${av(S.me, 36, false)}<span class="sentry-t${d ? " on" : ""}">${d ? esc(d.split("\n")[0]) : "오늘의 이야기를 들려주세요"}</span>${I.camera}</a>`; }
+  return `<a class="card sentry" href="#write" aria-label="스토리 쓰기">${av(S.me, 36, false)}<span class="sentry-t${d ? " on" : ""}">${d ? esc(d.split("\n")[0]) : "오늘의 이야기를 들려주세요"}</span></a>`; }
 function profHead(uid){ const mine = uid === S.me, p = prof(uid), posts = feedSorted().filter(x => x.author === uid);
   const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
   const can = !mine && hasProfile() && S.canWrite, f = isFollowing(S.me, uid), bl = isBlocked(uid);
