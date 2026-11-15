@@ -714,6 +714,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .scomp .srow{display:flex;gap:12px;align-items:flex-start}
 .scomp textarea{flex:1;min-height:112px;max-height:480px;overflow-y:auto;resize:none;background:var(--fill);border:0;border-radius:14px;padding:10px 12px;font-size:15px;line-height:1.5}
 .scomp .sact{display:flex;justify-content:space-between;gap:8px}
+.scomp.page{padding-left:10px}.scomp.page .srow{gap:8px}
 .scomp textarea.tall{min-height:200px;font-size:16px}
 .sentry{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--muted);padding:12px 16px}
 .sentry .sentry-t{flex:1;min-width:0;padding:10px 14px;border-radius:999px;background:var(--fill);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sentry .sentry-t.on{color:var(--ink)}
@@ -3347,7 +3348,7 @@ function viewFeed(){
   let h = (TRIAL ? `<section class="card trialnote"><b>커뮤니티는 정식 버전에서 열려요</b><p>지금은 체험판이라 다른 사람의 소식은 보이지 않아요. 내가 올린 스토리는 여기와 프로필에 쌓여요.</p></section>` : "") + (canAct() ? storyEntry() : "");
   let items = feedSorted();
   if (!items.length){
-    return h + `<div class="card empty"><strong>아직 스토리가 없어요</strong>${TRIAL ? "오늘 해낸 일을 첫 스토리로 남겨 보세요." : "퀘스트를 해내고 첫 기록을 공유해 보세요."}</div>` + suggestCard();
+    return h + `<div class="card empty"><strong>아직 스토리가 없어요</strong>${TRIAL ? "오늘 해낸 일을 첫 스토리로 남겨 보세요." : "퀘스트를 생성하고 각오를 공유해 보세요."}</div>` + suggestCard();
   }
   const fresh = S.feedSeen ? items.filter(p => p.createdAt > S.feedSeen && p.author !== S.me) : [];
   const rest = items.filter(p => !fresh.includes(p));
@@ -3463,8 +3464,8 @@ function pgCard(g){
 /* ================= profile ================= */
 function storyComposer(page = false){
   const ph = S.inPhotos || [], selQ = S.inRef && S.inRef.startsWith("q:") && S.mine[S.inRef.slice(2)], sel = selQ ? null : S.inRef && S.projects[S.inRef];
-  return `<section class="card scomp">
-    <div class="srow">${page ? "" : av(S.me, 36, false)}<textarea id="ps-text" data-grow rows="4"${page ? ' class="tall"' : ""} maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("ps-text")}</textarea></div>
+  return `<section class="card scomp${page ? " page" : ""}">
+    <div class="srow">${av(S.me, page ? 32 : 36, false)}<textarea id="ps-text" data-grow rows="4"${page ? ' class="tall"' : ""} maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("ps-text")}</textarea></div>
     ${ph.length ? `<div class="thumbs">${ph.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="inunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}</div>` : ""}
     ${sel || selQ ? `<span class="qsel"><button class="btn soft sm" data-act="qpick">${sel ? esc(goalLabel(sel)) : "🔥 " + esc(selQ.name)}</button><button class="qx" data-act="inref" data-v="" aria-label="퀘스트 연결 빼기">×</button></span>` : ""}
     ${sel && sel.metric ? (() => { const lv = lastVal(sel); return `<div class="field svalf"><label class="lab" for="ps-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lv)}${esc(sel.metric.unit)} · 목표 ${numFmt(sel.metric.target)}${esc(sel.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ps-val" placeholder="${numFmt(lv)}" value="${D("ps-val")}"><span>${esc(sel.metric.unit)}</span></div></div>`; })() : ""}

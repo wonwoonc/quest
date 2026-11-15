@@ -1393,7 +1393,7 @@ test('write page (+) is the same story box as the profile (퀘스트 button list
     s1:{id:'s1',owner:'me',title:'10km 달리기',parentId:'g1',end:'2099-12-31',status:'active',createdAt:2,metric:{unit:'km',start:0,target:10}}};
   const h=await profileUI(saved);h.route('write');let html=h.nodes.get('app').innerHTML;
   assert.match(h.nodes.get('topbar').innerHTML,/data-act="back"[\s\S]*<h1>스토리 쓰기/);
-  assert.match(html,/class="card scomp"[\s\S]*id="ps-text" data-grow rows="4"[\s\S]*data-act="qpick">[\s\S]*퀘스트<\/button>[\s\S]*data-act="inphoto"[\s\S]*data-act="inpost"/);
+  assert.match(html,/class="card scomp page"[\s\S]*id="ps-text" data-grow rows="4"[\s\S]*data-act="qpick">[\s\S]*퀘스트<\/button>[\s\S]*data-act="inphoto"[\s\S]*data-act="inpost"/);
   h.click('qpick');assert.match(h.nodes.get('overlay').innerHTML,/마라톤 완주[\s\S]*메인 퀘스트[\s\S]*10km 달리기[\s\S]*스테이지/);
   h.click('inref',{v:'s1'});await h.settle();assert.match(h.nodes.get('app').innerHTML,/id="ps-val"/,'metric stage asks today\'s number');
   h.nodes.set('ps-text',{value:'오늘 6km!'});h.nodes.set('ps-val',{value:'6'});h.click('inpost');await h.settle();
@@ -1404,7 +1404,7 @@ test('community shows a one-line entry to the write page; profile has no story b
   const h=await profileUI();h.route('feed');let html=h.nodes.get('app').innerHTML;
   assert.match(html,/<a class="card sentry" href="#write" aria-label="스토리 쓰기">[\s\S]*오늘의 이야기를 들려주세요/);assert.doesNotMatch(html,/class="card scomp"/);
   h.route('me');html=h.nodes.get('app').innerHTML;assert.doesNotMatch(html,/class="card scomp"/);assert.match(html,/아직 스토리가 없어요<\/strong><a class="btn sm emptybtn" href="#write">첫 스토리 쓰기/);
-  h.route('write');assert.match(h.nodes.get('app').innerHTML,/class="card scomp"[\s\S]*id="ps-text" data-grow rows="4" class="tall"/);
+  h.route('write');assert.match(h.nodes.get("app").innerHTML,/class="card scomp page"[\s\S]*id="ps-text" data-grow rows="4" class="tall"/);
 });
 test('backup reminder appears after three days of trial use without a backup, once per fourteen days',async()=>{
   const base=await profileUI(),s=base.snapshot();s.mine.m={id:'m',kind:'mission',name:'일',due:'2099-01-01',time:'09:00',done:false,createdAt:1};
