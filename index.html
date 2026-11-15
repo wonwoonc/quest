@@ -982,6 +982,8 @@ body.reo-lock{touch-action:none;overscroll-behavior:none}
 .nav [aria-current="page"]{color:var(--ink);font-weight:700}
 .nav svg{width:24px;height:24px}
 .nav .wr svg{color:var(--accent);width:30px;height:30px}
+.nav .nwr{justify-content:center}.nav .nwr svg{width:22px;height:22px;box-sizing:content-box;padding:9px;border-radius:50%;background:var(--accent);color:#fff}
+@media (min-width:1024px){.nav .nwr{display:none}}
 
 #toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translate(-50%,12px);opacity:0;pointer-events:none;
   background:#2A302D;color:#fff;border-radius:14px;padding:13px 18px;font-weight:500;font-size:15px;transition:.25s;z-index:90;max-width:calc(100vw - 32px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

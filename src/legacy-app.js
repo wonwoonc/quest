@@ -480,7 +480,8 @@ const NAV = {
   "#shop": ["상점", `${I.bag}`, v => v === "shop"],
   "#cal": ["캘린더", `${I.cal}`, v => v === "cal"]
 };
-const NAV_DEFAULT = ["#qmanage", "#dash", "#feed", "#shop", "#notes", "#cal"], NAV_BAR = 5;
+const NAV_DEFAULT = ["#dash", "#feed", "#shop", "#notes", "#qmanage", "#cal"], NAV_BAR = 4;
+const PLUS_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>`;
 /* 프로필(내 스토리·캐릭터)은 메뉴가 아니라 상단 알림 옆 버튼으로 연다 */
 const PROFILE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20.2c.9-3.7 3.9-5.9 7.5-5.9s6.6 2.2 7.5 5.9"/></svg>`;
 const navOrder = () => { const saved = LS.get("navOrder", []), list = (Array.isArray(saved) ? saved : []).filter((h, i, a) => Object.hasOwn(NAV, h) && a.indexOf(h) === i);
@@ -488,7 +489,9 @@ const navOrder = () => { const saved = LS.get("navOrder", []), list = (Array.isA
 const MENU_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></svg>`;
 function renderNav(){
   const v = S.view.name, cur = c => c ? 'aria-current="page"' : "", order = navOrder();
-  setHtml($("#nav"), `${order.map((h, i) => { const [l, svg, on] = NAV[h]; return `<a href="${h}"${i >= NAV_BAR ? ' class="nm"' : ""} aria-label="${l}" ${cur(on(v))}>${svg}<span>${l}</span></a>`; }).join("")}
+  // 휴대폰 하단: 앞의 두 메뉴 · 스토리 쓰기(+) · 다음 두 메뉴. PC 사이드바에서는 +를 숨긴다.
+  const write = hasProfile() && S.canWrite ? `<button type="button" class="nwr" data-act="sheet" data-k="post" aria-label="스토리 쓰기">${PLUS_SVG}</button>` : "";
+  setHtml($("#nav"), `${order.map((h, i) => { const [l, svg, on] = NAV[h]; return (i === 2 ? write : "") + `<a href="${h}"${i >= NAV_BAR ? ' class="nm"' : ""} aria-label="${l}" ${cur(on(v))}>${svg}<span>${l}</span></a>`; }).join("")}
     <a href="#settings" class="nset" aria-label="설정" ${cur(v === "settings")}>${I.gear}<span>설정</span></a>
     <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`);
   document.body.classList.toggle("navmini", !!S.navMini);
