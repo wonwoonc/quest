@@ -101,6 +101,15 @@ html,*{scrollbar-color:var(--sbt) var(--card)}
 .bar{display:block;height:8px;background:var(--track);border-radius:4px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--xp);border-radius:4px;transition:width .7s cubic-bezier(.2,.8,.2,1)}
 .bar.green i{background:var(--done)}
+.msim{margin-top:10px}
+.msim-t{display:flex;align-items:baseline;gap:2px}
+.msim-t b{font-size:17px;font-weight:800}
+.msim-t span{font-size:13px;font-weight:700}
+.msim-t small{font-size:13px;color:var(--muted);margin-left:5px}
+.msim-t em{margin-left:auto;font-style:normal;font-size:15px;font-weight:800;color:var(--accent)}
+.msim .bar{height:6px;margin-top:6px}
+.msim-t .spark{margin-left:auto;align-self:center;color:var(--accent)}
+.msim-t .spark + em{margin-left:10px}
 .btnrow{display:flex;gap:8px;margin-top:18px}
 .btnrow .btn{flex:1}
 
@@ -2734,7 +2743,7 @@ function viewCal(){
   const cgs = mode === "year" ? [] : goalsOf(S.me).filter(p => p.status !== "done").sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : (a.end||"9999") > (b.end||"9999") ? 1 : 0);
   if (cgs.length){ const gi = Math.max(0, Math.min(cgs.length - 1, S.calGi || 0)), g = cgs[gi]; S.calGi = gi;
     const pr = goalProgress(g), pct = pr.total ? pr.done/pr.total*100 : 0, links = subsOf(g.id).filter(x => x.status !== "done");
-    h += `<section class="card tight mq calmq"><button class="mqh" data-act="project" data-p="${g.id}"><span class="mtop">${g.end ? `<span class="dd">${dday(g.end)}</span>` : ""}<b>${esc(g.title)}</b>${I.chev}</span><span class="bar green"><i style="width:${pct}%"></i></span><small>미션 ${pr.done}/${pr.total}${links.length ? ` · 스테이지 ${links.length}` : ""}</small></button>${cgs.length > 1 ? `<div class="cpager"><button data-act="cgi" data-v="-1" ${gi ? "" : "disabled"} aria-label="이전 메인 퀘스트">${I.back}</button><span class="num">${gi + 1}/${cgs.length}</span><button class="fwd" data-act="cgi" data-v="1" ${gi < cgs.length - 1 ? "" : "disabled"} aria-label="다음 메인 퀘스트">${I.back}</button></div>` : ""}</section>`; }
+    h += `<section class="card tight mq calmq"><button class="mqh" data-act="project" data-p="${g.id}"><span class="mtop">${g.end ? `<span class="dd">${dday(g.end)}</span>` : ""}<b>${esc(g.title)}</b>${I.chev}</span><small>미션 ${pr.done}/${pr.total}${links.length ? ` · 스테이지 ${links.length}` : ""}</small>${metricBox(g)}</button>${cgs.length > 1 ? `<div class="cpager"><button data-act="cgi" data-v="-1" ${gi ? "" : "disabled"} aria-label="이전 메인 퀘스트">${I.back}</button><span class="num">${gi + 1}/${cgs.length}</span><button class="fwd" data-act="cgi" data-v="1" ${gi < cgs.length - 1 ? "" : "disabled"} aria-label="다음 메인 퀘스트">${I.back}</button></div>` : ""}</section>`; }
   const title = mode === "day" ? `${D0.getMonth()+1}월 ${D0.getDate()}일 ${WD[D0.getDay()]}요일` : mode === "week" ? (() => { const a = pd(monStart(date)), b2 = pd(addD(monStart(date), 6)); return `${a.getMonth()+1}.${a.getDate()} – ${b2.getMonth()+1}.${b2.getDate()}`; })() : mode === "month" ? `${D0.getFullYear()}년 ${D0.getMonth()+1}월` : `${D0.getFullYear()}년`;
   h += `<div class="calnav"><button class="iconbtn" data-act="cstep" data-v="-1" aria-label="이전">${I.back}</button><b>${title}</b><button class="iconbtn fwd" data-act="cstep" data-v="1" aria-label="다음">${I.back}</button>${date !== t ? `<button class="btn sec xs" data-act="ctoday">오늘</button>` : ""}</div>`;
   const calTaskRow = m => taskRow(m, true, false, {showTime:false, showDate:false});
@@ -3317,17 +3326,18 @@ function refHtml(p){
   if (r.type === "diary"){ const x = r.extra || {}; return `<div class="ref diary"><span class="ri">${EMOI[x.emo]||"📓"}</span><span class="rt"><b>${r.label && r.label !== "오늘의 기록" ? esc(r.label) : "오늘의 저널"} · ${esc(x.emo||"")}</b><small>컨디션 ${esc(x.cond ?? "-")}%</small></span></div>`; }
   return "";
 }
+/* 수치 표시: 메인 퀘스트 화면·퀘스트 화면·대시보드·캘린더·커뮤니티 스토리가 모두 같은 한 줄 + 막대를 쓴다.
+   메인 퀘스트 화면에만 작은 추이 그래프를 붙인다. 아직 기록이 없으면 시작값 기준(0%). */
+function msim(m, cur, vals){ const u = esc(m.unit), span = m.target - m.start;
+  const mp = span ? Math.round(Math.max(0, Math.min(100, (cur - m.start)/span*100))) : 0;
+  return `<div class="msim"><div class="msim-t"><b class="num">${numFmt(cur)}</b><span>${u}</span><small class="num">/ ${numFmt(m.target)}${u}</small>${vals ? spark(vals, 56, 20) : ""}<em class="num">${mp}%</em></div><span class="bar green"><i style="width:${mp}%"></i></span></div>`; }
 function metricFor(post){
   const pj = post.ref && S.projects[post.ref.id]; if (!pj || !pj.metric || typeof post.value !== "number") return "";
-  const m = pj.metric, hist = valHist(pj.id);
-  const idx = hist.findIndex(x => x.id === post.id); if (idx < 0) return "";
-  const cur = post.value, prev = idx > 0 ? hist[idx-1].value : m.start, delta = Math.round((cur - prev)*10)/10;
-  const down = m.target < m.start, good = down ? delta < 0 : delta > 0, span = m.target - m.start, pct = span ? Math.max(0, Math.min(100, (cur - m.start)/span*100)) : 0;
-  const reached = down ? cur <= m.target : cur >= m.target;
-  return `<div class="metric"><div class="mv"><b>${numFmt(cur)}</b><span>${esc(m.unit)}</span>${delta ? `<em class="${good?"good":"bad"}">${delta>0?"▲":"▼"} ${numFmt(Math.abs(delta))}${esc(m.unit)}</em>` : ""}</div>
-    ${spark([m.start, ...hist.slice(0, idx+1).map(x => x.value)])}<div class="mbar"><i style="width:${pct}%"></i></div>
-    <small>${numFmt(m.start)}${esc(m.unit)}에서 시작 · ${reached ? `<b>목표 ${numFmt(m.target)}${esc(m.unit)} 도달!</b>` : `목표 ${numFmt(m.target)}${esc(m.unit)}까지 <b>${numFmt(Math.abs(m.target - cur))}${esc(m.unit)}</b> · <b>${Math.round(pct)}%</b>`}</small></div>`;
+  if (!valHist(pj.id).some(x => x.id === post.id)) return "";
+  return msim(pj.metric, post.value);
 }
+function metricBox(g, withSpark = false){ const m = g && g.metric; if (!m) return "";
+  return msim(m, lastVal(g), withSpark ? [m.start, ...valHist(g.id).map(x => x.value)] : null); }
 function spark(vals, w = 96, h = 40){
   if (vals.length < 2) return "";
   const mn = Math.min(...vals), mx = Math.max(...vals), r = mx - mn || 1, p = 4;
@@ -3420,7 +3430,7 @@ function viewGoal(){
     ${par ? `<button class="parentlink" data-act="project" data-p="${par.id}">🎯 ${esc(par.title)} ${I.chev}</button>` : ""}
     <div class="tags">${p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "영역" : "메인 퀘스트 영역"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}</div>
     ${pr.total ? `<div class="prog"><span class="num">미션 ${pr.done}/${pr.total}</span></div>` : ""}
-    ${latest ? metricFor(latest) : p.metric ? `<p class="hint" style="margin:12px 0 0">📈 ${numFmt(p.metric.start)}${esc(p.metric.unit)} → 목표 ${numFmt(p.metric.target)}${esc(p.metric.unit)} · 0%</p>` : ""}
+    ${metricBox(p, true)}
     ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요</div>` : ""}
     ${mine && p.status !== "done" ? (p.metric ? `<button class="btn soft full mlogbtn" data-act="mlog" data-p="${p.id}">📈 오늘 수치 기록 <span class="hint">나만 보기</span></button>` : `<button class="btn sec full mlogbtn" data-act="gedit" data-p="${p.id}">📈 수치 기록 켜기</button>`) : ""}
     ${mine && p.status !== "done" ? `<div class="btnrow"><button class="btn" data-act="compose" data-p="${p.id}">스토리 쓰기</button><button class="btn gold" data-act="pdone" data-p="${p.id}">${S.armed==="pd"+p.id ? "한 번 더 누르면 " + (sp ? "완료" : "달성") : (sp ? "✓ 완료" : "🏆 달성")}</button></div>` : ""}
@@ -3453,10 +3463,9 @@ function coverHtml(g, o = {}){ const mine = g.owner === S.me && S.canWrite, k = 
 function coverField(c){ const v = c.cover || "", src = v.startsWith("data:") ? v : (v && S.media[v]);
   return `<div class="field cvfield"><span class="lab">대표 사진 <span class="hint">선택</span></span><button type="button" class="cvbox" data-act="cvpick">${v ? (src ? `<img src="${esc(src)}" alt="">` : `<span data-k="${esc(v)}"></span>`) + `<em>사진 바꾸기</em>` : `📷 사진 추가`}</button>${v ? `<button class="link" style="margin-top:6px" data-act="cvdel">사진 빼기</button>` : ""}</div>`; }
 async function saveCover(c){ const v = c.cover; if (!v) return null; if (v.startsWith("data:")){ const k = "cv-" + uid8(); await api.putMedia(k, v); return k; } return v; }
-function wdMetric(g){ const m = g.metric; if (!m) return ""; const cur = lastVal(g), mp = m.target !== m.start ? Math.round(Math.max(0, Math.min(100, (cur - m.start)/(m.target - m.start)*100))) : 0, u = esc(m.unit);
-  return `<div class="wdm"><div class="wdm-t"><span class="wdm-l">${I.trend || "📈"}</span><b class="num">${numFmt(cur)}${u}</b><small class="num">/ ${numFmt(m.target)}${u}</small></div><span class="bar"><i style="width:${mp}%"></i></span></div>`; }
+function wdMetric(g){ return metricBox(g); }
 function qHead(g){ const pr = goalProgress(g), m = g.metric, cur = m ? lastVal(g) : null, mp = m && m.target !== m.start ? Math.max(0, Math.min(100, (cur - m.start)/(m.target - m.start)*100)) : null, tp = pr.total ? Math.round(pr.done/pr.total*100) : 0, pct = Math.round(mp != null ? mp : tp);
-  return `<h3 class="qh3">${esc(g.title)}</h3><div class="pgtop">${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}${mp != null ? `<b class="pct num">${pct}%</b>` : ""}</div><div class="wdbar"><span class="num">미션 ${pr.done}/${pr.total}</span></div>${wdMetric(g)}`; }
+  return `<h3 class="qh3">${esc(g.title)}</h3><div class="pgtop">${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}</div><div class="wdbar"><span class="num">미션 ${pr.done}/${pr.total}</span></div>${wdMetric(g)}`; }
 function pgCard(g){
   const pr = goalProgress(g), done = g.status === "done", subs = subsOf(g.id);
   const latest = valLatest(g.id);
@@ -3467,12 +3476,11 @@ function pgCard(g){
   const meta = [];
   if (!g.parentId) meta.push(`🔗 스테이지 ${subs.filter(x => x.status === "done").length}/${subs.length}`);
   meta.push(`✅ 미션 ${pr.done}/${pr.total}`);
-  if (m) meta.push(`📈 ${numFmt(cur)} → ${numFmt(m.target)}${esc(m.unit)}`);
   return `<section class="card pgc ${done ? "done" : ""}" data-act="project" data-p="${g.id}" role="button" tabindex="0">
     ${coverHtml(g, {badge:false})}
     <h3>${esc(g.title)}${g.parentId && S.projects[g.parentId] ? `<span class="parlab">🎯 ${esc(S.projects[g.parentId].title)}</span>` : ""}</h3>
-    <div class="pgtop">${done ? `<span class="st done">🏆 ${g.doneAt ? `${new Date(g.doneAt).getMonth()+1}/${new Date(g.doneAt).getDate()} 달성` : "달성"}</span>` : `${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}`}${m ? `<b class="pct num">${pct}%</b>` : ""}</div>
-    ${m ? `<span class="bar green big"><i style="width:${pct}%"></i></span>` : ""}
+    <div class="pgtop">${done ? `<span class="st done">🏆 ${g.doneAt ? `${new Date(g.doneAt).getMonth()+1}/${new Date(g.doneAt).getDate()} 달성` : "달성"}</span>` : `${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}`}</div>
+    ${metricBox(g)}
     <div class="pgmeta">${meta.map(x => `<span>${x}</span>`).join("")}</div>
     ${subs.length ? `<div class="pgsubs">${subs.map(x => { const p2 = goalProgress(x); return `<button class="pgsub ${x.status === "done" ? "ok" : ""}" data-act="project" data-p="${x.id}"><span>${x.status === "done" ? "✓" : "🔗"}</span>${esc(x.title)}${p2.total && x.status !== "done" ? ` <em class="num">${p2.done}/${p2.total}</em>` : ""}</button>`; }).join("")}</div>` : ""}
   </section>`;
@@ -3530,7 +3538,7 @@ function viewWebDash(){
     const nav = WEB.matches && list.length > 2 ? `<button class="wd-rnav" data-act="wdgs" data-v="-1" aria-label="이전 ${nm}">${I.back}</button><button class="wd-rnav fwd" data-act="wdgs" data-v="1" aria-label="다음 ${nm}">${I.back}</button>` : "";
     return `${nav ? `<div class="wd-ovnav">${nav}</div>` : ""}
       ${(() => { const addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 생성"><span class="wd-plus">+</span><b>${nm} 생성</b></button>`;
-        return `<div class="wd-ggrid hs">${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(<span class="bar green big">[\s\S]*?<\/span>|(?=<div class="pgmeta">))/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; return `<div class="wdbar"><span class="num">미션 ${pr.done}/${pr.total}</span></div>` + wdMetric(x); }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
+        return `<div class="wd-ggrid hs">${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(?=<div class="metric">)|(?=<div class="pgmeta">)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; return `<div class="wdbar"><span class="num">미션 ${pr.done}/${pr.total}</span></div>`; }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
   const goals = `${strip(gs, "메인 퀘스트", "big")}
 `;
   let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}</div><div class="wd-goals">${goals}</div>
