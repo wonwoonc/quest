@@ -612,6 +612,10 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 @media (min-width:1024px){.dqgrid > .dqc{padding:16px 18px}.dqgrid > .dqc h3{font-size:16px}}
 .tadd-pill svg{width:15px;height:15px}.tadd-pill em{font-style:normal;font-weight:600;opacity:.75;margin-left:2px}.dqstack > .card{margin:0;width:100%}
 @media (max-width:1023.98px){.wd-pcol > .wdp{display:none!important}}
+.wd-ggrid > .wdp-m{display:none}
+@media (max-width:1023.98px){.wd-ggrid > .wdp-m{display:flex;flex:0 0 76%;scroll-snap-align:start;margin:0;height:auto;padding-bottom:12px}
+  .wd-ggrid > .wdp-m .wdp-cv{aspect-ratio:auto;height:118px;margin:-22px -20px 4px}
+  .wd-ggrid > .wdp-m .bio{display:none}}
 .gth{display:flex;align-items:flex-start;gap:8px}.gth h2{flex:1;min-width:0}.gth .pmenu{flex:none;margin-top:2px}
 .thead .gth + .parentlink{margin:-2px 0 10px}
 .ddlate{color:#dc2626;font-weight:800}
@@ -724,9 +728,9 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .sentry{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--muted);padding:12px 16px}
 /* 커뮤니티 스토리 카드: 프로필처럼 캐릭터를 카드 왼쪽에 세로로 꽉 채운다(카드 크기는 그대로) */
 #app[data-v="feed"] > .feedcard{overflow:hidden}
-#app[data-v="feed"] > .feedcard > .tp{grid-template-columns:84px 1fr;column-gap:12px!important;padding-left:0!important}
+#app[data-v="feed"] > .feedcard > .tp{grid-template-columns:100px 1fr;column-gap:12px!important;padding-left:0!important}
 #app[data-v="feed"] > .feedcard > .tp > .rail{align-items:stretch}
-#app[data-v="feed"] > .feedcard > .tp > .rail > .av{width:84px!important;height:139px!important;flex:none;margin:-18px 0 0;border-radius:0 0 var(--r) 0}
+#app[data-v="feed"] > .feedcard > .tp > .rail > .av{width:100px!important;height:139px!important;flex:none;margin:-18px 0 0;border-radius:0 0 var(--r) 0}
 #app[data-v="feed"] > .feedcard > .tp > .rail > .av .sprite{width:52px!important;height:52px!important}
 .sentry .sentry-t{flex:1;min-width:0;padding:10px 14px;border-radius:999px;background:var(--fill);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sentry .sentry-t.on{color:var(--ink)}
 .card.empty .emptybtn{display:inline-flex;margin:12px auto 0;text-decoration:none}
@@ -3650,7 +3654,7 @@ function viewWebDash(){
     const nav = WEB.matches && list.length > 2 ? `<button class="wd-rnav" data-act="wdgs" data-v="-1" aria-label="이전 ${nm}">${I.back}</button><button class="wd-rnav fwd" data-act="wdgs" data-v="1" aria-label="다음 ${nm}">${I.back}</button>` : "";
     return `${nav ? `<div class="wd-ovnav">${nav}</div>` : ""}
       ${(() => { const addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 생성"><span class="wd-plus">+</span><b>${nm} 생성</b></button>`;
-        return `<div class="wd-ggrid hs">${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(<span class="bar green big">[\s\S]*?<\/span>)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; return `<div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">미션 ${pr.done}/${pr.total}</span></div>` + wdMetric(x); }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
+        return `<div class="wd-ggrid hs">${kind === "big" ? webProfCard(uid).replace('class="card wdp"', 'class="card wdp wdp-m"') : ""}${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(<span class="bar green big">[\s\S]*?<\/span>)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; return `<div class="wdbar"><span class="bar green"><i style="width:${tp}%"></i></span><span class="num">미션 ${pr.done}/${pr.total}</span></div>` + wdMetric(x); }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
   const goals = `${strip(gs, "메인 퀘스트", "big")}
 `;
   let h = `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}</div><div class="wd-goals">${goals}</div>
