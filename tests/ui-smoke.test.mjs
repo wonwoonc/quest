@@ -1400,9 +1400,9 @@ test('write page (+) is the same story box as the profile (퀘스트 button list
   const posts=Object.values(h.snapshot().feed).filter(p=>p.author==='me');assert.equal(posts.length,1);
   assert.deepEqual([posts[0].ref.type,posts[0].ref.id,posts[0].value,posts[0].text],['project','s1',6,'오늘 6km!']);assert.equal(h.context.location.hash,'#feed');
 });
-test('community shows a one-line entry to the write page; profile has no story box (first-story button when empty); the write page has the tall box',async()=>{
+test('community has no write card at the top; profile has no story box (first-story button when empty); the write page has the tall box',async()=>{
   const h=await profileUI();h.route('feed');let html=h.nodes.get('app').innerHTML;
-  assert.match(html,/<a class="card sentry" href="#write" aria-label="스토리 쓰기">[\s\S]*오늘의 이야기를 들려주세요/);assert.doesNotMatch(html,/class="card scomp"/);
+  assert.doesNotMatch(html,/class="card sentry"|오늘의 이야기를 들려주세요/);assert.doesNotMatch(html,/class="card scomp"/);
   h.route('me');html=h.nodes.get('app').innerHTML;assert.doesNotMatch(html,/class="card scomp"/);assert.match(html,/아직 스토리가 없어요<\/strong><a class="btn sm emptybtn" href="#write">첫 스토리 쓰기/);
   h.route('write');assert.match(h.nodes.get("app").innerHTML,/class="card scomp page"[\s\S]*id="ps-text" data-grow rows="4" class="tall"/);
 });

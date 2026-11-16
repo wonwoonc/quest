@@ -1494,7 +1494,7 @@ function likersLine(p, n){
 }
 function viewFeed(){
   if (S.me && !hasProfile() && S.canWrite && S.mode !== "loading") return onboarding();
-  let h = (TRIAL ? `<section class="card trialnote"><b>커뮤니티는 정식 버전에서 열려요</b><p>지금은 체험판이라 다른 사람의 소식은 보이지 않아요. 내가 올린 스토리는 여기와 프로필에 쌓여요.</p></section>` : "") + (canAct() ? storyEntry() : "");
+  let h = (TRIAL ? `<section class="card trialnote"><b>커뮤니티는 정식 버전에서 열려요</b><p>지금은 체험판이라 다른 사람의 소식은 보이지 않아요. 내가 올린 스토리는 여기와 프로필에 쌓여요.</p></section>` : ""); // 위쪽 스토리 작성 카드는 두지 않는다(아래 메뉴의 + 버튼으로 쓴다)
   let items = feedSorted();
   if (!items.length){
     return h + `<div class="card empty"><strong>아직 스토리가 없어요</strong>${TRIAL ? "오늘 해낸 일을 첫 스토리로 남겨 보세요." : "첫 퀘스트를 생성하고 각오를 공유해 보세요."}</div>` + suggestCard();
@@ -1772,6 +1772,10 @@ function renderPill(){
   const who = [...new Set(items.map(i => i.author))].slice(0,3);
   setHtml(el, `<button data-act="newpill">↑ <span class="stackav">${who.map(u => av(u, 20, false)).join("")}</span>새 스토리 ${items.length}개</button>`);
 }
+/* 커뮤니티(모바일): 아래로 스크롤하면 아래 메뉴를 숨기고, 위로 올리면 다시 보여 준다 */
+let navY = 0; window.addEventListener("scroll", () => { const y = scrollY, d = y - navY;
+  if (S.view.name !== "feed" || y < 60){ document.body.classList.remove("navhide"); navY = y; return; }
+  if (Math.abs(d) < 8) return; document.body.classList.toggle("navhide", d > 0); navY = y; }, {passive:true});
 let scT = 0; window.addEventListener("scroll", () => { clearTimeout(scT); scT = setTimeout(() => { if (S.view.name === "feed") renderPill(); }, 120); }, {passive:true});
 /* 가로로 넘치는 칩 줄: 다시 그려도 처음으로 돌아가지 않고, 선택한 칩이 보이게 가운데로 맞춘다 */
 function keepChipsInView(root){ root.querySelectorAll("[data-swipe], .chips, .seg").forEach(el => { if (el.scrollWidth <= el.clientWidth + 1) return; const on = el.querySelector('[aria-pressed="true"]'); if (!on) return;
@@ -2196,7 +2200,7 @@ const openPost = pid => push({name:"post", pid}, "#post");
 const openGoal = pid => { if (S.view.name === "project" && S.view.pid !== pid) (S.vstack = S.vstack || []).push({...S.view}); push({name:"project", pid}, "#goal"); };
 const openProfile = uid => { S.profTab = "posts"; S.profN = 20; push({name:"profile", uid}, uid === S.me ? "#me" : "#profile"); };
 function route(){
-  document.body.classList.remove("drawer");
+  document.body.classList.remove("drawer", "navhide");
   const h = location.hash, prevKey = viewKey(), prev = S.view.name; S.scrolls[prevKey] = scrollY; if (h !== "#goal") S.vstack = [];
   if (h === "#activity"){ if (prev !== "activity"){ S.actN = 10; S.actSeenView = actSeen; actSeen = Date.now(); LS.set("actSeen", actSeen); } S.view = {name:"activity"}; }
 
