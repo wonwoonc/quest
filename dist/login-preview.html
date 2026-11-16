@@ -3477,7 +3477,7 @@ function viewGoal(){
   if (!p) return `<div class="card empty"><strong>지워진 메인 퀘스트예요</strong></div>`;
   const sp = isProj(p), kind = sp ? "스테이지" : "메인 퀘스트", par = sp && S.projects[p.parentId];
   const a = p.owner, mine = a === S.me && S.canWrite, pr = goalProgress(p), ids = famIds(p), subs = sp ? [] : subsOf(p.id);
-  const posts = Object.values(S.feed).filter(x => x.ref && ids.includes(x.ref.id)).sort((x,y) => x.createdAt - y.createdAt);
+  const posts = Object.values(S.feed).filter(x => x.ref && ids.includes(x.ref.id)).sort((x,y) => y.createdAt - x.createdAt); // 최신 스토리가 위로
   const latest = valLatest(p.id);
   // 상단 표지는 접은 상태가 기본값. 펴 두면 이 기기에서 기억한다.
   const cvUp = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`, cvOpen = (LS.get("cvopen", [])).includes(p.id);
