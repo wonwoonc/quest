@@ -117,7 +117,7 @@ html,*{scrollbar-color:var(--sbt) var(--card)}
 
 .av{display:grid;place-items:center;border-radius:50%;background:var(--fill);overflow:hidden;flex:none;border:0;padding:0;position:relative}
 /* 커뮤니티 캐릭터: 프로필처럼 내 색 그라데이션 배경의 둥근 사각형(크기는 그대로) */
-#app[data-v="feed"] .av,#app[data-v="post"] .av,#app[data-v="profile"] .feedcard .av,#app[data-v="write"] .av,#replybar .av,#overlay .ctx .av{border-radius:30%;background:linear-gradient(160deg,color-mix(in srgb,var(--pc) 22%,var(--card)),color-mix(in srgb,var(--pc) 50%,var(--card)))}
+#app[data-v="feed"] .av,#app[data-v="post"] .av,#app[data-v="write"] .av,#replybar .av,#overlay .ctx .av{border-radius:30%;background:linear-gradient(160deg,color-mix(in srgb,var(--pc) 22%,var(--card)),color-mix(in srgb,var(--pc) 50%,var(--card)))}
 #app[data-v="feed"] .av .sprite,#app[data-v="post"] .av .sprite,#app[data-v="write"] .av .sprite,#replybar .av .sprite{width:74%;height:74%}
 .sprite{display:block}
 
@@ -743,7 +743,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .scomp textarea.tall{min-height:120px;font-size:16px}
 .sentry{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--muted);padding:12px 16px}
 /* 커뮤니티 스토리 카드: 프로필처럼 캐릭터를 카드 왼쪽에 세로로 꽉 채운다(카드 크기는 그대로) */
-#app[data-v="feed"] > .feedcard,#app[data-v="post"] > .feedcard,#app[data-v="profile"] > .feedcard{overflow:hidden}
+#app[data-v="feed"] > .feedcard,#app[data-v="post"] > .feedcard{overflow:hidden}
 /* 커뮤니티: 상자 색 없이 스토리 사이를 구분선으로만 나눈다 */
 #app[data-v="feed"]{row-gap:0}
 #app[data-v="post"]{row-gap:0}
@@ -757,24 +757,24 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 #app[data-v="feed"] > .card.feedcard,#app[data-v="post"] > .card.feedcard,#app[data-v="profile"] > .card.feedcard{padding-top:14px!important;padding-bottom:0!important}
 #app[data-v="feed"] > .card.feedcard > .tp > .body,#app[data-v="post"] > .card.feedcard > .tp > .body,#app[data-v="profile"] > .card.feedcard > .tp > .body{padding-bottom:4px!important}
 #app[data-v="feed"] > .card:last-child,#app[data-v="post"] > .card:last-child,#app[data-v="profile"] > .card.feedcard:last-child{border-bottom:0}
-#app[data-v="feed"] > .feedcard > .tp,#app[data-v="post"] > .feedcard > .tp,#app[data-v="profile"] > .feedcard > .tp{grid-template-columns:100px 1fr;column-gap:12px!important;padding-left:0!important}
-#app[data-v="feed"] > .feedcard > .tp > .rail,#app[data-v="post"] > .feedcard > .tp > .rail,#app[data-v="profile"] > .feedcard > .tp > .rail{align-items:stretch}
-#app[data-v="feed"] > .feedcard > .tp > .rail > .av,#app[data-v="post"] > .feedcard > .tp > .rail > .av,#app[data-v="profile"] > .feedcard > .tp > .rail > .av{width:100px!important;height:139px!important;flex:none;margin:0;border-radius:var(--r)}
-#app[data-v="feed"] > .feedcard > .tp > .rail > .av .sprite,#app[data-v="post"] > .feedcard > .tp > .rail > .av .sprite,#app[data-v="profile"] > .feedcard > .tp > .rail > .av .sprite{width:52px!important;height:52px!important}
+#app[data-v="feed"] > .feedcard > .tp,#app[data-v="post"] > .feedcard > .tp{grid-template-columns:100px 1fr;column-gap:12px!important;padding-left:0!important}
+#app[data-v="feed"] > .feedcard > .tp > .rail,#app[data-v="post"] > .feedcard > .tp > .rail{align-items:stretch}
+#app[data-v="feed"] > .feedcard > .tp > .rail > .av,#app[data-v="post"] > .feedcard > .tp > .rail > .av{width:100px!important;height:139px!important;flex:none;margin:0;border-radius:var(--r)}
+#app[data-v="feed"] > .feedcard > .tp > .rail > .av .sprite,#app[data-v="post"] > .feedcard > .tp > .rail > .av .sprite{width:52px!important;height:52px!important}
 /* 커뮤니티 스토리: 윗줄은 캐릭터 타일 + (닉네임·퀘스트 칩), 글·사진·버튼은 그 아래 전체 폭으로 */
-#app[data-v="feed"] > .feedcard > .tp,#app[data-v="post"] > .feedcard > .tp,#app[data-v="profile"] > .feedcard > .tp{grid-template-rows:auto 1fr}
-#app[data-v="feed"] > .feedcard > .tp > .body,#app[data-v="post"] > .feedcard > .tp > .body,#app[data-v="profile"] > .feedcard > .tp > .body{display:contents}
-#app[data-v="feed"] > .feedcard > .tp > .rail,#app[data-v="post"] > .feedcard > .tp > .rail,#app[data-v="profile"] > .feedcard > .tp > .rail{grid-column:1;grid-row:1 / span 2}
-#app[data-v="feed"] > .feedcard > .tp > .body > .ph,#app[data-v="post"] > .feedcard > .tp > .body > .ph,#app[data-v="profile"] > .feedcard > .tp > .body > .ph{grid-column:2;grid-row:1}
-#app[data-v="feed"] > .feedcard > .tp > .body > .ref,#app[data-v="post"] > .feedcard > .tp > .body > .ref,#app[data-v="profile"] > .feedcard > .tp > .body > .ref{grid-column:2;grid-row:2;align-self:start}
-#app[data-v="feed"] > .feedcard > .tp > .body > :not(.ph):not(.ref),#app[data-v="post"] > .feedcard > .tp > .body > :not(.ph):not(.ref),#app[data-v="profile"] > .feedcard > .tp > .body > :not(.ph):not(.ref){grid-column:1 / -1;margin-left:36px}
+#app[data-v="feed"] > .feedcard > .tp,#app[data-v="post"] > .feedcard > .tp{grid-template-rows:auto 1fr}
+#app[data-v="feed"] > .feedcard > .tp > .body,#app[data-v="post"] > .feedcard > .tp > .body{display:contents}
+#app[data-v="feed"] > .feedcard > .tp > .rail,#app[data-v="post"] > .feedcard > .tp > .rail{grid-column:1;grid-row:1 / span 2}
+#app[data-v="feed"] > .feedcard > .tp > .body > .ph,#app[data-v="post"] > .feedcard > .tp > .body > .ph{grid-column:2;grid-row:1}
+#app[data-v="feed"] > .feedcard > .tp > .body > .ref,#app[data-v="post"] > .feedcard > .tp > .body > .ref{grid-column:2;grid-row:2;align-self:start}
+#app[data-v="feed"] > .feedcard > .tp > .body > :not(.ph):not(.ref),#app[data-v="post"] > .feedcard > .tp > .body > :not(.ph):not(.ref){grid-column:1 / -1;margin-left:36px}
 /* 퀘스트 칩이 없는 스토리: 글이 캐릭터 타일 오른쪽에서 시작해 타일 아래로 넓게 이어진다(잡지식 감싸기) */
-#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp,#app[data-v="profile"] > .feedcard:not(:has(.body > .ref)) > .tp{display:block}
-#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .rail,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp > .rail,#app[data-v="profile"] > .feedcard:not(:has(.body > .ref)) > .tp > .rail{float:left;margin:0 12px 6px 0}
-#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp > .body,#app[data-v="profile"] > .feedcard:not(:has(.body > .ref)) > .tp > .body{display:block}
-#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .txtwrap,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .txtwrap,#app[data-v="profile"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .txtwrap{margin-left:0}
-#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .media,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .media,#app[data-v="profile"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .media,#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .acts,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .acts,#app[data-v="profile"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .acts{clear:both}
-#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .ph,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .ph,#app[data-v="profile"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .ph{margin-bottom:6px}
+#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp{display:block}
+#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .rail,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp > .rail{float:left;margin:0 12px 6px 0}
+#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp > .body{display:block}
+#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .txtwrap,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .txtwrap{margin-left:0}
+#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .media,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .media,#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .acts,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .acts{clear:both}
+#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .ph,#app[data-v="post"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .ph{margin-bottom:6px}
 .sentry .sentry-t{flex:1;min-width:0;padding:10px 14px;border-radius:999px;background:var(--fill);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sentry .sentry-t.on{color:var(--ink)}
 .card.empty .emptybtn{display:inline-flex;margin:12px auto 0;text-decoration:none}
 
