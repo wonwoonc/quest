@@ -747,7 +747,8 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 /* 커뮤니티: 상자 색 없이 스토리 사이를 구분선으로만 나눈다 */
 #app[data-v="feed"]{row-gap:0}
 #app[data-v="feed"] > .card{background:transparent;box-shadow:none;border-radius:0;margin-bottom:0;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
-#app[data-v="feed"] > .card.feedcard{padding-top:14px!important;padding-bottom:2px!important}
+#app[data-v="feed"] > .card.feedcard{padding-top:14px!important;padding-bottom:0!important}
+#app[data-v="feed"] > .card.feedcard > .tp > .body{padding-bottom:4px!important}
 #app[data-v="feed"] > .card:last-child{border-bottom:0}
 #app[data-v="feed"] > .feedcard > .tp{grid-template-columns:100px 1fr;column-gap:12px!important;padding-left:0!important}
 #app[data-v="feed"] > .feedcard > .tp > .rail{align-items:stretch}
