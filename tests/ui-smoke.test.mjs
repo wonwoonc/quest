@@ -1465,7 +1465,7 @@ test('another member stage story shows stage, parent quest and D-day from the st
   const card = html.slice(html.indexOf('남의 스테이지') - 300, html.indexOf('남의 스테이지') + 400);
   assert.match(card,/🔗/); assert.match(card,/스테이지 · D-\d+ · 🎯 남의 메인/); assert.doesNotMatch(card,/메인 퀘스트/);
 });
-test('another member: mission story is not shown as a main quest; profile hides XP and coins',async()=>{
+test('another member: mission story is not shown as a main quest; profile shows XP and coins',async()=>{
   const base = await profileUI(), saved = base.snapshot(), at = Date.now();
   saved.profiles = {...(saved.profiles || {}), other:{nick:'다른 회원', stats:{xp:900, gold:777}}};
   saved.feed = {...(saved.feed || {}), mPost:{id:'mPost',author:'other',createdAt:at,text:'미션 끝',imgs:0,reactions:{},joiners:{},ref:{type:'mission',id:'ghostStage',label:'남의 스테이지',mission:'단어 50개',extra:{sp:true}}}};
@@ -1473,5 +1473,5 @@ test('another member: mission story is not shown as a main quest; profile hides 
   const card = html.slice(html.indexOf('미션 완료 · 단어 50개'), html.indexOf('미션 완료 · 단어 50개') + 600);
   assert.doesNotMatch(card,/메인 퀘스트|🎯/); assert.doesNotMatch(html.slice(html.indexOf('mPost')-1500, html.indexOf('미션 완료')),/data-act="project" data-p="ghostStage"/);
   h.click('profile',{u:'other'}); html = h.nodes.get('app').innerHTML;
-  assert.match(html,/다른 회원/); assert.doesNotMatch(html,/777|XP<\/span>|aria-label="레벨 진행도"/);
+  assert.match(html,/다른 회원/); assert.match(html,/🪙 777/); assert.match(html,/XP<\/span>/);
 });

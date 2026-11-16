@@ -26,7 +26,7 @@ test('community view: server rows become app records; I am "me"; untrusted field
   assert.equal(v.replies.rb1.likes[ME], 1700); assert.ok(!v.replies.orphan, 'replies to unknown stories are skipped');
   assert.ok(v.follows[`${ME}~${B}`] && v.follows[`${B}~${ME}`]); assert.ok(!v.follows[`${ME}~${C}`], 'pending is not following');
   assert.deepEqual(v.pending, {[C]:true}); assert.deepEqual(v.requests, [{uid:C, at:8}]);
-  assert.equal(v.profiles[B].color, '#3DBE8B'); assert.equal(v.profiles[B].stats.xp, 120); assert.ok(!v.profiles[A], 'own profile stays local');
+  assert.equal(v.profiles[B].color, '#3DBE8B'); assert.equal(v.profiles[B].stats.xp, 120); assert.equal(v.profiles[B].stats.gold, 0); assert.ok(!v.profiles[A], 'own profile stays local');
   assert.deepEqual(Object.keys(v.mine.posts), ['pa1']); assert.deepEqual(Object.keys(v.mine.replies), ['ra1']);
   assert.deepEqual(v.mine.likes, {pb1:2050}); assert.deepEqual(v.mine.follows, {[B]:5, [C]:7});
   assert.deepEqual(cleanPost({text:'a', value:3, noReply:true, ref:{type:'quest', id:'q1', label:'물', extra:{streak:3, days:[1, 2, 'x'], deep:{a:1}}}}),

@@ -548,8 +548,8 @@ function charCard(uid, extra = "", nameExtra = ""){
   return `<section class="card pcard" style="--pc:${colorOf(uid)}">
     <div class="char"><div class="stage">${fig(uid, 80, 60)}</div>
       <div style="min-width:0;flex:1"><h2 class="cname">${esc(nameOf(uid))}${nameExtra}</h2><p>Lv.${s.L} ${rankOf(s.L)}</p>
-        ${uid === S.me ? `<div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
-        <div class="barmeta lft"><span class="num">${s.need===0?'MAX':`${fmt(s.cur)} / ${fmt(s.need)} XP`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div>` : ""}</div></div>
+        <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
+        <div class="barmeta lft"><span class="num">${s.need===0?'MAX':`${fmt(s.cur)} / ${fmt(s.need)} XP`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div></div></div>
     ${extra}</section>`;
 }
 function habitRow(q){

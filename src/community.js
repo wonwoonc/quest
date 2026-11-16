@@ -43,7 +43,7 @@ export function cleanPost(d){
 const FACEV = /^[a-z0-9]{1,16}$/, STYLES = new Set(['photo', 'fullbody']);
 // 다른 사람의 프로필 사진은 'rf~<계정 id>' 키로 가리키고, 실제 주소는 서명된 임시 주소(remote)로 받는다.
 const cleanProfile = (uid, priv, d) => { const p = plain(d) ? d : {}, face = FACEV.test(p.face || '') ? p.face : '';
-  return {uid, nick:str(p.nick, 40) || '모험가', bio:str(p.bio, 300), color:COLOR.test(p.color || '') ? p.color : '#3DBE8B', private:!!priv, stats:{xp:time(p.xp)},
+  return {uid, nick:str(p.nick, 40) || '모험가', bio:str(p.bio, 300), color:COLOR.test(p.color || '') ? p.color : '#3DBE8B', private:!!priv, stats:{xp:time(p.xp), gold:time(p.gold)},
     face:face ? 'rf~' + uid : null, faceV:face || null, avatarStyle:face && STYLES.has(p.avatarStyle) ? p.avatarStyle : null}; };
 export const facePath = (uid, v) => `${uid}/p/face-${v}`;
 export const photoPath = (uid, postId, i) => `${uid}/s/${postId}~${i}`;
@@ -125,7 +125,7 @@ export function mergeView(snap, view){
 export function extract(snap){
   const feed = snap.feed || {}, replies = snap.replies || {}, me = (snap.profiles || {})[ME];
   const blocked = ((snap.mine || {}).settings || {}).blocked;
-  let xp = 0; try { xp = balances(snap).xp; } catch { xp = 0; }
+  let xp = 0, gold = 0; try { const b = balances(snap); xp = b.xp; gold = b.gold; } catch { xp = 0; gold = 0; }
   return {
     posts:Object.fromEntries(Object.values(feed).filter(p => p && p.author === ME && ID.test(String(p.id))).map(p => [p.id, postKey(p)])),
     replies:Object.fromEntries(Object.values(replies).filter(r => r && r.author === ME && ID.test(String(r.id)) && feed[r.postId]).map(r => [r.id, replyKey(r)])),
@@ -133,7 +133,7 @@ export function extract(snap){
     rlikes:Object.fromEntries(Object.values(replies).filter(r => r && r.author !== ME && on((r.likes || {})[ME]) && ID.test(String(r.id))).map(r => [r.id, time(r.likes[ME])])),
     follows:Object.fromEntries(Object.values(snap.follows || {}).filter(f => f && f.from === ME && UUID.test(String(f.to))).map(f => [f.to, time(f.at)])),
     blocks:Array.isArray(blocked) ? [...new Set(blocked.filter(u => UUID.test(String(u))))].sort() : [],
-    profile:me ? JSON.stringify({private:!!me.private, data:{nick:str(me.nick, 40), bio:str(me.bio, 300), color:COLOR.test(me.color || '') ? me.color : '#3DBE8B', xp,
+    profile:me ? JSON.stringify({private:!!me.private, data:{nick:str(me.nick, 40), bio:str(me.bio, 300), color:COLOR.test(me.color || '') ? me.color : '#3DBE8B', xp, gold,
       ...(faceData(snap, me) ? {face:hash(faceData(snap, me)), avatarStyle:STYLES.has(me.avatarStyle) ? me.avatarStyle : null} : {})}}) : ''
   };
 }
