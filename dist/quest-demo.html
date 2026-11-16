@@ -765,6 +765,13 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 #app[data-v="feed"] > .feedcard > .tp > .body > .ph{grid-column:2;grid-row:1}
 #app[data-v="feed"] > .feedcard > .tp > .body > .ref{grid-column:2;grid-row:2;align-self:start}
 #app[data-v="feed"] > .feedcard > .tp > .body > :not(.ph):not(.ref){grid-column:1 / -1;margin-left:36px}
+/* 퀘스트 칩이 없는 스토리: 글이 캐릭터 타일 오른쪽에서 시작해 타일 아래로 넓게 이어진다(잡지식 감싸기) */
+#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp{display:block}
+#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .rail{float:left;margin:0 12px 6px 0}
+#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body{display:block}
+#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .txtwrap{margin-left:0}
+#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .media,#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .acts{clear:both}
+#app[data-v="feed"] > .feedcard:not(:has(.body > .ref)) > .tp > .body > .ph{margin-bottom:6px}
 .sentry .sentry-t{flex:1;min-width:0;padding:10px 14px;border-radius:999px;background:var(--fill);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sentry .sentry-t.on{color:var(--ink)}
 .card.empty .emptybtn{display:inline-flex;margin:12px auto 0;text-decoration:none}
 
