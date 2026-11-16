@@ -629,7 +629,7 @@ for (const mode of ['day','week','month']) {
 }
 test('custom drafts and mission references show only supplied time and preserve titles/dates',async () => {
   const js = await readFile(root+'/src/legacy-app.js','utf8');
-  const ctx = vm.createContext({S:{projects:{main:{title:'비공개 제목'},sub:{parentId:'main',title:'비공개 제목'}}},esc:String,isProj:p=>!!p?.parentId,
+  const ctx = vm.createContext({S:{projects:{main:{title:'비공개 제목'},sub:{parentId:'main',title:'비공개 제목'}}},esc:String,isProj:p=>!!p?.parentId,metricFor:()=>'',
     today:()=> '2026-11-01',tomorrow:()=> '2026-11-02',tlv:()=>TASK_DIFFICULTY.normal,tmLabel:timeFormatter(js)});
   for (const [start,end] of [['function taskTimeTag(','function taskRow('],['function refHtml(','function metricFor(']]) {
     vm.runInContext(js.slice(js.indexOf(start),js.indexOf(end)),ctx);
