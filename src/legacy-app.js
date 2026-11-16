@@ -1470,7 +1470,7 @@ function postRow(p, o = {}){
     <div class="body">
       <div class="ph"><button class="nm" data-act="profile" data-u="${esc(a)}">${esc(nameOf(a))}</button><span class="pillLv">Lv.${s.L}</span><time>${ago(p.createdAt)}${p.editedAt ? " · 수정됨" : ""}</time>
         ${hasProfile() && S.canWrite ? `<button class="pmenu" data-act="pmenu" data-p="${p.id}" aria-label="게시물 메뉴">${I.menu}</button>` : ""}</div>
-      ${p.modHidden && a === S.me ? `<p class="modnote">운영자가 숨긴 스토리예요. 지금은 나에게만 보여요.</p>` : ""}${refHtml(p) || `<div class="ref noq"><span class="ri">💬</span><span class="rt"><b>자유 스토리</b><small>연결된 퀘스트 없음</small></span></div>`}
+      ${p.modHidden && a === S.me ? `<p class="modnote">운영자가 숨긴 스토리예요. 지금은 나에게만 보여요.</p>` : ""}${refHtml(p) || `<div class="ref noq hasm"><span class="ri">💬</span><span class="rt"><b>자유 스토리</b><small>연결된 퀘스트 없음</small></span><span class="msim none"><span class="msim-t"><small>수치 기록 없음</small></span><span class="bar green"><i style="width:0%"></i></span></span></div>`}
 
       ${p.text ? `<div class="txtwrap"><p class="txt${o.focus || (S.openPosts && S.openPosts[p.id]) ? "" : " pclamp"}" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}>${esc(p.text)}</p><button class="tmore" data-act="pmore" data-p="${p.id}" hidden>더보기</button><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
       ${imgs ? `<div class="media" data-dt="${p.id}" ${o.focus?"":`data-open="${p.id}"`}><div class="car ${imgs>1?"multi":""}">${Array.from({length:imgs}, (_,i) => { const k = p.id+"~"+i; return `<div class="pimg" data-k="${k}">${mediaSrc(k)?`<img src="${esc(mediaSrc(k))}" alt="" draggable="false">`:""}</div>`; }).join("")}</div><span class="burst" aria-hidden="true">${I.burst}</span></div>` : ""}
