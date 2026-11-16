@@ -1551,7 +1551,7 @@ function viewGoal(){
     ${pr.total ? `<div class="prog"><span class="num">미션 ${pr.done}/${pr.total}</span></div>` : ""}
     ${metricBox(p)}
     ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요</div>` : ""}
-    ${mine && p.status !== "done" ? (p.metric ? `<button class="btn soft full mlogbtn" data-act="mlog" data-p="${p.id}">📈 오늘 수치 기록 <span class="hint">나만 보기</span></button>` : `<button class="btn sec full mlogbtn" data-act="gedit" data-p="${p.id}">📈 수치 기록 켜기</button>`) : ""}
+    ${mine && p.status !== "done" ? (p.metric ? `<button class="btn soft full mlogbtn" data-act="mlog" data-p="${p.id}">📈 오늘 수치 기록</button>` : `<button class="btn sec full mlogbtn" data-act="gedit" data-p="${p.id}">📈 수치 기록 켜기</button>`) : ""}
     ${mine && p.status !== "done" ? `<div class="btnrow"><button class="btn" data-act="compose" data-p="${p.id}">스토리 쓰기</button><button class="btn gold" data-act="pdone" data-p="${p.id}">${S.armed==="pd"+p.id ? "한 번 더 누르면 " + (sp ? "완료" : "달성") : (sp ? "✓ 완료" : "🏆 달성")}</button></div>` : ""}
   </section>`;
   if (!sp && (subs.length || mine)){ const addable = mine && p.status !== "done";
@@ -2056,8 +2056,6 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
   if (c.type === "mlog"){ const pj = S.projects[c.pid]; if (!pj || !pj.metric){ closeSheet(); return; } const m = pj.metric, lv = lastVal(pj), u = esc(m.unit);
     return sheetWrap(`수치 기록`, "", `<p class="mlog-t">${esc(pj.title)}</p>
       <div class="field"><label class="lab" for="ml-val">오늘의 수치 <span class="hint">지난 기록 ${numFmt(lv)}${u} · 목표 ${numFmt(m.target)}${u}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ml-val" placeholder="${numFmt(lv)}" value="${D("ml-val")}"><span>${u}</span></div></div>
-      <label class="toggle"><input type="checkbox" id="ml-share" ${c.share ? "checked" : ""}> 커뮤니티에도 공유하기</label>
-      ${c.share ? `<div class="field"><textarea id="ml-text" rows="3" maxlength="1000" placeholder="한마디 남겨 보세요 (선택)">${D("ml-text")}</textarea></div>` : `<p class="hint" style="margin:-6px 0 14px">공유하지 않으면 나만 볼 수 있어요. 그래프와 진행도에는 똑같이 반영돼요.</p>`}
       <button class="btn big full" data-act="submit-mlog" ${S.busy?"disabled":""}>기록하기</button>`); }
   if (c.type === "umenu"){ const u = c.u, bl = isBlocked(u);
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-u="${esc(u)}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
@@ -2386,7 +2384,11 @@ document.addEventListener("click", e => {
     case "unhide": { const st = getSet(); st.hidden.splice(+b.dataset.i, 1); run(() => api.putMine("settings", {kind:"settings", ...st})); return; }
     case "tfold": { const l = LS.get("tfold", []), k = b.dataset.k; LS.set("tfold", l.includes(k) ? l.filter(x => x !== k) : [...l, k]); break; }
     case "toggle": { const m = {habits:"openHabits", later:"openLater", done:"openDone", ach:"openAch", blk:"openBlk", subdone:"openSubDone", buys:"openBuys", tdone:"openTDone", bdall:"bdAll"}[b.dataset.k]; S[m] = !S[m]; break; }
-    case "compose": if (pid && S.projects[pid]) openCompose({ref:{type:"project", id:pid, label:S.projects[pid].title}, fixed:true}); else openCompose(); return;
+    case "compose": if (pid && S.projects[pid]){
+        // 오늘 수치를 기록했다면 스토리에 그 값을 미리 넣어 둔다(지울 수 있음).
+        const logs = ((S.mine["ml-" + pid] || {}).logs || []).filter(l => koreaDate(l.at) === today()), lt = logs[logs.length - 1];
+        if (lt && S.projects[pid].metric) S.drafts["po-val"] = String(lt.v); else delete S.drafts["po-val"];
+        openCompose({ref:{type:"project", id:pid, label:S.projects[pid].title}, fixed:true}); } else openCompose(); return;
     case "sheet": { if (!S.canWrite) return; if (!hasProfile() && b.dataset.k !== "profile"){ toast("먼저 캐릭터를 만들어 주세요"); return; }
       const k = b.dataset.k; if (k === "post") return openCompose();
       if (k === "add" && b.dataset.v === "daily"){ const base0 = {type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:null, parentId:null, unit:null, area:[]}; return openSheet(base0); }
