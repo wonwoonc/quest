@@ -1427,12 +1427,12 @@ function refHtml(p){ let h = refHtml0(p); if (!h) return h;
 function refHtml0(p){
   const r = p.ref; if (!r) return "";
   if (r.type === "project" || r.type === "mission"){
-    const pj = S.projects[r.id];
-    const sp = isProj(pj), kind = sp ? "스테이지" : "메인 퀘스트", par = sp && S.projects[pj.parentId];
+    const pj = S.projects[r.id], X = r.extra || {};
+    const sp = pj ? isProj(pj) : !!X.sp, kind = sp ? "스테이지" : "메인 퀘스트", par = pj ? sp && S.projects[pj.parentId] : X.pt ? {title:X.pt} : null;
     if (r.type === "mission") return `<div class="ref" data-act="project" data-p="${esc(r.id)}" role="button" tabindex="0"><span class="ri">✅</span><span class="rt"><b>미션 완료 · ${esc(r.mission||"")}</b>${taskTimeTag(r)}</span>${I.chev}</div>`;
-    return `<button class="ref" data-act="project" data-p="${r.id}"><span class="ri">${r.type==="mission"?"✅":sp?"🔗":"🎯"}</span><span class="rt"><b>${r.type==="mission" ? "미션 완료 · "+esc(r.mission||"") : esc(pj ? pj.title : r.label)}</b><small>${r.type==="mission" ? esc(pj ? goalLabel(pj) : "🎯 "+r.label) : (pj ? (pj.status === "done" ? (sp ? "완료한 스테이지" : "업적") : `${kind} · ${dday(pj.end) || "진행 중"}`) : "메인 퀘스트")}${par && r.type !== "mission" ? ` · 🎯 ${esc(par.title)}` : ""}</small></span>${I.chev}</button>`;
+    return `<button class="ref" data-act="project" data-p="${r.id}"><span class="ri">${r.type==="mission"?"✅":sp?"🔗":"🎯"}</span><span class="rt"><b>${r.type==="mission" ? "미션 완료 · "+esc(r.mission||"") : esc(pj ? pj.title : r.label)}</b><small>${r.type==="mission" ? esc(pj ? goalLabel(pj) : "🎯 "+r.label) : (pj ? (pj.status === "done" ? (sp ? "완료한 스테이지" : "업적") : `${kind} · ${dday(pj.end) || "진행 중"}`) : `${kind}${X.end ? " · " + dday(X.end) : ""}`)}${par && r.type !== "mission" ? ` · 🎯 ${esc(par.title)}` : ""}</small></span>${I.chev}</button>`;
   }
-  if (r.type === "project_done"){ const sp = isProj(S.projects[r.id]) || r.sub; return `<button class="ref done" data-act="project" data-p="${r.id}"><span class="ri">🏆</span><span class="rt"><b>${sp ? "스테이지 완료" : "메인 퀘스트 달성"} · ${esc(r.label)}</b><small>완료 기록 · 공유 자체는 무보상</small></span>${I.chev}</button>`; }
+  if (r.type === "project_done"){ const sp = isProj(S.projects[r.id]) || r.sub || !!(r.extra && r.extra.sp); return `<button class="ref done" data-act="project" data-p="${r.id}"><span class="ri">🏆</span><span class="rt"><b>${sp ? "스테이지 완료" : "메인 퀘스트 달성"} · ${esc(r.label)}</b><small>완료 기록 · 공유 자체는 무보상</small></span>${I.chev}</button>`; }
   if (r.type === "quest"){
     const x = r.extra || {}, lv = HLV[lvKey(x.lv)];
     return `<div class="ref quest"><span class="ri">🔥</span><span class="rt"><b>${esc(r.label)} · ${num(x.streak)}일 연속</b><small><span title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span> 일일 퀘스트</small></span></div>`;

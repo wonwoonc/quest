@@ -189,3 +189,10 @@ test('story with a value carries the quest metric start/target/unit so other mem
   await api.addPost({ref:{type:'project', id:'mq', label:'몸무게'}, text:'값 없음', mood:null}, []);
   assert.equal(Object.values(state.feed).find(x => x.text === '값 없음').ref.extra, undefined);
 });
+test('story about a stage carries stage flag, parent quest title and due date', async () => {
+  const {state, api} = setup();
+  state.projects.mq = {id:'mq', owner:'me', title:'토익 850점', status:'active'};
+  state.projects.st = {id:'st', owner:'me', parentId:'mq', title:'파트5', status:'active', end:'2026-12-01'};
+  await api.addPost({ref:{type:'project', id:'st', label:'파트5'}, text:'스테이지', mood:null}, []);
+  assert.deepEqual(Object.values(state.feed).find(x => x.text === '스테이지').ref.extra, {sp:true, pt:'토익 850점', end:'2026-12-01'});
+});

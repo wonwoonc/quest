@@ -1690,10 +1690,17 @@ Object.assign(__exports,{COLLECTIONS,NAMESPACES,emptySnapshot,clone,validateSnap
  */
 const {clone} = __require("storage.js");
 const {migrateEconomy, processEconomy, redeemPersonal, purchaseStyle, purchaseAction, equipStyle, chooseMilestone, balances} = __require("economy.js");
-// 수치 기록이 붙은 스토리는 시작값·목표·단위를 함께 담는다. 다른 회원은 내 퀘스트를 갖고 있지 않아서, 이 값으로 수치 그래프를 그린다.
+// 퀘스트가 붙은 스토리에는 다른 회원도 볼 수 있게 퀘스트 정보를 함께 담는다(다른 회원은 내 퀘스트를 갖고 있지 않다).
+// 스테이지 여부(sp)·상위 메인 퀘스트 이름(pt)·마감일(end), 수치 기록이 있으면 시작값(ms)·목표(mt)·단위(mu).
 function metricSnap(s, p){
-  const m = p && typeof p.value === 'number' && p.ref && s.projects && s.projects[p.ref.id] && s.projects[p.ref.id].metric;
-  if (m && Number.isFinite(+m.start) && Number.isFinite(+m.target)) p.ref = {...p.ref, extra:{...(p.ref.extra || {}), ms:+m.start, mt:+m.target, mu:String(m.unit || '').slice(0, 20)}};
+  const r = p && p.ref, pj = r && (r.type === 'project' || r.type === 'mission' || r.type === 'project_done') && s.projects && s.projects[r.id];
+  if (!pj) return p;
+  const x = {...(r.extra || {})}, par = pj.parentId && s.projects[pj.parentId];
+  if (pj.parentId){ x.sp = true; if (par && par.title) x.pt = String(par.title).slice(0, 200); }
+  if (typeof pj.end === 'string' && pj.end) x.end = pj.end.slice(0, 40);
+  const m = typeof p.value === 'number' && pj.metric;
+  if (m && Number.isFinite(+m.start) && Number.isFinite(+m.target)){ x.ms = +m.start; x.mt = +m.target; x.mu = String(m.unit || '').slice(0, 20); }
+  if (Object.keys(x).length) p.ref = {...r, extra:x};
   return p;
 }
 function createAPI({state, storage, id, now = Date.now, color = '#3DBE8B'}) {
@@ -3457,12 +3464,12 @@ function refHtml(p){ let h = refHtml0(p); if (!h) return h;
 function refHtml0(p){
   const r = p.ref; if (!r) return "";
   if (r.type === "project" || r.type === "mission"){
-    const pj = S.projects[r.id];
-    const sp = isProj(pj), kind = sp ? "스테이지" : "메인 퀘스트", par = sp && S.projects[pj.parentId];
+    const pj = S.projects[r.id], X = r.extra || {};
+    const sp = pj ? isProj(pj) : !!X.sp, kind = sp ? "스테이지" : "메인 퀘스트", par = pj ? sp && S.projects[pj.parentId] : X.pt ? {title:X.pt} : null;
     if (r.type === "mission") return `<div class="ref" data-act="project" data-p="${esc(r.id)}" role="button" tabindex="0"><span class="ri">✅</span><span class="rt"><b>미션 완료 · ${esc(r.mission||"")}</b>${taskTimeTag(r)}</span>${I.chev}</div>`;
-    return `<button class="ref" data-act="project" data-p="${r.id}"><span class="ri">${r.type==="mission"?"✅":sp?"🔗":"🎯"}</span><span class="rt"><b>${r.type==="mission" ? "미션 완료 · "+esc(r.mission||"") : esc(pj ? pj.title : r.label)}</b><small>${r.type==="mission" ? esc(pj ? goalLabel(pj) : "🎯 "+r.label) : (pj ? (pj.status === "done" ? (sp ? "완료한 스테이지" : "업적") : `${kind} · ${dday(pj.end) || "진행 중"}`) : "메인 퀘스트")}${par && r.type !== "mission" ? ` · 🎯 ${esc(par.title)}` : ""}</small></span>${I.chev}</button>`;
+    return `<button class="ref" data-act="project" data-p="${r.id}"><span class="ri">${r.type==="mission"?"✅":sp?"🔗":"🎯"}</span><span class="rt"><b>${r.type==="mission" ? "미션 완료 · "+esc(r.mission||"") : esc(pj ? pj.title : r.label)}</b><small>${r.type==="mission" ? esc(pj ? goalLabel(pj) : "🎯 "+r.label) : (pj ? (pj.status === "done" ? (sp ? "완료한 스테이지" : "업적") : `${kind} · ${dday(pj.end) || "진행 중"}`) : `${kind}${X.end ? " · " + dday(X.end) : ""}`)}${par && r.type !== "mission" ? ` · 🎯 ${esc(par.title)}` : ""}</small></span>${I.chev}</button>`;
   }
-  if (r.type === "project_done"){ const sp = isProj(S.projects[r.id]) || r.sub; return `<button class="ref done" data-act="project" data-p="${r.id}"><span class="ri">🏆</span><span class="rt"><b>${sp ? "스테이지 완료" : "메인 퀘스트 달성"} · ${esc(r.label)}</b><small>완료 기록 · 공유 자체는 무보상</small></span>${I.chev}</button>`; }
+  if (r.type === "project_done"){ const sp = isProj(S.projects[r.id]) || r.sub || !!(r.extra && r.extra.sp); return `<button class="ref done" data-act="project" data-p="${r.id}"><span class="ri">🏆</span><span class="rt"><b>${sp ? "스테이지 완료" : "메인 퀘스트 달성"} · ${esc(r.label)}</b><small>완료 기록 · 공유 자체는 무보상</small></span>${I.chev}</button>`; }
   if (r.type === "quest"){
     const x = r.extra || {}, lv = HLV[lvKey(x.lv)];
     return `<div class="ref quest"><span class="ri">🔥</span><span class="rt"><b>${esc(r.label)} · ${num(x.streak)}일 연속</b><small><span title="${esc(lv.n)}" aria-label="${esc(lv.n)}">${lv.e}</span> 일일 퀘스트</small></span></div>`;

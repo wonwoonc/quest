@@ -1456,3 +1456,12 @@ test('another member story: quest chip is not clickable and metric graph uses th
   assert.match(card,/남의 토익/); assert.doesNotMatch(card,/data-p="ghostQuest"/);
   assert.match(card,/<b class="num">710<\/b><span>점<\/span><small class="num">\/ 850점<\/small><em class="num">30%<\/em>/);
 });
+test('another member stage story shows stage, parent quest and D-day from the story snapshot',async()=>{
+  const base = await profileUI(), saved = base.snapshot(), at = Date.now();
+  const end = new Date(Date.now() + 10*86400000).toISOString().slice(0,10);
+  saved.profiles = {...(saved.profiles || {}), other:{nick:'다른 회원'}};
+  saved.feed = {...(saved.feed || {}), stPost:{id:'stPost',author:'other',createdAt:at,text:'스테이지 진행',imgs:0,reactions:{},joiners:{},ref:{type:'project',id:'ghostStage',label:'남의 스테이지',extra:{sp:true,pt:'남의 메인',end}}}};
+  const h = await profileUI(saved); h.route('feed'); const html = h.nodes.get('app').innerHTML;
+  const card = html.slice(html.indexOf('남의 스테이지') - 300, html.indexOf('남의 스테이지') + 400);
+  assert.match(card,/🔗/); assert.match(card,/스테이지 · D-\d+ · 🎯 남의 메인/); assert.doesNotMatch(card,/메인 퀘스트/);
+});

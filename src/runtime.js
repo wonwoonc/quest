@@ -4,10 +4,17 @@
  */
 import {clone} from './storage.js';
 import {migrateEconomy, processEconomy, redeemPersonal, purchaseStyle, purchaseAction, equipStyle, chooseMilestone, balances} from './economy.js';
-// 수치 기록이 붙은 스토리는 시작값·목표·단위를 함께 담는다. 다른 회원은 내 퀘스트를 갖고 있지 않아서, 이 값으로 수치 그래프를 그린다.
+// 퀘스트가 붙은 스토리에는 다른 회원도 볼 수 있게 퀘스트 정보를 함께 담는다(다른 회원은 내 퀘스트를 갖고 있지 않다).
+// 스테이지 여부(sp)·상위 메인 퀘스트 이름(pt)·마감일(end), 수치 기록이 있으면 시작값(ms)·목표(mt)·단위(mu).
 function metricSnap(s, p){
-  const m = p && typeof p.value === 'number' && p.ref && s.projects && s.projects[p.ref.id] && s.projects[p.ref.id].metric;
-  if (m && Number.isFinite(+m.start) && Number.isFinite(+m.target)) p.ref = {...p.ref, extra:{...(p.ref.extra || {}), ms:+m.start, mt:+m.target, mu:String(m.unit || '').slice(0, 20)}};
+  const r = p && p.ref, pj = r && (r.type === 'project' || r.type === 'mission' || r.type === 'project_done') && s.projects && s.projects[r.id];
+  if (!pj) return p;
+  const x = {...(r.extra || {})}, par = pj.parentId && s.projects[pj.parentId];
+  if (pj.parentId){ x.sp = true; if (par && par.title) x.pt = String(par.title).slice(0, 200); }
+  if (typeof pj.end === 'string' && pj.end) x.end = pj.end.slice(0, 40);
+  const m = typeof p.value === 'number' && pj.metric;
+  if (m && Number.isFinite(+m.start) && Number.isFinite(+m.target)){ x.ms = +m.start; x.mt = +m.target; x.mu = String(m.unit || '').slice(0, 20); }
+  if (Object.keys(x).length) p.ref = {...r, extra:x};
   return p;
 }
 export function createAPI({state, storage, id, now = Date.now, color = '#3DBE8B'}) {
