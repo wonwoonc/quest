@@ -2585,8 +2585,8 @@ function charCard(uid, extra = "", nameExtra = ""){
   return `<section class="card pcard" style="--pc:${colorOf(uid)}">
     <div class="char"><div class="stage">${fig(uid, 80, 60)}</div>
       <div style="min-width:0;flex:1"><h2 class="cname">${esc(nameOf(uid))}${nameExtra}</h2><p>Lv.${s.L} ${rankOf(s.L)}</p>
-        <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
-        <div class="barmeta lft"><span class="num">${s.need===0?'MAX':`${fmt(s.cur)} / ${fmt(s.need)} XP`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div></div></div>
+        ${uid === S.me ? `<div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
+        <div class="barmeta lft"><span class="num">${s.need===0?'MAX':`${fmt(s.cur)} / ${fmt(s.need)} XP`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div>` : ""}</div></div>
     ${extra}</section>`;
 }
 function habitRow(q){
@@ -3968,9 +3968,10 @@ if (HS) window.addEventListener("popstate", e => {
   if (popSkip){ popSkip = false; return; }
   if (S.compose){ sheetHist = false; closeSheet(); return; }
   if (e.state && e.state.qsheet){ HS.back(); return; }
-  if (location.hash === "#goal" && S.view.name === "project"){ const g = e.state && e.state.gpid;
-    if (S.vstack && S.vstack.length) S.view = S.vstack.pop(); else if (g && g !== S.view.pid) S.view = {name:"project", pid:g}; else return;
-    try { sessionStorage.setItem("qgoal", S.view.pid); } catch(err){} schedule(); scrollTo(0,0); }
+  // 같은 주소 안에서 보던 대상만 바뀐 기록(스테이지 → 메인 퀘스트, 다른 스토리 등)으로 돌아올 때
+  const name = PARAMV[location.hash]; if (!name || S.view.name !== name) return; const q = e.state && e.state.qv;
+  if (location.hash === "#goal" && S.vstack && S.vstack.length) S.view = S.vstack.pop(); else if (q && q.name === name && JSON.stringify(q) !== JSON.stringify(S.view)) S.view = {...q}; else return;
+  try { sessionStorage.setItem("qv" + location.hash, JSON.stringify(S.view)); } catch(err){} schedule(); scrollTo(0,0);
 });
 function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
   const c = S.compose; if (!c){ $("#overlay").innerHTML = ""; return; }
@@ -4212,13 +4213,20 @@ function burstAt(el){ if (!el) return; const t = (el.parentElement && el.parentE
 /* ================= navigation ================= */
 function go(name){ location.hash = "#"+name; }
 const viewKey = () => S.view.name + (S.view.uid ? ":"+S.view.uid : "") + (S.view.pid ? ":"+S.view.pid : "");
-function push(view, hash){ if (LP && view.name !== "learn") { bkSave(true); LP = null; } if (view.name === "learn" && LP && LP.id !== view.id) LP = null; S.scrolls[viewKey()] = scrollY; S.view = view; if (location.hash !== hash) location.hash = hash; if (view.name === "project") rememberGoal(view.pid); schedule(); scrollTo(0,0); }
-/* 메인 퀘스트·스테이지 화면은 주소가 모두 #goal이라, 어떤 퀘스트인지를 기록(history.state)과 탭 저장소에 적어 둔다. 새로고침해도 같은 화면을 다시 연다. */
-function rememberGoal(pid){ try { if (HS) HS.replaceState({...(HS.state || {}), gpid:pid}, ""); } catch(e){} try { sessionStorage.setItem("qgoal", pid); } catch(e){} }
-function savedGoal(){ try { const st = HS && HS.state; if (st && st.gpid) return st.gpid; } catch(e){} try { return sessionStorage.getItem("qgoal") || ""; } catch(e){ return ""; } }
+function push(view, hash){ if (LP && view.name !== "learn") { bkSave(true); LP = null; } if (view.name === "learn" && LP && LP.id !== view.id) LP = null; S.scrolls[viewKey()] = scrollY; const prevView = S.view; S.view = view;
+  if (location.hash !== hash) location.hash = hash; else if (PARAMV[hash] && HS && JSON.stringify(prevView) !== JSON.stringify(view)) try { HS.pushState({}, ""); } catch(e){}
+  rememberView(view, hash); schedule(); scrollTo(0,0); }
+/* 스토리 상세·다른 회원 프로필·메인 퀘스트·학습 노트·캘린더 날짜 화면은 주소만으로는 무엇을 보던 중인지 알 수 없다.
+   그래서 보던 대상을 기록(history.state)과 탭 저장소에 적어 두고, 새로고침·뒤로가기 때 같은 화면을 다시 연다. */
+const PARAMV = {"#post":"post", "#profile":"profile", "#goal":"project", "#learn":"learn", "#calday":"calday"};
+function rememberView(view, hash){ if (!PARAMV[hash] || PARAMV[hash] !== view.name) return;
+  try { if (HS) HS.replaceState({...(HS.state || {}), qv:view}, ""); } catch(e){} try { sessionStorage.setItem("qv" + hash, JSON.stringify(view)); } catch(e){} }
+function savedView(hash){ const name = PARAMV[hash]; if (!name) return null;
+  try { const q = HS && HS.state && HS.state.qv; if (q && q.name === name) return {...q}; } catch(e){}
+  try { const q = JSON.parse(sessionStorage.getItem("qv" + hash) || "null"); if (q && q.name === name) return q; } catch(e){} return null; }
 const openPost = pid => push({name:"post", pid}, "#post");
 // 메인 퀘스트 → 스테이지처럼 같은 #goal 안에서 옮겨 가면 기록을 하나 쌓아, 기기 뒤로가기로 원래 퀘스트에 돌아오게 한다.
-const openGoal = pid => { if (S.view.name === "project" && S.view.pid !== pid){ (S.vstack = S.vstack || []).push({...S.view}); if (HS) try { HS.pushState({qgoal:pid}, ""); } catch(e){} } push({name:"project", pid}, "#goal"); };
+const openGoal = pid => { if (S.view.name === "project" && S.view.pid !== pid) (S.vstack = S.vstack || []).push({...S.view}); push({name:"project", pid}, "#goal"); };
 const openProfile = uid => { S.profTab = "posts"; S.profN = 20; push({name:"profile", uid}, uid === S.me ? "#me" : "#profile"); };
 function route(){
   document.body.classList.remove("drawer");
@@ -4236,10 +4244,9 @@ function route(){
   else if (h === "#dash") S.view = {name:"dash"};
   else if (h === "#write"){ if (!hasProfile() || !S.canWrite){ go("dash"); return; } S.view = {name:"write"}; }
   else if (h === "#notes") S.view = {name:"notes"};
-  else if (h === "#learn" || h === "#lnpage"){ if (!(S.view.name === "learn" && S.mine[S.view.id])){ S.view = {name:"notes"}; LP = null; } }
-  else if (h === "#calday"){ if (prev !== "calday") S.view = {name:"cal"}; }
-  else if ((h === "#post" && prev === "post") || (h === "#goal" && prev === "project") || (h === "#profile" && prev === "profile")) {}
-  else if (h === "#goal" && savedGoal()) S.view = {name:"project", pid:savedGoal()};
+  else if (h === "#learn" || h === "#lnpage"){ if (!(S.view.name === "learn" && S.mine[S.view.id])){ const q = savedView("#learn"); if (q && S.mine[q.id]) S.view = q; else { S.view = {name:"notes"}; LP = null; } } }
+  else if (h === "#calday"){ if (prev !== "calday"){ const q = savedView("#calday"); S.view = q && q.date ? q : {name:"cal"}; } }
+  else if (PARAMV[h]){ const q = savedView(h); if (q && JSON.stringify(q) !== JSON.stringify(S.view)) S.view = q; else if (prev !== PARAMV[h]) S.view = q || {name:"feed"}; }
   else S.view = !h || h === "#" ? {name:"dash"} : {name:"feed"};
   schedule(); const k = viewKey(); if (k !== prevKey) requestAnimationFrame(() => requestAnimationFrame(() => scrollTo(0, S.scrolls[k] || 0)));
 }
@@ -4383,7 +4390,7 @@ document.addEventListener("click", e => {
     case "acct-logout": if (account) account.signOut().catch(e => toast(esc(e.message || "로그아웃하지 못했어요"))); return;
     case "acct-delete": if (account) ask({t:"정말 탈퇴할까요?", d:"계정과 서버에 저장된 모든 기록(캐릭터, 퀘스트, 미션, 저널, 자료실, 상점)이 지워지고 되돌릴 수 없어요. 필요하면 먼저 설정 → 기록 파일로 저장으로 내려받아 두세요.", ok:"탈퇴하기"}, () => { toast("탈퇴를 처리하고 있어요…"); account.deleteAccount().catch(e => toast(esc(e.message || "탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요."))); }); return;
     case "dpane": { if (!["daily", "mission", "journal"].includes(b.dataset.v)) return; S.dashPane = b.dataset.v; render(); return; }
-    case "cdaystep": { const v = b.dataset.v; if (activityDate(v) !== v || v >= today()) return; S.view = {name:"calday", date:v}; render(); window.scrollTo?.(0, 0); return; }
+    case "cdaystep": { const v = b.dataset.v; if (activityDate(v) !== v || v >= today()) return; S.view = {name:"calday", date:v}; rememberView(S.view, "#calday"); render(); window.scrollTo?.(0, 0); return; }
     case "cdate": { const v = b.dataset.v; if (activityDate(v) !== v) return;
       if (v < today()){ S.calKeep = true; push({name:"calday", date:v}, "#calday"); return; }
       S.cal.mode = "day"; S.cal.date = v; S.tlTop = S.wgTop = null; scrollTo(0,0); break; }
