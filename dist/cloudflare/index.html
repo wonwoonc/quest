@@ -3618,7 +3618,7 @@ function viewGoal(){
     ${pr.total ? `<div class="prog"><span class="num">미션 ${pr.done}/${pr.total}</span></div>` : ""}
     ${metricBox(p)}
     ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요</div>` : ""}
-    ${mine && p.status !== "done" ? `<div class="btnrow three">${p.metric ? `<button class="btn soft mlogbtn" data-act="mlog" data-p="${p.id}">📈 수치 기록</button>` : `<button class="btn sec mlogbtn" data-act="gedit" data-p="${p.id}">📈 수치 켜기</button>`}<button class="btn" data-act="compose" data-p="${p.id}">스토리 쓰기</button><button class="btn gold" data-act="pdone" data-p="${p.id}">${S.armed==="pd"+p.id ? "한 번 더 누르면 " + (sp ? "완료" : "달성") : (sp ? "✓ 완료" : "🏆 달성")}</button></div>` : ""}
+    ${mine && p.status !== "done" ? `<div class="btnrow three">${p.metric ? `<button class="btn soft mlogbtn" data-act="mlog" data-p="${p.id}">📈 수치 기록</button>` : `<button class="btn sec mlogbtn" data-act="gedit" data-p="${p.id}">📈 수치 켜기</button>`}<button class="btn" data-act="compose" data-p="${p.id}">스토리</button><button class="btn gold" data-act="pdone" data-p="${p.id}">${S.armed==="pd"+p.id ? "한 번 더 누르면 " + (sp ? "완료" : "달성") : (sp ? "✓ 완료" : "🏆 달성")}</button></div>` : ""}
   </section>`;
   if (!sp && (subs.length || mine)){ const addable = mine && p.status !== "done";
     h += `<div class="subhead"><h2>스테이지 <span class="num">${subs.filter(x => x.status === "done").length}/${subs.length}</span></h2></div>
