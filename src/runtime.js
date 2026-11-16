@@ -4,6 +4,12 @@
  */
 import {clone} from './storage.js';
 import {migrateEconomy, processEconomy, redeemPersonal, purchaseStyle, purchaseAction, equipStyle, chooseMilestone, balances} from './economy.js';
+// 수치 기록이 붙은 스토리는 시작값·목표·단위를 함께 담는다. 다른 회원은 내 퀘스트를 갖고 있지 않아서, 이 값으로 수치 그래프를 그린다.
+function metricSnap(s, p){
+  const m = p && typeof p.value === 'number' && p.ref && s.projects && s.projects[p.ref.id] && s.projects[p.ref.id].metric;
+  if (m && Number.isFinite(+m.start) && Number.isFinite(+m.target)) p.ref = {...p.ref, extra:{...(p.ref.extra || {}), ms:+m.start, mt:+m.target, mu:String(m.unit || '').slice(0, 20)}};
+  return p;
+}
 export function createAPI({state, storage, id, now = Date.now, color = '#3DBE8B'}) {
   const me = storage.identity;
   const write = fn => async (...args) => {
@@ -38,7 +44,7 @@ export function createAPI({state, storage, id, now = Date.now, color = '#3DBE8B'
     }),
     addPost:write((s, post, photos = []) => {
       const key = id(); photos.forEach((src, i) => { s.media[key+'~'+i] = src; });
-      s.feed[key] = {...clone(post), id:key, author:me, imgs:photos.length, reactions:{}, joiners:{}, createdAt:now()};
+      s.feed[key] = metricSnap(s, {...clone(post), id:key, author:me, imgs:photos.length, reactions:{}, joiners:{}, createdAt:now()});
     }),
     delPost:write((s, key) => {
       delete s.feed[key];
@@ -46,7 +52,7 @@ export function createAPI({state, storage, id, now = Date.now, color = '#3DBE8B'
       for (const mediaKey of Object.keys(s.media)) if (mediaKey.startsWith(key+'~')) delete s.media[mediaKey];
       for (const [replyKey, reply] of Object.entries(s.replies)) if (reply.postId === key) delete s.replies[replyKey];
     }),
-    editPost:write((s, key, patch) => { s.feed[key] = {...doc(s.feed,key), ...clone(patch), id:key}; }),
+    editPost:write((s, key, patch) => { s.feed[key] = metricSnap(s, {...doc(s.feed,key), ...clone(patch), id:key}); }),
     like:write((s, key, value) => { const p = doc(s.feed,key); p.reactions = {...p.reactions, [me]:value ? {k:'heart', at:now()} : 0}; }),
     join:write((s, key) => { const p = doc(s.feed,key); p.joiners = {...p.joiners, [me]:now()}; }),
     addReply:write((s, pid, text, parentId) => { doc(s.feed,pid); const key = id(); s.replies[key] = {id:key, postId:pid, author:me, text, parentId:parentId || null, likes:{}, createdAt:now()}; }),

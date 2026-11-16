@@ -180,3 +180,12 @@ test('commit leaves the live state untouched when the mutation or the write fail
   storage.commit(state,next => { next.mine.a = {kind:'mission',name:'ok'}; });
   assert.equal(state.mine.a.name,'ok'); assert.equal(storage.load().mine.a.name,'ok');
 });
+test('story with a value carries the quest metric start/target/unit so other members can draw the graph', async () => {
+  const {state, api} = setup();
+  state.projects.mq = {id:'mq', owner:'me', title:'몸무게', status:'active', metric:{start:80, target:70, unit:'kg'}};
+  await api.addPost({ref:{type:'project', id:'mq', label:'몸무게'}, text:'', mood:null, value:76}, []);
+  const p = Object.values(state.feed).find(x => x.ref && x.ref.id === 'mq');
+  assert.deepEqual(p.ref.extra, {ms:80, mt:70, mu:'kg'});
+  await api.addPost({ref:{type:'project', id:'mq', label:'몸무게'}, text:'값 없음', mood:null}, []);
+  assert.equal(Object.values(state.feed).find(x => x.text === '값 없음').ref.extra, undefined);
+});

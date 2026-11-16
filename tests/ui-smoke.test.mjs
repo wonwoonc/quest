@@ -1446,3 +1446,13 @@ test('reward form has a repeat switch; once rewards sell one time and cards neve
   const g=await profileUI(saved2);g.route('shop');g.click('buy',{id:r.id});g.click('buyok');await g.settle();await g.settle();
   app=g.nodes.get('app').innerHTML;assert.match(app,/disabled>구매 완료</);assert.doesNotMatch(app,new RegExp(`data-act="buy" data-id="${r.id}"`));
 });
+
+test('another member story: quest chip is not clickable and metric graph uses the snapshot saved on the story',async()=>{
+  const base = await profileUI(), saved = base.snapshot(), at = Date.now();
+  saved.profiles = {...(saved.profiles || {}), other:{nick:'다른 회원'}};
+  saved.feed = {...(saved.feed || {}), ghostPost:{id:'ghostPost',author:'other',createdAt:at,text:'점수 올랐어요',imgs:0,value:710,reactions:{},joiners:{},ref:{type:'project',id:'ghostQuest',label:'남의 토익',extra:{ms:650,mt:850,mu:'점'}}}};
+  const h = await profileUI(saved); h.route('feed'); const html = h.nodes.get('app').innerHTML;
+  const card = html.slice(html.indexOf('점수 올랐어요') - 4000, html.indexOf('점수 올랐어요') + 4000);
+  assert.match(card,/남의 토익/); assert.doesNotMatch(card,/data-p="ghostQuest"/);
+  assert.match(card,/<b class="num">710<\/b><span>점<\/span><small class="num">\/ 850점<\/small><em class="num">30%<\/em>/);
+});

@@ -1562,6 +1562,12 @@ Object.assign(__exports,{COLLECTIONS,NAMESPACES,emptySnapshot,clone,validateSnap
  */
 const {clone} = __require("storage.js");
 const {migrateEconomy, processEconomy, redeemPersonal, purchaseStyle, purchaseAction, equipStyle, chooseMilestone, balances} = __require("economy.js");
+// 수치 기록이 붙은 스토리는 시작값·목표·단위를 함께 담는다. 다른 회원은 내 퀘스트를 갖고 있지 않아서, 이 값으로 수치 그래프를 그린다.
+function metricSnap(s, p){
+  const m = p && typeof p.value === 'number' && p.ref && s.projects && s.projects[p.ref.id] && s.projects[p.ref.id].metric;
+  if (m && Number.isFinite(+m.start) && Number.isFinite(+m.target)) p.ref = {...p.ref, extra:{...(p.ref.extra || {}), ms:+m.start, mt:+m.target, mu:String(m.unit || '').slice(0, 20)}};
+  return p;
+}
 function createAPI({state, storage, id, now = Date.now, color = '#3DBE8B'}) {
   const me = storage.identity;
   const write = fn => async (...args) => {
@@ -1596,7 +1602,7 @@ function createAPI({state, storage, id, now = Date.now, color = '#3DBE8B'}) {
     }),
     addPost:write((s, post, photos = []) => {
       const key = id(); photos.forEach((src, i) => { s.media[key+'~'+i] = src; });
-      s.feed[key] = {...clone(post), id:key, author:me, imgs:photos.length, reactions:{}, joiners:{}, createdAt:now()};
+      s.feed[key] = metricSnap(s, {...clone(post), id:key, author:me, imgs:photos.length, reactions:{}, joiners:{}, createdAt:now()});
     }),
     delPost:write((s, key) => {
       delete s.feed[key];
@@ -1604,7 +1610,7 @@ function createAPI({state, storage, id, now = Date.now, color = '#3DBE8B'}) {
       for (const mediaKey of Object.keys(s.media)) if (mediaKey.startsWith(key+'~')) delete s.media[mediaKey];
       for (const [replyKey, reply] of Object.entries(s.replies)) if (reply.postId === key) delete s.replies[replyKey];
     }),
-    editPost:write((s, key, patch) => { s.feed[key] = {...doc(s.feed,key), ...clone(patch), id:key}; }),
+    editPost:write((s, key, patch) => { s.feed[key] = metricSnap(s, {...doc(s.feed,key), ...clone(patch), id:key}); }),
     like:write((s, key, value) => { const p = doc(s.feed,key); p.reactions = {...p.reactions, [me]:value ? {k:'heart', at:now()} : 0}; }),
     join:write((s, key) => { const p = doc(s.feed,key); p.joiners = {...p.joiners, [me]:now()}; }),
     addReply:write((s, pid, text, parentId) => { doc(s.feed,pid); const key = id(); s.replies[key] = {id:key, postId:pid, author:me, text, parentId:parentId || null, likes:{}, createdAt:now()}; }),
@@ -3314,7 +3320,10 @@ function viewShop(){
 }
 
 /* ================= feed ================= */
-function refHtml(p){
+/* 다른 회원 스토리의 퀘스트 칩은 누를 수 없다(그 퀘스트는 내 기기에 없어서 열 수 없음). 이름만 보여 준다. */
+function refHtml(p){ const h = refHtml0(p); if (!h || p.author === S.me) return h;
+  return h.replace(/ data-act="project" data-p="[^"]*"( role="button" tabindex="0")?/, "").split(I.chev).join("").replace(/^<button /, "<div ").replace(/<\/button>$/, "</div>"); }
+function refHtml0(p){
   const r = p.ref; if (!r) return "";
   if (r.type === "project" || r.type === "mission"){
     const pj = S.projects[r.id];
@@ -3336,9 +3345,12 @@ function msim(m, cur, vals){ const u = esc(m.unit), span = m.target - m.start;
   const mp = span ? Math.round(Math.max(0, Math.min(100, (cur - m.start)/span*100))) : 0;
   return `<div class="msim"><div class="msim-t"><b class="num">${numFmt(cur)}</b><span>${u}</span><small class="num">/ ${numFmt(m.target)}${u}</small>${vals ? spark(vals, 56, 20) : ""}<em class="num">${mp}%</em></div><span class="bar green"><i style="width:${mp}%"></i></span></div>`; }
 function metricFor(post){
-  const pj = post.ref && S.projects[post.ref.id]; if (!pj || !pj.metric || typeof post.value !== "number") return "";
-  if (!valHist(pj.id).some(x => x.id === post.id)) return "";
-  return msim(pj.metric, post.value);
+  if (!post.ref || typeof post.value !== "number") return "";
+  const pj = S.projects[post.ref.id];
+  if (pj && pj.metric) return valHist(pj.id).some(x => x.id === post.id) ? msim(pj.metric, post.value) : "";
+  // 다른 회원의 스토리: 스토리에 함께 담긴 시작값·목표·단위로 그린다.
+  const x = post.ref.extra || {};
+  return typeof x.ms === "number" && typeof x.mt === "number" ? msim({start:x.ms, target:x.mt, unit:x.mu || ""}, post.value) : "";
 }
 function metricBox(g, withSpark = false){ if (!g) return ""; const m = g.metric;
   // 수치 기록을 켜지 않은 퀘스트도 같은 자리에 빈 그래프를 보여 준다(값 없음).
