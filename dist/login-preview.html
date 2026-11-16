@@ -963,7 +963,8 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .card.pgc{overflow:hidden}
 .pgc .qcover{margin:-22px -20px 2px}
 .thead .qcover{margin:-22px -20px 16px;aspect-ratio:16/9}
-.thead .mlogbtn,.thead .btnrow .btn{min-height:0;padding:10px 14px;font-size:14.5px;border-radius:12px}
+.thead .mlogbtn,.thead .btnrow .btn{min-height:0;padding:10px 6px;font-size:14px;border-radius:12px;line-height:1.25}
+.thead .btnrow.three{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.thead .btnrow.three .btn{width:100%;margin:0;min-width:0;white-space:normal;word-break:keep-all}
 .thead > .thcv{margin:-22px -20px 16px;width:calc(100% + 40px)}.thead > .cvwrap.thcv .qcover{margin:0}.thead > .cvopen.thcv{border-radius:var(--r) var(--r) 0 0}
 .qmgrid .pgc .qcover{aspect-ratio:16/10}
 .cvfield .cvbox{position:relative;aspect-ratio:16/7;border-radius:14px;overflow:hidden;background:var(--fill);display:flex;align-items:center;justify-content:center;gap:6px;border:0;width:100%;padding:0;color:var(--sub);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
@@ -3490,8 +3491,7 @@ function viewGoal(){
     ${pr.total ? `<div class="prog"><span class="num">미션 ${pr.done}/${pr.total}</span></div>` : ""}
     ${metricBox(p)}
     ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요</div>` : ""}
-    ${mine && p.status !== "done" ? (p.metric ? `<button class="btn soft full mlogbtn" data-act="mlog" data-p="${p.id}">📈 오늘 수치 기록</button>` : `<button class="btn sec full mlogbtn" data-act="gedit" data-p="${p.id}">📈 수치 기록 켜기</button>`) : ""}
-    ${mine && p.status !== "done" ? `<div class="btnrow"><button class="btn" data-act="compose" data-p="${p.id}">스토리 쓰기</button><button class="btn gold" data-act="pdone" data-p="${p.id}">${S.armed==="pd"+p.id ? "한 번 더 누르면 " + (sp ? "완료" : "달성") : (sp ? "✓ 완료" : "🏆 달성")}</button></div>` : ""}
+    ${mine && p.status !== "done" ? `<div class="btnrow three">${p.metric ? `<button class="btn soft mlogbtn" data-act="mlog" data-p="${p.id}">📈 수치 기록</button>` : `<button class="btn sec mlogbtn" data-act="gedit" data-p="${p.id}">📈 수치 켜기</button>`}<button class="btn" data-act="compose" data-p="${p.id}">스토리 쓰기</button><button class="btn gold" data-act="pdone" data-p="${p.id}">${S.armed==="pd"+p.id ? "한 번 더 누르면 " + (sp ? "완료" : "달성") : (sp ? "✓ 완료" : "🏆 달성")}</button></div>` : ""}
   </section>`;
   if (!sp && (subs.length || mine)){ const addable = mine && p.status !== "done";
     h += `<div class="subhead"><h2>스테이지 <span class="num">${subs.filter(x => x.status === "done").length}/${subs.length}</span></h2></div>
