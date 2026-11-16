@@ -1547,8 +1547,10 @@ function viewGoal(){
   const a = p.owner, mine = a === S.me && S.canWrite, pr = goalProgress(p), ids = famIds(p), subs = sp ? [] : subsOf(p.id);
   const posts = Object.values(S.feed).filter(x => x.ref && ids.includes(x.ref.id)).sort((x,y) => x.createdAt - y.createdAt);
   const latest = valLatest(p.id);
+  // 상단 표지는 접은 상태가 기본값. 펴 두면 이 기기에서 기억한다.
+  const cvUp = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`, cvOpen = (LS.get("cvopen", [])).includes(p.id);
   let h = `<section class="card thead">
-    ${coverHtml(p, {badge:false})}
+    ${cvOpen ? `<div class="cvwrap thcv">${coverHtml(p, {badge:false})}<button class="cvtog" data-act="cvfold" data-p="${p.id}" aria-label="표지 접기">${cvUp}</button></div>` : `<button class="cvopen thcv" data-act="cvfold" data-p="${p.id}">표지 펴기 <span style="display:inline-flex;transform:rotate(180deg)">${cvUp}</span></button>`}
     <div class="gth"><h2>${esc(p.title)}</h2>${mine ? `<button class="pmenu" data-act="gmenu" data-p="${p.id}" aria-label="${kind} 메뉴">${I.menu}</button>` : ""}</div>
     ${par ? `<button class="parentlink" data-act="project" data-p="${par.id}">🎯 ${esc(par.title)} ${I.chev}</button>` : ""}
     <div class="tags">${p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "영역" : "메인 퀘스트 영역"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}</div>
