@@ -3479,7 +3479,7 @@ function viewGoal(){
     ${par ? `<button class="parentlink" data-act="project" data-p="${par.id}">🎯 ${esc(par.title)} ${I.chev}</button>` : ""}
     <div class="tags">${p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "영역" : "메인 퀘스트 영역"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}</div>
     ${pr.total ? `<div class="prog"><span class="num">미션 ${pr.done}/${pr.total}</span></div>` : ""}
-    ${metricBox(p, true)}
+    ${metricBox(p)}
     ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요</div>` : ""}
     ${mine && p.status !== "done" ? (p.metric ? `<button class="btn soft full mlogbtn" data-act="mlog" data-p="${p.id}">📈 오늘 수치 기록 <span class="hint">나만 보기</span></button>` : `<button class="btn sec full mlogbtn" data-act="gedit" data-p="${p.id}">📈 수치 기록 켜기</button>`) : ""}
     ${mine && p.status !== "done" ? `<div class="btnrow"><button class="btn" data-act="compose" data-p="${p.id}">스토리 쓰기</button><button class="btn gold" data-act="pdone" data-p="${p.id}">${S.armed==="pd"+p.id ? "한 번 더 누르면 " + (sp ? "완료" : "달성") : (sp ? "✓ 완료" : "🏆 달성")}</button></div>` : ""}
