@@ -758,6 +758,13 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 #app[data-v="feed"] > .feedcard > .tp > .rail{align-items:stretch}
 #app[data-v="feed"] > .feedcard > .tp > .rail > .av{width:100px!important;height:139px!important;flex:none;margin:0;border-radius:var(--r)}
 #app[data-v="feed"] > .feedcard > .tp > .rail > .av .sprite{width:52px!important;height:52px!important}
+/* 커뮤니티 스토리: 윗줄은 캐릭터 타일 + (닉네임·퀘스트 칩), 글·사진·버튼은 그 아래 전체 폭으로 */
+#app[data-v="feed"] > .feedcard > .tp{grid-template-rows:auto 1fr}
+#app[data-v="feed"] > .feedcard > .tp > .body{display:contents}
+#app[data-v="feed"] > .feedcard > .tp > .rail{grid-column:1;grid-row:1 / span 2}
+#app[data-v="feed"] > .feedcard > .tp > .body > .ph{grid-column:2;grid-row:1}
+#app[data-v="feed"] > .feedcard > .tp > .body > .ref{grid-column:2;grid-row:2;align-self:start}
+#app[data-v="feed"] > .feedcard > .tp > .body > :not(.ph):not(.ref){grid-column:1 / -1;margin-left:12px}
 .sentry .sentry-t{flex:1;min-width:0;padding:10px 14px;border-radius:999px;background:var(--fill);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sentry .sentry-t.on{color:var(--ink)}
 .card.empty .emptybtn{display:inline-flex;margin:12px auto 0;text-decoration:none}
 
