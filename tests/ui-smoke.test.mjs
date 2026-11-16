@@ -1475,3 +1475,14 @@ test('another member: mission story is not shown as a main quest; profile shows 
   h.click('profile',{u:'other'}); html = h.nodes.get('app').innerHTML;
   assert.match(html,/다른 회원/); assert.match(html,/🪙 777/); assert.match(html,/XP<\/span>/);
 });
+test('stage metric with the same unit also counts toward the main quest metric',async()=>{
+  const base=await profileUI(),saved=base.snapshot(),at=Date.now();
+  saved.projects={m1:{id:'m1',owner:'me',title:'체중 10kg 감량',end:'2099-12-31',status:'active',metric:{start:80,target:70,unit:'kg'}},
+    s1:{id:'s1',owner:'me',parentId:'m1',title:'첫 3kg',end:'2099-12-31',status:'active',metric:{start:80,target:77,unit:'kg'}},
+    s2:{id:'s2',owner:'me',parentId:'m1',title:'걸음 수',end:'2099-12-31',status:'active',metric:{start:0,target:10000,unit:'보'}}};
+  saved.mine['ml-s1']={id:'ml-s1',kind:'mlog',projectId:'s1',logs:[{v:78,at}]};
+  saved.mine['ml-s2']={id:'ml-s2',kind:'mlog',projectId:'s2',logs:[{v:5000,at:at+1}]};
+  const h=await profileUI(saved);h.click('project',{p:'m1'});const html=h.nodes.get('app').innerHTML;
+  assert.match(html,/<b class="num">78<\/b><span>kg<\/span><small class="num">\/ 70kg<\/small><em class="num">20%<\/em>/);
+  assert.doesNotMatch(html,/<b class="num">5,000<\/b><span>kg/);
+});

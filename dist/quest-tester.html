@@ -2307,6 +2307,10 @@ function IX(){ if (IXC) return IXC; const rb = new Map(), vb = new Map();
   for (const a of rb.values()) a.sort((x,y) => x.createdAt - y.createdAt);
   for (const x of Object.values(S.feed)) if (x.ref && typeof x.value === "number"){ let a = vb.get(x.ref.id); if (!a) vb.set(x.ref.id, a = []); a.push(x); }
   for (const d of Object.values(S.mine)) if (d.kind === "mlog" && d.projectId){ let a = vb.get(d.projectId); if (!a) vb.set(d.projectId, a = []); (d.logs || []).forEach((l, i) => a.push({id:d.id + "~" + i, value:l.v, createdAt:l.at, _priv:true, ref:{id:d.projectId}})); }
+  // 메인 퀘스트의 수치를 스테이지로 나눴다면(단위가 같으면) 스테이지에 남긴 수치도 메인 퀘스트 기록으로 함께 센다.
+  for (const sp of Object.values(S.projects)){ const par = sp && sp.parentId && S.projects[sp.parentId];
+    if (!par || !par.metric || !sp.metric || String(par.metric.unit || "").trim() !== String(sp.metric.unit || "").trim()) continue;
+    const src = vb.get(sp.id); if (!src || !src.length) continue; let a = vb.get(par.id); if (!a) vb.set(par.id, a = []); a.push(...src.map(x => ({...x, _stage:sp.id}))); }
   for (const a of vb.values()) a.sort((x,y) => x.createdAt - y.createdAt);
   return IXC = {rb, vb}; }
 const valHist = id => IX().vb.get(id) || [];
