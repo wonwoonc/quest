@@ -596,7 +596,7 @@ body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}bo
 .drlist{margin:0 0 14px}.drrow{display:flex;align-items:center;gap:10px;padding:12px 2px;border-bottom:1px solid var(--line)}.drrow .t{flex:1;min-width:0;display:grid;gap:2px}.drrow small{color:var(--muted);font-size:12.5px;line-height:1.4}.ntnext{margin:0;font-size:13px;font-weight:600;color:var(--sub)}
 input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0;border:0;background:none;color:#D64545;font-weight:600}
 .bdump .ch{display:flex;align-items:center;gap:8px}.bdump .ch h2{margin:0}.bdump .bdhelp{margin-left:auto;border:0;background:none;color:var(--muted);font-weight:600;font-size:13px;padding:4px 0}
-.bdq{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:10px 12px;background:var(--accent-soft);border-radius:12px}.bdq .bdqn{font-size:12px;font-weight:700;color:var(--accent)}.bdqt{flex:1;min-width:180px;display:grid;gap:2px}.bdqt b{font-size:14px;color:var(--ink)}.bdqt small{font-size:12.5px;color:var(--muted)}.bdqa{display:flex;gap:6px}.bdq.end{background:var(--fill);font-size:13.5px;color:var(--sub)}.bdq.end span{flex:1;min-width:180px}
+.bdq{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:10px 12px;background:var(--accent-soft);border-radius:12px}.bdq .bdqn{font-size:12px;font-weight:700;color:var(--accent)}.bdqt{flex:1;min-width:180px;display:grid;gap:2px}.bdqt b{font-size:14px;color:var(--ink)}.bdqt small{font-size:12.5px;color:var(--muted)}.bdqa{display:flex;gap:6px;align-items:center}.bdback{display:inline-flex;align-items:center;gap:2px;border:0;background:none;padding:6px 6px 6px 2px;font-size:13px;font-weight:600;color:var(--sub)}.bdback svg{width:15px;height:15px}.bdq.end{background:var(--fill);font-size:13.5px;color:var(--sub)}.bdq.end span{flex:1;min-width:180px}
 .bdal{font-size:12.5px;color:var(--muted);align-self:center;margin-right:2px}
 @media (max-width:520px){.bdal{display:none}.bdact .btn.xs{padding:5px 9px}.bdqa .btn.xs{padding:6px 12px}}
 .sheet .bdact .bdal{display:block;width:100%;margin:6px 0 2px;font-size:13px}
@@ -3225,8 +3225,9 @@ function viewPlan(){
 const BD_KINDS = [["big","메인"],["sub","스테이지"],["task","미션"],["daily","일일"],["note","자료실"]];
 const BD_GUIDE = [["act","실행해야 하는 일인가요?"],["big","몇 주 이상 걸리는 목표인가요?"],["task","한 번 하면 끝나나요?"],["daily","꾸준히 반복해야 하나요?"]];
 function bdGuide(d){
-  const steps = BD_GUIDE, st = (S.bdStep || {})[d.id] || 0, yn = (yes, no) => `<div class="bdqa"><button class="btn xs" ${yes}>예</button><button class="btn sec xs" ${no}>아니요</button></div>`,
-    q = (n, of, t, yes, no) => `<div class="bdq"><span class="bdqn num">${n}/${of}</span><div class="bdqt"><b>${t}</b></div>${yn(yes, no)}</div>`,
+  const steps = BD_GUIDE, st = (S.bdStep || {})[d.id] || 0, yn = (yes, no) => `<button class="btn xs" ${yes}>예</button><button class="btn sec xs" ${no}>아니요</button>`,
+    back = st ? `<button class="bdback" data-act="bd-step" data-id="${d.id}" data-v="${st === 9 ? 0 : st - 1}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>이전</button>` : "",
+    q = (n, of, t, yes, no) => `<div class="bdq"><span class="bdqn num">${n}/${of}</span><div class="bdqt"><b>${t}</b></div><div class="bdqa">${back}${yn(yes, no)}</div></div>`,
     ask = v => `data-act="bd-ask" data-id="${d.id}" data-v="${v}"`, step = v => `data-act="bd-step" data-id="${d.id}" data-v="${v}"`;
   /* 1 아니요 → 저장할 자료인가요? (예 자료실 / 아니요 버리기); 2~4 예 → 메인·미션·일일, 4 아니요 → 버리기 */
   if (st === 9) return q(2, 2, "저장할 자료인가요?", ask("note"), ask("drop"));
