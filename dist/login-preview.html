@@ -476,7 +476,7 @@ body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}bo
 .mgrid{padding:14px 12px}
 .mgrid .wk,.mgrid .days{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
 .mgrid .wk span{font-size:12px;color:var(--muted);font-weight:600;padding-bottom:6px}
-.ygrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ygrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .ymon{cursor:pointer;min-width:0;border:0;background:var(--card);border-radius:16px;padding:12px 10px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;text-align:left;color:inherit;font:inherit}
 .ymon b{font-size:14px;font-weight:800}
 .ymon small{font-size:12px;color:var(--muted);min-height:14px}
@@ -832,7 +832,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .tw-ok{position:absolute;left:12px;right:12px;bottom:8px;height:32px;border:0;border-radius:10px;background:var(--accent-soft);color:var(--accent);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .tl{padding-top:6px}
 .tlscroll{height:296px;overflow-y:auto;overscroll-behavior:contain;border-top:1px solid var(--line);position:relative}
-.tlscroll .tlrow{min-height:37px}
+.tlscroll .tlrow{min-height:29px}
 .tlscroll,.wgrid{scrollbar-color:color-mix(in srgb,var(--muted) 35%,var(--card)) var(--card);scrollbar-width:thin}
 .tlscroll::-webkit-scrollbar,.wgrid::-webkit-scrollbar{width:8px;height:8px;background:var(--card)}
 .tlscroll::-webkit-scrollbar-track,.wgrid::-webkit-scrollbar-track{background:var(--card)}
@@ -846,9 +846,9 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .tl .tlc .row .t b{font-size:14.5px}
 .tl .tlc .row .t small{display:none}
 .tl .tlc .row .t small.task-meta{display:flex}
-.tlrow{display:flex;gap:8px;border-top:1px solid var(--line);min-height:36px}
+.tlrow{display:flex;gap:8px;border-top:1px solid var(--line);min-height:28px}
 .tlrow:first-child{border-top:0}
-.tlh{flex:none;width:60px;padding:9px 0 0 16px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.tlh{flex:none;width:60px;padding:6px 0 0 16px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
 .tlrow.now .tlh{color:var(--accent);font-weight:800}
 .tlc{flex:1;min-width:0}
 .tlc .row{padding-left:4px}
@@ -859,7 +859,10 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .wti span{font-size:13px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .wti.done span{text-decoration:line-through;color:var(--muted)}
 .mtask{padding:10px 6px}
-.mtask .days{gap:2px 0}
+.mtask .days{gap:0}
+/* 월 달력: 날짜 칸 사이에 옅은 구분선 */
+.mtask .days > .mcell{border-radius:0;border-top:1px solid color-mix(in srgb,var(--line) 45%,transparent)}
+.mtask .days > .mcell:not(:nth-child(7n)){border-right:1px solid color-mix(in srgb,var(--line) 45%,transparent)}
 .mcell{border:0;background:none;min-height:78px;display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:3px 2px;border-radius:8px;color:var(--ink);font-family:inherit;min-width:0;text-align:left}
 .mcell .mn{font-size:12px;font-weight:700;text-align:center;margin-bottom:1px}
 .mcell button.mn{border:0;background:none;color:inherit;font-family:inherit;min-height:30px;cursor:pointer;position:relative}
@@ -908,18 +911,18 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .mcell i.hab .mchk:disabled{cursor:default}
 .wgrid{height:346px;overflow:auto;overscroll-behavior:contain;background:var(--card);border-radius:20px;position:relative}
 .wg{display:grid;grid-template-columns:52px repeat(7,calc((min(100vw - 32px, 540px) - 52px)/3));position:relative;width:max-content}
-.wgc{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 55%,transparent);min-height:38px;min-width:0}
+.wgc{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 55%,transparent);min-height:30px;min-width:0}
 .wgc.corner,.wgc.head{position:sticky;top:0;z-index:2;background:var(--card);min-height:0}
 .wgc.corner{left:0;z-index:3;border-left:0}
 .wgc.head{display:flex;align-items:baseline;justify-content:center;gap:4px;border-top:0;border-right:0;padding:10px 4px 8px;font-family:inherit;color:inherit;background:var(--card)}
 .wgc.head b{font-size:14px;font-weight:800}
 .wgc.head span{font-size:12px;color:var(--muted)}
 .wgc.head.is-today b{color:var(--accent)}
-.wgc.tlab{position:sticky;left:0;z-index:1;background:var(--card);border-left:0;font-size:12px;font-weight:600;color:var(--muted);padding:5px 0 0 10px;white-space:nowrap}
+.wgc.tlab{position:sticky;left:0;z-index:1;background:var(--card);border-left:0;font-size:12px;font-weight:600;color:var(--muted);padding:3px 0 0 10px;white-space:nowrap}
 .wgc.tlab.now{color:var(--accent);font-weight:800}
 .wgc.cell{padding:2px;display:flex;flex-direction:column;gap:3px}
 .wgc.cell.is-today{background:color-mix(in srgb,var(--accent) 5%,transparent)}
-.wgc.cell .tlempty{height:100%;min-height:30px}
+.wgc.cell .tlempty{height:100%;min-height:22px}
 .wgc .wti{padding:4px 6px;border-radius:8px}
 .wgc .wti span{font-size:12px}
 .wti.wck{flex-direction:row;align-items:flex-start;gap:5px;cursor:pointer}
@@ -940,7 +943,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .qpb{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .grp{margin:8px 20px 0;font-size:13px;font-weight:700;color:var(--muted)}
 .card.mq{padding-top:0;overflow:hidden}
-.card.mq.calmq{padding-top:8px;position:relative}
+.card.mq.calmq{padding-top:4px;padding-bottom:10px;position:relative}.calmq .msim{margin-top:4px}.calmq .mqh{gap:2px}
 .cpager{position:absolute;right:12px;bottom:10px;display:flex;align-items:center;gap:2px;font-size:12px;font-weight:700;color:var(--muted)}
 .cpager button{width:28px;height:28px;border:0;border-radius:50%;background:var(--fill);color:var(--sub);display:grid;place-items:center;padding:0;cursor:pointer}
 .cpager button:disabled{opacity:.35;cursor:default}
@@ -1306,9 +1309,7 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
   body.navmini .nav .navtog{position:static;order:-3;margin:0 auto 14px}
   body.navmini .replybar{left:84px}
 }
-@media (min-width:1440px){
-  .ygrid{grid-template-columns:repeat(6,minmax(0,1fr))}
-}
+
 /* Auth/setup keeps the existing green/gray palette and Noto Sans typography. */
 body.onboarding,body.onboarding.navmini{padding:0 max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px))}
 body.onboarding .top,body.onboarding .nav,body.onboarding #replybar,body.onboarding #pill{display:none}
