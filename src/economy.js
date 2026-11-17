@@ -160,6 +160,8 @@ export function processEconomy(s,before,at,me='me') {
     if(p.status!=='done'&&old?.status==='done')reverse(s,key('goal',id),at);
     e.seenGoals[fp]=true;
   }
+  // 메인 퀘스트·스테이지를 삭제하면 생성 때 받은 경험치·코인을 되돌린다(같은 목표 재생성은 원래대로 추가 지급 없음).
+  for(const [id,p] of Object.entries(before.projects))if(p.owner===me&&!s.projects[id])reverse(s,key('create',id),at);
   const weeks=new Set([weekOf(koreaDate(at)),...Object.values(e.claims).filter(c=>['task','habit'].includes(c.kind)&&!c.baseline).map(c=>weekOf(c.date))]);
   for(const week of weeks){const days=activityDays(s,week).length;
     for(const [n,xp,coins] of [[3,60,30],[5,40,20]]){const source=key('weekly',week,n);if(days>=n)claim(s,source,'weekly',{xp,coins},at);else reverse(s,source,at);}

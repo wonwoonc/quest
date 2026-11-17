@@ -69,6 +69,13 @@ test('main and sub creation have no weekly limits; same-title recreation stays d
   await h.api.delProject('main');h.at('2026-11-09');delta(await h.api.putProject('recreated',goal('main')),0,0);
   delta(await h.api.putProject('fresh',goal('fresh')),20,10);
 });
+test('deleting a main quest or stage takes back its creation XP and coins (recreate still pays nothing)',async()=>{
+  const h=setup();delta(await h.api.putProject('main',goal('main')),20,10);delta(await h.api.putProject('sub',goal('sub','main')),10,5);
+  delta(await h.api.delProject('sub'),-10,-5);delta(await h.api.delProject('main'),-20,-10);
+  assert.equal(balances(h.state).xp,0);
+  delta(await h.api.putProject('again',goal('main')),0,0);
+  delta(await h.api.delProject('again'),0,0);
+});
 test('invalid creation has zero payout, existing/imported goals never get creation reward on edit',async()=>{
   const state=emptySnapshot();state.projects.old={id:'old',...goal('old')};const h=setup({state});
   delta(await h.api.putProject('old',{...state.projects.old,title:'edited'}),0,0);

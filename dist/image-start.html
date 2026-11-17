@@ -960,7 +960,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .grp{margin:8px 20px 0;font-size:13px;font-weight:700;color:var(--muted)}
 .card.mq{padding-top:0;overflow:hidden}
 .card.mq.calmq{padding-top:4px;padding-bottom:4px;position:relative}.calmq .msim{margin-top:4px}.calmq .mqh{gap:2px}
-.card.pgc.calq{position:relative;gap:6px;padding-bottom:14px}.calq .msim{margin-top:2px}.calqh{display:flex;align-items:center;gap:8px;min-width:0}.calqh h3{flex:1;min-width:0;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.calqh .cdd{flex:none;font-size:13px;font-weight:700;color:var(--sub)}.calq .msim-t{display:none}.calq .msim .bar{height:5px}.calqh .cpager{position:static}
+.card.pgc.calq{position:relative;gap:6px;padding-bottom:14px}.calq .msim{margin-top:2px}.calqh{display:flex;align-items:center;gap:8px;min-width:0}.calqh h3{flex:1;min-width:0;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.calqh .cpar{font-size:12.5px;font-weight:600;color:var(--muted);margin-right:4px}.calqh .cdd{flex:none;font-size:13px;font-weight:700;color:var(--sub)}.calq .msim-t{display:none}.calq .msim .bar{height:5px}.calqh .cpager{position:static}
 .cpager{position:absolute;right:12px;bottom:10px;display:flex;align-items:center;gap:2px;font-size:12px;font-weight:700;color:var(--muted)}
 .cpager button{width:28px;height:28px;border:0;border-radius:50%;background:var(--fill);color:var(--sub);display:grid;place-items:center;padding:0;cursor:pointer}
 .cpager button:disabled{opacity:.35;cursor:default}
@@ -1427,10 +1427,7 @@ a.row{color:inherit;text-decoration:none}
 @media (max-width:1023.98px){.wd-ggrid > .pgc.pgc{padding-top:14px!important}}
 .bdpage .bdgoq{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:14px;text-decoration:none}
 .wrseg{margin-bottom:12px}
-/* D-day 지난 퀘스트: 연장 / 달성 / 취소 */
-.card.overdue{display:grid;gap:8px;border:1.5px solid color-mix(in srgb,#E5484D 35%,var(--line));padding:14px 16px}
-.overdue .ovt{display:flex;align-items:baseline;gap:8px}.overdue .ovt b{font-size:16px;font-weight:800}.overdue .ovt span{margin-left:auto;font-size:13px;color:var(--sub)}
-.overdue .ovd{margin:0;font-size:14px;color:var(--sub)}
+/* D-day 지난 퀘스트: 카드 위 연장 / 달성 / 포기 */
 .pgc.isover{position:relative;overflow:hidden}
 .pgc .ovlay{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:14px;text-align:center;color:#fff;background:rgba(12,20,16,.66);-webkit-backdrop-filter:blur(1.5px);backdrop-filter:blur(1.5px);border-radius:inherit;cursor:default}
 .pgc .ovlay b{font-size:15px;font-weight:800}.pgc .ovlay small{font-size:12.5px;opacity:.85;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1882,6 +1879,8 @@ function processEconomy(s,before,at,me='me') {
     if(p.status!=='done'&&old?.status==='done')reverse(s,key('goal',id),at);
     e.seenGoals[fp]=true;
   }
+  // 메인 퀘스트·스테이지를 삭제하면 생성 때 받은 경험치·코인을 되돌린다(같은 목표 재생성은 원래대로 추가 지급 없음).
+  for(const [id,p] of Object.entries(before.projects))if(p.owner===me&&!s.projects[id])reverse(s,key('create',id),at);
   const weeks=new Set([weekOf(koreaDate(at)),...Object.values(e.claims).filter(c=>['task','habit'].includes(c.kind)&&!c.baseline).map(c=>weekOf(c.date))]);
   for(const week of weeks){const days=activityDays(s,week).length;
     for(const [n,xp,coins] of [[3,60,30],[5,40,20]]){const source=key('weekly',week,n);if(days>=n)claim(s,source,'weekly',{xp,coins},at);else reverse(s,source,at);}
@@ -2120,7 +2119,7 @@ const datePick = (c, key, label, optional, required = false) => { const v = c[ke
   return `<div class="field"><span class="lab">${label}${required ? ' <span class="hint">필수</span>' : optional ? ' <span class="hint">선택</span>' : ""}</span><div class="dprow"><button class="dpbtn ${v ? "" : "empty"}" data-act="dpopen" data-k="${key}">📅 ${v ? fmtD(v) : "날짜 선택"}</button>${v && !required ? `<button class="link" data-act="dpclear" data-k="${key}">지우기</button>` : ""}</div>${c._dp === key ? (key === "end" ? `<div class="dppop" data-act="dpstay"><div class="dppop-in" data-act="dpstay" role="dialog" aria-label="${label} 선택"><div class="dppop-h"><b class="dppop-t">${label} 선택</b><button class="iconbtn" data-act="dpopen" data-k="end" aria-label="닫기">${I.close}</button></div>${miniCal(c, key)}</div></div>` : miniCal(c, key)) : ""}</div>`; };
 const priceOf = r => num(r.cost) || OLD_TIER[r.tier] || 150;
 const isProj = p => !!(p && p.parentId);
-const isCx = p => !!p && p.status === "cancel"; // 취소한 퀘스트: 기록은 남기고 목록·진행에서는 뺀다
+const isCx = p => !!p && p.status === "cancel"; // 포기한 퀘스트: 기록은 남기고 목록·진행에서는 뺀다
 const goalsOf = uid => Object.values(S.projects).filter(p => p.owner === uid && !p.parentId && !isCx(p));
 const cxGoalsOf = uid => Object.values(S.projects).filter(p => p.owner === uid && !p.parentId && isCx(p)).sort((a,b) => (b.cancelAt||0) - (a.cancelAt||0));
 /* D-day가 지났는데 아직 달성·취소하지 않은 퀘스트 → 연장 / 달성 / 취소를 고르게 한다 */
@@ -2671,7 +2670,7 @@ function subTab(){
   return h;
 }
 const isPlanned = p => !!p && p.status === "planned";
-const stChip = g => isCx(g) ? `<span class="st cx">취소</span>` : isPlanned(g) ? `<span class="st plan">시작 전</span>` : `<span class="st">진행 중</span>`;
+const stChip = g => isCx(g) ? `<span class="st cx">포기</span>` : isPlanned(g) ? `<span class="st plan">시작 전</span>` : `<span class="st">진행 중</span>`;
 function statusField(c){ const v = c.pstat === "planned" ? "planned" : "active";
   return `<div class="field"><span class="lab">상태</span><div class="chips">${[["active","바로 시작"],["planned","나중에 시작"]].map(([k,l]) => `<button class="chip" data-act="cset" data-f="pstat" data-v="${k}" aria-pressed="${v === k}">${l}</button>`).join("")}</div></div>`; }
 /* ================= stats (life areas) ================= */
@@ -2854,10 +2853,11 @@ function viewCal(){
   const cnt = d => { const l = (by[d] || []).filter(m => !m._ghost); return {n:l.length, done:l.filter(m => m.done).length, late:l.some(m => !m.done && d < t)}; };
   let h = `<div class="seg" role="group" aria-label="보기">${[["day","일"],["week","주"],["month","월"],["year","연"]].map(([k,l]) => `<button data-act="cmode" data-v="${k}" aria-pressed="${mode===k}">${l}</button>`).join("")}</div>`;
   const D0 = pd(date);
-  const cgs = mode === "year" ? [] : goalsOf(S.me).filter(p => p.status !== "done").sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : (a.end||"9999") > (b.end||"9999") ? 1 : 0);
+  // 스테이지가 있는 메인 퀘스트는 진행 중인 스테이지들을, 스테이지가 없으면 메인 퀘스트 자체를 보여 준다(기한 빠른 순).
+  const cgs = mode === "year" ? [] : goalsOf(S.me).filter(p => p.status !== "done").flatMap(g => { const ss = subsOf(g.id).filter(x => x.status !== "done"); return ss.length ? ss : [g]; }).sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : (a.end||"9999") > (b.end||"9999") ? 1 : 0);
   if (cgs.length){ const gi = Math.max(0, Math.min(cgs.length - 1, S.calGi || 0)), g = cgs[gi]; S.calGi = gi;
     // 캘린더는 일정이 주인공: 제목 · D-day · 넘기기 한 줄 + 수치 막대만 (상태 칩·수치 글자·스테이지/미션은 뺀다)
-    h += `<section class="card pgc calq" data-act="project" data-p="${g.id}" role="button" tabindex="0"><div class="calqh"><h3>${esc(g.title)}</h3>${g.end ? `<span class="cdd num">${dday(g.end)}</span>` : ""}${cgs.length > 1 ? `<div class="cpager"><button data-act="cgi" data-v="-1" ${gi ? "" : "disabled"} aria-label="이전 메인 퀘스트">${I.back}</button><span class="num">${gi + 1}/${cgs.length}</span><button class="fwd" data-act="cgi" data-v="1" ${gi < cgs.length - 1 ? "" : "disabled"} aria-label="다음 메인 퀘스트">${I.back}</button></div>` : ""}</div>${metricBox(g)}</section>`; }
+    h += `<section class="card pgc calq" data-act="project" data-p="${g.id}" role="button" tabindex="0"><div class="calqh"><h3>${g.parentId && S.projects[g.parentId] ? `<small class="cpar">${esc(S.projects[g.parentId].title)} ›</small>` : ""}${esc(g.title)}</h3>${g.end ? `<span class="cdd num">${dday(g.end)}</span>` : ""}${cgs.length > 1 ? `<div class="cpager"><button data-act="cgi" data-v="-1" ${gi ? "" : "disabled"} aria-label="이전 퀘스트">${I.back}</button><span class="num">${gi + 1}/${cgs.length}</span><button class="fwd" data-act="cgi" data-v="1" ${gi < cgs.length - 1 ? "" : "disabled"} aria-label="다음 퀘스트">${I.back}</button></div>` : ""}</div>${metricBox(g)}</section>`; }
   const title = mode === "day" ? `${D0.getMonth()+1}월 ${D0.getDate()}일 <span class="${D0.getDay() === 6 ? "sat" : D0.getDay() === 0 ? "sun" : ""}">${WD[D0.getDay()]}요일</span>` : mode === "week" ? (() => { const a = pd(sunStart(date)), b2 = pd(addD(sunStart(date), 6)); return `${a.getMonth()+1}.${a.getDate()} – ${b2.getMonth()+1}.${b2.getDate()}`; })() : mode === "month" ? `${D0.getFullYear()}년 ${D0.getMonth()+1}월` : `${D0.getFullYear()}년`;
   h += `<div class="calnav"><button class="iconbtn" data-act="cstep" data-v="-1" aria-label="이전">${I.back}</button><b>${title}</b><button class="iconbtn fwd" data-act="cstep" data-v="1" aria-label="다음">${I.back}</button>${date !== t ? `<button class="btn sec xs" data-act="ctoday">오늘</button>` : ""}</div>`;
   const calTaskRow = m => taskRow(m, true, false, {showTime:false, showDate:false});
@@ -3244,7 +3244,7 @@ function viewPlan(){
   if (T("later") && (later.length || tab === "later")) h += sec("대기 중", later, "", "아직 시작하지 않은 메인 퀘스트가 여기에 모여요.", "", mkBtn);
   const cx = cxGoalsOf(S.me);
   if (T("done") && (done.length || tab === "done")) h += sec("달성", done, "", "달성한 메인 퀘스트가 여기에 모여요.", tab === "all" && done.length > 3 ? `<button class="btn sec full qmmore" data-act="pl-tab" data-v="done">달성 전체 보기 <span class="num">${done.length}</span></button>` : "", mkBtn);
-  if (tab === "done" && cx.length) h += sec("취소", cx);
+  if (tab === "done" && cx.length) h += sec("포기", cx);
   return h;
 }
 /* brain dump: pour every thought in, then sort each into main / sub / daily / task, or hide it */
@@ -3537,28 +3537,23 @@ function replyRow(c, child, line){
 }
 
 /* ================= goal ================= */
-/* D-day가 지난 퀘스트 안내: 연장 / 달성 / 취소 */
-function overCard(p){ const sp = isProj(p);
-  return `<section class="card overdue"><div class="ovt"><b>기한이 지났어요</b><span class="num">${fmtD(p.end)} · ${dday(p.end)}</span></div>
-    <p class="ovd">이 ${sp ? "스테이지" : "메인 퀘스트"}를 어떻게 할까요?</p>
-    <div class="btnrow three"><button class="btn sec" data-act="pdue" data-p="${p.id}">📅 연장</button><button class="btn gold" data-act="pdone2" data-p="${p.id}">🏆 ${sp ? "완료" : "달성"}</button><button class="btn sec" data-act="pcancel" data-p="${p.id}">취소</button></div></section>`; }
-/* 대시보드 퀘스트 카드: 기한이 지났으면 카드를 어둡게 덮고 그 위에서 연장 / 달성 / 취소. 스테이지만 지났으면 그 스테이지로 안내. */
+/* 대시보드·퀘스트 화면 카드: 기한이 지났으면 카드를 어둡게 덮고 그 위에서 연장 / 달성 / 포기. 스테이지만 지났으면 그 스테이지를 같은 자리에서 처리. */
 function ovLay(g, html){ if (!g || g.owner !== S.me || !S.canWrite) return html;
+  const btns = x => `<div class="ovbtns"><button class="btn xs sec" data-act="pdue" data-p="${x.id}">연장</button><button class="btn xs gold" data-act="pdone2" data-p="${x.id}">${isProj(x) ? "완료" : "달성"}</button><button class="btn xs sec" data-act="pcancel" data-p="${x.id}">포기</button></div>`;
   let in_ = "";
-  if (isOver(g)){ const sp = isProj(g);
-    in_ = `<b>기한이 지났어요</b><small class="num">${dday(g.end)}</small><div class="ovbtns"><button class="btn xs sec" data-act="pdue" data-p="${g.id}">연장</button><button class="btn xs gold" data-act="pdone2" data-p="${g.id}">${sp ? "완료" : "달성"}</button><button class="btn xs sec" data-act="pcancel" data-p="${g.id}">취소</button></div>`; }
+  if (isOver(g)) in_ = `<b>기한이 지났어요</b><small class="num">${dday(g.end)}</small>${btns(g)}`;
   else { const st = isProj(g) ? null : subsOf(g.id).find(isOver);
-    if (st) in_ = `<b>스테이지 기한이 지났어요</b><small>${esc(st.title)} · ${dday(st.end)}</small><div class="ovbtns"><button class="btn xs sec" data-act="project" data-p="${st.id}">처리하기</button></div>`; }
+    if (st) in_ = `<b>스테이지 기한이 지났어요</b><small>${esc(st.title)} · ${dday(st.end)}</small>${btns(st)}`; }
   return in_ ? html.replace('class="card pgc', 'class="card pgc isover').replace(/<\/section>\s*$/, `<div class="ovlay">${in_}</div></section>`) : html; }
 function doneProject(pid){ const p = S.projects[pid], sp = isProj(p); if (!p) return;
   run(() => api.putProject(pid, {...p, status:"done", doneAt:Date.now(), progress:goalProgress(p)}), r => { S.quietXp = true; if (sp) syncProgress(p.parentId); rewardSheet({emoji:"🏆", title:sp ? "스테이지 완료!" : "메인 퀘스트 달성!", desc:esc(p.title), share:{ref:{type:"project_done", id:pid, label:p.title, sub:sp}, title:sp ? "🔗 스테이지<br>완료!" : "🏆 메인 퀘스트<br>달성!"}}); }); }
-/* 취소: 퀘스트(와 끝내지 않은 스테이지)는 '취소'로 보관, 끝내지 않은 미션은 정리. 끝낸 미션·스토리·수치 기록은 그대로 남는다. 보상 없음. */
+/* 포기: 퀘스트(와 끝내지 않은 스테이지)는 '포기'로 보관, 끝내지 않은 미션은 정리. 끝낸 미션·스토리·수치 기록은 그대로 남는다. 보상 없음. */
 function cancelProject(pid){ const p = S.projects[pid]; if (!p) return; const sp = isProj(p), at = Date.now();
   const kids = sp ? [] : subsOf(pid).filter(x => x.status !== "done"), ids = [pid, ...kids.map(x => x.id)];
   run(async () => { for (const m of mineOf("mission").filter(m => ids.includes(m.projectId) && !m.done)) await api.delMine(m.id);
       for (const x of kids){ const d = {...x, status:"cancel", cancelAt:at}; delete d.id; await api.putProject(x.id, d); }
       const d = {...p, status:"cancel", cancelAt:at}; delete d.id; await api.putProject(pid, d); },
-    () => { closeSheet(); if (sp) syncProgress(p.parentId); toast(sp ? "스테이지를 취소했어요" : "메인 퀘스트를 취소했어요"); }); }
+    () => { closeSheet(); if (sp) syncProgress(p.parentId); toast(sp ? "스테이지를 포기했어요" : "메인 퀘스트를 포기했어요"); }); }
 function openMissionsOf(pid){ const p = S.projects[pid], ids = p && !isProj(p) ? [pid, ...subsOf(pid).map(x => x.id)] : [pid]; return mineOf("mission").filter(m => ids.includes(m.projectId) && !m.done).length; }
 function viewGoal(){
   const p = S.projects[S.view.pid];
@@ -3569,16 +3564,15 @@ function viewGoal(){
   const latest = valLatest(p.id);
   // 상단 표지는 접은 상태가 기본값. 펴 두면 이 기기에서 기억한다.
   const cvUp = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`, cvOpen = (LS.get("cvopen", [])).includes(p.id);
-  let h = mine && isOver(p) ? overCard(p) : "";
-  h += `<section class="card thead">
+  let h = `<section class="card thead">
     ${cvOpen ? `<div class="cvwrap thcv">${coverHtml(p, {badge:false})}<button class="cvtog" data-act="cvfold" data-p="${p.id}" aria-label="표지 접기">${cvUp}</button></div>` : `<button class="cvopen thcv" data-act="cvfold" data-p="${p.id}">표지 펴기 <span style="display:inline-flex;transform:rotate(180deg)">${cvUp}</span></button>`}
     <div class="gth"><h2>${esc(p.title)}</h2>${mine ? `<button class="pmenu" data-act="gmenu" data-p="${p.id}" aria-label="${kind} 메뉴">${I.menu}</button>` : ""}</div>
     ${par ? `<button class="parentlink" data-act="project" data-p="${par.id}">🎯 ${esc(par.title)} ${I.chev}</button>` : ""}
-    <div class="tags">${isCx(p) ? `<span class="tag">취소</span>` : p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" && !isCx(p) ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "영역" : "메인 퀘스트 영역"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}</div>
+    <div class="tags">${isCx(p) ? `<span class="tag">포기</span>` : p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" && !isCx(p) ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "영역" : "메인 퀘스트 영역"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}</div>
     ${pr.total ? `<div class="prog"><span class="num">미션 ${pr.done}/${pr.total}</span></div>` : ""}
     ${metricBox(p)}
     ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요</div>` : ""}
-    ${isCx(p) ? `<div class="trophyline cxline">${p.cancelAt ? `${ago(p.cancelAt)} 전에 ` : ""}취소한 ${kind}예요</div>${mine && !(par && isCx(par)) ? `<button class="btn sec full" data-act="prestore" data-p="${p.id}">다시 진행하기</button>` : ""}` : ""}
+    ${isCx(p) ? `<div class="trophyline cxline">${p.cancelAt ? `${ago(p.cancelAt)} 전에 ` : ""}포기한 ${kind}예요</div>${mine && !(par && isCx(par)) ? `<button class="btn sec full" data-act="prestore" data-p="${p.id}">다시 진행하기</button>` : ""}` : ""}
     ${mine && p.status !== "done" && !isCx(p) ? `<div class="btnrow three">${p.metric ? `<button class="btn soft mlogbtn" data-act="mlog" data-p="${p.id}">📈 수치 기록</button>` : `<button class="btn sec mlogbtn" data-act="gedit" data-p="${p.id}">📈 수치 켜기</button>`}<button class="btn" data-act="compose" data-p="${p.id}">스토리</button><button class="btn gold" data-act="pdone" data-p="${p.id}">${S.armed==="pd"+p.id ? "한 번 더 누르면 " + (sp ? "완료" : "달성") : (sp ? "✓ 완료" : "🏆 달성")}</button></div>` : ""}
   </section>`;
   if (!sp && (subs.length || mine)){ const addable = mine && p.status !== "done" && !isCx(p), cxs = Object.values(S.projects).filter(x => x.parentId === p.id && isCx(x));
@@ -4628,7 +4622,7 @@ document.addEventListener("click", e => {
     case "pdone": { if (S.armed !== "pd"+pid){ arm("pd"+pid); return; } S.armed = null; doneProject(pid); return; }
     case "pdone2": { const p = S.projects[pid]; if (!p) return; const sp = isProj(p); ask({t:`이 ${sp ? "스테이지를 완료" : "메인 퀘스트를 달성"}할까요?`, d:esc(p.title), ok:sp ? "완료" : "달성"}, () => doneProject(pid)); return; }
     case "pcancel": { const p = S.projects[pid]; if (!p) return; const sp = isProj(p), n = openMissionsOf(pid), ks = sp ? 0 : subsOf(pid).filter(x => x.status !== "done").length;
-      ask({t:`이 ${sp ? "스테이지" : "메인 퀘스트"}를 취소할까요?`, d:`보상 없이 '취소'로 보관돼요. 스토리와 끝낸 미션은 그대로 남아요.${ks ? ` 끝내지 않은 스테이지 ${ks}개도 함께 취소돼요.` : ""}${n ? ` 끝내지 않은 미션 ${n}개는 삭제돼요.` : ""}`, ok:"취소하기"}, () => cancelProject(pid)); return; }
+      ask({t:`이 ${sp ? "스테이지" : "메인 퀘스트"}를 포기할까요?`, d:`보상 없이 '포기'로 보관돼요. 스토리와 끝낸 미션은 그대로 남아요.${ks ? ` 끝내지 않은 스테이지 ${ks}개도 함께 포기돼요.` : ""}${n ? ` 끝내지 않은 미션 ${n}개는 삭제돼요.` : ""}`, ok:"포기하기"}, () => cancelProject(pid)); return; }
     case "pdue": { const p = S.projects[pid]; if (!p) return; openSheet({type:"pdue", pid, end:addD(today(), 7)}); return; }
     case "pext-q": c.end = addD(today(), +b.dataset.v); c._dp = null; renderSheet(); return;
     case "pext-go": { const p = S.projects[c.pid]; if (!p) return; if (!c.end || c.end <= today()){ toast("오늘 이후 날짜를 골라 주세요"); return; } const d = {...p, end:c.end}; delete d.id;
