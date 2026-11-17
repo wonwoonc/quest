@@ -3342,7 +3342,6 @@ function viewPlan(){
   /* 모바일은 위아래 한 줄씩, PC는 여러 줄 격자(.plgrid). 전체 칩의 달성은 최근 3개 + '달성 전체 보기'. */
   const sec = (t, list, extra = "", empty = "", more = "", btn = "") => `<div class="subhead${btn ? " dqhead" : ""}"><h2>${t} <span class="num">${list.length}</span></h2>${btn}</div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => plCard(g)).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
   let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태" data-swipe>${[["all","전체",all.length],["active","진행",act.length],["later","대기",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
-  if (BD_ON) h = brainDump() + h;
   const mkBtn = `<button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">+ 생성</button>`;
   if (T("active")) h += sec("진행 중", act, "", "이루고 싶은 목표를 퀘스트로 만들어 보세요.", "", mkBtn);
   if (T("later") && (later.length || tab === "later")) h += sec("대기 중", later, "", "아직 시작하지 않은 메인 퀘스트가 여기에 모여요.", "", mkBtn);
@@ -3362,16 +3361,8 @@ function bdGuide(d){
   if (k === "act") return q(1, steps.length, t, step(1), step(9));
   return q(i + 1, steps.length, t, ask(k), i === steps.length - 1 ? ask("drop") : step(i + 1));
 }
-const BD_ON = true; /* 브레인 덤프: 퀘스트 화면 맨 위 · + 버튼에서도 입력 */
-function brainDump(){
-  if (LS.get("bdOff", false)) return `<button class="bdshow" data-act="bd-area" data-v="on">${nic("inbox")}브레인 덤프 열기</button>`;
-  const vis = mineOf("dump").sort((a,b) => (a.createdAt||0) - (b.createdAt||0)), MAX = 3, shown = S.bdAll ? vis : vis.slice(0, MAX);
-  const row = d => `<div class="bdr"><span>${esc(d.text)}</span><button class="btn sec xs" data-act="bd-sort" data-id="${d.id}">분류</button>${S.armed === "bx"+d.id ? `<button class="btn xs bdxa" data-act="bd-rm" data-id="${d.id}">삭제</button>` : `<button class="bdx" data-act="bd-rm" data-id="${d.id}" aria-label="삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-12M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/></svg></button>`}</div>`;
-  return `<section class="card bdump"><div class="ch"><h2>브레인 덤프</h2>${vis.length ? `<span class="side num">${vis.length}</span>` : ""}<button class="link bdhelp" data-act="bd-area" data-v="off">숨기기</button></div>
-    <div class="bdin"><input type="text" id="bd-in" maxlength="200" enterkeyhint="done" autocomplete="off" placeholder="판단 없이 떠오르는 대로 적기" value="${D("bd-in")}" aria-label="브레인 덤프"><button class="bdgo" data-act="bd-add" aria-label="털어 넣기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
-    ${vis.length ? `<div class="bdlist">${shown.map(row).join("")}</div>${vis.length > MAX ? `<button class="morebtn" data-act="toggle" data-k="bdall">${S.bdAll ? "접기" : `${vis.length - MAX}개 더 보기`}</button>` : ""}` : ""}
-  </section>`;
-}
+const BD_ON = true; /* 브레인 덤프: + 버튼(쓰기) 페이지에서 입력 · 목록 · 분류 */
+const bdRow = d => `<div class="bdr"><span>${esc(d.text)}</span><button class="btn sec xs" data-act="bd-sort" data-id="${d.id}">분류</button>${S.armed === "bx"+d.id ? `<button class="btn xs bdxa" data-act="bd-rm" data-id="${d.id}">삭제</button>` : `<button class="bdx" data-act="bd-rm" data-id="${d.id}" aria-label="삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-12M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/></svg></button>`}</div>`;
 function bdSortSheet(c){
   const d = S.mine[c.id]; if (!d){ return sheetWrap("분류하기", "", `<p class="empty-row">이미 처리한 생각이에요.</p>`); }
   return sheetWrap("분류하기", "", `<p class="bdtext">${esc(d.text)}</p>${bdGuide(d)}
@@ -3731,10 +3722,10 @@ function storyComposer(page = false){
 function viewWrite(){ const m = S.wrMode === "dump" ? "dump" : "story";
   const seg = `<div class="seg wrseg" role="group" aria-label="쓰기 종류">${[["story","스토리"],["dump","브레인 덤프"]].map(([k,l]) => `<button data-act="wrmode" data-v="${k}" aria-pressed="${m === k}">${l}</button>`).join("")}</div>`;
   if (m === "story") return seg + storyComposer(true);
-  const n = mineOf("dump").length;
+  const vis = mineOf("dump").sort((a,b) => (a.createdAt||0) - (b.createdAt||0)), n = vis.length;
   return seg + `<section class="card bdump bdpage"><div class="ch"><h2>브레인 덤프</h2>${n ? `<span class="side num">${n}</span>` : ""}</div>
     <div class="bdin"><input type="text" id="bd-in" maxlength="200" enterkeyhint="done" autocomplete="off" placeholder="판단 없이 떠오르는 대로 적기" value="${D("bd-in")}" aria-label="브레인 덤프"><button class="bdgo" data-act="bd-add" aria-label="털어 넣기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
-    ${n ? `<a class="btn sec full bdgoq" href="#qmanage">퀘스트 화면에서 분류하기 <span class="num">${n}</span></a>` : ""}</section>`; }
+    ${n ? `<div class="bdlist">${vis.map(bdRow).join("")}</div>` : ""}</section>`; }
 /* 커뮤니티 맨 위 한 줄 입구: 누르면 스토리 쓰기 페이지(+)로 */
 function storyEntry(){ const d = (S.drafts["ps-text"] || "").trim();
   return `<a class="card sentry" href="#write" aria-label="스토리 쓰기">${av(S.me, 36, false)}<span class="sentry-t${d ? " on" : ""}">${d ? esc(d.split("\n")[0]) : "오늘의 이야기를 들려주세요"}</span></a>`; }

@@ -338,9 +338,10 @@ test('taskadd sheet orders date/time, area, quest, difficulty and saves task are
   const task = Object.values(h.snapshot().mine).find(m => m.name === '영역 미션');
   assert.ok(task); assert.deepEqual(task.area,['health']);
 });
-test('brain dump: pour lines in, inline guide, hide area, send one to task, delete one',async () => {
+test('brain dump: lives on the plus page (not qmanage), pour lines in, list + sort, send one to task, delete one',async () => {
   const h = await linkedUI(); h.route('qmanage');
-  assert.ok(h.nodes.get('app').innerHTML.indexOf('브레인 덤프') < h.nodes.get('app').innerHTML.indexOf('pltabs'));
+  assert.doesNotMatch(h.nodes.get('app').innerHTML,/id="bd-in"|브레인 덤프/);
+  h.route('write'); h.click('wrmode',{v:'dump'});
   h.nodes.set('bd-in',{value:'세탁소 들르기\n\n이상한 생각'}); h.click('bd-add'); await h.settle();
   const dumps = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'dump');
   assert.equal(dumps().length,2);
@@ -351,8 +352,7 @@ test('brain dump: pour lines in, inline guide, hide area, send one to task, dele
   h.click('bd-step',{id:first.id,v:'3'}); assert.match(h.nodes.get('overlay').innerHTML,/꾸준히 반복해야 하나요\?/); assert.match(h.nodes.get('overlay').innerHTML,/data-v="drop">아니요/);
   h.click('bd-step',{id:first.id,v:'2'}); h.click('bd-ask',{id:first.id,v:'task'}); assert.match(h.nodes.get('overlay').innerHTML,/미션으로 분류할게요/);
   h.click('cfok'); assert.match(h.nodes.get('overlay').innerHTML,/미션 추가/); h.click('sheet-close');
-  h.click('bd-area',{v:'off'}); assert.ok(!h.nodes.get('app').innerHTML.includes('id="bd-in"')); assert.match(h.nodes.get('app').innerHTML,/브레인 덤프 열기/);
-  h.click('bd-area',{v:'on'}); assert.ok(h.nodes.get('app').innerHTML.includes('id="bd-in"'));
+  assert.match(h.nodes.get('app').innerHTML,/class="bdlist".*세탁소 들르기.*data-act="bd-sort"/s); assert.doesNotMatch(h.nodes.get('app').innerHTML,/bdgoq/);
   const wash = dumps().find(d => d.text === '세탁소 들르기'); h.click('bd-send',{id:wash.id,v:'task'});
   assert.match(h.nodes.get('overlay').innerHTML,/value="세탁소 들르기"/);
   h.nodes.set('ta-name',{value:'세탁소 들르기'}); h.click('dppick',{k:'due',v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
