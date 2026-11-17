@@ -1438,6 +1438,24 @@ a.row{color:inherit;text-decoration:none}
 .pgc:has(.st.cx){opacity:.72}
 .trophyline.cxline{color:var(--muted)}
 .pextq{margin-bottom:12px}
+
+/* 일정(event): 파란 블록 · 체크·보상 없음 */
+.evb{display:flex;flex-direction:column;justify-content:flex-start;gap:1px;width:100%;box-sizing:border-box;border-radius:9px;background:#E8EEFB;border-left:3px solid #3D7BE0;padding:6px 9px;cursor:pointer;text-align:left;margin:2px 0}
+.evb b{font-size:13.5px;font-weight:700;color:#24467F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.evb small{font-size:11.5px;color:#5A6F96}
+.wti.wev{background:#E8EEFB;border-left:3px solid #3D7BE0;color:#24467F;cursor:pointer}.wti.wev .wtx span{color:#24467F;font-weight:700}
+.mtask .days i.ev{background:#E8EEFB;color:#24467F;border-left:2.5px solid #3D7BE0;padding-left:4px}.mtask .days i.ev .mtx span{color:#24467F;font-weight:700}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .evb,:root:not([data-theme="light"]) .wti.wev,:root:not([data-theme="light"]) .mtask .days i.ev{background:rgba(61,123,224,.18)}:root:not([data-theme="light"]) .evb b,:root:not([data-theme="light"]) .wti.wev .wtx span,:root:not([data-theme="light"]) .mtask .days i.ev .mtx span{color:#AFC8F5}:root:not([data-theme="light"]) .evb small{color:#8EA6D3}}
+:root[data-theme="dark"] .evb,:root[data-theme="dark"] .wti.wev,:root[data-theme="dark"] .mtask .days i.ev{background:rgba(61,123,224,.18)}:root[data-theme="dark"] .evb b,:root[data-theme="dark"] .wti.wev .wtx span,:root[data-theme="dark"] .mtask .days i.ev .mtx span{color:#AFC8F5}:root[data-theme="dark"] .evb small{color:#8EA6D3}:root[data-theme="dark"] .evtoday .evi{background:rgba(61,123,224,.2);color:#8EB3F0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .evtoday .evi{background:rgba(61,123,224,.2);color:#8EB3F0}}
+.evsw{display:flex;align-items:center;gap:12px;width:100%;border:0;border-radius:14px;background:var(--fill);padding:12px 14px;text-align:left;font:inherit;color:inherit;cursor:pointer;margin:2px 0 10px}
+.evsw span{flex:1;display:grid;gap:2px}.evsw b{font-size:14.5px}.evsw small{font-size:12px;color:var(--muted)}
+.evsw .tg{width:44px;height:26px;border-radius:26px;background:#C9D0CC;position:relative;flex:none;transition:background .15s}.evsw .tg:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+.evsw[aria-checked="true"] .tg{background:var(--accent)}.evsw[aria-checked="true"] .tg:after{left:21px}
+.evdur{margin:-2px 0 6px}.evrange{margin:0 0 8px;font-size:13px;color:#3D7BE0;font-weight:700}.evmore{margin:0 0 10px}.evdelb{margin-top:8px}
+.evtoday{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;border:0;border-radius:16px;background:var(--card);padding:12px 14px;font:inherit;color:inherit;text-align:left;cursor:pointer;margin:0 0 12px}
+.evtoday .evi{width:26px;height:26px;border-radius:8px;background:#E8EEFB;color:#3D7BE0;display:grid;place-items:center;flex:none}.evtoday .evi svg{width:15px;height:15px}
+.evtoday b{font-size:14px;flex:none}.evtoday .evt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}.evtoday .evt .num{color:#3D7BE0;font-weight:700;margin-right:2px}.evtoday .evt small{color:var(--muted);font-size:12.5px}
+.evtoday > svg{width:16px;height:16px;transform:rotate(180deg);color:var(--muted);flex:none}
 </style>
 <script type="module" src="./src/entry.js"></script>
 </body></html>
