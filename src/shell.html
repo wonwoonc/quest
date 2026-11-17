@@ -832,7 +832,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .twband{position:absolute;left:12px;right:12px;top:72px;height:36px;border-radius:10px;background:var(--card)}
 .tw-ok{position:absolute;left:12px;right:12px;bottom:8px;height:32px;border:0;border-radius:10px;background:var(--accent-soft);color:var(--accent);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .tl{padding-top:6px}
-.tlscroll{height:296px;overflow-y:auto;overscroll-behavior:contain;border-top:1px solid var(--line);position:relative}
+.tlscroll{height:348px;overflow-y:auto;overscroll-behavior:contain;position:relative} /* 한 번에 12시간(12칸 × 29px) */
 .tlscroll .tlrow{min-height:29px}
 .tlscroll,.wgrid{scrollbar-color:color-mix(in srgb,var(--muted) 35%,var(--card)) var(--card);scrollbar-width:thin}
 .tlscroll::-webkit-scrollbar,.wgrid::-webkit-scrollbar{width:8px;height:8px;background:var(--card)}
@@ -841,7 +841,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .tlscroll::-webkit-scrollbar-corner,.wgrid::-webkit-scrollbar-corner{background:var(--card)}
 .tlscroll .tlrow:first-child{border-top:0}
 .tlrow.allday:first-child{border-top:0}
-.tl .tlc .row{padding:0 16px 0 4px;gap:10px;min-height:36px}
+.tl .tlc .row{padding:0 16px 0 4px;gap:10px;min-height:28px}
 .tl .tlc .row .check{width:22px;height:22px;border-width:1.8px}
 .tl .tlc .row .check svg{width:13px;height:13px}
 .tl .tlc .row .t b{font-size:14.5px}
@@ -853,7 +853,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .tlrow.now .tlh{color:var(--accent);font-weight:800}
 .tlc{flex:1;min-width:0}
 .tlc .row{padding-left:4px}
-.tlempty{display:block;width:100%;height:36px;border:0;background:none;cursor:pointer}
+.tlempty{display:block;width:100%;height:28px;border:0;background:none;cursor:pointer}
 .tlempty:hover{background:var(--fill)}
 .wti{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:0;background:var(--fill);border-radius:10px;padding:6px 8px;text-align:left;font-family:inherit;color:var(--ink)}
 .wti em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--accent)}
@@ -949,7 +949,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .qpb{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .grp{margin:8px 20px 0;font-size:13px;font-weight:700;color:var(--muted)}
 .card.mq{padding-top:0;overflow:hidden}
-.card.mq.calmq{padding-top:4px;padding-bottom:10px;position:relative}.calmq .msim{margin-top:4px}.calmq .mqh{gap:2px}
+.card.mq.calmq{padding-top:4px;padding-bottom:4px;position:relative}.calmq .msim{margin-top:4px}.calmq .mqh{gap:2px}
 .cpager{position:absolute;right:12px;bottom:10px;display:flex;align-items:center;gap:2px;font-size:12px;font-weight:700;color:var(--muted)}
 .cpager button{width:28px;height:28px;border:0;border-radius:50%;background:var(--fill);color:var(--sub);display:grid;place-items:center;padding:0;cursor:pointer}
 .cpager button:disabled{opacity:.35;cursor:default}
@@ -1286,7 +1286,7 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
   .replybar{left:244px;bottom:0;padding-left:40px;padding-right:40px}
   .rbbox{max-width:860px}
   .rgrid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
-  .tlscroll{height:min(62vh,680px)}
+  .tlscroll{height:348px}
   .wg{grid-template-columns:56px repeat(7,minmax(120px,1fr));width:100%}
   .wgrid{height:min(62vh,680px)}
   .mcell{min-height:112px}
