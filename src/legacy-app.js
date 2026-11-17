@@ -1242,7 +1242,7 @@ function viewPlan(){
   if (!["all", "active", "later", "done"].includes(Q.ptab)) Q.ptab = "all";
   const tab = Q.ptab, T = t => tab === "all" || tab === t;
   /* 모바일은 위아래 한 줄씩, PC는 여러 줄 격자(.plgrid). 전체 칩의 달성은 최근 3개 + '달성 전체 보기'. */
-  const sec = (t, list, extra = "", empty = "", more = "", btn = "") => `<div class="subhead${btn ? " dqhead" : ""}"><h2>${t} <span class="num">${list.length}</span></h2>${btn}</div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => plCard(g)).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
+  const sec = (t, list, extra = "", empty = "", more = "", btn = "") => `<div class="subhead${btn ? " dqhead" : ""}"><h2>${t} <span class="num">${list.length}</span></h2>${btn}</div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => ovLay(g, plCard(g))).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
   let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태" data-swipe>${[["all","전체",all.length],["active","진행",act.length],["later","대기",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
   const mkBtn = `<button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">+ 생성</button>`;
   if (T("active")) h += sec("진행 중", act, "", "이루고 싶은 목표를 퀘스트로 만들어 보세요.", "", mkBtn);
