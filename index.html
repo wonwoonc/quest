@@ -861,6 +861,11 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .wti.done span{text-decoration:line-through;color:var(--muted)}
 .mtask{padding:10px 6px}
 .mtask .days{gap:0}
+/* 월 달력 요일 줄: 바탕색, 굵은 글자, 토요일 파랑 · 일요일 빨강 */
+.mtask .wk{background:var(--fill);border-radius:10px;margin-bottom:4px}
+.mtask .wk span{font-size:13px;font-weight:800;color:var(--sub);padding:7px 0}
+.mtask .wk span:nth-child(6){color:#3D7BE0}
+.mtask .wk span:nth-child(7){color:#E5484D}
 /* 월 달력: 날짜 칸 사이에 옅은 구분선 */
 .mtask .days > .mcell{border-radius:0;border-top:1px solid color-mix(in srgb,var(--line) 45%,transparent)}
 .mtask .days > .mcell:not(:nth-child(7n)){border-right:1px solid color-mix(in srgb,var(--line) 45%,transparent)}
