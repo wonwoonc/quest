@@ -2535,7 +2535,6 @@ function diaryForm(d, P, sheet = false){ const dt = P.date || today(), t0 = toda
     ${P.custom ? `<div class="addline" style="padding:0;margin:-4px 0 14px"><input type="text" id="pl-emo" maxlength="10" placeholder="감정 (예: 뿌듯함)" value="${D("pl-emo")}" aria-label="감정 직접 입력"><button class="btn sm sec" data-act="emoadd">추가</button></div>` : ""}
     <label class="lab" for="pl-text">일기</label>
     <textarea id="pl-text" rows="8" maxlength="5000" placeholder="오늘 있었던 일, 떠오른 생각을 자유롭게 적어 보세요">${esc(S.drafts["pl-text"] ?? (d && d.text) ?? "")}</textarea>
-    <label class="toggle"><input type="checkbox" id="pl-share" ${P.share?"checked":""}> 커뮤니티에도 공유하기</label>
     <button class="btn big full" data-act="psave" ${S.busy?"disabled":""}>${d ? "수정" : "저장"}${d ? "" : past ? `<span class="x">지난 날짜는 보상 없이 기록만 남아요</span>` : ""}</button>
     ${d ? `<button class="btn big full sec" style="margin-top:10px;color:var(--warn)" data-act="ldel" data-id="d-${esc(d.date)}">저널 삭제</button>` : ""}`; }
 const diaryPost = key => Object.values(S.feed).find(p => p.author === S.me && p.ref && p.ref.type === "diary" && p.ref.id === key);
@@ -4515,14 +4514,13 @@ document.addEventListener("click", e => {
     case "unarch": { const q = S.mine[id]; if (!q) return; run(() => api.putMine(id, {...q, active:true}), () => { toast(`'${esc(q.name)}' 보관을 해제했어요`); if (S.compose && S.compose.type === "archive") renderSheet(); }); return; }
     case "pemo": S.planner.emo = S.planner.emo === b.dataset.v ? null : b.dataset.v; reDiary(); return;
     case "pedit": { const d = S.mine["d-"+today()]; S.planner = {...S.planner, edit:true, cond:d ? d.cond : 70, emo:d ? d.emo : null, share:d ? !!diaryPost("d-"+today()) : S.planner.share}; S.drafts["pl-text"] = d ? d.text : ""; break; }
-    case "psave": { if (!S.canWrite) return; const P = S.planner, text = (dq("#pl-text").value||"").trim(), cond = +dq("#pl-cond").value, share = !!(dq("#pl-share") && dq("#pl-share").checked);
+    case "psave": { if (!S.canWrite) return; const P = S.planner, text = (dq("#pl-text").value||"").trim(), cond = +dq("#pl-cond").value, share = false; // 저널은 커뮤니티에 공유하지 않는다(예전에 공유한 글은 그대로 두고 내용만 맞춘다)
       if (!P.emo){ toast("감정을 골라 주세요"); return; }
       const dt = P.date || today(), key = "d-"+dt, existed = !!S.mine[key], from = P.from, old = S.mine[key] || {};
       const post = existed ? diaryPost(key) : null, x1 = pd(dt), label = dt === today() ? "오늘의 저널" : `${x1.getMonth()+1}월 ${x1.getDate()}일의 저널`;
       run(async () => { await api.putMine(key, {...old, kind:"diary", date:dt, cond, emo:P.emo, text, at:old.at || Date.now()});
         if (share && !post) await api.addPost({ref:{type:"diary", id:key, label, extra:{cond, emo:P.emo}}, text, mood:null}, []);
-        else if (share && post) await api.editPost(post.id, {text, ref:{...post.ref, extra:{cond, emo:P.emo}}});
-        else if (!share && post) await api.delPost(post.id); },
+        else if (post) await api.editPost(post.id, {text, ref:{...post.ref, extra:{cond, emo:P.emo}}}); },
         () => { S.planner = {cond:70, emo:null, share:false}; delete S.drafts["pl-text"]; if (S.compose && S.compose.type === "diary") closeSheet(); S.quietXp=true;if(!existed)toast(dt === today() ? "저널을 저장했어요" : "지난 저널을 저장했어요");else toast('저널을 수정했어요'); if (from === "logs") openSheet({type:"logs"}); }); return; }
     case "jdate": if (c) { c._dp = null; c._dpm = null; } jLoad(b.dataset.v); return;
     case "jdpick": { const el = $("#pl-text"); if (el) S.drafts["pl-text"] = el.value; c._dp = c._dp === "jd" ? null : "jd"; c._dpm = null; renderSheet(); return; }
