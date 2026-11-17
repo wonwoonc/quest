@@ -498,7 +498,9 @@ function renderNav(){
   const write = hasProfile() && S.canWrite ? `<a href="#write" class="nwr" aria-label="스토리 쓰기" ${cur(v === "write")}>${PLUS_SVG}</a>` : "";
   // PC 사이드바·서랍은 퀘스트를 맨 위에(하단 메뉴에 퀘스트가 없을 때). 하단 메뉴는 메뉴 순서의 앞 4개 그대로.
   const bar = order.slice(0, NAV_BAR), list = bar.includes("#qmanage") ? order : ["#qmanage", ...order.filter(h => h !== "#qmanage")];
-  setHtml($("#nav"), `${list.map(h => { const [l, svg, on] = NAV[h], bi = bar.indexOf(h); return (bi === 2 ? write : "") + `<a href="${h}"${bi < 0 ? ' class="nm"' : ""} aria-label="${l}" ${cur(on(v))}>${svg}<span>${l}</span></a>`; }).join("")}
+  // PC 사이드바 맨 위: 쓰기 버튼(스토리 · 브레인 덤프). 휴대폰에서는 하단 + 버튼을 쓰므로 숨긴다.
+  const pcw = hasProfile() && S.canWrite ? `<a href="#write" class="pcwr" aria-label="쓰기" ${cur(v === "write")}>${PLUS_SVG}<span>쓰기</span></a>` : "";
+  setHtml($("#nav"), `${pcw}${list.map(h => { const [l, svg, on] = NAV[h], bi = bar.indexOf(h); return (bi === 2 ? write : "") + `<a href="${h}"${bi < 0 ? ' class="nm"' : ""} aria-label="${l}" ${cur(on(v))}>${svg}<span>${l}</span></a>`; }).join("")}
     <a href="#settings" class="nset" aria-label="설정" ${cur(v === "settings")}>${I.gear}<span>설정</span></a>
     <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`);
   document.body.classList.toggle("navmini", !!S.navMini);
