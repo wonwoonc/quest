@@ -832,7 +832,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .twband{position:absolute;left:12px;right:12px;top:72px;height:36px;border-radius:10px;background:var(--card)}
 .tw-ok{position:absolute;left:12px;right:12px;bottom:8px;height:32px;border:0;border-radius:10px;background:var(--accent-soft);color:var(--accent);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .tl{padding-top:6px}
-.tlscroll{height:444px;overflow-y:auto;overscroll-behavior:contain;position:relative} /* 한 번에 12시간(12칸 × 37px) */
+.tlscroll{height:259px;overflow-y:auto;overscroll-behavior:contain;position:relative} /* 한 번에 12시간(12칸 × 37px) */
 .tlscroll .tlrow{min-height:37px}
 .tlscroll,.wgrid{scrollbar-color:color-mix(in srgb,var(--muted) 35%,var(--card)) var(--card);scrollbar-width:thin}
 .tlscroll::-webkit-scrollbar,.wgrid::-webkit-scrollbar{width:8px;height:8px;background:var(--card)}
@@ -915,7 +915,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .mcell i.hab{background:color-mix(in srgb,var(--xp) 14%,var(--card));color:color-mix(in srgb,var(--xp) 70%,var(--ink))}
 .mcell i.hab.done{background:var(--fill);color:var(--muted);text-decoration:line-through}
 .mcell i.hab .mchk:disabled{cursor:default}
-.wgrid{height:calc(38px + 12 * 39px);overflow:auto;overscroll-behavior:contain;background:var(--card);border-radius:20px;position:relative}
+.wgrid{height:calc(38px + 7 * 39px);overflow:auto;overscroll-behavior:contain;background:var(--card);border-radius:20px;position:relative}
 .wg{display:grid;grid-template-columns:52px repeat(7,calc((min(100vw - 32px, 540px) - 52px)/3));position:relative;width:max-content}
 .wgc{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 55%,transparent);min-height:38px;min-width:0}
 .wgc.corner,.wgc.head{position:sticky;top:0;z-index:2;background:var(--card);min-height:0}
@@ -1298,9 +1298,9 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
   .replybar{left:244px;bottom:0;padding-left:40px;padding-right:40px}
   .rbbox{max-width:860px}
   .rgrid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
-  .tlscroll{height:444px}
+  .tlscroll{height:259px}
   .wg{grid-template-columns:56px repeat(7,minmax(120px,1fr));width:100%}
-  .wgrid{height:calc(38px + 12 * 39px)}
+  .wgrid{height:calc(38px + 7 * 39px)}
   .mcell{min-height:112px}
   .ygrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 
