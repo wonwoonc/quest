@@ -1547,6 +1547,14 @@ function overCard(p){ const sp = isProj(p);
   return `<section class="card overdue"><div class="ovt"><b>기한이 지났어요</b><span class="num">${fmtD(p.end)} · ${dday(p.end)}</span></div>
     <p class="ovd">이 ${sp ? "스테이지" : "메인 퀘스트"}를 어떻게 할까요?</p>
     <div class="btnrow three"><button class="btn sec" data-act="pdue" data-p="${p.id}">📅 연장</button><button class="btn gold" data-act="pdone2" data-p="${p.id}">🏆 ${sp ? "완료" : "달성"}</button><button class="btn sec" data-act="pcancel" data-p="${p.id}">취소</button></div></section>`; }
+/* 대시보드 퀘스트 카드: 기한이 지났으면 카드를 어둡게 덮고 그 위에서 연장 / 달성 / 취소. 스테이지만 지났으면 그 스테이지로 안내. */
+function ovLay(g, html){ if (!g || g.owner !== S.me || !S.canWrite) return html;
+  let in_ = "";
+  if (isOver(g)){ const sp = isProj(g);
+    in_ = `<b>기한이 지났어요</b><small class="num">${dday(g.end)}</small><div class="ovbtns"><button class="btn xs sec" data-act="pdue" data-p="${g.id}">연장</button><button class="btn xs gold" data-act="pdone2" data-p="${g.id}">${sp ? "완료" : "달성"}</button><button class="btn xs sec" data-act="pcancel" data-p="${g.id}">취소</button></div>`; }
+  else { const st = isProj(g) ? null : subsOf(g.id).find(isOver);
+    if (st) in_ = `<b>스테이지 기한이 지났어요</b><small>${esc(st.title)} · ${dday(st.end)}</small><div class="ovbtns"><button class="btn xs sec" data-act="project" data-p="${st.id}">처리하기</button></div>`; }
+  return in_ ? html.replace('class="card pgc', 'class="card pgc isover').replace(/<\/section>\s*$/, `<div class="ovlay">${in_}</div></section>`) : html; }
 function doneProject(pid){ const p = S.projects[pid], sp = isProj(p); if (!p) return;
   run(() => api.putProject(pid, {...p, status:"done", doneAt:Date.now(), progress:goalProgress(p)}), r => { S.quietXp = true; if (sp) syncProgress(p.parentId); rewardSheet({emoji:"🏆", title:sp ? "스테이지 완료!" : "메인 퀘스트 달성!", desc:esc(p.title), share:{ref:{type:"project_done", id:pid, label:p.title, sub:sp}, title:sp ? "🔗 스테이지<br>완료!" : "🏆 메인 퀘스트<br>달성!"}}); }); }
 /* 취소: 퀘스트(와 끝내지 않은 스테이지)는 '취소'로 보관, 끝내지 않은 미션은 정리. 끝낸 미션·스토리·수치 기록은 그대로 남는다. 보상 없음. */
@@ -1688,11 +1696,10 @@ function viewWebDash(){
     const nav = WEB.matches && list.length > 2 ? `<button class="wd-rnav" data-act="wdgs" data-v="-1" aria-label="이전 ${nm}">${I.back}</button><button class="wd-rnav fwd" data-act="wdgs" data-v="1" aria-label="다음 ${nm}">${I.back}</button>` : "";
     return `${nav ? `<div class="wd-ovnav">${nav}</div>` : ""}
       ${(() => { const addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 생성"><span class="wd-plus">+</span><b>${nm} 생성</b></button>`;
-        return `<div class="wd-ggrid hs">${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(?=<div class="metric">)|(?=<div class="pgmeta">)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; const subs = x.parentId ? [] : subsOf(x.id); return `<div class="wdbar"><span class="num">${x.parentId ? "" : `스테이지 ${subs.filter(y => y.status === "done").length}/${subs.length} · `}미션 ${pr.done}/${pr.total}</span></div>`; }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).join("")}${addc}</div>`; })()}`; };
+        return `<div class="wd-ggrid hs">${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(?=<div class="metric">)|(?=<div class="pgmeta">)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; const subs = x.parentId ? [] : subsOf(x.id); return `<div class="wdbar"><span class="num">${x.parentId ? "" : `스테이지 ${subs.filter(y => y.status === "done").length}/${subs.length} · `}미션 ${pr.done}/${pr.total}</span></div>`; }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).map((html, i) => ovLay(list[i], html)).join("")}${addc}</div>`; })()}`; };
   const goals = `${strip(gs, "메인 퀘스트", "big")}
 `;
-  const ov = overOf(uid);
-  let h = ov.length ? `<section class="card overlist"><div class="ch"><h2>기한이 지난 퀘스트</h2><span class="side num">${ov.length}</span></div>${ov.map(p => `<div class="ovrow"><button class="ovname" data-act="project" data-p="${p.id}"><b>${esc(p.title)}</b><small>${isProj(p) ? "스테이지" : "메인 퀘스트"} · ${dday(p.end)}</small></button><button class="btn soft xs" data-act="project" data-p="${p.id}">처리하기</button></div>`).join("")}</section>` : "";
+  let h = "";
   h += `<div class="wd-top"><div class="wd-pcol">${webProfCard(uid)}</div><div class="wd-goals">${goals}</div>
       ${dashChips()}<div class="wd-bot" data-pane="${S.dashPane || "mission"}"><div class="wd-sec dp-daily"><div class="wd-stack">${d}</div></div>
       <div class="wd-tl"><div class="wd-sec dp-mission"><div class="wd-merge wd-fix">${(() => { S._noToday = true; S._noTime = true; let tt; try{ tt = taskTab({noUp:true}); } finally { S._noToday = false; S._noTime = false; }
