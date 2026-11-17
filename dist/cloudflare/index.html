@@ -1410,6 +1410,8 @@ a.row{color:inherit;text-decoration:none}
 .qmgrid > .pgc .qcover,.plgrid.hsc > .pgc .qcover,.wd-ggrid > .pgc .qcover{margin-bottom:8px!important}
 .card.pgc.calq{padding-top:14px!important}
 @media (max-width:1023.98px){.wd-ggrid > .pgc.pgc{padding-top:14px!important}}
+.bdpage .bdgoq{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:14px;text-decoration:none}
+.wrseg{margin-bottom:12px}
 </style>
 <script>
 (function(){"use strict";
@@ -2561,7 +2563,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 function renderTop(){
   const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || v === "daily" || v === "write" || (v === "profile" && S.view.uid !== S.me);
-  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", daily:"일일 퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드", write:"스토리 쓰기"}[v] || (isMine() ? "프로필" : "");
+  const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", daily:"일일 퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드", write:S.wrMode === "dump" ? "브레인 덤프" : "스토리 쓰기"}[v] || (isMine() ? "프로필" : "");
   const n = activityItems().filter(x => x.at > actSeen).length + followReqs().length;
   setHtml($("#topbar"), `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : `<button class="iconbtn menubtn" data-act="drawer" aria-label="메뉴 열기" aria-expanded="${document.body.classList.contains("drawer")}">${MENU_SVG}</button>`}<h1${sub ? "" : ' class="tmain"'}>${title}</h1>
     ${S.me && !TRIAL && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
@@ -3350,7 +3352,7 @@ function bdGuide(d){
   if (k === "act") return q(1, steps.length, t, step(1), step(9));
   return q(i + 1, steps.length, t, ask(k), i === steps.length - 1 ? ask("drop") : step(i + 1));
 }
-const BD_ON = false; /* 브레인 덤프 숨김: 다시 켜려면 true */
+const BD_ON = true; /* 브레인 덤프: 퀘스트 화면 맨 위 · + 버튼에서도 입력 */
 function brainDump(){
   if (LS.get("bdOff", false)) return `<button class="bdshow" data-act="bd-area" data-v="on">${nic("inbox")}브레인 덤프 열기</button>`;
   const vis = mineOf("dump").sort((a,b) => (a.createdAt||0) - (b.createdAt||0)), MAX = 3, shown = S.bdAll ? vis : vis.slice(0, MAX);
@@ -3715,7 +3717,15 @@ function storyComposer(page = false){
     <div class="sact"><div class="sbtns"><button class="btn sec sm ibtn" data-act="qpick">${I.target}퀘스트</button><button class="btn sec sm ibtn" data-act="inphoto" ${ph.length >= MAX_IMGS ? "disabled" : ""}>${I.camera}사진</button></div><button class="btn sm" data-act="inpost" ${S.busy?"disabled":""}>공유하기</button></div></section>`;
 }
 /* 스토리 쓰기 페이지(하단 +): 프로필의 스토리 작성 박스와 같은 박스(같은 입력·퀘스트 연결·사진 상태를 함께 쓴다) */
-function viewWrite(){ return storyComposer(true); }
+/* + 버튼 페이지: 스토리 쓰기 / 브레인 덤프 */
+function viewWrite(){ const m = S.wrMode === "dump" ? "dump" : "story";
+  const seg = `<div class="seg wrseg" role="group" aria-label="쓰기 종류">${[["story","스토리"],["dump","브레인 덤프"]].map(([k,l]) => `<button data-act="wrmode" data-v="${k}" aria-pressed="${m === k}">${l}</button>`).join("")}</div>`;
+  if (m === "story") return seg + storyComposer(true);
+  const n = mineOf("dump").length;
+  return seg + `<section class="card bdump bdpage"><div class="ch"><h2>브레인 덤프</h2>${n ? `<span class="side num">${n}</span>` : ""}</div>
+    <p class="hint" style="margin:0 0 12px">판단하지 말고 떠오르는 대로 한 줄씩 적어요. 여러 줄을 붙여 넣으면 한 번에 여러 개가 담겨요.</p>
+    <div class="bdin"><input type="text" id="bd-in" maxlength="200" enterkeyhint="done" autocomplete="off" placeholder="판단 없이 떠오르는 대로 적기" value="${D("bd-in")}" aria-label="브레인 덤프"><button class="bdgo" data-act="bd-add" aria-label="털어 넣기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+    ${n ? `<a class="btn sec full bdgoq" href="#qmanage">퀘스트 화면에서 분류하기 <span class="num">${n}</span></a>` : ""}</section>`; }
 /* 커뮤니티 맨 위 한 줄 입구: 누르면 스토리 쓰기 페이지(+)로 */
 function storyEntry(){ const d = (S.drafts["ps-text"] || "").trim();
   return `<a class="card sentry" href="#write" aria-label="스토리 쓰기">${av(S.me, 36, false)}<span class="sentry-t${d ? " on" : ""}">${d ? esc(d.split("\n")[0]) : "오늘의 이야기를 들려주세요"}</span></a>`; }
@@ -4554,6 +4564,7 @@ document.addEventListener("click", e => {
     case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
     case "pl-mode": QM().mode = b.dataset.v; QM().sel = []; break;
     case "pl-tab": QM().ptab = b.dataset.v; break;
+    case "wrmode": S.wrMode = b.dataset.v === "dump" ? "dump" : "story"; render(); return;
     case "bd-add": { const el = $("#bd-in"); if (!bdAdd(el && el.value)){ toast("생각을 적어 주세요"); el && el.focus && el.focus(); } return; }
     case "bd-sort": openSheet({type:"bdsort", id}); return;
     case "bd-rm": if (!S.mine[id]) return; if (S.armed !== "bx"+id){ arm("bx"+id); toast("한 번 더 누르면 삭제돼요"); break; } S.armed = null; run(() => api.delMine(id), () => toast("삭제했어요")); return;
@@ -4612,7 +4623,8 @@ document.addEventListener("click", e => {
     case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); if (c && c.type === "bdsort") renderSheet(); break; } S.armed = null; run(() => api.delMine(id), () => { if (S.compose && S.compose.type === "bdsort") closeSheet(); toast("삭제했어요"); }); return;
     case "bd-send": bdSend(id, b.dataset.v); return;
     case "bd-ask": { const v = b.dataset.v, L = {big:"메인 퀘스트", task:"미션", daily:"일일 퀘스트", note:"자료실"}[v];
-      if (v === "drop") ask({t:"이 생각을 버릴게요", ok:"확인", safe:true}, () => bdDrop(id)); else ask({t:`${L}로 분류할게요`, ok:"확인", safe:true}, () => bdSend(id, v)); return; }
+      if (v === "drop") ask({t:"이 생각을 버릴게요", ok:"확인", safe:true}, () => bdDrop(id)); else { const c0 = L.charCodeAt(L.length - 1) - 0xAC00, jong = c0 >= 0 && c0 < 11172 ? c0 % 28 : 0; /* 받침 없거나 ㄹ이면 '로', 아니면 '으로' */
+        ask({t:`${L}${jong && jong !== 8 ? "으로" : "로"} 분류할게요`, ok:"확인", safe:true}, () => bdSend(id, v)); } return; }
     case "aset": { preserveSheetDrafts(); const a = (c.area || []).slice(), v = b.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else { if (a.length >= 2){ toast("영역은 2개까지 고를 수 있어요"); return; } a.push(v); } c.area = a; renderSheet(); return; }
     case "statsheet": go("stats"); return;
     case "areainfo": openSheet({type:"areainfo", k:b.dataset.v}); return;

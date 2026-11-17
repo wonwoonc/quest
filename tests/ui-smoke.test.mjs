@@ -338,7 +338,7 @@ test('taskadd sheet orders date/time, area, quest, difficulty and saves task are
   const task = Object.values(h.snapshot().mine).find(m => m.name === '영역 미션');
   assert.ok(task); assert.deepEqual(task.area,['health']);
 });
-test.skip('brain dump (UI hidden: BD_ON=false): pour lines in, inline guide, hide area, send one to task, delete one',async () => {
+test('brain dump: pour lines in, inline guide, hide area, send one to task, delete one',async () => {
   const h = await linkedUI(); h.route('qmanage');
   assert.ok(h.nodes.get('app').innerHTML.indexOf('브레인 덤프') < h.nodes.get('app').innerHTML.indexOf('pltabs'));
   h.nodes.set('bd-in',{value:'세탁소 들르기\n\n이상한 생각'}); h.click('bd-add'); await h.settle();
@@ -1485,4 +1485,12 @@ test('stage metric with the same unit also counts toward the main quest metric',
   const h=await profileUI(saved);h.click('project',{p:'m1'});const html=h.nodes.get('app').innerHTML;
   assert.match(html,/<b class="num">78<\/b><span>kg<\/span><small class="num">\/ 70kg<\/small><em class="num">20%<\/em>/);
   assert.doesNotMatch(html,/<b class="num">5,000<\/b><span>kg/);
+});
+
+test('plus page: switch to brain dump and add lines there',async()=>{
+  const h=await linkedUI(); h.route('write'); h.click('wrmode',{v:'dump'});
+  assert.match(h.nodes.get('app').innerHTML,/id="bd-in"/);
+  h.nodes.set('bd-in',{value:'우유 사기\n책 반납'}); h.click('bd-add'); await h.settle();
+  assert.equal(Object.values(h.snapshot().mine).filter(m=>m.kind==='dump').length,2);
+  h.click('wrmode',{v:'story'}); assert.match(h.nodes.get('app').innerHTML,/scomp page/);
 });
