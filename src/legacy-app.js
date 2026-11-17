@@ -889,9 +889,9 @@ function viewCal(){
     }
     h += `</div></div>`;
   } else if (mode === "month"){
-    const first = new Date(D0.getFullYear(), D0.getMonth(), 1), start = monStart(dk(first.getTime())), mo = D0.getMonth();
+    const first = new Date(D0.getFullYear(), D0.getMonth(), 1), start = addD(dk(first.getTime()), -first.getDay()), mo = D0.getMonth(); // 일요일부터
     const activities = dayActivityIndex();
-    h += `<section class="card mgrid mtask"><div class="wk">${["월","화","수","목","금","토","일"].map(w => `<span>${w}</span>`).join("")}</div><div class="days">`;
+    h += `<section class="card mgrid mtask"><div class="wk">${["일","월","화","수","목","금","토"].map(w => `<span>${w}</span>`).join("")}</div><div class="days">`;
     const monthHabits = habitView();
     for (let i = 0; i < 42; i++){ const d = addD(start, i), x = pd(d); if (i >= 35 && x.getMonth() !== mo) break; const l = byTime(by[d] || []); const hq = habitsOn(d), mh = monthHabits(d);
       const acts = selectDayActivities(activities,d), dailyIds = new Set(acts.daily.map(x => x.id));
@@ -902,7 +902,7 @@ function viewCal(){
     const y = D0.getFullYear();
     h += `<div class="ygrid">`;
     for (let mo = 0; mo < 12; mo++){ let n = 0, dn = 0; const days = new Date(y, mo+1, 0).getDate();
-      let cells = ""; const off = (new Date(y, mo, 1).getDay()+6)%7; for (let i = 0; i < off; i++) cells += `<i class="e"></i>`;
+      let cells = ""; const off = new Date(y, mo, 1).getDay(); for (let i = 0; i < off; i++) cells += `<i class="e"></i>`;
       for (let d = 1; d <= days; d++){ const ds = `${y}-${pad(mo+1)}-${pad(d)}`, c0 = cnt(ds); n += c0.n; dn += c0.done; cells += `<i class="${c0.n ? (c0.done === c0.n ? "l3" : c0.done ? "l2" : "l1") : ""} ${ds === t ? "t" : ""}">${d}</i>`; }
       h += `<div class="ymon ${mo === D0.getMonth() ? "ycur" : ""}" role="button" tabindex="0" data-act="cpick" data-v="${y}-${pad(mo+1)}-01" data-m="month"><b>${mo+1}월</b><small class="num">${n ? `${dn}/${n}` : ""}</small><span class="ymini">${cells}</span></div>`; }
     h += `</div>`;
