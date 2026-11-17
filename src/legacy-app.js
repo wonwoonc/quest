@@ -2388,8 +2388,9 @@ document.addEventListener("click", e => {
     case "block": { if (S.armed !== "bl"+u){ arm("bl"+u); if (S.compose) renderSheet(); return; } S.armed = null; const st = getSet(); if (S.compose && (S.compose.type === "pmenu" || S.compose.type === "umenu" || S.compose.type === "rmenu")) closeSheet();
       run(async () => { await api.putMine("settings", {kind:"settings", ...st, blocked:[...new Set([...st.blocked, u])]}); if (isFollowing(S.me, u)) await api.follow(u, false); }, () => toast(`${esc(nameOf(u))}님을 차단했어요`)); return; }
     case "umenu": openSheet({type:"umenu", u}); return;
-    case "ureport": case "preport": { closeSheet(); const done = () => toast("신고가 접수됐어요. 검토 후 조치할게요");
-      if (!community) return done(); community.report(a === "preport" ? "post" : "user", a === "preport" ? pid : u).then(done, e => toast(esc(e.message || "신고하지 못했어요. 잠시 후 다시 시도해 주세요."))); return; }
+    case "ureport": case "preport": { const send = () => { closeSheet(); const done = () => toast("신고가 접수됐어요. 검토 후 조치할게요");
+        if (!community) return done(); community.report(a === "preport" ? "post" : "user", a === "preport" ? pid : u).then(done, e => toast(esc(e.message || "신고하지 못했어요. 잠시 후 다시 시도해 주세요."))); };
+      if (a === "preport") ask({t:"이 스토리를 신고할까요?", d:"운영자가 내용을 확인하고, 운영 정책에 어긋나면 숨기는 등 조치해요. 신고한 사실은 상대에게 알리지 않아요.", ok:"신고하기"}, send); else send(); return; }
     case "reditreply": closeSheet(); delete S.drafts["re-text"]; openSheet({type:"replyedit", rid:b.dataset.c}); return;
     case "submit-replyedit": { const text = ($("#re-text").value||"").trim(); if (!text){ toast("답글을 적어 주세요"); return; } const rid = c.rid;
       if (!S.replies[rid] || S.replies[rid].text === text){ closeSheet(); return; }
@@ -2562,7 +2563,7 @@ document.addEventListener("click", e => {
     case "pmenu": e.stopPropagation(); openSheet({type:"pmenu", pid}); return;
     case "ptoggle-reply": { const p = S.feed[pid]; run(() => api.editPost(pid, {noReply:!p.noReply}), () => { closeSheet(); toast(p.noReply ? "답글 기능을 켰어요" : "답글 기능을 껐어요"); }); return; }
     case "ptoggle-likes": { const p = S.feed[pid]; run(() => api.editPost(pid, {hideLikes:!p.hideLikes}), () => { closeSheet(); toast(p.hideLikes ? "공감 수를 다시 보여줘요" : "공감 수를 숨겼어요"); }); return; }
-    case "phide": { const st = getSet(); run(() => api.putMine("settings", {kind:"settings", ...st, hidePosts:[...st.hidePosts, pid].slice(-500)}), () => { closeSheet(); toast("스토리를 숨겼어요"); if (S.view.name === "post") history.back(); }); return; }
+    case "phide": ask({t:"이 스토리를 숨길까요?", d:"커뮤니티와 프로필에서 이 스토리가 더 이상 보이지 않아요.", ok:"숨기기"}, () => { const st = getSet(); run(() => api.putMine("settings", {kind:"settings", ...st, hidePosts:[...st.hidePosts, pid].slice(-500)}), () => { closeSheet(); toast("스토리를 숨겼어요"); if (S.view.name === "post") history.back(); }); }); return;
     case "editpost": { e.stopPropagation(); const p = S.feed[pid]; if (!p) return; S.drafts["ep-text"] = p.text || ""; if (typeof p.value === "number") S.drafts["ep-val"] = String(p.value); else delete S.drafts["ep-val"]; openSheet({type:"postedit", pid}); return; }
     case "submit-postedit": { const p = S.feed[c.pid]; if (!p) return closeSheet(); const text = ($("#ep-text").value||"").trim(), patch = {text}, vEl = $("#ep-val");
       if (vEl){ const v = vEl.value.trim(); if (v){ const n = parseNum(v); if (n == null){ toast("숫자만 넣어 주세요"); return; } patch.value = n; } }
