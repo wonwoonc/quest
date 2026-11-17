@@ -832,7 +832,6 @@ function calendarDaySheet(date, asPage = false){
   body += sec("완료", doneItems.length, `<div class="dlist">${doneItems.join("")}</div>`);
   body += sec("못 한 미션", missed.length, `<div class="dlist">${missed.map(m => item("tedit", "id", m.id, m.name, "미션", " miss")).join("")}</div>`);
   body += sec("스토리", day.stories.length, `<div class="dlist">${day.stories.map(p => item("day-post", "p", p.id, p.text || p.ref?.label || "사진 스토리", "스토리", " story")).join("")}</div>`);
-  body += `<button class="btn sec full dsched" data-act="day-schedule" data-v="${esc(date)}">일별 일정 보기·추가</button>`;
   const unknown = [...index.unknown.tasks, ...index.unknown.main, ...index.unknown.sub];
   if (unknown.length) body += `<details class="day-unknown"><summary>날짜 미확인 · 전체 과거 완료 ${unknown.length}개</summary><p class="hint">완료 시각이 없어 이 날의 기록·완료 개수에 포함하지 않았어요.</p>${unknown.map(x => `<p>${esc(x.name || x.title)} · 날짜 미확인</p>`).join('')}</details>`;
   if (asPage) return body+'</div>';
