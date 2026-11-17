@@ -601,7 +601,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 @media (max-width:520px){.bdal{display:none}.bdact .btn.xs{padding:5px 9px}.bdqa .btn.xs{padding:6px 12px}}
 .sheet .bdact .bdal{display:block;width:100%;margin:6px 0 2px;font-size:13px}
 .bdshow{display:block;margin:0 auto;border:1px dashed var(--line);background:none;border-radius:14px;padding:10px 16px;font-weight:700;color:var(--muted);font-size:14px}
-.bdin{position:relative;margin-top:12px}.bdin input{width:100%;box-sizing:border-box;padding-right:52px}.bdgo{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:11px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center}.bdgo svg{width:20px;height:20px}
+.bdin{position:relative;margin-top:12px}.bdin input{width:100%;box-sizing:border-box;padding-top:8px;padding-bottom:8px;padding-right:48px}.bdgo{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:0;border-radius:11px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center}.bdgo svg{width:20px;height:20px}
 .bdlist{display:grid;margin-top:8px}.bdr{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--line)}.bdr:last-child{border-bottom:0}.bdr span{flex:1;min-width:0;font-size:15px;line-height:1.4;word-break:break-word}.bdr .btn{flex:none}.bdx{flex:none;width:32px;height:32px;border:0;background:none;border-radius:9px;color:var(--muted);display:grid;place-items:center;margin-left:-4px}.bdx svg{width:18px;height:18px}.bdx:hover{background:var(--fill);color:#D64545}.bdr .bdxa{flex:none;background:#D64545;color:#fff}
 .bdtext{margin:0 0 12px;font-size:17px;font-weight:700;line-height:1.4;word-break:break-word}
 .ntsend{display:grid;gap:10px}.ntsendo{display:grid;gap:4px;text-align:left;border:0;background:var(--fill);border-radius:14px;padding:16px 18px;color:var(--ink)}.ntsendo b{font-size:16px;display:flex;align-items:center;gap:8px}.ntsendo small{color:var(--muted);font-size:13px}.ntsendo.rec{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}.ntrec{font-size:11.5px;font-weight:700;color:var(--accent-ink);background:var(--accent);border-radius:6px;padding:1px 6px}
@@ -3733,7 +3733,6 @@ function viewWrite(){ const m = S.wrMode === "dump" ? "dump" : "story";
   if (m === "story") return seg + storyComposer(true);
   const n = mineOf("dump").length;
   return seg + `<section class="card bdump bdpage"><div class="ch"><h2>브레인 덤프</h2>${n ? `<span class="side num">${n}</span>` : ""}</div>
-    <p class="hint" style="margin:0 0 12px">판단하지 말고 떠오르는 대로 한 줄씩 적어요. 여러 줄을 붙여 넣으면 한 번에 여러 개가 담겨요.</p>
     <div class="bdin"><input type="text" id="bd-in" maxlength="200" enterkeyhint="done" autocomplete="off" placeholder="판단 없이 떠오르는 대로 적기" value="${D("bd-in")}" aria-label="브레인 덤프"><button class="bdgo" data-act="bd-add" aria-label="털어 넣기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
     ${n ? `<a class="btn sec full bdgoq" href="#qmanage">퀘스트 화면에서 분류하기 <span class="num">${n}</span></a>` : ""}</section>`; }
 /* 커뮤니티 맨 위 한 줄 입구: 누르면 스토리 쓰기 페이지(+)로 */

@@ -1632,7 +1632,6 @@ function viewWrite(){ const m = S.wrMode === "dump" ? "dump" : "story";
   if (m === "story") return seg + storyComposer(true);
   const n = mineOf("dump").length;
   return seg + `<section class="card bdump bdpage"><div class="ch"><h2>브레인 덤프</h2>${n ? `<span class="side num">${n}</span>` : ""}</div>
-    <p class="hint" style="margin:0 0 12px">판단하지 말고 떠오르는 대로 한 줄씩 적어요. 여러 줄을 붙여 넣으면 한 번에 여러 개가 담겨요.</p>
     <div class="bdin"><input type="text" id="bd-in" maxlength="200" enterkeyhint="done" autocomplete="off" placeholder="판단 없이 떠오르는 대로 적기" value="${D("bd-in")}" aria-label="브레인 덤프"><button class="bdgo" data-act="bd-add" aria-label="털어 넣기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
     ${n ? `<a class="btn sec full bdgoq" href="#qmanage">퀘스트 화면에서 분류하기 <span class="num">${n}</span></a>` : ""}</section>`; }
 /* 커뮤니티 맨 위 한 줄 입구: 누르면 스토리 쓰기 페이지(+)로 */
