@@ -923,7 +923,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .wgc.head{display:flex;align-items:baseline;justify-content:center;gap:4px;border-top:0;border-right:0;padding:10px 4px 8px;font-family:inherit;color:inherit;background:var(--card)}
 .wgc.head b{font-size:14px;font-weight:800}
 .wgc.head span{font-size:12px;color:var(--muted)}
-.wgc.head.sat b{color:#3D7BE0}.wgc.head.sun b{color:#E5484D}.calnav b.sat{color:#3D7BE0}.calnav b.sun{color:#E5484D}
+.wgc.head.sat b{color:#3D7BE0}.wgc.head.sun b{color:#E5484D}.calnav b .sat{color:#3D7BE0}.calnav b .sun{color:#E5484D}
 /* 주 보기 요일 줄 바탕(월 보기와 같은 민트). 스크롤해도 위에 붙어 있으므로 불투명하게 섞는다 */
 .wgc.corner,.wgc.head{background:color-mix(in srgb,var(--accent-soft) 100%,var(--card))!important}
 .wgc.head.is-today b{color:var(--accent)}
@@ -2817,8 +2817,8 @@ function viewCal(){
     // 다른 화면의 퀘스트 카드와 같은 정보 구성: 제목 · 상태/D-day · 수치 · 스테이지·미션 (표지는 뺀다)
     const meta = [`🔗 스테이지 ${subsOf(g.id).filter(y => y.status === "done").length}/${subsOf(g.id).length}`, `✅ 미션 ${pr.done}/${pr.total}`];
     h += `<section class="card pgc calq" data-act="project" data-p="${g.id}" role="button" tabindex="0"><h3>${esc(g.title)}</h3><div class="pgtop">${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}</div>${metricBox(g)}<div class="pgmeta">${meta.map(x => `<span>${x}</span>`).join("")}</div>${cgs.length > 1 ? `<div class="cpager"><button data-act="cgi" data-v="-1" ${gi ? "" : "disabled"} aria-label="이전 메인 퀘스트">${I.back}</button><span class="num">${gi + 1}/${cgs.length}</span><button class="fwd" data-act="cgi" data-v="1" ${gi < cgs.length - 1 ? "" : "disabled"} aria-label="다음 메인 퀘스트">${I.back}</button></div>` : ""}</section>`; }
-  const title = mode === "day" ? `${D0.getMonth()+1}월 ${D0.getDate()}일 ${WD[D0.getDay()]}요일` : mode === "week" ? (() => { const a = pd(sunStart(date)), b2 = pd(addD(sunStart(date), 6)); return `${a.getMonth()+1}.${a.getDate()} – ${b2.getMonth()+1}.${b2.getDate()}`; })() : mode === "month" ? `${D0.getFullYear()}년 ${D0.getMonth()+1}월` : `${D0.getFullYear()}년`;
-  h += `<div class="calnav"><button class="iconbtn" data-act="cstep" data-v="-1" aria-label="이전">${I.back}</button><b class="${mode === "day" ? (D0.getDay() === 6 ? "sat" : D0.getDay() === 0 ? "sun" : "") : ""}">${title}</b><button class="iconbtn fwd" data-act="cstep" data-v="1" aria-label="다음">${I.back}</button>${date !== t ? `<button class="btn sec xs" data-act="ctoday">오늘</button>` : ""}</div>`;
+  const title = mode === "day" ? `${D0.getMonth()+1}월 ${D0.getDate()}일 <span class="${D0.getDay() === 6 ? "sat" : D0.getDay() === 0 ? "sun" : ""}">${WD[D0.getDay()]}요일</span>` : mode === "week" ? (() => { const a = pd(sunStart(date)), b2 = pd(addD(sunStart(date), 6)); return `${a.getMonth()+1}.${a.getDate()} – ${b2.getMonth()+1}.${b2.getDate()}`; })() : mode === "month" ? `${D0.getFullYear()}년 ${D0.getMonth()+1}월` : `${D0.getFullYear()}년`;
+  h += `<div class="calnav"><button class="iconbtn" data-act="cstep" data-v="-1" aria-label="이전">${I.back}</button><b>${title}</b><button class="iconbtn fwd" data-act="cstep" data-v="1" aria-label="다음">${I.back}</button>${date !== t ? `<button class="btn sec xs" data-act="ctoday">오늘</button>` : ""}</div>`;
   const calTaskRow = m => taskRow(m, true, false, {showTime:false, showDate:false});
   const addBtn = d => `<button class="morebtn add" data-act="taskadd" data-d="${d}">+ 미션 추가</button>`;
   const byTime = l => l.slice().sort((a,b) => (a.time||"99") < (b.time||"99") ? -1 : (a.time||"99") > (b.time||"99") ? 1 : a.done - b.done);
