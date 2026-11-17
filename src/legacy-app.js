@@ -1943,7 +1943,7 @@ function planPop(c){
     ${cands.length ? `<small class="ppsub">내 일일 퀘스트 뒤에 붙이기</small><div class="pplist">${cands.map(q => `<button class="row rpitem" data-act="aftq" data-v="${q.id}" aria-pressed="${c.afterId === q.id}"><span class="t"><b>${esc(q.name)}</b></span>${c.afterId === q.id ? `<span class="pick">✓</span>` : ""}</button>`).join("")}</div>` : ""}
     <div class="ppbtns">${(after ? afterLabel(c) : c.place) ? `<button class="btn ghost" data-act="ppclr">지우기</button>` : ""}<button class="btn primary" data-act="ppok">확인</button></div>`);
 }
-const evSwitch = c => c.evOK ? `<button class="evsw" data-act="ev-sw" role="switch" aria-checked="${!c.ev}"><span><b>미션으로 만들기</b><small>체크해서 완료하는 미션으로 저장해요</small></span><i class="tg" aria-hidden="true"></i></button>` : "";
+const evSwitch = c => c.evOK ? `<div class="chips evtype" role="group" aria-label="종류">${[["ev","일정"],["ms","미션"]].map(([v,l]) => `<button class="chip" data-act="ev-type" data-v="${v}" aria-pressed="${(v === "ev") === !!c.ev}">${l}</button>`).join("")}</div>` : "";
 const keepEvFields = c => { const p = $("#ev-place"), n = $("#ev-note"); if (p) c.place = p.value; if (n) c.note = n.value; };
 function planField(c, daily){
   const after = afterLabel(c);
@@ -2520,7 +2520,7 @@ document.addEventListener("click", e => {
       if (!name){ toast("미션 이름을 적어 주세요"); $("#ta-name").focus(); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } const pj = c.projectId || null;
       run(() => api.putMine(uid8(), {kind:"mission", name, ...readPlan(c, false), lv:c.lv||"normal", area:(c.area||[]).slice(0,2), due:c.due||"", time:c.due ? (c.time||"") : "", period:"", today:false, projectId:pj, ...(c.noteId ? {noteId:c.noteId} : {}), done:false, createdAt:Date.now()}).then(r => c.eid && S.mine[c.eid] ? api.delMine(c.eid).then(() => r) : r), () => { delete S.drafts["ta-name"]; closeSheet(); dumpDone(c); toast(c.eid ? "미션으로 바꿨어요" : "✅ 미션을 추가했어요"); if (pj) syncProgress(pj); }); return; }
     case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
-    case "ev-sw": preserveSheetDrafts(); keepEvFields(c); c.ev = !c.ev; if (!c.ev && !c.time) c.time = "09:00"; renderSheet(); return;
+    case "ev-type": { const ev = b.dataset.v === "ev"; if (ev === !!c.ev) return; preserveSheetDrafts(); keepEvFields(c); c.ev = ev; if (!c.ev && !c.time) c.time = "09:00"; renderSheet(); return; }
     case "ev-dur": preserveSheetDrafts(); keepEvFields(c); c.dur = +b.dataset.v; renderSheet(); return;
     case "evtoday": S.cal = {mode:"day", date:today()}; go("cal"); return;
     case "ev-allday": preserveSheetDrafts(); keepEvFields(c); c.time = ""; c._tw = false; renderSheet(); return;

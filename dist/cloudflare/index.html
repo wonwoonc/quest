@@ -1447,10 +1447,7 @@ a.row{color:inherit;text-decoration:none}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .evb,:root:not([data-theme="light"]) .wti.wev,:root:not([data-theme="light"]) .mtask .days i.ev{background:rgba(61,123,224,.18)}:root:not([data-theme="light"]) .evb b,:root:not([data-theme="light"]) .wti.wev .wtx span,:root:not([data-theme="light"]) .mtask .days i.ev .mtx span{color:#AFC8F5}:root:not([data-theme="light"]) .evb small{color:#8EA6D3}}
 :root[data-theme="dark"] .evb,:root[data-theme="dark"] .wti.wev,:root[data-theme="dark"] .mtask .days i.ev{background:rgba(61,123,224,.18)}:root[data-theme="dark"] .evb b,:root[data-theme="dark"] .wti.wev .wtx span,:root[data-theme="dark"] .mtask .days i.ev .mtx span{color:#AFC8F5}:root[data-theme="dark"] .evb small{color:#8EA6D3}:root[data-theme="dark"] .evtoday .evi{background:rgba(61,123,224,.2);color:#8EB3F0}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .evtoday .evi{background:rgba(61,123,224,.2);color:#8EB3F0}}
-.evsw{display:flex;align-items:center;gap:12px;width:100%;border:0;border-radius:14px;background:var(--fill);padding:12px 14px;text-align:left;font:inherit;color:inherit;cursor:pointer;margin:2px 0 10px}
-.evsw span{flex:1;display:grid;gap:2px}.evsw b{font-size:14.5px}.evsw small{font-size:12px;color:var(--muted)}
-.evsw .tg{width:44px;height:26px;border-radius:26px;background:#C9D0CC;position:relative;flex:none;transition:background .15s}.evsw .tg:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
-.evsw[aria-checked="true"] .tg{background:var(--accent)}.evsw[aria-checked="true"] .tg:after{left:21px}
+.evtype{margin:0 0 12px}.evtype .chip{flex:1;justify-content:center;padding:9px 0;font-weight:700}
 .evdur{margin:-2px 0 6px}.evrange{margin:0 0 8px;font-size:13px;color:#3D7BE0;font-weight:700}.evmore{margin:0 0 10px}.evdelb{margin-top:8px}
 .evtoday{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;border:0;border-radius:16px;background:var(--card);padding:12px 14px;font:inherit;color:inherit;text-align:left;cursor:pointer;margin:0 0 12px}
 .evtoday .evi{width:26px;height:26px;border-radius:8px;background:#E8EEFB;color:#3D7BE0;display:grid;place-items:center;flex:none}.evtoday .evi svg{width:15px;height:15px}
@@ -4082,7 +4079,7 @@ function planPop(c){
     ${cands.length ? `<small class="ppsub">내 일일 퀘스트 뒤에 붙이기</small><div class="pplist">${cands.map(q => `<button class="row rpitem" data-act="aftq" data-v="${q.id}" aria-pressed="${c.afterId === q.id}"><span class="t"><b>${esc(q.name)}</b></span>${c.afterId === q.id ? `<span class="pick">✓</span>` : ""}</button>`).join("")}</div>` : ""}
     <div class="ppbtns">${(after ? afterLabel(c) : c.place) ? `<button class="btn ghost" data-act="ppclr">지우기</button>` : ""}<button class="btn primary" data-act="ppok">확인</button></div>`);
 }
-const evSwitch = c => c.evOK ? `<button class="evsw" data-act="ev-sw" role="switch" aria-checked="${!c.ev}"><span><b>미션으로 만들기</b><small>체크해서 완료하는 미션으로 저장해요</small></span><i class="tg" aria-hidden="true"></i></button>` : "";
+const evSwitch = c => c.evOK ? `<div class="chips evtype" role="group" aria-label="종류">${[["ev","일정"],["ms","미션"]].map(([v,l]) => `<button class="chip" data-act="ev-type" data-v="${v}" aria-pressed="${(v === "ev") === !!c.ev}">${l}</button>`).join("")}</div>` : "";
 const keepEvFields = c => { const p = $("#ev-place"), n = $("#ev-note"); if (p) c.place = p.value; if (n) c.note = n.value; };
 function planField(c, daily){
   const after = afterLabel(c);
@@ -4659,7 +4656,7 @@ document.addEventListener("click", e => {
       if (!name){ toast("미션 이름을 적어 주세요"); $("#ta-name").focus(); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } const pj = c.projectId || null;
       run(() => api.putMine(uid8(), {kind:"mission", name, ...readPlan(c, false), lv:c.lv||"normal", area:(c.area||[]).slice(0,2), due:c.due||"", time:c.due ? (c.time||"") : "", period:"", today:false, projectId:pj, ...(c.noteId ? {noteId:c.noteId} : {}), done:false, createdAt:Date.now()}).then(r => c.eid && S.mine[c.eid] ? api.delMine(c.eid).then(() => r) : r), () => { delete S.drafts["ta-name"]; closeSheet(); dumpDone(c); toast(c.eid ? "미션으로 바꿨어요" : "✅ 미션을 추가했어요"); if (pj) syncProgress(pj); }); return; }
     case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
-    case "ev-sw": preserveSheetDrafts(); keepEvFields(c); c.ev = !c.ev; if (!c.ev && !c.time) c.time = "09:00"; renderSheet(); return;
+    case "ev-type": { const ev = b.dataset.v === "ev"; if (ev === !!c.ev) return; preserveSheetDrafts(); keepEvFields(c); c.ev = ev; if (!c.ev && !c.time) c.time = "09:00"; renderSheet(); return; }
     case "ev-dur": preserveSheetDrafts(); keepEvFields(c); c.dur = +b.dataset.v; renderSheet(); return;
     case "evtoday": S.cal = {mode:"day", date:today()}; go("cal"); return;
     case "ev-allday": preserveSheetDrafts(); keepEvFields(c); c.time = ""; c._tw = false; renderSheet(); return;
