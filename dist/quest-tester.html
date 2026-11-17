@@ -2410,7 +2410,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
       const row = tls.querySelector(`[data-h="${Math.max(1, target - 5)}"]`) || tls.querySelector(`[data-h="${target}"]`); tls.scrollTop = row ? Math.max(0, row.offsetTop) : 0; S.tlKey = key; S.tlTop = tls.scrollTop; }
     tls.onscroll = () => { S.tlKey = key; S.tlTop = tls.scrollTop; }; }
   const ycur = document.querySelector(".ymon.ycur");
-  if (ycur && S.yCenter){ S.yCenter = false; requestAnimationFrame(() => { const r0 = ycur.getBoundingClientRect(), nav = document.querySelector(".nav"), nh = nav ? nav.offsetHeight : 0; window.scrollTo(0, Math.max(0, r0.top + window.scrollY - (window.innerHeight - nh - r0.height) / 2)); }); }
+  if (ycur && S.yCenter){ S.yCenter = false; requestAnimationFrame(() => window.scrollTo(0, 0)); } // 연 보기는 맨 위(1월)부터
   let announced = false;
   if (S.me && S.lastXp != null){
     const acts = activityItems(); if (S.notifiedAt == null) S.notifiedAt = Date.now();
