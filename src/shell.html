@@ -1074,6 +1074,14 @@ body.reo-lock{touch-action:none;overscroll-behavior:none}
 .wdp-lv{margin:0 0 2px;font-size:13px;color:var(--muted)}
 .wdp .bio{margin-top:2px;font-size:13px}
 .wdp .counts{margin-top:6px;padding:4px 0;background:color-mix(in srgb,var(--card) 70%,transparent)}
+/* PC 대시보드: 프로필 카드·퀘스트 카드 아래 정보 영역을 촘촘하게 */
+@media (min-width:1024px){
+  .wd-pcol > .wdp{gap:2px;padding-bottom:12px}
+  .wd-pcol > .wdp .wdp-cv{margin-bottom:5px}
+  .wd-pcol > .wdp .counts{margin-top:4px;padding:2px 0}
+  .wd-goals .wd-ggrid > .pgc{gap:5px;padding-bottom:12px}
+  .wd-goals .wd-ggrid > .pgc .msim{margin-top:2px}
+}
 .wdp .bar{background:color-mix(in srgb,var(--card) 70%,transparent)}
 .wdp .editp{background:color-mix(in srgb,var(--card) 70%,transparent)}
 .lvup .lvup-msg{margin:0 0 12px;font-size:14px;color:var(--sub)}
