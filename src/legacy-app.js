@@ -438,8 +438,9 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   if (wgs){ const key = "w" + wgs.dataset.d;
     if (S.wgKey === key && S.wgTop != null){ wgs.scrollTop = S.wgTop; wgs.scrollLeft = S.wgLeft || 0; }
     else { const nowH = new Date().getHours() || 24, hasToday = !!wgs.querySelector(".head.is-today"), target = hasToday ? nowH : (+wgs.dataset.first || 9);
-      const lab = wgs.querySelector(`.tlab[data-h="${target}"]`), head = wgs.querySelector(".head"), hh = head ? head.offsetHeight : 0;
-      if (lab) wgs.scrollTop = Math.max(0, lab.offsetTop - hh - (wgs.clientHeight - hh - lab.offsetHeight) / 2);
+      // 12시간이 칸에 딱 맞게 보이도록, 기준 시각이 6번째 줄이 되게 시간 경계에 맞춘다
+      const head = wgs.querySelector(".head"), hh = head ? head.offsetHeight : 0, lab = wgs.querySelector(`.tlab[data-h="${Math.max(1, target - 5)}"]`) || wgs.querySelector(`.tlab[data-h="${target}"]`);
+      if (lab) wgs.scrollTop = Math.max(0, lab.offsetTop - hh);
       const th = wgs.querySelector(".head.is-today"), labW = 52;
       wgs.scrollLeft = th ? Math.max(0, th.offsetLeft - labW - (wgs.clientWidth - labW - th.offsetWidth) / 2) : 0;
       S.wgKey = key; S.wgTop = wgs.scrollTop; S.wgLeft = wgs.scrollLeft; }
@@ -448,7 +449,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   if (tls){ const key = tls.dataset.d;
     if (S.tlKey === key && S.tlTop != null) tls.scrollTop = S.tlTop;
     else { const nowH = new Date().getHours() || 24, target = tls.dataset.d === today() ? nowH : (+tls.dataset.first || 9);
-      const row = tls.querySelector(`[data-h="${target}"]`); tls.scrollTop = row ? Math.max(0, row.offsetTop - (tls.clientHeight - row.offsetHeight) / 2) : 0; S.tlKey = key; S.tlTop = tls.scrollTop; }
+      const row = tls.querySelector(`[data-h="${Math.max(1, target - 5)}"]`) || tls.querySelector(`[data-h="${target}"]`); tls.scrollTop = row ? Math.max(0, row.offsetTop) : 0; S.tlKey = key; S.tlTop = tls.scrollTop; }
     tls.onscroll = () => { S.tlKey = key; S.tlTop = tls.scrollTop; }; }
   const ycur = document.querySelector(".ymon.ycur");
   if (ycur && S.yCenter){ S.yCenter = false; requestAnimationFrame(() => { const r0 = ycur.getBoundingClientRect(), nav = document.querySelector(".nav"), nh = nav ? nav.offsetHeight : 0; window.scrollTo(0, Math.max(0, r0.top + window.scrollY - (window.innerHeight - nh - r0.height) / 2)); }); }

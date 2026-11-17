@@ -832,8 +832,8 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .twband{position:absolute;left:12px;right:12px;top:72px;height:36px;border-radius:10px;background:var(--card)}
 .tw-ok{position:absolute;left:12px;right:12px;bottom:8px;height:32px;border:0;border-radius:10px;background:var(--accent-soft);color:var(--accent);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .tl{padding-top:6px}
-.tlscroll{height:348px;overflow-y:auto;overscroll-behavior:contain;position:relative} /* 한 번에 12시간(12칸 × 29px) */
-.tlscroll .tlrow{min-height:29px}
+.tlscroll{height:444px;overflow-y:auto;overscroll-behavior:contain;position:relative} /* 한 번에 12시간(12칸 × 37px) */
+.tlscroll .tlrow{min-height:37px}
 .tlscroll,.wgrid{scrollbar-color:color-mix(in srgb,var(--muted) 35%,var(--card)) var(--card);scrollbar-width:thin}
 .tlscroll::-webkit-scrollbar,.wgrid::-webkit-scrollbar{width:8px;height:8px;background:var(--card)}
 .tlscroll::-webkit-scrollbar-track,.wgrid::-webkit-scrollbar-track{background:var(--card)}
@@ -841,19 +841,19 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .tlscroll::-webkit-scrollbar-corner,.wgrid::-webkit-scrollbar-corner{background:var(--card)}
 .tlscroll .tlrow:first-child{border-top:0}
 .tlrow.allday:first-child{border-top:0}
-.tl .tlc .row{padding:0 16px 0 4px;gap:10px;min-height:28px}
+.tl .tlc .row{padding:0 16px 0 4px;gap:10px;min-height:36px}
 .tl .tlc .row .check{width:22px;height:22px;border-width:1.8px}
 .tl .tlc .row .check svg{width:13px;height:13px}
 .tl .tlc .row .t b{font-size:14.5px}
 .tl .tlc .row .t small{display:none}
 .tl .tlc .row .t small.task-meta{display:flex}
-.tlrow{display:flex;gap:8px;border-top:1px solid var(--line);min-height:28px}
+.tlrow{display:flex;gap:8px;border-top:1px solid var(--line);min-height:36px}
 .tlrow:first-child{border-top:0}
-.tlh{flex:none;width:60px;padding:6px 0 0 16px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.tlh{flex:none;width:60px;padding:9px 0 0 16px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
 .tlrow.now .tlh{color:var(--accent);font-weight:800}
 .tlc{flex:1;min-width:0}
 .tlc .row{padding-left:4px}
-.tlempty{display:block;width:100%;height:28px;border:0;background:none;cursor:pointer}
+.tlempty{display:block;width:100%;height:36px;border:0;background:none;cursor:pointer}
 .tlempty:hover{background:var(--fill)}
 .wti{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:0;background:var(--fill);border-radius:10px;padding:6px 8px;text-align:left;font-family:inherit;color:var(--ink)}
 .wti em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--accent)}
@@ -862,15 +862,15 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .mtask{padding:10px 6px}
 .mtask .days{gap:0}
 /* 월 달력 요일 줄: 바탕색, 굵은 글자, 토요일 파랑 · 일요일 빨강 */
-.mtask .wk{background:var(--fill);border-radius:10px;margin-bottom:4px}
-.mtask .wk span{font-size:13px;font-weight:800;color:var(--sub);padding:7px 0}
+.mtask .wk{background:var(--accent-soft);border-radius:var(--r) var(--r) 0 0;margin:-10px -6px 0;padding:0 6px}
+.mtask .wk span{font-size:13px;font-weight:800;color:var(--sub);padding:10px 0 9px}
 .mtask .wk span:nth-child(6){color:#3D7BE0}
 .mtask .wk span:nth-child(7){color:#E5484D}
 /* 월 달력: 날짜 칸 사이에 옅은 구분선 */
 .mtask .days > .mcell{border-radius:0;border-top:1px solid color-mix(in srgb,var(--line) 45%,transparent)}
 .mtask .days > .mcell:not(:nth-child(7n)){border-right:1px solid color-mix(in srgb,var(--line) 45%,transparent)}
 .mcell{border:0;background:none;min-height:78px;display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:3px 2px;border-radius:8px;color:var(--ink);font-family:inherit;min-width:0;text-align:left}
-.mcell .mn{font-size:12px;font-weight:700;text-align:center;margin-bottom:1px}
+.mcell .mn{font-size:14px;font-weight:700;text-align:center;margin-bottom:1px}
 .mcell button.mn{border:0;background:none;color:inherit;font-family:inherit;min-height:30px;cursor:pointer;position:relative}
 .mcell .activity-count{font-size:9px;color:var(--accent);margin-left:3px;text-decoration:none}
 .mcell button.mn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
@@ -908,27 +908,27 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .journal-content{white-space:pre-wrap;overflow-wrap:anywhere}
 .mcell.out{opacity:.35}
 .mcell.is-today .mn{color:#fff;background:var(--accent);border-radius:999px;align-self:center;padding:0 6px}
-.mcell i{font-style:normal;font-size:9.5px;line-height:1.3;background:var(--accent-soft);color:var(--accent);border-radius:4px;padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.mcell i{font-style:normal;font-size:10.5px;line-height:1.3;background:var(--accent-soft);color:var(--accent);border-radius:4px;padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
 .mcell i.done{background:var(--fill);color:var(--muted);text-decoration:line-through}
 .mcell i.late{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
 .mcell i.more{background:none;color:var(--muted)}
 .mcell i.hab{background:color-mix(in srgb,var(--xp) 14%,var(--card));color:color-mix(in srgb,var(--xp) 70%,var(--ink))}
 .mcell i.hab.done{background:var(--fill);color:var(--muted);text-decoration:line-through}
 .mcell i.hab .mchk:disabled{cursor:default}
-.wgrid{height:346px;overflow:auto;overscroll-behavior:contain;background:var(--card);border-radius:20px;position:relative}
+.wgrid{height:calc(38px + 12 * 39px);overflow:auto;overscroll-behavior:contain;background:var(--card);border-radius:20px;position:relative}
 .wg{display:grid;grid-template-columns:52px repeat(7,calc((min(100vw - 32px, 540px) - 52px)/3));position:relative;width:max-content}
-.wgc{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 55%,transparent);min-height:30px;min-width:0}
+.wgc{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 55%,transparent);min-height:38px;min-width:0}
 .wgc.corner,.wgc.head{position:sticky;top:0;z-index:2;background:var(--card);min-height:0}
 .wgc.corner{left:0;z-index:3;border-left:0}
 .wgc.head{display:flex;align-items:baseline;justify-content:center;gap:4px;border-top:0;border-right:0;padding:10px 4px 8px;font-family:inherit;color:inherit;background:var(--card)}
 .wgc.head b{font-size:14px;font-weight:800}
 .wgc.head span{font-size:12px;color:var(--muted)}
 .wgc.head.is-today b{color:var(--accent)}
-.wgc.tlab{position:sticky;left:0;z-index:1;background:var(--card);border-left:0;font-size:12px;font-weight:600;color:var(--muted);padding:3px 0 0 10px;white-space:nowrap}
+.wgc.tlab{position:sticky;left:0;z-index:1;background:var(--card);border-left:0;font-size:12px;font-weight:600;color:var(--muted);padding:5px 0 0 10px;white-space:nowrap}
 .wgc.tlab.now{color:var(--accent);font-weight:800}
 .wgc.cell{padding:2px;display:flex;flex-direction:column;gap:3px}
 .wgc.cell.is-today{background:color-mix(in srgb,var(--accent) 5%,transparent)}
-.wgc.cell .tlempty{height:100%;min-height:22px}
+.wgc.cell .tlempty{height:100%;min-height:30px}
 .wgc .wti{padding:4px 6px;border-radius:8px}
 .wgc .wti span{font-size:12px}
 .wti.wck{flex-direction:row;align-items:flex-start;gap:5px;cursor:pointer}
@@ -1286,9 +1286,9 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
   .replybar{left:244px;bottom:0;padding-left:40px;padding-right:40px}
   .rbbox{max-width:860px}
   .rgrid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
-  .tlscroll{height:348px}
+  .tlscroll{height:444px}
   .wg{grid-template-columns:56px repeat(7,minmax(120px,1fr));width:100%}
-  .wgrid{height:min(62vh,680px)}
+  .wgrid{height:calc(38px + 12 * 39px)}
   .mcell{min-height:112px}
   .ygrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 
@@ -2520,8 +2520,9 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   if (wgs){ const key = "w" + wgs.dataset.d;
     if (S.wgKey === key && S.wgTop != null){ wgs.scrollTop = S.wgTop; wgs.scrollLeft = S.wgLeft || 0; }
     else { const nowH = new Date().getHours() || 24, hasToday = !!wgs.querySelector(".head.is-today"), target = hasToday ? nowH : (+wgs.dataset.first || 9);
-      const lab = wgs.querySelector(`.tlab[data-h="${target}"]`), head = wgs.querySelector(".head"), hh = head ? head.offsetHeight : 0;
-      if (lab) wgs.scrollTop = Math.max(0, lab.offsetTop - hh - (wgs.clientHeight - hh - lab.offsetHeight) / 2);
+      // 12시간이 칸에 딱 맞게 보이도록, 기준 시각이 6번째 줄이 되게 시간 경계에 맞춘다
+      const head = wgs.querySelector(".head"), hh = head ? head.offsetHeight : 0, lab = wgs.querySelector(`.tlab[data-h="${Math.max(1, target - 5)}"]`) || wgs.querySelector(`.tlab[data-h="${target}"]`);
+      if (lab) wgs.scrollTop = Math.max(0, lab.offsetTop - hh);
       const th = wgs.querySelector(".head.is-today"), labW = 52;
       wgs.scrollLeft = th ? Math.max(0, th.offsetLeft - labW - (wgs.clientWidth - labW - th.offsetWidth) / 2) : 0;
       S.wgKey = key; S.wgTop = wgs.scrollTop; S.wgLeft = wgs.scrollLeft; }
@@ -2530,7 +2531,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   if (tls){ const key = tls.dataset.d;
     if (S.tlKey === key && S.tlTop != null) tls.scrollTop = S.tlTop;
     else { const nowH = new Date().getHours() || 24, target = tls.dataset.d === today() ? nowH : (+tls.dataset.first || 9);
-      const row = tls.querySelector(`[data-h="${target}"]`); tls.scrollTop = row ? Math.max(0, row.offsetTop - (tls.clientHeight - row.offsetHeight) / 2) : 0; S.tlKey = key; S.tlTop = tls.scrollTop; }
+      const row = tls.querySelector(`[data-h="${Math.max(1, target - 5)}"]`) || tls.querySelector(`[data-h="${target}"]`); tls.scrollTop = row ? Math.max(0, row.offsetTop) : 0; S.tlKey = key; S.tlTop = tls.scrollTop; }
     tls.onscroll = () => { S.tlKey = key; S.tlTop = tls.scrollTop; }; }
   const ycur = document.querySelector(".ymon.ycur");
   if (ycur && S.yCenter){ S.yCenter = false; requestAnimationFrame(() => { const r0 = ycur.getBoundingClientRect(), nav = document.querySelector(".nav"), nh = nav ? nav.offsetHeight : 0; window.scrollTo(0, Math.max(0, r0.top + window.scrollY - (window.innerHeight - nh - r0.height) / 2)); }); }
