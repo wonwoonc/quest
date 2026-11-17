@@ -1497,3 +1497,22 @@ test('plus page: switch to brain dump and add lines there',async()=>{
   assert.equal(Object.values(h.snapshot().mine).filter(m=>m.kind==='dump').length,2);
   h.click('wrmode',{v:'story'}); assert.match(h.nodes.get('app').innerHTML,/scomp page/);
 });
+
+test('overdue quest: dashboard notice, extend, cancel (archive), restore, done',async()=>{
+  const base=await profileUI(), saved=base.snapshot();
+  saved.projects={m:{id:'m',owner:'me',title:'지난 메인',status:'active',end:'2000-01-01'},s:{id:'s',owner:'me',parentId:'m',title:'지난 스테이지',status:'active',end:'2000-01-01'},ok:{id:'ok',owner:'me',title:'남은 메인',status:'active',end:'2099-12-31'}};
+  saved.mine={...saved.mine,mo:{id:'mo',kind:'mission',name:'남은 미션',projectId:'s',done:false,createdAt:1},md:{id:'md',kind:'mission',name:'끝낸 미션',projectId:'m',done:true,doneAt:2,createdAt:2}};
+  const h=await profileUI(saved); h.route('dash'); const app=()=>h.nodes.get('app').innerHTML, ov=()=>h.nodes.get('overlay').innerHTML;
+  assert.match(app(),/기한이 지난 퀘스트/); assert.match(app(),/지난 메인/); assert.match(app(),/지난 스테이지/); assert.doesNotMatch(app(),/class="ovname"[^>]*data-p="ok"/);
+  h.click('project',{p:'s'}); assert.match(app(),/기한이 지났어요/);
+  h.click('pdue',{p:'s'}); assert.match(ov(),/기한 연장/); h.click('pext-q',{v:'30'}); h.click('pext-go'); await h.settle();
+  assert.ok(h.snapshot().projects.s.end>'2000-01-01'); assert.doesNotMatch(app(),/기한이 지났어요/);
+  h.click('project',{p:'m'}); assert.match(app(),/기한이 지났어요/);
+  h.click('pcancel',{p:'m'}); assert.match(ov(),/취소할까요/); assert.match(ov(),/스테이지 1개도 함께 취소/); assert.match(ov(),/미션 1개는 삭제/);
+  h.click('cfok'); await h.settle(); const sn=h.snapshot();
+  assert.equal(sn.projects.m.status,'cancel'); assert.equal(sn.projects.s.status,'cancel'); assert.ok(!sn.mine.mo); assert.ok(sn.mine.md);
+  h.route('qmanage'); assert.doesNotMatch(app(),/지난 메인/); h.click('pl-tab',{v:'done'}); assert.match(app(),/취소 <span class="num">1<\/span>/); assert.match(app(),/st cx/);
+  h.click('project',{p:'m'}); assert.match(app(),/취소한 메인 퀘스트예요/); h.click('prestore',{p:'m'}); await h.settle();
+  assert.equal(h.snapshot().projects.m.status,'active'); assert.match(app(),/기한이 지났어요/);
+  h.click('pdone2',{p:'m'}); h.click('cfok'); await h.settle(); assert.equal(h.snapshot().projects.m.status,'done');
+});

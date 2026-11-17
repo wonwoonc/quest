@@ -1,4 +1,17 @@
-<!doctype html><html lang="ko"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="script-src-attr 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="ko"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="script-src-attr 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+/* D-day 지난 퀘스트: 연장 / 달성 / 취소 */
+.card.overdue{display:grid;gap:8px;border:1.5px solid color-mix(in srgb,#E5484D 35%,var(--line));padding:14px 16px}
+.overdue .ovt{display:flex;align-items:baseline;gap:8px}.overdue .ovt b{font-size:16px;font-weight:800}.overdue .ovt span{margin-left:auto;font-size:13px;color:var(--sub)}
+.overdue .ovd{margin:0;font-size:14px;color:var(--sub)}
+.overlist .ovrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.overlist .ovrow:first-of-type{border-top:0}
+.overlist .ovname{flex:1;min-width:0;display:grid;gap:2px;text-align:left;border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer}
+.overlist .ovname b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.overlist .ovname small{font-size:12.5px;color:var(--muted)}
+.st.cx{background:var(--fill);color:var(--muted)}
+.pgc:has(.st.cx){opacity:.72}
+.trophyline.cxline{color:var(--muted)}
+.pextq{margin-bottom:12px}
+</style></head><body>
 <title>퀘스트</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
