@@ -1252,8 +1252,8 @@ const BD_KINDS = [["big","메인"],["sub","스테이지"],["task","미션"],["da
 const BD_GUIDE = [["act","실행해야 하는 일인가요?"],["big","몇 주 이상 걸리는 목표인가요?"],["task","한 번 하면 끝나나요?"],["daily","꾸준히 반복해야 하나요?"]];
 function bdGuide(d){
   const steps = BD_GUIDE, st = (S.bdStep || {})[d.id] || 0, yn = (yes, no) => `<button class="btn xs" ${yes}>예</button><button class="btn sec xs" ${no}>아니요</button>`,
-    back = st ? `<button class="bdback" data-act="bd-step" data-id="${d.id}" data-v="${st === 9 ? 0 : st - 1}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>이전</button>` : "",
-    q = (n, of, t, yes, no) => `<div class="bdq"><span class="bdqn num">${n}/${of}</span><div class="bdqt"><b>${t}</b></div><div class="bdqa">${back}${yn(yes, no)}</div></div>`,
+    prev = st === 9 ? 0 : st - 1,
+    q = (n, of, t, yes, no) => `<div class="bdq">${st ? `<button class="bdqn bdback num" data-act="bd-step" data-id="${d.id}" data-v="${prev}" aria-label="이전 질문"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>${n}/${of}</button>` : `<span class="bdqn num">${n}/${of}</span>`}<div class="bdqt"><b>${t}</b></div><div class="bdqa">${yn(yes, no)}</div></div>`,
     ask = v => `data-act="bd-ask" data-id="${d.id}" data-v="${v}"`, step = v => `data-act="bd-step" data-id="${d.id}" data-v="${v}"`;
   /* 1 아니요 → 저장할 자료인가요? (예 자료실 / 아니요 버리기); 2~4 예 → 메인·미션·일일, 4 아니요 → 버리기 */
   if (st === 9) return q(2, 2, "저장할 자료인가요?", ask("note"), ask("drop"));

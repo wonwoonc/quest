@@ -348,11 +348,11 @@ test('brain dump: lives on the plus page (not qmanage), pour lines in, list + so
   const first = dumps().find(d => d.text === '세탁소 들르기'); h.click('bd-sort',{id:first.id});
   assert.match(h.nodes.get('overlay').innerHTML,/실행해야 하는 일인가요\?/); assert.match(h.nodes.get('overlay').innerHTML,/data-act="bd-step" data-id="[^"]+" data-v="9">아니요/); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/예\) /);
   assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/bdback/);
-  h.click('bd-step',{id:first.id,v:'9'}); assert.match(h.nodes.get('overlay').innerHTML,/class="bdback" data-act="bd-step" data-id="[^"]+" data-v="0">/);
+  h.click('bd-step',{id:first.id,v:'9'}); assert.match(h.nodes.get('overlay').innerHTML,/class="bdqn bdback num" data-act="bd-step" data-id="[^"]+" data-v="0"/);
   h.click('bd-step',{id:first.id,v:'0'}); assert.match(h.nodes.get('overlay').innerHTML,/실행해야 하는 일인가요\?/);
   h.click('bd-step',{id:first.id,v:'9'}); assert.match(h.nodes.get('overlay').innerHTML,/저장할 자료인가요\?/); assert.match(h.nodes.get('overlay').innerHTML,/data-v="note">예.*data-v="drop">아니요/s);
   h.click('bd-step',{id:first.id,v:'1'}); assert.match(h.nodes.get('overlay').innerHTML,/몇 주 이상 걸리는 목표인가요\?/);
-  h.click('bd-step',{id:first.id,v:'3'}); assert.match(h.nodes.get('overlay').innerHTML,/꾸준히 반복해야 하나요\?/); assert.match(h.nodes.get('overlay').innerHTML,/class="bdback"[^>]*data-v="2">/); assert.match(h.nodes.get('overlay').innerHTML,/data-v="drop">아니요/);
+  h.click('bd-step',{id:first.id,v:'3'}); assert.match(h.nodes.get('overlay').innerHTML,/꾸준히 반복해야 하나요\?/); assert.match(h.nodes.get('overlay').innerHTML,/class="bdqn bdback num"[^>]*data-v="2"/); assert.match(h.nodes.get('overlay').innerHTML,/data-v="drop">아니요/);
   h.click('bd-step',{id:first.id,v:'2'}); h.click('bd-ask',{id:first.id,v:'task'}); assert.match(h.nodes.get('overlay').innerHTML,/미션으로 분류할게요/);
   h.click('cfok'); assert.match(h.nodes.get('overlay').innerHTML,/미션 추가/); h.click('sheet-close');
   assert.match(h.nodes.get('app').innerHTML,/class="bdlist".*세탁소 들르기.*data-act="bd-sort"/s); assert.doesNotMatch(h.nodes.get('app').innerHTML,/bdgoq/);
