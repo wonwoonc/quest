@@ -953,7 +953,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .grp{margin:8px 20px 0;font-size:13px;font-weight:700;color:var(--muted)}
 .card.mq{padding-top:0;overflow:hidden}
 .card.mq.calmq{padding-top:4px;padding-bottom:4px;position:relative}.calmq .msim{margin-top:4px}.calmq .mqh{gap:2px}
-.card.pgc.calq{position:relative;gap:6px;padding-bottom:14px}.calq .msim{margin-top:2px}
+.card.pgc.calq{position:relative;gap:6px;padding-bottom:14px}.calq .msim{margin-top:2px}.calqh{display:flex;align-items:center;gap:8px;min-width:0}.calqh h3{flex:1;min-width:0;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.calqh .cdd{flex:none;font-size:13px;font-weight:700;color:var(--sub)}.calq .msim-t{display:none}.calq .msim .bar{height:5px}.calqh .cpager{position:static}
 .cpager{position:absolute;right:12px;bottom:10px;display:flex;align-items:center;gap:2px;font-size:12px;font-weight:700;color:var(--muted)}
 .cpager button{width:28px;height:28px;border:0;border-radius:50%;background:var(--fill);color:var(--sub);display:grid;place-items:center;padding:0;cursor:pointer}
 .cpager button:disabled{opacity:.35;cursor:default}
@@ -2831,10 +2831,8 @@ function viewCal(){
   const D0 = pd(date);
   const cgs = mode === "year" ? [] : goalsOf(S.me).filter(p => p.status !== "done").sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : (a.end||"9999") > (b.end||"9999") ? 1 : 0);
   if (cgs.length){ const gi = Math.max(0, Math.min(cgs.length - 1, S.calGi || 0)), g = cgs[gi]; S.calGi = gi;
-    const pr = goalProgress(g), pct = pr.total ? pr.done/pr.total*100 : 0, links = subsOf(g.id).filter(x => x.status !== "done");
-    // 다른 화면의 퀘스트 카드와 같은 정보 구성: 제목 · 상태/D-day · 수치 · 스테이지·미션 (표지는 뺀다)
-    const meta = [`🔗 스테이지 ${subsOf(g.id).filter(y => y.status === "done").length}/${subsOf(g.id).length}`, `✅ 미션 ${pr.done}/${pr.total}`];
-    h += `<section class="card pgc calq" data-act="project" data-p="${g.id}" role="button" tabindex="0"><h3>${esc(g.title)}</h3><div class="pgtop">${stChip(g)}${g.end ? `<span class="st dd">${dday(g.end)}</span>` : ""}</div>${metricBox(g)}<div class="pgmeta">${meta.map(x => `<span>${x}</span>`).join("")}</div>${cgs.length > 1 ? `<div class="cpager"><button data-act="cgi" data-v="-1" ${gi ? "" : "disabled"} aria-label="이전 메인 퀘스트">${I.back}</button><span class="num">${gi + 1}/${cgs.length}</span><button class="fwd" data-act="cgi" data-v="1" ${gi < cgs.length - 1 ? "" : "disabled"} aria-label="다음 메인 퀘스트">${I.back}</button></div>` : ""}</section>`; }
+    // 캘린더는 일정이 주인공: 제목 · D-day · 넘기기 한 줄 + 수치 막대만 (상태 칩·수치 글자·스테이지/미션은 뺀다)
+    h += `<section class="card pgc calq" data-act="project" data-p="${g.id}" role="button" tabindex="0"><div class="calqh"><h3>${esc(g.title)}</h3>${g.end ? `<span class="cdd num">${dday(g.end)}</span>` : ""}${cgs.length > 1 ? `<div class="cpager"><button data-act="cgi" data-v="-1" ${gi ? "" : "disabled"} aria-label="이전 메인 퀘스트">${I.back}</button><span class="num">${gi + 1}/${cgs.length}</span><button class="fwd" data-act="cgi" data-v="1" ${gi < cgs.length - 1 ? "" : "disabled"} aria-label="다음 메인 퀘스트">${I.back}</button></div>` : ""}</div>${metricBox(g)}</section>`; }
   const title = mode === "day" ? `${D0.getMonth()+1}월 ${D0.getDate()}일 <span class="${D0.getDay() === 6 ? "sat" : D0.getDay() === 0 ? "sun" : ""}">${WD[D0.getDay()]}요일</span>` : mode === "week" ? (() => { const a = pd(sunStart(date)), b2 = pd(addD(sunStart(date), 6)); return `${a.getMonth()+1}.${a.getDate()} – ${b2.getMonth()+1}.${b2.getDate()}`; })() : mode === "month" ? `${D0.getFullYear()}년 ${D0.getMonth()+1}월` : `${D0.getFullYear()}년`;
   h += `<div class="calnav"><button class="iconbtn" data-act="cstep" data-v="-1" aria-label="이전">${I.back}</button><b>${title}</b><button class="iconbtn fwd" data-act="cstep" data-v="1" aria-label="다음">${I.back}</button>${date !== t ? `<button class="btn sec xs" data-act="ctoday">오늘</button>` : ""}</div>`;
   const calTaskRow = m => taskRow(m, true, false, {showTime:false, showDate:false});
