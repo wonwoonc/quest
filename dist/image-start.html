@@ -488,6 +488,12 @@ body.drawer{overflow:hidden}body.drawer .drw-bg{opacity:1;pointer-events:auto}bo
 .ymon .ymini i.l3{background:var(--accent);color:#fff}
 .ymon .ymini i.l2{color:#fff}
 .ymon .ymini i.t{outline:1.5px solid var(--accent);color:var(--accent);font-weight:800}
+.ymon{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;align-content:start;row-gap:6px}
+.ymon small{min-height:0}
+.ymon .ymini{grid-column:1/-1;margin-top:0}
+.ymon .ymini i:nth-child(7n+1):not(.t):not(.l2):not(.l3){color:#E5484D}
+.ymon .ymini i:nth-child(7n):not(.t):not(.l2):not(.l3){color:#3D7BE0}
+@media (max-width:1023.98px){.ygrid{gap:6px}.ymon{padding:10px 6px 8px}.ymon b{padding-left:3px}.ymon small{padding-right:3px}.ymon .ymini{gap:1px 0}.ymon .ymini i{font-size:9.5px;letter-spacing:-.4px}}
 .dtext{white-space:pre-wrap;margin:6px 0 0;line-height:1.6}
 .dsum{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;gap:6px}
 .dsum b{display:block;font-size:20px;font-weight:800}
