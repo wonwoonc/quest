@@ -2694,7 +2694,7 @@ function charCard(uid, extra = "", nameExtra = ""){
 }
 function habitRow(q){
   const done = !!(q.done||{})[today()], st = streakOf(q);
-  return `<div class="row qrow" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><button class="check hbck ${done?"on":""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button>
+  return `<div class="row qrow" data-act="hedit" data-id="${q.id}" data-d="${today()}" role="button" tabindex="0"><button class="check hbck ${done?"on":""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button>
     <span class="t"><b class="${done?"done":""}">${esc(q.name)}</b><small><span class="fire">🔥 ${st.cur || 0}${streakUnit(q)}</span>${q.active === false ? " · 보관" : ""}${afterOf(q) ? `<span class="pmeta">${AFT}${esc(afterOf(q))}</span>` : ""}${q.place ? `<span class="pmeta">${PIN}${esc(q.place)}</span>` : ""}</small></span></div>`;
 }
 const lateDays = m => !m.done && m.origDue && m.origDue < (m.due || today()) ? Math.round((pd(today()) - pd(m.origDue)) / DAY) : 0;
@@ -2983,7 +2983,7 @@ function hourGroups(ents){ const hrOf = x => +x.time.slice(0,2) || 24, by = {}; 
 const entEnd = (time, etime) => { const st = hmm(time); return etime && hmm(etime) > st ? hmm(etime) : 0; };
 /* 캘린더에서 연 일퀘의 시간 변경은 항상 그날만(매일 시간은 대시보드·퀘스트 화면에서). 바꾼 날은 되돌리기 가능 */
 function hScope(c, q){ if (!c.onDate) return ""; const x = pd(c.onDate), isT = c.onDate === today(), dl = isT ? "오늘" : `${x.getMonth()+1}/${x.getDate()} (${WD[x.getDay()]})`, open = c._tw && TK(c) === "dayT";
-  return `<div class="hscope">${c.dayT ? `<span class="hsl">${dl}은</span><button class="chip ${open ? "on" : ""}" data-act="tmset" data-tk="dayT" aria-pressed="true">🕒 <span class="tmval num" data-tk="dayT">${tmLabel(c.dayT)}</span></button><button class="chip hsx" data-act="hrevert">되돌리기</button>`
+  return `<div class="hscope">${c.dayT ? `<span class="hsl">${dl}은</span><button class="chip ${open ? "on" : ""}" data-act="tmset" data-tk="dayT" aria-pressed="true">🕒 <span class="tmval num" data-tk="dayT">${tmLabel(c.dayT)}</span></button>`
     : `<button class="chip" data-act="hday">🕒 ${isT ? "오늘만" : `${x.getMonth()+1}/${x.getDate()}만`} 시간 바꾸기</button>`}</div>${open ? ppWrap(`${dl} 시간`, "tmdone", timeWheel(c, "dayT")) : ""}`; }
 function calHabitRow(q, d){ const done = q.doneHabit, canEdit = d === today();
   return `<div class="row qrow hbq" data-act="hedit" data-id="${esc(q.id)}" data-d="${esc(d)}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit ? "" : "disabled"} aria-pressed="${!!done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b></span></div>`; }
