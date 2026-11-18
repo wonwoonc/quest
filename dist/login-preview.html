@@ -861,7 +861,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .tlc{flex:1;min-width:0}
 .tlc .row{padding-left:4px}
 .tlempty{display:block;width:100%;height:36px;border:0;background:none;cursor:pointer}
-.tlempty:hover{background:var(--fill)}
+@media (hover:hover){.tlempty:hover{background:var(--fill)}} /* 터치 기기에서 누른 뒤 회색이 남지 않게 */
 .wti{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:0;background:var(--fill);border-radius:10px;padding:6px 8px;text-align:left;font-family:inherit;color:var(--ink)}
 .wti em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--accent)}
 .wti span{font-size:13px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -1544,7 +1544,7 @@ a.row{color:inherit;text-decoration:none}
 .wgc .wti.wck:not(.wev):not(.habit):not(.ghost) .wchk.on{--qtail:var(--accent)}
 
 /* 일·주 보기 추가: 항목이 있는 칸도 빈 곳(항목 오른쪽·아래)을 누르면 그 시간에 추가. 보이는 + 없음 */
-.tlrow{position:relative}.wgc.cell{position:relative}
+.tlrow{position:relative;isolation:isolate}.wgc.cell{position:relative;isolation:isolate} /* 칸 안 z-index가 왼쪽 고정 시간 열 위로 올라오지 않게 */
 .tlempty.tlmore{position:absolute!important;inset:0;height:auto!important;min-height:0!important;opacity:0!important;z-index:0;border-radius:0}
 .tlempty.tlmore::before{content:none}
 .tl .tlc>*:not(.tlempty),.wgc.cell>*:not(.tlempty){position:relative;z-index:1}
