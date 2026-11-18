@@ -1561,6 +1561,16 @@ a.row{color:inherit;text-decoration:none}
 .hscope > .chip{justify-self:start}
 .tl .tlc .row .t small.hmoved,.qrow.hbq .hmoved{display:inline-block;font-size:11.5px;font-weight:700;color:#F08A24;background:color-mix(in srgb,#F08A24 12%,transparent);padding:1px 6px;border-radius:6px;margin-left:6px}
 .wti.habit.moved .wtx span::after{content:" 변경";font-size:10px;font-weight:700;color:#F08A24}
+
+/* 모바일 대시보드: 프로필을 퀘스트 줄 맨 앞에 퀘스트 카드 높이로(PC는 왼쪽 열 그대로) */
+.wdp-m{display:none}
+@media (max-width:1023.98px){
+.wd-ggrid.hs > .wdp.wdp-m{display:flex!important;flex:0 0 132px!important;padding:0 12px 12px!important;gap:1px!important;margin:0;scroll-snap-align:start;overflow:hidden}
+.wd-ggrid.hs > .wdp-m .wdp-cv{margin:0 -12px 6px!important;height:auto!important;aspect-ratio:1/1}
+.wd-ggrid.hs > .wdp-m .wdp-name h3{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wd-ggrid.hs > .wdp-m .editp,.wd-ggrid.hs > .wdp-m .bio,.wd-ggrid.hs > .wdp-m .counts,.wd-ggrid.hs > .wdp-m .barmeta .coinm{display:none}
+.wd-ggrid.hs > .wdp-m .wdp-lv{font-size:12px;margin:0 0 4px}.wd-ggrid.hs > .wdp-m .barmeta{font-size:11px}
+}
 </style>
 <!--APP_ENTRY-->
 </body></html>

@@ -1561,6 +1561,16 @@ a.row{color:inherit;text-decoration:none}
 .hscope > .chip{justify-self:start}
 .tl .tlc .row .t small.hmoved,.qrow.hbq .hmoved{display:inline-block;font-size:11.5px;font-weight:700;color:#F08A24;background:color-mix(in srgb,#F08A24 12%,transparent);padding:1px 6px;border-radius:6px;margin-left:6px}
 .wti.habit.moved .wtx span::after{content:" 변경";font-size:10px;font-weight:700;color:#F08A24}
+
+/* 모바일 대시보드: 프로필을 퀘스트 줄 맨 앞에 퀘스트 카드 높이로(PC는 왼쪽 열 그대로) */
+.wdp-m{display:none}
+@media (max-width:1023.98px){
+.wd-ggrid.hs > .wdp.wdp-m{display:flex!important;flex:0 0 132px!important;padding:0 12px 12px!important;gap:1px!important;margin:0;scroll-snap-align:start;overflow:hidden}
+.wd-ggrid.hs > .wdp-m .wdp-cv{margin:0 -12px 6px!important;height:auto!important;aspect-ratio:1/1}
+.wd-ggrid.hs > .wdp-m .wdp-name h3{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wd-ggrid.hs > .wdp-m .editp,.wd-ggrid.hs > .wdp-m .bio,.wd-ggrid.hs > .wdp-m .counts,.wd-ggrid.hs > .wdp-m .barmeta .coinm{display:none}
+.wd-ggrid.hs > .wdp-m .wdp-lv{font-size:12px;margin:0 0 4px}.wd-ggrid.hs > .wdp-m .barmeta{font-size:11px}
+}
 </style>
 <script>
 (function(){"use strict";
@@ -3861,7 +3871,7 @@ function viewWebDash(){
     const nav = WEB.matches && list.length > 2 ? `<button class="wd-rnav" data-act="wdgs" data-v="-1" aria-label="이전 ${nm}">${I.back}</button><button class="wd-rnav fwd" data-act="wdgs" data-v="1" aria-label="다음 ${nm}">${I.back}</button>` : "";
     return `${nav ? `<div class="wd-ovnav">${nav}</div>` : ""}
       ${(() => { const addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 생성"><span class="wd-plus">+</span><b>${nm} 생성</b></button>`;
-        return `<div class="wd-ggrid hs">${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(?=<div class="metric">)|(?=<div class="pgmeta">)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; const subs = x.parentId ? [] : subsOf(x.id); return `<div class="wdbar"><span class="num">${x.parentId ? "" : `스테이지 ${subs.filter(y => y.status === "done").length}/${subs.length} · `}미션 ${pr.done}/${pr.total}</span></div>`; }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).map((html, i) => ovLay(list[i], html)).join("")}${addc}</div>`; })()}`; };
+        return `<div class="wd-ggrid hs">${WEB.matches ? "" : webProfCard(uid).replace('class="card wdp"', 'class="card wdp wdp-m"')}${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(?=<div class="metric">)|(?=<div class="pgmeta">)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; const subs = x.parentId ? [] : subsOf(x.id); return `<div class="wdbar"><span class="num">${x.parentId ? "" : `스테이지 ${subs.filter(y => y.status === "done").length}/${subs.length} · `}미션 ${pr.done}/${pr.total}</span></div>`; }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).map((html, i) => ovLay(list[i], html)).join("")}${addc}</div>`; })()}`; };
   const goals = `${strip(gs, "메인 퀘스트", "big")}
 `;
   let h = "";
