@@ -1534,6 +1534,9 @@ a.row{color:inherit;text-decoration:none}
 .check.on,.wchk.on{color:var(--qtail)!important}
 .check,.wchk{--qtail:var(--chk)}
 .check.on,.wchk.on{--qtail:var(--done)}
+/* 대시보드 등 어디서나 캘린더와 같은 색: 미션 초록, 일퀘 주황(일정 파랑은 아래) */
+.check:not(.evck):not(.hbck){--qtail:var(--accent)}
+.check.hbck{--qtail:#F08A24}
 .tl .qrow:not(.evq):not(.hbq):not(.ghost) .check,.wgc .wti.wck:not(.wev):not(.habit):not(.ghost) .wchk{--qtail:var(--accent)}
 .qrow.evq .check.evck,.wgc .wti.wev .wchk{--qtail:#3D7BE0}
 .qrow.hbq .check.hbck,.wgc .wti.habit .wchk{--qtail:#F08A24}
@@ -2679,7 +2682,7 @@ function charCard(uid, extra = "", nameExtra = ""){
 }
 function habitRow(q){
   const done = !!(q.done||{})[today()], st = streakOf(q);
-  return `<div class="row qrow" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><button class="check ${done?"on":""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button>
+  return `<div class="row qrow" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><button class="check hbck ${done?"on":""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button>
     <span class="t"><b class="${done?"done":""}">${esc(q.name)}</b><small><span class="fire">🔥 ${st.cur || 0}${streakUnit(q)}</span>${q.active === false ? " · 보관" : ""}${afterOf(q) ? `<span class="pmeta">${AFT}${esc(afterOf(q))}</span>` : ""}${q.place ? `<span class="pmeta">${PIN}${esc(q.place)}</span>` : ""}</small></span></div>`;
 }
 const lateDays = m => !m.done && m.origDue && m.origDue < (m.due || today()) ? Math.round((pd(today()) - pd(m.origDue)) / DAY) : 0;

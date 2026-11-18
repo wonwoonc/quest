@@ -576,7 +576,7 @@ function charCard(uid, extra = "", nameExtra = ""){
 }
 function habitRow(q){
   const done = !!(q.done||{})[today()], st = streakOf(q);
-  return `<div class="row qrow" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><button class="check ${done?"on":""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button>
+  return `<div class="row qrow" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><button class="check hbck ${done?"on":""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button>
     <span class="t"><b class="${done?"done":""}">${esc(q.name)}</b><small><span class="fire">🔥 ${st.cur || 0}${streakUnit(q)}</span>${q.active === false ? " · 보관" : ""}${afterOf(q) ? `<span class="pmeta">${AFT}${esc(afterOf(q))}</span>` : ""}${q.place ? `<span class="pmeta">${PIN}${esc(q.place)}</span>` : ""}</small></span></div>`;
 }
 const lateDays = m => !m.done && m.origDue && m.origDue < (m.due || today()) ? Math.round((pd(today()) - pd(m.origDue)) / DAY) : 0;
