@@ -849,7 +849,7 @@ function tasksByDate(){ const o = {}; for (const m of mineOf("mission").filter(m
 const dayActivityIndex = () => buildDayActivityIndex({mine:S.mine, feed:S.feed, projects:S.projects, me:S.me});
 const habitsOn = d => { const t0 = pd(d).getTime(); return mineOf("quest").filter(q => q.active !== false && isSched(q, t0) && (q.createdAt||0) <= t0 + 86399999).map(q => { const ov = (q.timeOn || {})[d]; return {...q, doneHabit:!!(q.done||{})[d], ...(ov ? {time:ov, baseTime:q.time, moved:true} : {})}; }); }; // timeOn[날짜]: 그날만 바꾼 시간
 function calHabitChip(q, d){ const done = q.doneHabit, canEdit = d === today();
-  return `<div class="wti wck habit ${done?"done":""} ${q.moved ? "moved" : ""}" data-act="hedit" data-id="${esc(q.id)}" data-d="${esc(d)}" role="button" tabindex="0"><button class="wchk ${done?"on":""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit?"":"disabled"} aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(q.name)}</span></div></div>`; }
+  return `<div class="wti wck habit ${done?"done":""}" data-act="hedit" data-id="${esc(q.id)}" data-d="${esc(d)}" role="button" tabindex="0"><button class="wchk ${done?"on":""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit?"":"disabled"} aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(q.name)}</span></div></div>`; }
 /* 일 보기의 일퀘: 미션 줄과 같은 모양, 체크만 주황 */
 /* 시작–종료가 걸친 시간 칸마다 보여 준다(시작 칸은 그대로, 이어지는 칸은 흐리게). 0시(24)는 시작일 때만. */
 const hmm = t => { const [a, b] = (t || "0:0").split(":").map(Number); return a*60 + b; };
@@ -865,11 +865,11 @@ function hourGroups(ents){ const hrOf = x => +x.time.slice(0,2) || 24, by = {}; 
   return {starts, covered}; }
 const entEnd = (time, etime) => { const st = hmm(time); return etime && hmm(etime) > st ? hmm(etime) : 0; };
 /* 캘린더에서 연 일퀘의 시간 변경은 항상 그날만(매일 시간은 대시보드·퀘스트 화면에서). 바꾼 날은 되돌리기 가능 */
-function hScope(c, q){ if (!c.onDate) return ""; const x = pd(c.onDate), dl = `${x.getMonth()+1}/${x.getDate()} (${WD[x.getDay()]})`, open = c._tw && TK(c) === "dayT";
+function hScope(c, q){ if (!c.onDate) return ""; const x = pd(c.onDate), isT = c.onDate === today(), dl = isT ? "오늘" : `${x.getMonth()+1}/${x.getDate()} (${WD[x.getDay()]})`, open = c._tw && TK(c) === "dayT";
   return `<div class="hscope">${c.dayT ? `<span class="hsl">${dl}은</span><button class="chip ${open ? "on" : ""}" data-act="tmset" data-tk="dayT" aria-pressed="true">🕒 <span class="tmval num" data-tk="dayT">${tmLabel(c.dayT)}</span></button><button class="chip hsx" data-act="hrevert">되돌리기</button>`
-    : `<button class="chip" data-act="hday">🕒 ${dl} 시간만 바꾸기</button>`}</div>${open ? ppWrap(`${dl} 시간`, "tmdone", timeWheel(c, "dayT")) : ""}`; }
+    : `<button class="chip" data-act="hday">🕒 ${isT ? "오늘만" : `${x.getMonth()+1}/${x.getDate()}만`} 시간 바꾸기</button>`}</div>${open ? ppWrap(`${dl} 시간`, "tmdone", timeWheel(c, "dayT")) : ""}`; }
 function calHabitRow(q, d){ const done = q.doneHabit, canEdit = d === today();
-  return `<div class="row qrow hbq" data-act="hedit" data-id="${esc(q.id)}" data-d="${esc(d)}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit ? "" : "disabled"} aria-pressed="${!!done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b>${q.moved ? `<small class="hmoved">변경</small>` : ""}</span></div>`; }
+  return `<div class="row qrow hbq" data-act="hedit" data-id="${esc(q.id)}" data-d="${esc(d)}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit ? "" : "disabled"} aria-pressed="${!!done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b></span></div>`; }
 function calendarDaySheet(date, asPage = false){
   const index = dayActivityIndex(), day = selectDayActivities(index, date);
   const ring = (done, total) => { const r = 15, c = 2 * Math.PI * r, f = total ? Math.min(1, done / total) : 0;
