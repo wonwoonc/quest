@@ -1447,15 +1447,24 @@ a.row{color:inherit;text-decoration:none}
 .wti.wev{background:#E8EEFB;border-left:3px solid #3D7BE0;color:#24467F;cursor:pointer}.wti.wev .wtx span{color:#24467F;font-weight:700}
 .mtask .days i.ev{background:#E8EEFB;color:#24467F;border-left:2.5px solid #3D7BE0;padding-left:4px}.mtask .days i.ev .mtx span{color:#24467F;font-weight:700}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .evb,:root:not([data-theme="light"]) .wti.wev,:root:not([data-theme="light"]) .mtask .days i.ev{background:rgba(61,123,224,.18)}:root:not([data-theme="light"]) .evb b,:root:not([data-theme="light"]) .wti.wev .wtx span,:root:not([data-theme="light"]) .mtask .days i.ev .mtx span{color:#AFC8F5}:root:not([data-theme="light"]) .evb small{color:#8EA6D3}}
-:root[data-theme="dark"] .evb,:root[data-theme="dark"] .wti.wev,:root[data-theme="dark"] .mtask .days i.ev{background:rgba(61,123,224,.18)}:root[data-theme="dark"] .evb b,:root[data-theme="dark"] .wti.wev .wtx span,:root[data-theme="dark"] .mtask .days i.ev .mtx span{color:#AFC8F5}:root[data-theme="dark"] .evb small{color:#8EA6D3}:root[data-theme="dark"] .evtoday .evi{background:rgba(61,123,224,.2);color:#8EB3F0}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .evtoday .evi{background:rgba(61,123,224,.2);color:#8EB3F0}}
+:root[data-theme="dark"] .evb,:root[data-theme="dark"] .wti.wev,:root[data-theme="dark"] .mtask .days i.ev{background:rgba(61,123,224,.18)}:root[data-theme="dark"] .evb b,:root[data-theme="dark"] .wti.wev .wtx span,:root[data-theme="dark"] .mtask .days i.ev .mtx span{color:#AFC8F5}:root[data-theme="dark"] .evb small{color:#8EA6D3}
 .evtype{margin:0 0 12px}.evtype .chip{flex:1;justify-content:center;padding:9px 0;font-weight:700}
-.evwhen{display:grid;gap:8px;margin:0 0 6px}.evrow{display:flex;align-items:center;gap:8px}.evrow .evl{width:34px;flex:none;font-size:13.5px;font-weight:700;color:var(--sub)}.evwhen .evad{justify-self:start;margin-left:42px}
+.evwhen1{display:grid;gap:8px;margin:0 0 8px}
+.evwl{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:12px;background:var(--fill);padding:12px 14px;font:inherit;font-size:15px;font-weight:700;color:var(--ink);text-align:left;cursor:pointer}
+.evwl.on{background:var(--accent-soft);box-shadow:0 0 0 1.5px var(--accent) inset}.evwl > svg{width:18px;height:18px;color:var(--accent);flex:none}
+.evwl .evwt{flex:1;display:flex;align-items:baseline;gap:8px;min-width:0}.evwl .evwt em{margin-left:auto;font-style:normal;font-size:12.5px;font-weight:600;color:var(--muted);flex:none}
+.evpan{display:grid;gap:10px;background:color-mix(in srgb,var(--fill) 60%,transparent);border-radius:14px;padding:12px}
+.evpl{font-size:12px;font-weight:700;color:var(--muted)}
+.evdays{display:grid;grid-template-columns:repeat(6,1fr) 40px;gap:6px}
+.evdays button{border:0;border-radius:10px;background:var(--card);padding:6px 0;font:inherit;display:grid;gap:1px;justify-items:center;cursor:pointer;color:var(--ink)}.evdays button small{font-size:11.5px;font-weight:700;color:var(--sub)}.evdays button b{font-size:15px}
+.evdays button.on{background:var(--accent);color:#fff}.evdays button.on small{color:#fff}.evdays button:disabled{opacity:.35}
+.evdays .evcal{display:grid;place-items:center}.evdays .evcal svg{width:18px;height:18px;color:var(--sub)}.evdays .evcal.on svg{color:#fff}
+.evtw{display:grid;grid-template-columns:minmax(0,1fr) 12px minmax(0,1fr);align-items:center;gap:2px}.evtw > div{display:grid;gap:4px;justify-items:center;min-width:0;width:100%}.evtw .tw{width:100%;margin:0;padding:0;background:var(--card)}.evtw .twwrap{gap:2px}.evtw .twc{width:44px}.evtw .twband{left:6px;right:6px}.evtw .twc span{font-size:16px}.evtw .twc span.on{font-size:19px}.evtw .evdash{text-align:center;font-weight:800;color:var(--muted)}
+.evopt{display:flex;gap:6px}
+.qrow.evq .evbar{width:26px;flex:none;display:grid;place-items:center}.qrow.evq .evbar:before{content:"";width:4px;height:30px;border-radius:4px;background:#3D7BE0}
+.qrow.evq .t b{color:#24467F}
+:root[data-theme="dark"] .qrow.evq .t b{color:#AFC8F5}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qrow.evq .t b{color:#AFC8F5}}
 .evmore{margin:0 0 10px}.evdelb{margin-top:8px}
-.evtoday{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;border:0;border-radius:16px;background:var(--card);padding:12px 14px;font:inherit;color:inherit;text-align:left;cursor:pointer;margin:0 0 12px}
-.evtoday .evi{width:26px;height:26px;border-radius:8px;background:#E8EEFB;color:#3D7BE0;display:grid;place-items:center;flex:none}.evtoday .evi svg{width:15px;height:15px}
-.evtoday b{font-size:14px;flex:none}.evtoday .evt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}.evtoday .evt .num{color:#3D7BE0;font-weight:700;margin-right:2px}.evtoday .evt small{color:var(--muted);font-size:12.5px}
-.evtoday > svg{width:16px;height:16px;transform:rotate(180deg);color:var(--muted);flex:none}
 </style>
 <script type="module" src="./src/demo-entry.js"></script>
 </body></html>

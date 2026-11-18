@@ -1447,15 +1447,24 @@ a.row{color:inherit;text-decoration:none}
 .wti.wev{background:#E8EEFB;border-left:3px solid #3D7BE0;color:#24467F;cursor:pointer}.wti.wev .wtx span{color:#24467F;font-weight:700}
 .mtask .days i.ev{background:#E8EEFB;color:#24467F;border-left:2.5px solid #3D7BE0;padding-left:4px}.mtask .days i.ev .mtx span{color:#24467F;font-weight:700}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .evb,:root:not([data-theme="light"]) .wti.wev,:root:not([data-theme="light"]) .mtask .days i.ev{background:rgba(61,123,224,.18)}:root:not([data-theme="light"]) .evb b,:root:not([data-theme="light"]) .wti.wev .wtx span,:root:not([data-theme="light"]) .mtask .days i.ev .mtx span{color:#AFC8F5}:root:not([data-theme="light"]) .evb small{color:#8EA6D3}}
-:root[data-theme="dark"] .evb,:root[data-theme="dark"] .wti.wev,:root[data-theme="dark"] .mtask .days i.ev{background:rgba(61,123,224,.18)}:root[data-theme="dark"] .evb b,:root[data-theme="dark"] .wti.wev .wtx span,:root[data-theme="dark"] .mtask .days i.ev .mtx span{color:#AFC8F5}:root[data-theme="dark"] .evb small{color:#8EA6D3}:root[data-theme="dark"] .evtoday .evi{background:rgba(61,123,224,.2);color:#8EB3F0}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .evtoday .evi{background:rgba(61,123,224,.2);color:#8EB3F0}}
+:root[data-theme="dark"] .evb,:root[data-theme="dark"] .wti.wev,:root[data-theme="dark"] .mtask .days i.ev{background:rgba(61,123,224,.18)}:root[data-theme="dark"] .evb b,:root[data-theme="dark"] .wti.wev .wtx span,:root[data-theme="dark"] .mtask .days i.ev .mtx span{color:#AFC8F5}:root[data-theme="dark"] .evb small{color:#8EA6D3}
 .evtype{margin:0 0 12px}.evtype .chip{flex:1;justify-content:center;padding:9px 0;font-weight:700}
-.evwhen{display:grid;gap:8px;margin:0 0 6px}.evrow{display:flex;align-items:center;gap:8px}.evrow .evl{width:34px;flex:none;font-size:13.5px;font-weight:700;color:var(--sub)}.evwhen .evad{justify-self:start;margin-left:42px}
+.evwhen1{display:grid;gap:8px;margin:0 0 8px}
+.evwl{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:12px;background:var(--fill);padding:12px 14px;font:inherit;font-size:15px;font-weight:700;color:var(--ink);text-align:left;cursor:pointer}
+.evwl.on{background:var(--accent-soft);box-shadow:0 0 0 1.5px var(--accent) inset}.evwl > svg{width:18px;height:18px;color:var(--accent);flex:none}
+.evwl .evwt{flex:1;display:flex;align-items:baseline;gap:8px;min-width:0}.evwl .evwt em{margin-left:auto;font-style:normal;font-size:12.5px;font-weight:600;color:var(--muted);flex:none}
+.evpan{display:grid;gap:10px;background:color-mix(in srgb,var(--fill) 60%,transparent);border-radius:14px;padding:12px}
+.evpl{font-size:12px;font-weight:700;color:var(--muted)}
+.evdays{display:grid;grid-template-columns:repeat(6,1fr) 40px;gap:6px}
+.evdays button{border:0;border-radius:10px;background:var(--card);padding:6px 0;font:inherit;display:grid;gap:1px;justify-items:center;cursor:pointer;color:var(--ink)}.evdays button small{font-size:11.5px;font-weight:700;color:var(--sub)}.evdays button b{font-size:15px}
+.evdays button.on{background:var(--accent);color:#fff}.evdays button.on small{color:#fff}.evdays button:disabled{opacity:.35}
+.evdays .evcal{display:grid;place-items:center}.evdays .evcal svg{width:18px;height:18px;color:var(--sub)}.evdays .evcal.on svg{color:#fff}
+.evtw{display:grid;grid-template-columns:minmax(0,1fr) 12px minmax(0,1fr);align-items:center;gap:2px}.evtw > div{display:grid;gap:4px;justify-items:center;min-width:0;width:100%}.evtw .tw{width:100%;margin:0;padding:0;background:var(--card)}.evtw .twwrap{gap:2px}.evtw .twc{width:44px}.evtw .twband{left:6px;right:6px}.evtw .twc span{font-size:16px}.evtw .twc span.on{font-size:19px}.evtw .evdash{text-align:center;font-weight:800;color:var(--muted)}
+.evopt{display:flex;gap:6px}
+.qrow.evq .evbar{width:26px;flex:none;display:grid;place-items:center}.qrow.evq .evbar:before{content:"";width:4px;height:30px;border-radius:4px;background:#3D7BE0}
+.qrow.evq .t b{color:#24467F}
+:root[data-theme="dark"] .qrow.evq .t b{color:#AFC8F5}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qrow.evq .t b{color:#AFC8F5}}
 .evmore{margin:0 0 10px}.evdelb{margin-top:8px}
-.evtoday{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;border:0;border-radius:16px;background:var(--card);padding:12px 14px;font:inherit;color:inherit;text-align:left;cursor:pointer;margin:0 0 12px}
-.evtoday .evi{width:26px;height:26px;border-radius:8px;background:#E8EEFB;color:#3D7BE0;display:grid;place-items:center;flex:none}.evtoday .evi svg{width:15px;height:15px}
-.evtoday b{font-size:14px;flex:none}.evtoday .evt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}.evtoday .evt .num{color:#3D7BE0;font-weight:700;margin-right:2px}.evtoday .evt small{color:var(--muted);font-size:12.5px}
-.evtoday > svg{width:16px;height:16px;transform:rotate(180deg);color:var(--muted);flex:none}
 </style>
 <script>
 (function(){"use strict";
@@ -2228,29 +2237,36 @@ const dueField = (c, extra = "", bare = false) => { const t = today(), tm = tomo
   return `<div class="field">${bare ? "" : `<span class="lab">날짜·시간 <span class="hint">필수</span></span>`}<div class="chips"><button class="chip" data-act="dpopen" data-k="due" aria-pressed="${!!(c.due && !c.period)}">📅 ${lab}</button><button class="chip" data-act="tmset" aria-pressed="${!!c.time}">🕒 <span class="tmval">${c.time ? tmLabel(c.time) : "시간"}</span></button>${extra}</div>${c._dp === "due" ? miniCal(c, "due") : ""}${c._tw ? timeWheel(c) : ""}</div>`; };
 const TW_H = 36;
 const TK = c => c._tk || "time"; /* 시간 바퀴가 고치는 칸: 기본 time, 일정 종료는 etime */
-const tmvalEl = c => document.querySelector(`#overlay .tmval[data-tk="${TK(c)}"]`) || (TK(c) === "time" ? document.querySelector("#overlay .tmval") : null);
-function timeWheel(c){ const [h, m] = (c[TK(c)] || "09:00").split(":").map(Number), mi = Math.round(m/5) % 12;
+const tmvalEl = (c, k = TK(c)) => document.querySelector(`#overlay .tmval[data-tk="${k}"]`) || (k === "time" ? document.querySelector("#overlay .tmval") : null);
+const boxK = (c, box) => (box && box.dataset.tk) || TK(c);
+/* 일정: 시작을 옮기면 같은 날 종료도 같은 길이만큼 따라 옮긴다 */
+function evShift(c, k, prev){ if (!c.ev || k !== "time" || !prev || !c.etime || (c.edate || c.due) !== c.due) return; const mm = t => { const [a, b] = t.split(":").map(Number); return a*60 + b; };
+  const d = mm(c.time) - mm(prev); if (!d) return; c.etime = addMin("00:00", Math.max(mm(c.time) + 5, Math.min(23*60 + 55, mm(c.etime) + d)));
+  const eb = document.querySelector('#overlay .tw[data-tk="etime"]'); if (eb){ eb._quiet = Date.now(); const [eh, em] = c.etime.split(":").map(Number); eb.querySelector('[data-tw="h"]').scrollTop = eh * TW_H; eb.querySelector('[data-tw="m"]').scrollTop = (Math.round(em/5) % 12) * TW_H; }
+  evLine(c); }
+const evLine = c => { const t = document.querySelector("#overlay .evwhen1 .evwt"); if (t) t.innerHTML = evWhenText(c); const v = tmvalEl(c, "etime"); if (v) v.textContent = tmLabel(c.etime); };
+function timeWheel(c, k = TK(c), ok = true){ const [h, m] = (c[k] || "09:00").split(":").map(Number), mi = Math.round(m/5) % 12;
   const col = (k, n, step, sel) => `<div class="twc" data-tw="${k}" data-sel="${sel}"><i></i><i></i>${Array.from({length:n}, (_, i) => `<span>${pad(i*step)}</span>`).join("")}<i></i><i></i></div>`;
-  return `<div class="tw"><div class="twwrap"><div class="twband"></div>${col("h", 24, 1, h)}<b>:</b>${col("m", 12, 5, mi)}</div><button class="tw-ok" data-act="tmdone">완료</button></div>`; }
+  return `<div class="tw" data-tk="${k}"><div class="twwrap"><div class="twband"></div>${col("h", 24, 1, h)}<b>:</b>${col("m", 12, 5, mi)}</div>${ok ? `<button class="tw-ok" data-act="tmdone">완료</button>` : ""}</div>`; }
 function initTW(){ document.querySelectorAll("#overlay .twc").forEach(el => { el.scrollTop = (+el.dataset.sel) * TW_H; el.querySelectorAll("span").forEach((x, i) => x.classList.toggle("on", i === +el.dataset.sel)); }); }
 function twCommit(inp){ const c = S.compose; if (!c || inp._done || !inp.isConnected) return; inp._done = true; const k = inp.dataset.tw, n = parseInt(inp.value, 10), box = inp.closest(".tw"); inp.remove(); if (isNaN(n)) return;
-  let [h, m] = (c[TK(c)] || "09:00").split(":").map(Number); if (k === "h") h = Math.max(0, Math.min(23, n)); else m = Math.max(0, Math.min(59, n));
-  c[TK(c)] = `${pad(h)}:${pad(m)}`; S._twQuiet = Date.now(); const hs = box.querySelector('[data-tw="h"]'), ms = box.querySelector('[data-tw="m"]');
+  const K = boxK(c, box), prev = c[K]; let [h, m] = (c[K] || "09:00").split(":").map(Number); if (k === "h") h = Math.max(0, Math.min(23, n)); else m = Math.max(0, Math.min(59, n));
+  c[K] = `${pad(h)}:${pad(m)}`; evShift(c, K, prev); S._twQuiet = Date.now(); const hs = box.querySelector('[data-tw="h"]'), ms = box.querySelector('[data-tw="m"]');
   hs.scrollTop = h * TW_H; ms.scrollTop = (Math.round(m/5) % 12) * TW_H;
-  const t = tmvalEl(c); if (t) t.textContent = tmLabel(c[TK(c)]); }
+  const t = tmvalEl(c, K); if (t) t.textContent = tmLabel(c[K]); evLine(c); }
 document.addEventListener("click", e => { const sp = e.target.closest(".twc span"); if (!sp) return; e.stopPropagation(); const col = sp.parentNode, spans = [...col.querySelectorAll("span")], idx = spans.indexOf(sp);
   if (!sp.classList.contains("on")){ col.scrollTo({top:idx * TW_H, behavior:"smooth"}); return; }
-  const wrap = col.closest(".twwrap"), r = col.getBoundingClientRect(), wr = wrap.getBoundingClientRect(), [h, m] = (S.compose[TK(S.compose)] || "09:00").split(":");
+  const wrap = col.closest(".twwrap"), r = col.getBoundingClientRect(), wr = wrap.getBoundingClientRect(), [h, m] = (S.compose[boxK(S.compose, col.closest(".tw"))] || "09:00").split(":");
   const inp = document.createElement("input"); inp.className = "tw-edit"; inp.dataset.tw = col.dataset.tw; inp.inputMode = "numeric"; inp.maxLength = 2; inp.value = col.dataset.tw === "h" ? h : m; inp.setAttribute("aria-label", col.dataset.tw === "h" ? "시 입력" : "분 입력");
   Object.assign(inp.style, {left:(r.left - wr.left) + "px", width:r.width + "px"}); wrap.appendChild(inp); inp.focus(); inp.select();
   inp.addEventListener("keydown", ev => { if (ev.key === "Enter"){ ev.preventDefault(); twCommit(inp); } else if (ev.key === "Escape"){ inp._done = true; inp.remove(); } });
   inp.addEventListener("blur", () => twCommit(inp)); }, true);
 document.addEventListener("scroll", e => { const el = e.target; if (!el.classList || !el.classList.contains("twc")) return; const c = S.compose; if (!c) return;
-  if (S._twQuiet && Date.now() - S._twQuiet < 400){ const idx0 = Math.round(el.scrollTop / TW_H); el.querySelectorAll("span").forEach((x, i) => x.classList.toggle("on", i === idx0)); return; }
+  const bx0 = el.closest(".tw"); if ((S._twQuiet && Date.now() - S._twQuiet < 400) || (bx0 && bx0._quiet && Date.now() - bx0._quiet < 400)){ const idx0 = Math.round(el.scrollTop / TW_H); el.querySelectorAll("span").forEach((x, i) => x.classList.toggle("on", i === idx0)); return; }
   const idx = Math.max(0, Math.min(el.querySelectorAll("span").length - 1, Math.round(el.scrollTop / TW_H))); el.querySelectorAll("span").forEach((x, i) => x.classList.toggle("on", i === idx));
   const box = el.closest(".tw"), hs = box.querySelector('[data-tw="h"]'), ms = box.querySelector('[data-tw="m"]');
-  const h = Math.round(hs.scrollTop / TW_H), m = Math.round(ms.scrollTop / TW_H) * 5; c[TK(c)] = `${pad(Math.max(0, Math.min(23, h)))}:${pad(Math.max(0, Math.min(55, m)))}`;
-  const v = tmvalEl(c); if (v) v.textContent = tmLabel(c[TK(c)]); }, true);
+  const h = Math.round(hs.scrollTop / TW_H), m = Math.round(ms.scrollTop / TW_H) * 5; const K = boxK(c, box), prev = c[K]; c[K] = `${pad(Math.max(0, Math.min(23, h)))}:${pad(Math.max(0, Math.min(55, m)))}`;
+  const v = tmvalEl(c, K); if (v) v.textContent = tmLabel(c[K]); if (prev !== c[K]){ evShift(c, K, prev); evLine(c); } }, true);
 function readMetric(c){ if (!c.unit) return null; const s0 = parseNum(($("#pj-ms")||{}).value), t0 = parseNum(($("#pj-mt")||{}).value); if (s0 == null || t0 == null || s0 === t0){ toast("지금 숫자와 목표 숫자를 넣어 주세요"); return false; } const unit = c.unit === "__c" ? (($("#pj-unit")||{}).value||"").trim() : c.unit; if (!unit){ toast("단위를 적어 주세요"); return false; } return {unit, start:s0, target:t0}; }
 const tmLabel = v => { if (!v) return ""; const [h, mi] = v.split(":").map(Number); return `${h || 24}:${pad(mi)}`; };
 const fmtD = v => { const x = new Date(v+"T00:00"); return `${x.getFullYear() !== new Date().getFullYear() ? x.getFullYear()+"년 " : ""}${x.getMonth()+1}월 ${x.getDate()}일 (${WD[x.getDay()]})`; };
@@ -2791,12 +2807,10 @@ function taskTab(o = {}){
   let h = rolled.length >= 5 && LS.get("rolldis", "") !== k ? `<section class="card rollcard"><div class="rc-t"><b>지난 미션 ${rolled.length}개가 오늘로 넘어왔어요</b><small>안 할 미션은 한 번에 정리할 수 있어요</small></div><div class="rc-b"><button class="btn sm sec" data-act="rolldis">그대로 두기</button><button class="btn sm" style="background:var(--warn)" data-act="rolldel">모두 삭제</button></div></section>` : "";
   h += `<section class="card today"><div class="ringwrap">${ring(doneT.length, doneT.length + left)}<b class="num">${doneT.length}/${doneT.length + left}</b></div>
     <div class="tinfo"><small>오늘의 미션</small><h2>${left ? `${left}개 남았어요` : doneT.length ? "오늘 미션 완료! 🎉" : "오늘 할 미션이 없어요"}</h2><p>${up.length && !o.noUp ? `다가오는 미션 ${up.length}개` : ""}</p></div></section>`;
-  { const te = (evsByDate()[k] || []); // 오늘의 일정 한 줄: 다음(아직 안 끝난) 일정 우선, 누르면 캘린더 일 보기
-    const nowM = new Date().getHours()*60 + new Date().getMinutes(), endM = e => { if (!e.time) return 1e9; const [a, b2] = e.time.split(":").map(Number); return a*60 + b2 + (e.dur || 0); };
-    const nx = te.find(e => e.time && endM(e) >= nowM) || te.find(e => !e.time) || te[te.length - 1];
-    h += `<button class="evtoday" data-act="evtoday"><span class="evi" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><b>오늘의 일정</b><span class="evt">${nx ? `<span class="num">${nx.time || "종일"}</span> ${esc(nx.name)}${te.length > 1 ? ` <small>외 ${te.length - 1}개</small>` : ""}` : `<small>없음</small>`}</span>${I.back}</button>`; }
   const block = (title, l, cls = "") => l.length ? `<p class="grp ${cls}">${title} <span class="num">${l.length}</span></p>${l.map(m => taskRow(m)).join("")}` : "";
-  h += `<section class="card tight qlist">${block("⚠️ 기한 지남", late, "warn")}${block("오늘", tod)}${o.noUp ? "" : block("다가오는", up)}${o.noNone ? "" : block("미지정", none)}${!ms.length || (!open.length && !doneT.length) ? `<p class="empty-row">아직 미션이 없어요.</p>` : !(late.length + tod.length + (o.noUp ? 0 : up.length) + (o.noNone ? 0 : none.length)) && !doneT.length ? `<p class="empty-row">오늘 할 미션이 없어요.</p>` : ""}
+  const te = o.noEv ? [] : (evsByDate()[k] || []), todAll = [...tod.map(m => ({t:m.time || "99", m})), ...te.map(e => ({t:e.time || "", e}))].sort((a,b) => a.t < b.t ? -1 : a.t > b.t ? 1 : 0);
+  const todBlock = todAll.length ? `<p class="grp">오늘 <span class="num">${tod.length}</span></p>${todAll.map(x => x.e ? evRow(x.e) : taskRow(x.m)).join("")}` : "";
+  h += `<section class="card tight qlist">${block("⚠️ 기한 지남", late, "warn")}${todBlock}${o.noUp ? "" : block("다가오는", up)}${o.noNone ? "" : block("미지정", none)}${te.length ? "" : !ms.length || (!open.length && !doneT.length) ? `<p class="empty-row">아직 미션이 없어요.</p>` : !(late.length + tod.length + (o.noUp ? 0 : up.length) + (o.noNone ? 0 : none.length)) && !doneT.length ? `<p class="empty-row">오늘 할 미션이 없어요.</p>` : ""}
     ${doneT.length ? `<button class="morebtn" data-act="toggle" data-k="tdone">오늘 완료 ${doneT.length}개 ${S.openTDone ? "접기" : "보기"}</button>${S.openTDone ? doneT.map(m => taskRow(m)).join("") : ""}` : ""}
     <button class="tadd-pill" data-act="taskadd">+ 미션 추가</button></section>`;
   return h;
@@ -2975,6 +2989,7 @@ function evsByDate(){ const o = {}, put = (d, x) => (o[d] = o[d] || []).push(x);
     put(e.date, e); for (let d = addD(e.date, 1), k = 0; d <= end && k < 366; d = addD(d, 1), k++) put(d, {...e, time:"", _cont:true}); }
   for (const k in o) o[k].sort((a,b) => (a.time||"") < (b.time||"") ? -1 : (a.time||"") > (b.time||"") ? 1 : 0); return o; }
 const evBlock = e => { const mn = evMins(e); return `<div class="evb" data-act="evedit" data-id="${esc(e.id)}" role="button" tabindex="0"${mn > 60 ? ` style="min-height:${Math.round(mn/60*37) - 8}px"` : ""}><b>${esc(e.name)}</b><small class="num">${evRange(e)}${e.place ? ` · ${esc(e.place)}` : ""}</small></div>`; };
+const evRow = e => `<div class="row qrow evq" data-act="evedit" data-id="${esc(e.id)}" role="button" tabindex="0"><span class="evbar" aria-hidden="true"></span><span class="t"><b>${esc(e.name)}</b><small class="task-meta num">${evRange(e)}${e.place ? ` · ${esc(e.place)}` : ""}</small></span></div>`;
 const evChip = e => `<div class="wti wev" data-act="evedit" data-id="${esc(e.id)}" role="button" tabindex="0" title="${esc(e.name)} ${evRange(e)}"><div class="wtx"><span>${esc(e.name)}</span></div></div>`;
 function tasksByDate(){ const o = {}; for (const m of mineOf("mission").filter(m => isOwnPrivateEntry(m, S.me))){ const d = dateOf(m); if (d) (o[d] = o[d] || []).push(m); if (!m.done && m.origDue && m.origDue !== d) (o[m.origDue] = o[m.origDue] || []).push({...m, _ghost:true}); } return o; }
 const dayActivityIndex = () => buildDayActivityIndex({mine:S.mine, feed:S.feed, projects:S.projects, me:S.me});
@@ -4094,10 +4109,20 @@ function planPop(c){
     ${cands.length ? `<small class="ppsub">내 일일 퀘스트 뒤에 붙이기</small><div class="pplist">${cands.map(q => `<button class="row rpitem" data-act="aftq" data-v="${q.id}" aria-pressed="${c.afterId === q.id}"><span class="t"><b>${esc(q.name)}</b></span>${c.afterId === q.id ? `<span class="pick">✓</span>` : ""}</button>`).join("")}</div>` : ""}
     <div class="ppbtns">${(after ? afterLabel(c) : c.place) ? `<button class="btn ghost" data-act="ppclr">지우기</button>` : ""}<button class="btn primary" data-act="ppok">확인</button></div>`);
 }
-/* 일정 시간: 시작(날짜·시간) – 종료(날짜·시간), 종일이면 날짜만 */
-const evWhen = c => { const ad = !!c.allday, dl = d => { const x = pd(d); return `${x.getMonth()+1}/${x.getDate()} (${WD[x.getDay()]})`; },
-    row = (lab, dk2, tk) => `<div class="evrow"><span class="evl">${lab}</span><button class="chip" data-act="dpopen" data-k="${dk2}" aria-pressed="${c._dp === dk2}">📅 ${dl(c[dk2] || c.due)}</button>${ad ? "" : `<button class="chip" data-act="tmset" data-tk="${tk}" aria-pressed="${!!(c._tw && TK(c) === tk)}">🕒 <span class="tmval num" data-tk="${tk}">${tmLabel(c[tk] || "09:00")}</span></button>`}</div>${c._dp === dk2 ? miniCal(c, dk2) : ""}${c._tw && TK(c) === tk ? timeWheel(c) : ""}`;
-  return `<div class="field evwhen">${row("시작", "due", "time")}${row("종료", "edate", "etime")}<button class="chip evad" data-act="ev-allday" aria-pressed="${ad}">종일</button></div>`; };
+/* 일정 시간: 한 줄("11/18 (수) 15:00 – 16:00")을 누르면 날짜 줄 + 시작·종료 시간 바퀴가 함께 열린다. 종일·여러 날은 칩. */
+const evDL = d => { const x = pd(d); return `${x.getMonth()+1}/${x.getDate()} (${WD[x.getDay()]})`; };
+const evDurTxt = c => { if (c.allday || (c.edate || c.due) !== c.due || !c.time || !c.etime) return ""; const [a, b2] = c.time.split(":").map(Number), [e1, e2] = c.etime.split(":").map(Number), m = e1*60 + e2 - a*60 - b2; return m > 0 ? (m >= 60 ? `${Math.floor(m/60)}시간${m % 60 ? ` ${m % 60}분` : ""}` : `${m}분`) : ""; };
+const evWhenText = c => { const ed = c.edate && c.edate > c.due ? c.edate : "", d = evDurTxt(c);
+  const main = c.allday ? `${evDL(c.due)}${ed ? ` – ${evDL(ed)}` : ""} 종일` : ed ? `${evDL(c.due)} ${tmLabel(c.time)} – ${evDL(ed)} ${tmLabel(c.etime)}` : `${evDL(c.due)} ${tmLabel(c.time)} – ${tmLabel(c.etime)}`;
+  return `<span class="num">${main}</span>${d ? `<em>${d}</em>` : ""}`; };
+const CLOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
+const CALI = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>`;
+const evDays = (c, k) => { const v = c[k] || c.due, st = addD(v, -1), min = k === "edate" ? c.due : "";
+  return `<div class="evdays">${Array.from({length:6}, (_, i) => addD(st, i)).map(d => { const x = pd(d); return `<button class="${d === v ? "on" : ""}" data-act="dppick" data-k="${k}" data-v="${d}"${min && d < min ? " disabled" : ""}><small>${WD[x.getDay()]}</small><b class="num">${x.getDate()}</b></button>`; }).join("")}<button class="evcal ${c._dp === k ? "on" : ""}" data-act="dpopen" data-k="${k}" aria-label="달력에서 고르기">${CALI}</button></div>${c._dp === k ? miniCal(c, k) : ""}`; };
+const evWhen = c => `<div class="field evwhen1"><button class="evwl ${c._wo ? "on" : ""}" data-act="ev-when" aria-expanded="${!!c._wo}">${CLOCK}<span class="evwt">${evWhenText(c)}</span></button>
+  ${c._wo ? `<div class="evpan">${c.multi ? `<span class="evpl">시작일</span>` : ""}${evDays(c, "due")}${c.multi ? `<span class="evpl">종료일</span>${evDays(c, "edate")}` : ""}
+    ${c.allday ? "" : `<div class="evtw"><div><span class="evpl">시작</span>${timeWheel(c, "time", false)}</div><span class="evdash">–</span><div><span class="evpl">종료</span>${timeWheel(c, "etime", false)}</div></div>`}
+    <div class="evopt"><button class="chip" data-act="ev-allday" aria-pressed="${!!c.allday}">종일</button><button class="chip" data-act="ev-multi" aria-pressed="${!!c.multi}">여러 날</button></div></div>` : ""}</div>`;
 const evSwitch = c => c.evOK ? `<div class="chips evtype" role="group" aria-label="종류">${[["ev","일정"],["ms","미션"]].map(([v,l]) => `<button class="chip" data-act="ev-type" data-v="${v}" aria-pressed="${(v === "ev") === !!c.ev}">${l}</button>`).join("")}</div>` : "";
 const keepEvFields = c => { const p = $("#ev-place"), n = $("#ev-note"); if (p) c.place = p.value; if (n) c.note = n.value; };
 function planField(c, daily){
@@ -4663,7 +4688,7 @@ document.addEventListener("click", e => {
     case "delpost": e.stopPropagation(); if (S.armed === "dp"+pid){ S.armed = null; const inPost = S.view.name === "post"; run(() => api.delPost(pid), () => { closeSheet(); toast("스토리를 삭제했어요"); if (inPost) history.back(); }); } else { arm("dp"+pid); if (S.compose) renderSheet(); } return;
     case "dpopen": preserveSheetDrafts(); keepEvFields(c); c._dp = c._dp === b.dataset.k ? null : b.dataset.k; c._dpm = null; if (c._dp) c._tw = false; renderSheet(); return;
     case "dpnav": { const base = new Date((c._dpm || ((c._dp === "jd" ? S.planner.date : c[c._dp]) || today()).slice(0,8) + "01")+"T00:00"); base.setMonth(base.getMonth() + +b.dataset.v); c._dpm = dk(base.getTime()).slice(0,8) + "01"; renderSheet(); return; }
-    case "dppick": if (b.dataset.k === "jd"){ c._dp = null; c._dpm = null; jLoad(b.dataset.v); return; } preserveSheetDrafts(); c[b.dataset.k] = b.dataset.v; if (b.dataset.k === "due" && c.ev){ if (!c.edate || c.edate < c.due) c.edate = c.due; } else if (b.dataset.k === "due"){ c.period = ""; if (!c.time) c.time = "09:00"; c._tw = true; } if (b.dataset.k === "edate" && c.edate < c.due) c.edate = c.due; c._dp = null; c._dpm = null; renderSheet(); return;
+    case "dppick": if (b.dataset.k === "jd"){ c._dp = null; c._dpm = null; jLoad(b.dataset.v); return; } preserveSheetDrafts(); c[b.dataset.k] = b.dataset.v; if (b.dataset.k === "due" && c.ev){ if (!c.multi || !c.edate || c.edate < c.due) c.edate = c.due; } else if (b.dataset.k === "due"){ c.period = ""; if (!c.time) c.time = "09:00"; c._tw = true; } if (b.dataset.k === "edate" && c.edate < c.due) c.edate = c.due; c._dp = null; c._dpm = null; renderSheet(); return;
     case "dpclear": c[b.dataset.k] = ""; c._dp = null; renderSheet(); return;
     case "taskadd": { if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"taskadd", lv:"normal", due:b.dataset.d || today(), time:b.dataset.tm || "", period:"", projectId:pid || null, ...(b.dataset.ev ? {evOK:true, ev:true, allday:!b.dataset.tm, time:b.dataset.tm || "09:00", edate:b.dataset.d || today(), etime:addMin(b.dataset.tm || "09:00", 60)} : {})}); delete S.drafts["ev-place"]; delete S.drafts["ev-note"]; setTimeout(() => { const x = $("#ta-name"); x && x.focus(); }, 50); return; }
     case "submit-taskadd": { const name = ($("#ta-name").value||"").trim();
@@ -4677,11 +4702,12 @@ document.addEventListener("click", e => {
       run(() => api.putMine(uid8(), {kind:"mission", name, ...readPlan(c, false), lv:c.lv||"normal", area:(c.area||[]).slice(0,2), due:c.due||"", time:c.due ? (c.time||"") : "", period:"", today:false, projectId:pj, ...(c.noteId ? {noteId:c.noteId} : {}), done:false, createdAt:Date.now()}).then(r => c.eid && S.mine[c.eid] ? api.delMine(c.eid).then(() => r) : r), () => { delete S.drafts["ta-name"]; closeSheet(); dumpDone(c); toast(c.eid ? "미션으로 바꿨어요" : "✅ 미션을 추가했어요"); if (pj) syncProgress(pj); }); return; }
     case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
     case "ev-type": { const ev = b.dataset.v === "ev"; if (ev === !!c.ev) return; preserveSheetDrafts(); keepEvFields(c); c.ev = ev; c._tk = "time"; c._tw = false; c._dp = null; if (!c.ev && !c.time) c.time = "09:00"; renderSheet(); return; }
-    case "evtoday": S.cal = {mode:"day", date:today()}; go("cal"); return;
     case "ev-allday": preserveSheetDrafts(); keepEvFields(c); c.allday = !c.allday; c._tw = false; renderSheet(); return;
+    case "ev-when": preserveSheetDrafts(); keepEvFields(c); c._wo = !c._wo; c._dp = null; renderSheet(); return;
+    case "ev-multi": preserveSheetDrafts(); keepEvFields(c); c.multi = !c.multi; if (!c.multi) c.edate = c.due; else if (!c.edate || c.edate <= c.due) c.edate = addD(c.due, 1); c._dp = null; renderSheet(); return;
     case "ev-more": preserveSheetDrafts(); keepEvFields(c); c._evx = true; renderSheet(); return;
     case "evedit": { e.stopPropagation(); const ev = S.mine[id]; if (!ev || !S.canWrite) return; S.drafts["ta-name"] = ev.name; delete S.drafts["ev-place"]; delete S.drafts["ev-note"];
-      openSheet({type:"taskadd", eid:id, evOK:true, ev:true, due:ev.date, edate:evEDate(ev), allday:!ev.time, time:ev.time || "09:00", etime:evEnd(ev) || addMin(ev.time || "09:00", 60), place:ev.place || "", note:ev.note || "", _evx:!!(ev.place || ev.note), lv:"normal", period:"", projectId:null}); return; }
+      openSheet({type:"taskadd", eid:id, evOK:true, ev:true, due:ev.date, edate:evEDate(ev), multi:evEDate(ev) !== ev.date, allday:!ev.time, time:ev.time || "09:00", etime:evEnd(ev) || addMin(ev.time || "09:00", 60), place:ev.place || "", note:ev.note || "", _evx:!!(ev.place || ev.note), lv:"normal", period:"", projectId:null}); return; }
     case "evdel": { const ev = S.mine[c.eid]; if (!ev) return; ask({t:"이 일정을 삭제할까요?", d:esc(ev.name), ok:"삭제"}, () => run(() => api.delMine(c.eid), () => { closeSheet(); toast("일정을 삭제했어요"); })); return; }
     case "pl-mode": QM().mode = b.dataset.v; QM().sel = []; break;
     case "pl-tab": QM().ptab = b.dataset.v; break;
