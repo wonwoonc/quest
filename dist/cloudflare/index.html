@@ -3085,7 +3085,7 @@ function viewCal(){
   if (!hasProfile()) return viewToday();
   const C = S.cal || (S.cal = {mode:"day", date:today()}), mode = C.mode, date = C.date, by = tasksByDate(), evs = evsByDate(), t = today();
   const cnt = d => { const l = (by[d] || []).filter(m => !m._ghost); return {n:l.length, done:l.filter(m => m.done).length, late:l.some(m => !m.done && d < t)}; };
-  let h = `<div class="seg" role="group" aria-label="보기">${[["day","일"],["week","주"],["month","월"],["year","연"]].map(([k,l]) => `<button data-act="cmode" data-v="${k}" aria-pressed="${mode===k}">${l}</button>`).join("")}</div>`;
+  let h = `<div class="seg" role="group" aria-label="보기" data-swipe>${[["day","일"],["week","주"],["month","월"],["year","연"]].map(([k,l]) => `<button data-act="cmode" data-v="${k}" aria-pressed="${mode===k}">${l}</button>`).join("")}</div>`;
   const D0 = pd(date);
   // 스테이지가 있는 메인 퀘스트는 진행 중인 스테이지들을, 스테이지가 없으면 메인 퀘스트 자체를 보여 준다(기한 빠른 순).
   const cgs = mode === "year" ? [] : goalsOf(S.me).filter(p => p.status !== "done").flatMap(g => { const ss = subsOf(g.id).filter(x => x.status !== "done"); return ss.length ? ss : [g]; }).sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : (a.end||"9999") > (b.end||"9999") ? 1 : 0);
@@ -4038,11 +4038,11 @@ let scT = 0; window.addEventListener("scroll", () => { clearTimeout(scT); scT = 
 /* 가로로 넘치는 칩 줄: 다시 그려도 처음으로 돌아가지 않고, 선택한 칩이 보이게 가운데로 맞춘다 */
 function keepChipsInView(root){ root.querySelectorAll("[data-swipe], .chips, .seg").forEach(el => { if (el.scrollWidth <= el.clientWidth + 1) return; const on = el.querySelector('[aria-pressed="true"]'); if (!on) return;
   const want = on.offsetLeft - el.offsetLeft - (el.clientWidth - on.offsetWidth) / 2; el.scrollLeft = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, want)); }); }
-/* 화면을 옆으로 밀면 칩도 옆으로(퀘스트·대시보드·자료실): 손가락을 왼쪽으로 밀면 다음 칩, 오른쪽이면 이전 칩 */
+/* 화면을 옆으로 밀면 칩도 옆으로(퀘스트·대시보드·자료실·캘린더 일/주/월/연. 주 보기 표는 자체 가로 스크롤이라 제외): 손가락을 왼쪽으로 밀면 다음 칩, 오른쪽이면 이전 칩 */
 { let sw = null;
   document.addEventListener("touchstart", e => { sw = null; if (S.compose || e.touches.length !== 1) return; const t = e.target;
     // 화면 본문 어디서든(글 아래 빈 곳 포함). 상단·메뉴·팝업, 입력칸, 가로로 넘기는 영역은 제외
-    if (!t.closest || t.closest("#topbar,#nav,.nav,#drawer,#overlay,#toast,#replybar,input,textarea,select,[contenteditable],.chips,.seg,.car,[data-reo],.twc,.tlscroll,.wgrid")) return;
+    if (!t.closest || t.closest("#topbar,#nav,.nav,#drawer,#overlay,#toast,#replybar,input,textarea,select,[contenteditable],.chips,.seg,.car,[data-reo],.twc,.wgrid")) return;
     for (let el = t; el && el !== document.body; el = el.parentElement){ if (el.scrollWidth > el.clientWidth + 24 && /(auto|scroll)/.test(getComputedStyle(el).overflowX)) return; }
     const g = $("#app [data-swipe]"); if (!g) return; sw = {x:e.touches[0].clientX, y:e.touches[0].clientY, at:Date.now(), g}; }, {passive:true});
   document.addEventListener("touchend", e => { const s0 = sw; sw = null; if (!s0 || !e.changedTouches.length) return;
