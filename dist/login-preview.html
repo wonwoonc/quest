@@ -1512,6 +1512,12 @@ a.row{color:inherit;text-decoration:none}
 .tl .qrow:not(.evq):not(.hbq):not(.ghost) .t b:not(.done){color:color-mix(in srgb,var(--accent) 70%,var(--ink))}
 .wgc .wti.wck:not(.wev):not(.habit):not(.ghost) .wchk{border-color:var(--accent)}
 .wgc .wti.wck:not(.wev):not(.habit):not(.ghost):not(.done) .wtx span{color:color-mix(in srgb,var(--accent) 70%,var(--ink))}
+
+/* 이미 무언가 있는 시간 칸: 아래 얇은 '+' 줄을 누르면 같은 시간에 하나 더 추가 */
+.tlempty.tlmore{display:flex;align-items:center;justify-content:center;height:22px!important;min-height:22px!important;flex:none;border-radius:8px;color:var(--muted);opacity:.6}
+.tlempty.tlmore::before{content:"+";font-size:15px;font-weight:600;line-height:1}
+.tlempty.tlmore:hover{opacity:1}
+.wgc.cell .tlempty.tlmore{flex:1}
 </style>
 <script>
 (function(){"use strict";
@@ -2977,7 +2983,7 @@ function viewCal(){
       <div class="tlscroll" id="tlscroll" data-d="${date}" data-first="${timed.length || evTimed.length ? Math.min(...timed.map(m => +m.time.slice(0,2) || 24), ...evTimed.map(evHour)) : (date === t ? nowH : 8)}">`;
     for (let hr = 1; hr <= 24; hr++){ const items = byTime(timed.filter(m => (+m.time.slice(0,2) || 24) === hr)), now = date === t && nowH === hr;
       const hItems = hbTimed.filter(q => (+q.time.slice(0,2) || 24) === hr), eItems = evTimed.filter(e => evHour(e) === hr);
-      h += `<div class="tlrow ${now ? "now" : ""}" data-h="${hr}"><span class="tlh num">${hl(hr)}</span><div class="tlc">${eItems.map(evRow).join("")}${items.map(calTaskRow).join("")}${hItems.map(q => calHabitRow(q, date)).join("")}${(!items.length && !hItems.length && !eItems.length) ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : ""}</div></div>`; }
+      h += `<div class="tlrow ${now ? "now" : ""}" data-h="${hr}"><span class="tlh num">${hl(hr)}</span><div class="tlc">${eItems.map(evRow).join("")}${items.map(calTaskRow).join("")}${hItems.map(q => calHabitRow(q, date)).join("")}${(!items.length && !hItems.length && !eItems.length) ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : `<button class="tlempty tlmore" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 하나 더 추가"></button>`}</div></div>`; }
     h += `</div>`;
     h += `</section>`;
   } else if (mode === "week"){
@@ -2993,7 +2999,7 @@ function viewCal(){
     if (anyAllday) h += `<div class="wgc tlab">종일</div>` + days.map(d => `<div class="wgc cell allday ${d === t ? "is-today" : ""}">${(evs[d] || []).filter(e => !e.time).map(evChip).join("")}${byTime((by[d] || []).filter(m => !m.time)).map(chip).join("")}${hbByDay[d].filter(q => !q.time).map(q => calHabitChip(q, d)).join("")}</div>`).join("");
     for (let hr = 1; hr <= 24; hr++){
       h += `<div class="wgc tlab num ${days.includes(t) && nowH === hr ? "now" : ""}" data-h="${hr}">${hl(hr)}</div>` + days.map(d => { const items = byTime((by[d] || []).filter(m => m.time && hourOf(m) === hr)); const hq = hbByDay[d].filter(q => q.time && (+q.time.slice(0,2) || 24) === hr), eq = (evs[d] || []).filter(e => e.time && evHour(e) === hr);
-        return `<div class="wgc cell ${d === t ? "is-today" : ""}">${eq.map(evChip).join("")}${items.map(chip).join("")}${hq.map(q => calHabitChip(q, d)).join("")}${(!items.length && !hq.length && !eq.length) ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${d}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : ""}</div>`; }).join("");
+        return `<div class="wgc cell ${d === t ? "is-today" : ""}">${eq.map(evChip).join("")}${items.map(chip).join("")}${hq.map(q => calHabitChip(q, d)).join("")}${(!items.length && !hq.length && !eq.length) ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${d}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : `<button class="tlempty tlmore" data-act="taskadd" data-ev="1" data-d="${d}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 하나 더 추가"></button>`}</div>`; }).join("");
     }
     h += `</div></div>`;
   } else if (mode === "month"){
