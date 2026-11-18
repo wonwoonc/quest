@@ -1555,6 +1555,12 @@ a.row{color:inherit;text-decoration:none}
 .xpfloat{position:fixed;z-index:9999;transform:translate(-50%,-50%);pointer-events:none;font-size:13px;font-weight:800;color:var(--xp);background:var(--card);padding:3px 8px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12);white-space:nowrap;animation:xpfl 1.2s ease-out forwards}
 @keyframes xpfl{0%{opacity:0;transform:translate(-50%,-30%)}15%{opacity:1;transform:translate(-50%,-80%)}70%{opacity:1;transform:translate(-50%,-150%)}100%{opacity:0;transform:translate(-50%,-190%)}}
 @media (prefers-reduced-motion:reduce){.xpfloat{animation:xpfl2 1.2s linear forwards}@keyframes xpfl2{0%,80%{opacity:1}100%{opacity:0}}}
+
+/* 일퀘 하루만 시간 바꾸기 */
+.hscope{display:grid;gap:8px;margin:2px 0 12px}.hscope:empty{display:none}.hscope .hsl{margin:0;font-size:13px;color:var(--sub)}.hscope .seg2c{display:flex;gap:6px}.hscope .seg2c .chip{flex:1;justify-content:center}
+.hscope > .chip{justify-self:start}
+.tl .tlc .row .t small.hmoved,.qrow.hbq .hmoved{display:inline-block;font-size:11.5px;font-weight:700;color:#F08A24;background:color-mix(in srgb,#F08A24 12%,transparent);padding:1px 6px;border-radius:6px;margin-left:6px}
+.wti.habit.moved .wtx span::after{content:" ↺";font-size:10px;color:#F08A24}
 </style>
 <script>
 (function(){"use strict";
@@ -2958,9 +2964,9 @@ const evRow = (e, meta = true) => `<div class="row qrow evq" data-act="evedit" d
 const evChip = e => `<div class="wti wck wev ${e.done ? "done" : ""}" data-act="evedit" data-id="${esc(e.id)}" role="button" tabindex="0" title="${esc(e.name)} ${evRange(e)}"><button class="wchk ${e.done ? "on" : ""}" data-act="evcheck" data-id="${esc(e.id)}" aria-pressed="${!!e.done}" aria-label="${esc(e.name)} 끝냄">${I.check}</button><div class="wtx"><span>${esc(e.name)}</span></div></div>`;
 function tasksByDate(){ const o = {}; for (const m of mineOf("mission").filter(m => isOwnPrivateEntry(m, S.me))){ const d = dateOf(m); if (d) (o[d] = o[d] || []).push(m); if (!m.done && m.origDue && m.origDue !== d) (o[m.origDue] = o[m.origDue] || []).push({...m, _ghost:true}); } return o; }
 const dayActivityIndex = () => buildDayActivityIndex({mine:S.mine, feed:S.feed, projects:S.projects, me:S.me});
-const habitsOn = d => { const t0 = pd(d).getTime(); return mineOf("quest").filter(q => q.active !== false && isSched(q, t0) && (q.createdAt||0) <= t0 + 86399999).map(q => ({...q, doneHabit:!!(q.done||{})[d]})); };
+const habitsOn = d => { const t0 = pd(d).getTime(); return mineOf("quest").filter(q => q.active !== false && isSched(q, t0) && (q.createdAt||0) <= t0 + 86399999).map(q => { const ov = (q.timeOn || {})[d]; return {...q, doneHabit:!!(q.done||{})[d], ...(ov ? {time:ov, baseTime:q.time, moved:true} : {})}; }); }; // timeOn[날짜]: 그날만 바꾼 시간
 function calHabitChip(q, d){ const done = q.doneHabit, canEdit = d === today();
-  return `<div class="wti wck habit ${done?"done":""}" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><button class="wchk ${done?"on":""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit?"":"disabled"} aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(q.name)}</span></div></div>`; }
+  return `<div class="wti wck habit ${done?"done":""} ${q.moved ? "moved" : ""}" data-act="hedit" data-id="${esc(q.id)}" data-d="${esc(d)}" role="button" tabindex="0"><button class="wchk ${done?"on":""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit?"":"disabled"} aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(q.name)}</span></div></div>`; }
 /* 일 보기의 일퀘: 미션 줄과 같은 모양, 체크만 주황 */
 /* 시작–종료가 걸친 시간 칸마다 보여 준다(시작 칸은 그대로, 이어지는 칸은 흐리게). 0시(24)는 시작일 때만. */
 const hmm = t => { const [a, b] = (t || "0:0").split(":").map(Number); return a*60 + b; };
@@ -2975,8 +2981,12 @@ function hourGroups(ents){ const hrOf = x => +x.time.slice(0,2) || 24, by = {}; 
     starts[hr] = {rows, list}; }
   return {starts, covered}; }
 const entEnd = (time, etime) => { const st = hmm(time); return etime && hmm(etime) > st ? hmm(etime) : 0; };
+/* 캘린더에서 연 일퀘: 시간을 바꾸면 '이 날만 / 매일' 중 고르고, 이 날만 바꾼 날은 원래 시간으로 되돌릴 수 있다 */
+function hScope(c, q){ if (!c.onDate) return ""; const ov = (q.timeOn || {})[c.onDate], changed = c.time && c.time !== c.dayTime0, x = pd(c.onDate), dl = `${x.getMonth()+1}/${x.getDate()} (${WD[x.getDay()]})`;
+  return `<div class="hscope">${changed ? `<p class="hsl">바꾼 시간 <b class="num">${tmLabel(c.time)}</b> 적용</p><div class="chips seg2c" role="group" aria-label="적용 범위">${[["day", `${dl}만`], ["all", "매일"]].map(([v, l]) => `<button class="chip" data-act="hscope" data-v="${v}" aria-pressed="${c.tscope === v}">${l}</button>`).join("")}</div>` : ""}
+    ${ov ? `<p class="hsl">${dl}은 이 날만 <b class="num">${tmLabel(ov)}</b>으로 바뀐 날이에요 (원래 ${tmLabel(q.time || "09:00")})</p><button class="chip" data-act="hrevert">원래 시간으로 되돌리기</button>` : ""}</div>`; }
 function calHabitRow(q, d){ const done = q.doneHabit, canEdit = d === today();
-  return `<div class="row qrow hbq" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit ? "" : "disabled"} aria-pressed="${!!done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b></span></div>`; }
+  return `<div class="row qrow hbq" data-act="hedit" data-id="${esc(q.id)}" data-d="${esc(d)}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit ? "" : "disabled"} aria-pressed="${!!done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b>${q.moved ? `<small class="hmoved num">이 날만 ${tmLabel(q.time)}</small>` : ""}</span></div>`; }
 function calendarDaySheet(date, asPage = false){
   const index = dayActivityIndex(), day = selectDayActivities(index, date);
   const ring = (done, total) => { const r = 15, c = 2 * Math.PI * r, f = total ? Math.min(1, done / total) : 0;
@@ -4185,6 +4195,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     <div class="hstats"><div><b class="num">🔥 ${st.cur}</b><span>연속</span></div><div><b class="num">${st.best}</b><span>최장</span></div><div><b class="num">${st.total}</b><span>총 완료</span></div></div>
     ${repeatField(c)}
     ${planField(c, true)}
+    ${hScope(c, q)}
     ${difficultySelector(c,'quest','hlv')}
     ${areaField(c)}
     <button class="btn big full" data-act="submit-hedit" ${S.busy?"disabled":""}>저장</button>
@@ -4862,14 +4873,19 @@ document.addEventListener("click", e => {
     case "shareday": openCompose({fixed:true, title:"🎉 오늘 퀘스트<br>모두 완료!"}); return;
     case "suggest": { const n = b.dataset.v, lv = (SUGGEST.find(x => x[0] === n)||[])[1] || "easy"; if (dupQ(n)){ toast(DUPMSG); return; } b.disabled = true;
       run(() => api.putMine(uid8(), {kind:"quest", name:n, days:[0,1,2,3,4,5,6], lv, active:true, done:{}, createdAt:Date.now()}), () => toast(`🔥 '${esc(n)}' 추가`)); return; }
-    case "hedit": { e.stopPropagation(); const q = S.mine[id]; if (!q || !S.canWrite) return; S.drafts["he-name"] = q.name; const r = qRepeat(q);
-    openSheet({type:"hedit", id, place:q.place || "", after:q.afterId ? "" : (q.after || ""), afterId:q.afterId || null, area:areasOf(q), days:((r.days||q.days||[])).slice(), hlv:lvKey(q.lv), time:q.time||"09:00", rpt:r.type,
+    case "hedit": { e.stopPropagation(); const q = S.mine[id]; if (!q || !S.canWrite) return; S.drafts["he-name"] = q.name; const r = qRepeat(q), onD = b.dataset.d || null, ovT = onD ? (q.timeOn || {})[onD] : null;
+    openSheet({type:"hedit", id, onDate:onD, dayTime0:ovT || q.time || "09:00", tscope:"day", place:q.place || "", after:q.afterId ? "" : (q.after || ""), afterId:q.afterId || null, area:areasOf(q), days:((r.days||q.days||[])).slice(), hlv:lvKey(q.lv), time:ovT || q.time||"09:00", rpt:r.type,
       rweeks:r.weeks||2, revery:r.every||3, rday:r.day||15, rmonths:r.months||3, ron:r.on||2, roff:r.off||1,
       ranchor:r.anchor || activityDate(q.createdAt) || today()}); return; }
     case "submit-hedit": { const q = S.mine[c.id], name = ($("#he-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (dupQ(name, c.id)){ toast(DUPMSG); return; }
       // 요일은 매주·격주일 때만 필요(매일·하고 쉬기·N일마다·매월은 요일 없음)
       const rp2 = buildRepeat(c); if (needsDays(rp2.type) && !rp2.days.length){ toast("요일을 골라 주세요"); return; }
-      if (!c.time){ toast("시간을 골라 주세요"); return; } run(() => api.putMine(c.id, {...q, name, ...readPlan(c, true), time:c.time, repeat:rp2, days:rp2.days||[], lv:c.hlv, area:c.area||[]}), () => { closeSheet(); toast("저장했어요"); }); return; }
+      if (!c.time){ toast("시간을 골라 주세요"); return; }
+      const tOn = {...(q.timeOn || {})}, dayOnly = c.onDate && c.time !== c.dayTime0 && c.tscope === "day";
+      if (dayOnly){ if (c.time === q.time) delete tOn[c.onDate]; else tOn[c.onDate] = c.time; } else if (c.onDate && c.time !== c.dayTime0) delete tOn[c.onDate];
+      run(() => api.putMine(c.id, {...q, name, ...readPlan(c, true), time:dayOnly ? (q.time || c.dayTime0) : (c.onDate && c.time === c.dayTime0 ? (q.time || c.time) : c.time), timeOn:tOn, repeat:rp2, days:rp2.days||[], lv:c.hlv, area:c.area||[]}), () => { closeSheet(); toast(dayOnly ? "이 날만 시간을 바꿨어요" : "저장했어요"); }); return; }
+    case "hscope": preserveSheetDrafts(); c.tscope = b.dataset.v; renderSheet(); return;
+    case "hrevert": { const q = S.mine[c.id]; if (!q || !c.onDate) return; const tOn = {...(q.timeOn || {})}; delete tOn[c.onDate]; run(() => api.putMine(c.id, {...q, timeOn:tOn}), () => { closeSheet(); toast("원래 시간으로 되돌렸어요"); }); return; }
     case "htoggle": { const q = S.mine[c.id]; run(() => api.putMine(c.id, {...q, active:q.active === false}), () => { closeSheet(); toast(q.active === false ? "보관을 해제했어요" : "보관했어요"); }); return; }
     case "hcheckd": { e.stopPropagation(); const q = S.mine[id]; if (!q) return; const d = b.dataset.d; if (d !== today()){ toast("지난 날짜의 완료는 바꿀 수 없어요"); return; } const dn = {...(q.done||{})}; if (dn[d]) delete dn[d]; else dn[d] = Date.now(); run(() => api.putMine(id, {...q, done:dn}), () => { toast(dn[d] ? "완료했어요" : "완료를 취소했어요"); }); return; }
     case "hdel": { const hid = c.id; if (S.armed !== "hd"+hid){ arm("hd"+hid); renderSheet(); return; } S.armed = null; run(() => api.delMine(hid), () => { closeSheet(); toast("일일 퀘스트를 삭제했어요"); }); return; }
