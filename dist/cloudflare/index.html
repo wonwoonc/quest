@@ -839,7 +839,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .twband{position:absolute;left:12px;right:12px;top:72px;height:36px;border-radius:10px;background:var(--card)}
 .tw-ok{position:absolute;left:12px;right:12px;bottom:8px;height:32px;border:0;border-radius:10px;background:var(--accent-soft);color:var(--accent);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .tl{padding-top:6px}
-.tlscroll{height:259px;overflow-y:auto;overscroll-behavior:contain;position:relative} /* 한 번에 12시간(12칸 × 37px) */
+.tlscroll{height:333px;overflow-y:auto;overscroll-behavior:contain;position:relative} /* 한 번에 12시간(12칸 × 37px) */
 .tlscroll .tlrow{min-height:37px}
 .tlscroll,.wgrid{scrollbar-color:color-mix(in srgb,var(--muted) 35%,var(--card)) var(--card);scrollbar-width:thin}
 .tlscroll::-webkit-scrollbar,.wgrid::-webkit-scrollbar{width:8px;height:8px;background:var(--card)}
@@ -922,7 +922,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .mcell i.hab{background:color-mix(in srgb,var(--xp) 14%,var(--card));color:color-mix(in srgb,var(--xp) 70%,var(--ink))}
 .mcell i.hab.done{background:var(--fill);color:var(--muted);text-decoration:line-through}
 .mcell i.hab .mchk:disabled{cursor:default}
-.wgrid{height:calc(38px + 7 * 39px);overflow:auto;overscroll-behavior:contain;background:var(--card);border-radius:20px;position:relative}
+.wgrid{height:calc(38px + 9 * 39px);overflow:auto;overscroll-behavior:contain;background:var(--card);border-radius:20px;position:relative}
 .wg{display:grid;grid-template-columns:52px repeat(7,calc((min(100vw - 32px, 540px) - 52px)/3));position:relative;width:max-content}
 .wgc{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 55%,transparent);min-height:38px;min-width:0}
 .wgc.corner,.wgc.head{position:sticky;top:0;z-index:2;background:var(--card);min-height:0}
@@ -1305,9 +1305,9 @@ body:has(.lvup) #toast,body:has(.welc) #toast{visibility:hidden}
   .replybar{left:244px;bottom:0;padding-left:40px;padding-right:40px}
   .rbbox{max-width:860px}
   .rgrid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
-  .tlscroll{height:259px}
+  .tlscroll{height:333px}
   .wg{grid-template-columns:56px repeat(7,minmax(120px,1fr));width:100%}
-  .wgrid{height:calc(38px + 7 * 39px)}
+  .wgrid{height:calc(38px + 9 * 39px)}
   .mcell{min-height:112px}
   .ygrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 
@@ -1478,6 +1478,11 @@ a.row{color:inherit;text-decoration:none}
   .mtask .mcell i.ev{border-left-width:2px;padding-left:2px}
   .mtask .mcell i.more{font-size:11px;text-align:center;justify-content:center}
 }
+
+/* 일 보기 일퀘 줄: 미션과 같은 모양, 주황 체크 */
+.qrow.hbq .check.hbck{border-color:#F08A24}.qrow.hbq .check.hbck.on{background:#F08A24;border-color:#F08A24;color:#fff}.qrow.hbq .check.hbck:disabled{opacity:.6}
+.qrow.hbq .t b{color:#C2610C}.qrow.hbq .t b.done{color:var(--muted)}.qrow.hbq .task-meta{color:#F08A24}
+:root[data-theme="dark"] .qrow.hbq .t b{color:#FFB46B}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qrow.hbq .t b{color:#FFB46B}}
 </style>
 <script>
 (function(){"use strict";
@@ -2613,8 +2618,8 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   if (wgs){ const key = "w" + wgs.dataset.d;
     if (S.wgKey === key && S.wgTop != null){ wgs.scrollTop = S.wgTop; wgs.scrollLeft = S.wgLeft || 0; }
     else { const nowH = new Date().getHours() || 24, hasToday = !!wgs.querySelector(".head.is-today"), target = hasToday ? nowH : (+wgs.dataset.first || 9);
-      // 기준 시각 앞뒤 3시간(7줄)이 칸에 딱 맞게 보이도록, 기준 시각이 4번째 줄이 되게 시간 경계에 맞춘다
-      const head = wgs.querySelector(".head"), hh = head ? head.offsetHeight : 0, lab = wgs.querySelector(`.tlab[data-h="${Math.max(1, target - 3)}"]`) || wgs.querySelector(`.tlab[data-h="${target}"]`);
+      // 기준 시각 앞뒤 4시간(9줄)이 칸에 딱 맞게 보이도록, 기준 시각이 5번째 줄이 되게 시간 경계에 맞춘다
+      const head = wgs.querySelector(".head"), hh = head ? head.offsetHeight : 0, lab = wgs.querySelector(`.tlab[data-h="${Math.max(1, target - 4)}"]`) || wgs.querySelector(`.tlab[data-h="${target}"]`);
       if (lab) wgs.scrollTop = Math.max(0, lab.offsetTop - hh);
       const th = wgs.querySelector(".head.is-today"), labW = 52;
       wgs.scrollLeft = th ? Math.max(0, th.offsetLeft - labW - (wgs.clientWidth - labW - th.offsetWidth) / 2) : 0;
@@ -2624,7 +2629,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   if (tls){ const key = tls.dataset.d;
     if (S.tlKey === key && S.tlTop != null) tls.scrollTop = S.tlTop;
     else { const nowH = new Date().getHours() || 24, target = tls.dataset.d === today() ? nowH : (+tls.dataset.first || 9);
-      const row = tls.querySelector(`[data-h="${Math.max(1, target - 3)}"]`) || tls.querySelector(`[data-h="${target}"]`); tls.scrollTop = row ? Math.max(0, row.offsetTop) : 0; S.tlKey = key; S.tlTop = tls.scrollTop; }
+      const row = tls.querySelector(`[data-h="${Math.max(1, target - 4)}"]`) || tls.querySelector(`[data-h="${target}"]`); tls.scrollTop = row ? Math.max(0, row.offsetTop) : 0; S.tlKey = key; S.tlTop = tls.scrollTop; }
     tls.onscroll = () => { S.tlKey = key; S.tlTop = tls.scrollTop; }; }
   const ycur = document.querySelector(".ymon.ycur");
   if (ycur && S.yCenter){ S.yCenter = false; requestAnimationFrame(() => window.scrollTo(0, 0)); } // 연 보기는 맨 위(1월)부터
@@ -3010,6 +3015,9 @@ const dayActivityIndex = () => buildDayActivityIndex({mine:S.mine, feed:S.feed, 
 const habitsOn = d => { const t0 = pd(d).getTime(); return mineOf("quest").filter(q => q.active !== false && isSched(q, t0) && (q.createdAt||0) <= t0 + 86399999).map(q => ({...q, doneHabit:!!(q.done||{})[d]})); };
 function calHabitChip(q, d){ const done = q.doneHabit, canEdit = d === today();
   return `<div class="wti wck habit ${done?"done":""}" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><button class="wchk ${done?"on":""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit?"":"disabled"} aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(q.name)}</span></div></div>`; }
+/* 일 보기의 일퀘: 미션 줄과 같은 모양, 체크만 주황 */
+function calHabitRow(q, d){ const done = q.doneHabit, canEdit = d === today();
+  return `<div class="row qrow hbq" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit ? "" : "disabled"} aria-pressed="${!!done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b></span></div>`; }
 function calendarDaySheet(date, asPage = false){
   const index = dayActivityIndex(), day = selectDayActivities(index, date);
   const ring = (done, total) => { const r = 15, c = 2 * Math.PI * r, f = total ? Math.min(1, done / total) : 0;
@@ -3063,11 +3071,11 @@ function viewCal(){
     const l = by[date] || [], untimed = l.filter(m => !m.time), timed = l.filter(m => m.time), ev = evs[date] || [], evAll = ev.filter(e => !e.time), evTimed = ev.filter(e => e.time);
     const hb = habitsOn(date), hbAll = hb.filter(q => !q.time), hbTimed = hb.filter(q => q.time);
     const hl = hr => `${hr}시`, nowH = new Date().getHours() || 24;
-    h += `<section class="card tight tl">${evAll.map((e, i) => `<div class="tlrow allday"><span class="tlh">${i ? "" : "종일"}</span><div class="tlc">${evRow(e)}</div></div>`).join("")}${byTime(untimed).map((m, i) => `<div class="tlrow allday"><span class="tlh">${i || evAll.length ? "" : "종일"}</span><div class="tlc">${calTaskRow(m)}</div></div>`).join("")}${hbAll.length ? `<div class="tlrow allday"><span class="tlh">종일</span><div class="tlc">${hbAll.map(q => calHabitChip(q, date)).join("")}</div></div>` : ""}
+    h += `<section class="card tight tl">${evAll.map((e, i) => `<div class="tlrow allday"><span class="tlh">${i ? "" : "종일"}</span><div class="tlc">${evRow(e)}</div></div>`).join("")}${byTime(untimed).map((m, i) => `<div class="tlrow allday"><span class="tlh">${i || evAll.length ? "" : "종일"}</span><div class="tlc">${calTaskRow(m)}</div></div>`).join("")}${hbAll.length ? `<div class="tlrow allday"><span class="tlh">종일</span><div class="tlc">${hbAll.map(q => calHabitRow(q, date)).join("")}</div></div>` : ""}
       <div class="tlscroll" id="tlscroll" data-d="${date}" data-first="${timed.length || evTimed.length ? Math.min(...timed.map(m => +m.time.slice(0,2) || 24), ...evTimed.map(evHour)) : (date === t ? nowH : 8)}">`;
     for (let hr = 1; hr <= 24; hr++){ const items = byTime(timed.filter(m => (+m.time.slice(0,2) || 24) === hr)), now = date === t && nowH === hr;
       const hItems = hbTimed.filter(q => (+q.time.slice(0,2) || 24) === hr), eItems = evTimed.filter(e => evHour(e) === hr);
-      h += `<div class="tlrow ${now ? "now" : ""}" data-h="${hr}"><span class="tlh num">${hl(hr)}</span><div class="tlc">${eItems.map(evRow).join("")}${items.map(calTaskRow).join("")}${hItems.map(q => calHabitChip(q, date)).join("")}${(!items.length && !hItems.length && !eItems.length) ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : ""}</div></div>`; }
+      h += `<div class="tlrow ${now ? "now" : ""}" data-h="${hr}"><span class="tlh num">${hl(hr)}</span><div class="tlc">${eItems.map(evRow).join("")}${items.map(calTaskRow).join("")}${hItems.map(q => calHabitRow(q, date)).join("")}${(!items.length && !hItems.length && !eItems.length) ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : ""}</div></div>`; }
     h += `</div>`;
     h += `</section>`;
   } else if (mode === "week"){

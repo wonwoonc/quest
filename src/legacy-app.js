@@ -452,8 +452,8 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   if (wgs){ const key = "w" + wgs.dataset.d;
     if (S.wgKey === key && S.wgTop != null){ wgs.scrollTop = S.wgTop; wgs.scrollLeft = S.wgLeft || 0; }
     else { const nowH = new Date().getHours() || 24, hasToday = !!wgs.querySelector(".head.is-today"), target = hasToday ? nowH : (+wgs.dataset.first || 9);
-      // 기준 시각 앞뒤 3시간(7줄)이 칸에 딱 맞게 보이도록, 기준 시각이 4번째 줄이 되게 시간 경계에 맞춘다
-      const head = wgs.querySelector(".head"), hh = head ? head.offsetHeight : 0, lab = wgs.querySelector(`.tlab[data-h="${Math.max(1, target - 3)}"]`) || wgs.querySelector(`.tlab[data-h="${target}"]`);
+      // 기준 시각 앞뒤 4시간(9줄)이 칸에 딱 맞게 보이도록, 기준 시각이 5번째 줄이 되게 시간 경계에 맞춘다
+      const head = wgs.querySelector(".head"), hh = head ? head.offsetHeight : 0, lab = wgs.querySelector(`.tlab[data-h="${Math.max(1, target - 4)}"]`) || wgs.querySelector(`.tlab[data-h="${target}"]`);
       if (lab) wgs.scrollTop = Math.max(0, lab.offsetTop - hh);
       const th = wgs.querySelector(".head.is-today"), labW = 52;
       wgs.scrollLeft = th ? Math.max(0, th.offsetLeft - labW - (wgs.clientWidth - labW - th.offsetWidth) / 2) : 0;
@@ -463,7 +463,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   if (tls){ const key = tls.dataset.d;
     if (S.tlKey === key && S.tlTop != null) tls.scrollTop = S.tlTop;
     else { const nowH = new Date().getHours() || 24, target = tls.dataset.d === today() ? nowH : (+tls.dataset.first || 9);
-      const row = tls.querySelector(`[data-h="${Math.max(1, target - 3)}"]`) || tls.querySelector(`[data-h="${target}"]`); tls.scrollTop = row ? Math.max(0, row.offsetTop) : 0; S.tlKey = key; S.tlTop = tls.scrollTop; }
+      const row = tls.querySelector(`[data-h="${Math.max(1, target - 4)}"]`) || tls.querySelector(`[data-h="${target}"]`); tls.scrollTop = row ? Math.max(0, row.offsetTop) : 0; S.tlKey = key; S.tlTop = tls.scrollTop; }
     tls.onscroll = () => { S.tlKey = key; S.tlTop = tls.scrollTop; }; }
   const ycur = document.querySelector(".ymon.ycur");
   if (ycur && S.yCenter){ S.yCenter = false; requestAnimationFrame(() => window.scrollTo(0, 0)); } // 연 보기는 맨 위(1월)부터
@@ -849,6 +849,9 @@ const dayActivityIndex = () => buildDayActivityIndex({mine:S.mine, feed:S.feed, 
 const habitsOn = d => { const t0 = pd(d).getTime(); return mineOf("quest").filter(q => q.active !== false && isSched(q, t0) && (q.createdAt||0) <= t0 + 86399999).map(q => ({...q, doneHabit:!!(q.done||{})[d]})); };
 function calHabitChip(q, d){ const done = q.doneHabit, canEdit = d === today();
   return `<div class="wti wck habit ${done?"done":""}" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><button class="wchk ${done?"on":""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit?"":"disabled"} aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(q.name)}</span></div></div>`; }
+/* 일 보기의 일퀘: 미션 줄과 같은 모양, 체크만 주황 */
+function calHabitRow(q, d){ const done = q.doneHabit, canEdit = d === today();
+  return `<div class="row qrow hbq" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit ? "" : "disabled"} aria-pressed="${!!done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b></span></div>`; }
 function calendarDaySheet(date, asPage = false){
   const index = dayActivityIndex(), day = selectDayActivities(index, date);
   const ring = (done, total) => { const r = 15, c = 2 * Math.PI * r, f = total ? Math.min(1, done / total) : 0;
@@ -902,11 +905,11 @@ function viewCal(){
     const l = by[date] || [], untimed = l.filter(m => !m.time), timed = l.filter(m => m.time), ev = evs[date] || [], evAll = ev.filter(e => !e.time), evTimed = ev.filter(e => e.time);
     const hb = habitsOn(date), hbAll = hb.filter(q => !q.time), hbTimed = hb.filter(q => q.time);
     const hl = hr => `${hr}시`, nowH = new Date().getHours() || 24;
-    h += `<section class="card tight tl">${evAll.map((e, i) => `<div class="tlrow allday"><span class="tlh">${i ? "" : "종일"}</span><div class="tlc">${evRow(e)}</div></div>`).join("")}${byTime(untimed).map((m, i) => `<div class="tlrow allday"><span class="tlh">${i || evAll.length ? "" : "종일"}</span><div class="tlc">${calTaskRow(m)}</div></div>`).join("")}${hbAll.length ? `<div class="tlrow allday"><span class="tlh">종일</span><div class="tlc">${hbAll.map(q => calHabitChip(q, date)).join("")}</div></div>` : ""}
+    h += `<section class="card tight tl">${evAll.map((e, i) => `<div class="tlrow allday"><span class="tlh">${i ? "" : "종일"}</span><div class="tlc">${evRow(e)}</div></div>`).join("")}${byTime(untimed).map((m, i) => `<div class="tlrow allday"><span class="tlh">${i || evAll.length ? "" : "종일"}</span><div class="tlc">${calTaskRow(m)}</div></div>`).join("")}${hbAll.length ? `<div class="tlrow allday"><span class="tlh">종일</span><div class="tlc">${hbAll.map(q => calHabitRow(q, date)).join("")}</div></div>` : ""}
       <div class="tlscroll" id="tlscroll" data-d="${date}" data-first="${timed.length || evTimed.length ? Math.min(...timed.map(m => +m.time.slice(0,2) || 24), ...evTimed.map(evHour)) : (date === t ? nowH : 8)}">`;
     for (let hr = 1; hr <= 24; hr++){ const items = byTime(timed.filter(m => (+m.time.slice(0,2) || 24) === hr)), now = date === t && nowH === hr;
       const hItems = hbTimed.filter(q => (+q.time.slice(0,2) || 24) === hr), eItems = evTimed.filter(e => evHour(e) === hr);
-      h += `<div class="tlrow ${now ? "now" : ""}" data-h="${hr}"><span class="tlh num">${hl(hr)}</span><div class="tlc">${eItems.map(evRow).join("")}${items.map(calTaskRow).join("")}${hItems.map(q => calHabitChip(q, date)).join("")}${(!items.length && !hItems.length && !eItems.length) ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : ""}</div></div>`; }
+      h += `<div class="tlrow ${now ? "now" : ""}" data-h="${hr}"><span class="tlh num">${hl(hr)}</span><div class="tlc">${eItems.map(evRow).join("")}${items.map(calTaskRow).join("")}${hItems.map(q => calHabitRow(q, date)).join("")}${(!items.length && !hItems.length && !eItems.length) ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : ""}</div></div>`; }
     h += `</div>`;
     h += `</section>`;
   } else if (mode === "week"){
