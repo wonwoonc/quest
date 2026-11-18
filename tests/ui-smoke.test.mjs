@@ -1524,18 +1524,22 @@ test('calendar events: add from empty slot (no reward), shown in day/week/month 
   const day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
   h.route('cal'); assert.match(app(),/data-act="taskadd" data-ev="1"/);
   h.click('taskadd',{ev:'1',d:day,tm:'10:00'}); assert.match(ov(),/일정 추가/); assert.match(ov(),/data-act="ev-type" data-v="ev" aria-pressed="true">일정[\s\S]*?data-act="ev-type" data-v="ms" aria-pressed="false">미션/); assert.doesNotMatch(ov(),/난이도|XP|코인을/);
-  assert.match(ov(),/data-act="ev-dur" data-v="60" aria-pressed="true"/);
-  h.click('ev-dur',{v:'90'}); h.nodes.set('ta-name',{value:'치과 정기검진'}); const before=JSON.stringify(h.snapshot().economy?.events||[]).length;
+  assert.match(ov(),/시작[\s\S]*?data-tk="time">10:00[\s\S]*?종료[\s\S]*?data-tk="etime">11:00/); assert.doesNotMatch(ov(),/ev-dur/);
+  h.nodes.set('ta-name',{value:'치과 정기검진'}); const before=JSON.stringify(h.snapshot().economy?.events||[]).length;
   h.click('submit-taskadd'); await h.settle(); const sn=h.snapshot(), ev=Object.values(sn.mine).find(m=>m.kind==='event');
-  assert.equal(ev.name,'치과 정기검진'); assert.equal(ev.date,day); assert.equal(ev.time,'10:00'); assert.equal(ev.dur,90);
+  assert.equal(ev.name,'치과 정기검진'); assert.equal(ev.date,day); assert.equal(ev.time,'10:00'); assert.equal(ev.etime,'11:00'); assert.equal(ev.edate,day);
   assert.equal(JSON.stringify(sn.economy?.events||[]).length,before);
-  assert.match(app(),/class="evb" data-act="evedit"[\s\S]*?치과 정기검진[\s\S]*?10:00–11:30/);
+  assert.match(app(),/class="evb" data-act="evedit"[\s\S]*?치과 정기검진[\s\S]*?10:00–11:00/);
   h.click('cmode',{v:'week'}); assert.match(app(),/wti wev/); h.click('cmode',{v:'month'}); assert.match(app(),/<i class="ev">/); h.click('cmode',{v:'day'});
   h.route('dash'); assert.match(app(),/class="evtoday"[\s\S]*?오늘의 일정[\s\S]*?10:00<\/span> 치과 정기검진/);
   h.route('cal'); h.click('evedit',{id:ev.id}); assert.match(ov(),/일정 삭제/); h.click('ev-allday'); h.click('submit-taskadd'); await h.settle();
   assert.equal(h.snapshot().mine[ev.id].time,''); assert.match(app(),/tlrow allday[\s\S]*?evb/);
   h.click('evedit',{id:ev.id}); h.click('ev-type',{v:'ms'}); assert.match(ov(),/미션으로 바꾸기/); assert.match(ov(),/난이도/); h.click('submit-taskadd'); await h.settle();
   const s2=h.snapshot(); assert.ok(!s2.mine[ev.id]); assert.ok(Object.values(s2.mine).some(m=>m.kind==='mission'&&m.name==='치과 정기검진'));
-  h.click('taskadd',{ev:'1',d:day}); h.nodes.set('ta-name',{value:'지울 일정'}); h.click('submit-taskadd'); await h.settle();
+  h.click('taskadd',{ev:'1',d:day}); assert.match(ov(),/class="chip evad" data-act="ev-allday" aria-pressed="true"/); assert.doesNotMatch(ov(),/data-tk="time"/);
+  const nx=new Date(Date.parse(day+'T00:00Z')+2*864e5).toISOString().slice(0,10); h.click('dpopen',{k:'edate'}); h.click('dppick',{k:'edate',v:nx});
+  h.nodes.set('ta-name',{value:'지울 일정'}); h.click('submit-taskadd'); await h.settle();
+  { const m=Object.values(h.snapshot().mine).find(m=>m.kind==='event'); assert.equal(m.edate,nx); assert.equal(m.time,''); }
+  h.click('cmode',{v:'month'}); assert.equal((app().match(/<i class="ev">/g)||[]).length>=2,true); h.click('cmode',{v:'day'});
   const e2=Object.values(h.snapshot().mine).find(m=>m.kind==='event'); h.click('evedit',{id:e2.id}); h.click('evdel'); h.click('cfok'); await h.settle(); assert.ok(!h.snapshot().mine[e2.id]);
 });
