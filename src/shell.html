@@ -1550,6 +1550,11 @@ a.row{color:inherit;text-decoration:none}
 .tl .tlc>*:not(.tlempty),.wgc.cell>*:not(.tlempty){position:relative;z-index:1}
 .tl .tlc>.qrow{width:fit-content;max-width:100%}
 .wgc.cell>.wti{width:fit-content;max-width:100%}
+
+/* 경험치 '+N XP': 누른 자리에서 위로 살짝 떠오르며 사라짐 */
+.xpfloat{position:fixed;z-index:9999;transform:translate(-50%,-50%);pointer-events:none;font-size:13px;font-weight:800;color:var(--xp);background:var(--card);padding:3px 8px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12);white-space:nowrap;animation:xpfl 1.2s ease-out forwards}
+@keyframes xpfl{0%{opacity:0;transform:translate(-50%,-30%)}15%{opacity:1;transform:translate(-50%,-80%)}70%{opacity:1;transform:translate(-50%,-150%)}100%{opacity:0;transform:translate(-50%,-190%)}}
+@media (prefers-reduced-motion:reduce){.xpfloat{animation:xpfl2 1.2s linear forwards}@keyframes xpfl2{0%,80%{opacity:1}100%{opacity:0}}}
 </style>
 <!--APP_ENTRY-->
 </body></html>
