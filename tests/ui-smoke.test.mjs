@@ -1534,6 +1534,10 @@ test('calendar events: add from empty slot (no reward), shown in day/week/month 
   h.click('cmode',{v:'week'}); assert.match(app(),/wti wev/); h.click('cmode',{v:'month'}); assert.match(app(),/<i class="ev">/); h.click('cmode',{v:'day'});
   h.route('dash'); assert.match(app(),/<p class="grp">오늘[\s\S]*?class="row qrow evq" data-act="evedit"[\s\S]*?치과 정기검진[\s\S]*?10:00–11:00/); assert.doesNotMatch(app(),/evtoday/);
   { const xp0=JSON.stringify(h.snapshot().profiles); h.click('evcheck',{id:ev.id}); await h.settle(); assert.equal(h.snapshot().mine[ev.id].done,true); assert.match(app(),/check evck on/); assert.equal(JSON.stringify(h.snapshot().profiles),xp0); h.click('evcheck',{id:ev.id}); await h.settle(); assert.equal(h.snapshot().mine[ev.id].done,false); }
+  assert.match(app(),/data-act="taskadd" data-ev="ms">\+ 미션·일정 추가/); h.click('taskadd',{ev:'ms'}); assert.match(ov(),/미션 추가/); assert.match(ov(),/data-v="ms" aria-pressed="true"/);
+  h.click('ev-type',{v:'ev'}); assert.match(ov(),/일정 추가/); assert.match(ov(),/data-tk="time">9:00[\s\S]*?data-tk="etime">10:00/); h.nodes.set('ta-name',{value:'미션 탭 일정'}); h.click('submit-taskadd'); await h.settle();
+  assert.ok(Object.values(h.snapshot().mine).some(m=>m.kind==='event'&&m.name==='미션 탭 일정'&&m.time==='09:00'&&m.etime==='10:00'));
+  h.nodes.set('ta-name',{value:'치과 정기검진'});
   h.route('cal'); h.click('evedit',{id:ev.id}); assert.match(ov(),/일정 삭제/); h.click('ev-allday'); h.click('submit-taskadd'); await h.settle();
   assert.equal(h.snapshot().mine[ev.id].time,''); assert.match(app(),/tlrow allday[\s\S]*?evb/);
   h.click('evedit',{id:ev.id}); h.click('ev-type',{v:'ms'}); assert.match(ov(),/미션으로 바꾸기/); assert.match(ov(),/난이도/); h.click('submit-taskadd'); await h.settle();
