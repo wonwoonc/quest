@@ -2765,10 +2765,9 @@ function taskTab(o = {}){
   h += `<section class="card today"><div class="ringwrap">${ring(doneT.length, doneT.length + left)}<b class="num">${doneT.length}/${doneT.length + left}</b></div>
     <div class="tinfo"><small>오늘의 미션</small><h2>${left ? `${left}개 남았어요` : doneT.length ? "오늘 미션 완료! 🎉" : "오늘 할 미션이 없어요"}</h2><p>${up.length && !o.noUp ? `다가오는 미션 ${up.length}개` : ""}</p></div></section>`;
   const block = (title, l, cls = "") => l.length ? `<p class="grp ${cls}">${title} <span class="num">${l.length}</span></p>${l.map(m => taskRow(m)).join("")}` : "";
-  const te = o.noEv ? [] : (evsByDate()[k] || []), todAll = [...tod.map(m => ({t:m.time || "99", m})), ...te.map(e => ({t:e.time || "", e}))].sort((a,b) => a.t < b.t ? -1 : a.t > b.t ? 1 : 0);
+  const te = o.noEv ? [] : (evsByDate()[k] || []), todAll = [...tod.map(m => ({t:m.time || "99", m})), ...doneT.map(m => ({t:m.time || "99", m, d:1})), ...te.map(e => ({t:e.time || "", e, d:e.done ? 1 : 0}))].sort((a,b) => (a.d||0) - (b.d||0) || (a.t < b.t ? -1 : a.t > b.t ? 1 : 0)); // 끝낸 미션·일정은 따로 접지 않고 맨 아래로
   const todBlock = todAll.length ? `<p class="grp">오늘 <span class="num">${tod.length}</span></p>${todAll.map(x => x.e ? evRow(x.e) : taskRow(x.m)).join("")}` : "";
   h += `<section class="card tight qlist">${block("⚠️ 기한 지남", late, "warn")}${todBlock}${o.noUp ? "" : block("다가오는", up)}${o.noNone ? "" : block("미지정", none)}${te.length ? "" : !ms.length || (!open.length && !doneT.length) ? `<p class="empty-row">아직 미션이 없어요.</p>` : !(late.length + tod.length + (o.noUp ? 0 : up.length) + (o.noNone ? 0 : none.length)) && !doneT.length ? `<p class="empty-row">오늘 할 미션이 없어요.</p>` : ""}
-    ${doneT.length ? `<button class="morebtn" data-act="toggle" data-k="tdone">오늘 완료 ${doneT.length}개 ${S.openTDone ? "접기" : "보기"}</button>${S.openTDone ? doneT.map(m => taskRow(m)).join("") : ""}` : ""}
     <button class="tadd-pill" data-act="taskadd" data-ev="ms">+ 미션 추가</button></section>`;
   return h;
 }
