@@ -1584,7 +1584,9 @@ test('daily quest: a one-day time change moves it on that day only and can be re
   const h=await profileUI(saved); h.route('cal'); const app=()=>h.nodes.get('app').innerHTML, ov=()=>h.nodes.get('overlay').innerHTML;
   const row=hr=>{ const a=app(); const i=a.indexOf(`data-h="${hr}"`); return a.slice(i, a.indexOf('data-h="',i+10)); };
   assert.doesNotMatch(row(7),/아침 산책/); assert.match(row(9),/아침 산책[\s\S]*?class="hmoved">변경</);
-  h.click('hedit',{id:'hq',d:day}); assert.match(ov(),/변경됨 · 원래 <b class="num">7:00<\/b>/); assert.doesNotMatch(ov(),/hscope"[^>]*>[\s\S]*?data-act="hscope"/); assert.match(ov(),/data-act="hrevert"/);
-  h.click('hrevert'); await h.settle(); assert.deepEqual(h.snapshot().mine.hq.timeOn,{}); assert.equal(h.snapshot().mine.hq.time,'07:00'); assert.match(row(7),/아침 산책/);
-  h.click('hedit',{id:'hq'}); assert.doesNotMatch(ov(),/hscope"|hrevert/);
+  h.click('hedit',{id:'hq',d:day}); assert.match(ov(),/매일 7:00/); assert.match(ov(),/class="hscope"><span class="hsl">[^<]*은<\/span>[\s\S]*?data-tk="dayT">9:00[\s\S]*?data-act="hrevert">되돌리기/);
+  h.click('hrevert'); assert.match(ov(),/data-act="hday">🕒 [^<]* 시간만 바꾸기/); h.nodes.set('he-name',{value:'아침 산책'}); h.click('submit-hedit'); await h.settle();
+  assert.deepEqual(h.snapshot().mine.hq.timeOn,{}); assert.equal(h.snapshot().mine.hq.time,'07:00'); assert.match(row(7),/아침 산책/);
+  h.click('hedit',{id:'hq',d:day}); h.click('hday'); assert.match(ov(),/data-tk="dayT">7:00[\s\S]*?class="tw" data-tk="dayT"/); h.click('sheet-close');
+  h.click('hedit',{id:'hq'}); assert.doesNotMatch(ov(),/hscope"|hrevert|hday|매일 7:00/);
 });

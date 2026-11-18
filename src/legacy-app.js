@@ -865,8 +865,9 @@ function hourGroups(ents){ const hrOf = x => +x.time.slice(0,2) || 24, by = {}; 
   return {starts, covered}; }
 const entEnd = (time, etime) => { const st = hmm(time); return etime && hmm(etime) > st ? hmm(etime) : 0; };
 /* 캘린더에서 연 일퀘의 시간 변경은 항상 그날만(매일 시간은 대시보드·퀘스트 화면에서). 바꾼 날은 되돌리기 가능 */
-function hScope(c, q){ if (!c.onDate) return ""; const ov = (q.timeOn || {})[c.onDate];
-  return ov ? `<div class="hscope"><p class="hsl">변경됨 · 원래 <b class="num">${tmLabel(q.time || "09:00")}</b></p><button class="chip" data-act="hrevert">되돌리기</button></div>` : ""; }
+function hScope(c, q){ if (!c.onDate) return ""; const x = pd(c.onDate), dl = `${x.getMonth()+1}/${x.getDate()} (${WD[x.getDay()]})`, open = c._tw && TK(c) === "dayT";
+  return `<div class="hscope">${c.dayT ? `<span class="hsl">${dl}은</span><button class="chip ${open ? "on" : ""}" data-act="tmset" data-tk="dayT" aria-pressed="true">🕒 <span class="tmval num" data-tk="dayT">${tmLabel(c.dayT)}</span></button><button class="chip hsx" data-act="hrevert">되돌리기</button>`
+    : `<button class="chip" data-act="hday">🕒 ${dl} 시간만 바꾸기</button>`}</div>${open ? ppWrap(`${dl} 시간`, "tmdone", timeWheel(c, "dayT")) : ""}`; }
 function calHabitRow(q, d){ const done = q.doneHabit, canEdit = d === today();
   return `<div class="row qrow hbq" data-act="hedit" data-id="${esc(q.id)}" data-d="${esc(d)}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit ? "" : "disabled"} aria-pressed="${!!done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b>${q.moved ? `<small class="hmoved">변경</small>` : ""}</span></div>`; }
 function calendarDaySheet(date, asPage = false){
@@ -2001,11 +2002,11 @@ const keepEvFields = c => { const p = $("#ev-place"), n = $("#ev-note"); if (p) 
 function planField(c, daily){
   const after = afterLabel(c);
   const chip = (act, v, icon, label, val) => `<button class="chip pchip" data-act="${act}"${v ? ` data-v="${v}"` : ""} aria-pressed="${!!val}">${icon} <span>${val ? esc(val) : label}</span></button>`;
-  const chips = [daily ? chip("tmset", "", "🕒", "시간", c.time ? tmLabel(c.time) : "") : "", chip("ppopen", "place", "📍", "장소", c.place || ""), daily ? chip("ppopen", "after", "↪", "앞 행동", after) : ""].join("");
+  const chips = [daily ? chip("tmset", "", "🕒", "시간", c.time ? (c.onDate ? `매일 ${tmLabel(c.time)}` : tmLabel(c.time)) : "") : "", chip("ppopen", "place", "📍", "장소", c.place || ""), daily ? chip("ppopen", "after", "↪", "앞 행동", after) : ""].join("");
   const sent = planSentence(planName(c), c.time, c.place || "", after).trim();
   return `<div class="field plan"><span class="lab plh">실행 계획 <span class="hint">${daily ? "시간 필수" : "날짜·시간 필수"}</span></span>
     ${daily ? `<div class="chips pchips">${chips}</div>` : `<div class="planlead">${dueField(c, chips, true)}</div>`}
-    ${daily && c._tw ? ppWrap("시간 선택", "tmdone", timeWheel(c)) : ""}${c._pp ? planPop(c) : ""}
+    ${daily && c._tw && TK(c) !== "dayT" ? ppWrap(c.onDate ? "매일 시간" : "시간 선택", "tmdone", timeWheel(c, "time")) : ""}${c._pp ? planPop(c) : ""}
     <p class="planprev" id="plprev"${sent ? "" : " hidden"}>${esc(sent)}</p></div>`;
 }
 function readPlan(c, daily){
@@ -2756,17 +2757,19 @@ document.addEventListener("click", e => {
     case "suggest": { const n = b.dataset.v, lv = (SUGGEST.find(x => x[0] === n)||[])[1] || "easy"; if (dupQ(n)){ toast(DUPMSG); return; } b.disabled = true;
       run(() => api.putMine(uid8(), {kind:"quest", name:n, days:[0,1,2,3,4,5,6], lv, active:true, done:{}, createdAt:Date.now()}), () => toast(`🔥 '${esc(n)}' 추가`)); return; }
     case "hedit": { e.stopPropagation(); const q = S.mine[id]; if (!q || !S.canWrite) return; S.drafts["he-name"] = q.name; const r = qRepeat(q), onD = b.dataset.d || null, ovT = onD ? (q.timeOn || {})[onD] : null;
-    openSheet({type:"hedit", id, onDate:onD, dayTime0:ovT || q.time || "09:00", tscope:"day", place:q.place || "", after:q.afterId ? "" : (q.after || ""), afterId:q.afterId || null, area:areasOf(q), days:((r.days||q.days||[])).slice(), hlv:lvKey(q.lv), time:ovT || q.time||"09:00", rpt:r.type,
+    openSheet({type:"hedit", id, onDate:onD, dayT:ovT || null, place:q.place || "", after:q.afterId ? "" : (q.after || ""), afterId:q.afterId || null, area:areasOf(q), days:((r.days||q.days||[])).slice(), hlv:lvKey(q.lv), time:q.time||"09:00", rpt:r.type,
       rweeks:r.weeks||2, revery:r.every||3, rday:r.day||15, rmonths:r.months||3, ron:r.on||2, roff:r.off||1,
       ranchor:r.anchor || activityDate(q.createdAt) || today()}); return; }
     case "submit-hedit": { const q = S.mine[c.id], name = ($("#he-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (dupQ(name, c.id)){ toast(DUPMSG); return; }
       // 요일은 매주·격주일 때만 필요(매일·하고 쉬기·N일마다·매월은 요일 없음)
       const rp2 = buildRepeat(c); if (needsDays(rp2.type) && !rp2.days.length){ toast("요일을 골라 주세요"); return; }
       if (!c.time){ toast("시간을 골라 주세요"); return; }
-      const tOn = {...(q.timeOn || {})}, dayOnly = c.onDate && c.time !== c.dayTime0;
-      if (dayOnly){ if (c.time === q.time) delete tOn[c.onDate]; else tOn[c.onDate] = c.time; } else if (c.onDate && c.time !== c.dayTime0) delete tOn[c.onDate];
-      run(() => api.putMine(c.id, {...q, name, ...readPlan(c, true), time:dayOnly ? (q.time || c.dayTime0) : (c.onDate && c.time === c.dayTime0 ? (q.time || c.time) : c.time), timeOn:tOn, repeat:rp2, days:rp2.days||[], lv:c.hlv, area:c.area||[]}), () => { closeSheet(); toast(dayOnly ? "이 날만 시간을 바꿨어요" : "저장했어요"); }); return; }
-    case "hrevert": { const q = S.mine[c.id]; if (!q || !c.onDate) return; const tOn = {...(q.timeOn || {})}; delete tOn[c.onDate]; run(() => api.putMine(c.id, {...q, timeOn:tOn}), () => { closeSheet(); toast("원래 시간으로 되돌렸어요"); }); return; }
+      const tOn = {...(q.timeOn || {})}, had = c.onDate ? tOn[c.onDate] : null;
+      if (c.onDate){ if (c.dayT && c.dayT !== c.time) tOn[c.onDate] = c.dayT; else delete tOn[c.onDate]; }
+      const dayMsg = c.onDate && (tOn[c.onDate] || null) !== (had || null);
+      run(() => api.putMine(c.id, {...q, name, ...readPlan(c, true), time:c.time, timeOn:tOn, repeat:rp2, days:rp2.days||[], lv:c.hlv, area:c.area||[]}), () => { closeSheet(); toast(dayMsg ? (tOn[c.onDate] ? "그날 시간을 바꿨어요" : "원래 시간으로 되돌렸어요") : "저장했어요"); }); return; }
+    case "hday": preserveSheetDrafts(); c.dayT = c.dayT || c.time || "09:00"; c._tk = "dayT"; c._tw = true; c._pp = null; renderSheet(); return;
+    case "hrevert": preserveSheetDrafts(); c.dayT = null; if (TK(c) === "dayT") c._tw = false; renderSheet(); return;
     case "htoggle": { const q = S.mine[c.id]; run(() => api.putMine(c.id, {...q, active:q.active === false}), () => { closeSheet(); toast(q.active === false ? "보관을 해제했어요" : "보관했어요"); }); return; }
     case "hcheckd": { e.stopPropagation(); const q = S.mine[id]; if (!q) return; const d = b.dataset.d; if (d !== today()){ toast("지난 날짜의 완료는 바꿀 수 없어요"); return; } const dn = {...(q.done||{})}; if (dn[d]) delete dn[d]; else dn[d] = Date.now(); run(() => api.putMine(id, {...q, done:dn}), () => { toast(dn[d] ? "완료했어요" : "완료를 취소했어요"); }); return; }
     case "hdel": { const hid = c.id; if (S.armed !== "hd"+hid){ arm("hd"+hid); renderSheet(); return; } S.armed = null; run(() => api.delMine(hid), () => { closeSheet(); toast("일일 퀘스트를 삭제했어요"); }); return; }
