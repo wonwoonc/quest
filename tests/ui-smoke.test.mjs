@@ -1530,7 +1530,7 @@ test('calendar events: add from empty slot (no reward), shown in day/week/month 
   h.click('submit-taskadd'); await h.settle(); const sn=h.snapshot(), ev=Object.values(sn.mine).find(m=>m.kind==='event');
   assert.equal(ev.name,'치과 정기검진'); assert.equal(ev.date,day); assert.equal(ev.time,'10:00'); assert.equal(ev.etime,'11:00'); assert.equal(ev.edate,day);
   assert.equal(JSON.stringify(sn.economy?.events||[]).length,before);
-  assert.match(app(),/class="tlrow[^"]*" data-h="10"[\s\S]*?class="row qrow evq" data-act="evedit"[\s\S]*?evcheck[\s\S]*?치과 정기검진[\s\S]*?10:00–11:00/);
+  assert.match(app(),/class="tlrow[^"]*" data-h="10"[\s\S]*?class="row qrow evq" data-act="evedit"[\s\S]*?evcheck[\s\S]*?치과 정기검진<\/b><\/span>/);
   h.click('cmode',{v:'week'}); assert.match(app(),/wti wck wev[\s\S]*?data-act="evcheck"/); h.click('cmode',{v:'month'}); assert.match(app(),/<i class="ev">/); h.click('cmode',{v:'day'});
   h.route('dash'); assert.match(app(),/<p class="grp">오늘[\s\S]*?class="row qrow evq" data-act="evedit"[\s\S]*?치과 정기검진[\s\S]*?10:00–11:00/); assert.doesNotMatch(app(),/evtoday/);
   { const xp0=JSON.stringify(h.snapshot().profiles); h.click('evcheck',{id:ev.id}); await h.settle(); assert.equal(h.snapshot().mine[ev.id].done,true); assert.match(app(),/check evck on/); assert.equal(JSON.stringify(h.snapshot().profiles),xp0); h.click('evcheck',{id:ev.id}); await h.settle(); assert.equal(h.snapshot().mine[ev.id].done,false); }
@@ -1566,12 +1566,12 @@ test('mission end time: set, saved, shown in every hour it covers (continuation 
   assert.match(row(10),/class="row qrow evq"[^>]*>[\s\S]*?긴 일정/); assert.doesNotMatch(row(11),/긴 일정/);
 });
 
-test('day/week view: long mission and event appear in each covered hour, later hours dimmed',async()=>{
+test('day/week view: hour cells covered by a long mission/event are merged into one cell (item shown once)',async()=>{
   const base=await profileUI(), saved=base.snapshot(), day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
-  saved.mine={...saved.mine,lm:{id:'lm',kind:'mission',name:'긴미션',lv:'normal',due:day,time:'13:00',etime:'15:00',done:false,createdAt:1},le:{id:'le',kind:'event',name:'긴일정',date:day,time:'10:00',etime:'12:30',createdAt:2}};
+  saved.mine={...saved.mine,lm:{id:'lm',kind:'mission',name:'긴미션',lv:'normal',due:day,time:'13:00',etime:'15:00',done:false,createdAt:1},le:{id:'le',kind:'event',name:'긴일정',date:day,time:'10:00',etime:'12:30',createdAt:2},in:{id:'in',kind:'mission',name:'안쪽미션',lv:'normal',due:day,time:'11:00',done:false,createdAt:3}};
   const h=await profileUI(saved); h.route('cal'); const app=()=>h.nodes.get('app').innerHTML;
-  const row=hr=>{ const a=app(); const i=a.indexOf(`data-h="${hr}"`); return a.slice(i, a.indexOf('data-h="',i+10)); };
-  assert.match(row(10),/class="row qrow evq"[^>]*>[\s\S]*?긴일정/); assert.match(row(11),/class="row qrow cont evq"[\s\S]*?긴일정/); assert.match(row(12),/cont evq[\s\S]*?긴일정/); assert.doesNotMatch(row(13),/긴일정/);
-  assert.match(row(13),/긴미션/); assert.doesNotMatch(row(13),/cont[^"]*"[^>]*data-id="lm"/); assert.match(row(14),/class="row qrow cont[^"]*"[^>]*data-id="lm"/); assert.doesNotMatch(row(15),/긴미션/);
-  h.click('cmode',{v:'week'}); const w=app(); assert.ok((w.match(/긴일정/g)||[]).length>=3); assert.ok((w.match(/긴미션/g)||[]).length>=2);
+  const a=app(); assert.match(a,/class="tlrow[^"]*merged" data-h="10" style="--rows:3"[\s\S]*?긴일정[\s\S]*?안쪽미션/); assert.ok(!/class="tlrow[^"]*" data-h="11"/.test(a)); assert.ok(!/class="tlrow[^"]*" data-h="12"/.test(a));
+  assert.match(a,/class="tlrow[^"]*merged" data-h="13" style="--rows:2"[\s\S]*?긴미션/); assert.ok(!/class="tlrow[^"]*" data-h="14"/.test(a)); assert.match(a,/class="tlrow[^"]*" data-h="15"/);
+  assert.equal((a.match(/data-act="evedit" data-id="le"/g)||[]).length,1); assert.equal((a.match(/data-act="tedit" data-id="lm"/g)||[]).length,1);
+  h.click('cmode',{v:'week'}); const w=app(); assert.match(w,/grid-row:span 3"[^>]*>[\s\S]*?긴일정/); assert.match(w,/grid-row:span 2"[^>]*>[\s\S]*?긴미션/); assert.equal((w.match(/data-act="evedit" data-id="le"/g)||[]).length,1); assert.equal((w.match(/data-act="tedit" data-id="lm"/g)||[]).length,1);
 });

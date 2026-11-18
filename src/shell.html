@@ -1520,7 +1520,10 @@ a.row{color:inherit;text-decoration:none}
 .wgc.cell .tlempty.tlmore{flex:1}
 
 /* 여러 시간에 걸친 미션·일정: 이어지는 칸은 흐리게. 미션 종료 시간 칩 */
-.qrow.cont,.wti.cont{opacity:.5}
+/* 합친 시간 칸: 시간 이름은 칸 높이에 맞춰 위에서부터 한 시간 간격으로 */
+.tlrow.merged{min-height:calc(var(--rows) * 37px)}
+.tlrow .tlh{display:flex;flex-direction:column}.tlrow.merged .tlh span{height:37px;flex:none}
+.wgc.cell[style*="span"]{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
 .chip.etx{padding-left:10px;padding-right:10px;color:var(--muted)}
 </style>
 <!--APP_ENTRY-->
