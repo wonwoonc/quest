@@ -1545,7 +1545,7 @@ test('calendar events: add from empty slot (no reward), shown in day/week/month 
   h.click('taskadd',{ev:'1',d:day}); assert.match(ov(),/data-act="ev-allday" aria-pressed="true"/); assert.doesNotMatch(ov(),/class="tw" data-tk/);
   const nx=new Date(Date.parse(day+'T00:00Z')+2*864e5).toISOString().slice(0,10); assert.doesNotMatch(ov(),/ev-multi|여러 날/); assert.match(ov(),/시작[\s\S]*?data-k="due"[\s\S]*?종료[\s\S]*?data-k="edate"/); h.click('dpopen',{k:'edate'}); h.click('dppick',{k:'edate',v:nx}); assert.match(ov(),/종일/);
   h.nodes.set('ta-name',{value:'지울 일정'}); h.click('submit-taskadd'); await h.settle();
-  { const m=Object.values(h.snapshot().mine).find(m=>m.kind==='event'); assert.equal(m.edate,nx); assert.equal(m.time,''); }
+  { const m=Object.values(h.snapshot().mine).find(m=>m.kind==='event'&&m.name==='지울 일정'); assert.equal(m.edate,nx); assert.equal(m.time,''); }
   h.click('cmode',{v:'month'}); assert.equal((app().match(/<i class="ev">/g)||[]).length>=2,true); h.click('cmode',{v:'day'});
-  const e2=Object.values(h.snapshot().mine).find(m=>m.kind==='event'); h.click('evedit',{id:e2.id}); h.click('evdel'); h.click('cfok'); await h.settle(); assert.ok(!h.snapshot().mine[e2.id]);
+  const e2=Object.values(h.snapshot().mine).find(m=>m.kind==='event'&&m.name==='지울 일정'); h.click('evedit',{id:e2.id}); h.click('evdel'); h.click('cfok'); await h.settle(); assert.ok(!h.snapshot().mine[e2.id]);
 });
