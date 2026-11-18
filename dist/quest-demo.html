@@ -2699,7 +2699,7 @@ function taskTab(o = {}){
   const todBlock = todAll.length ? `<p class="grp">오늘 <span class="num">${tod.length}</span></p>${todAll.map(x => x.e ? evRow(x.e) : taskRow(x.m)).join("")}` : "";
   h += `<section class="card tight qlist">${block("⚠️ 기한 지남", late, "warn")}${todBlock}${o.noUp ? "" : block("다가오는", up)}${o.noNone ? "" : block("미지정", none)}${te.length ? "" : !ms.length || (!open.length && !doneT.length) ? `<p class="empty-row">아직 미션이 없어요.</p>` : !(late.length + tod.length + (o.noUp ? 0 : up.length) + (o.noNone ? 0 : none.length)) && !doneT.length ? `<p class="empty-row">오늘 할 미션이 없어요.</p>` : ""}
     ${doneT.length ? `<button class="morebtn" data-act="toggle" data-k="tdone">오늘 완료 ${doneT.length}개 ${S.openTDone ? "접기" : "보기"}</button>${S.openTDone ? doneT.map(m => taskRow(m)).join("") : ""}` : ""}
-    <button class="tadd-pill" data-act="taskadd" data-ev="ms">+ 미션·일정 추가</button></section>`;
+    <button class="tadd-pill" data-act="taskadd" data-ev="ms">+ 미션 추가</button></section>`;
   return h;
 }
 function subTab(){
@@ -2932,7 +2932,6 @@ function viewCal(){
   const title = mode === "day" ? `${D0.getMonth()+1}월 ${D0.getDate()}일 <span class="${D0.getDay() === 6 ? "sat" : D0.getDay() === 0 ? "sun" : ""}">${WD[D0.getDay()]}요일</span>` : mode === "week" ? (() => { const a = pd(sunStart(date)), b2 = pd(addD(sunStart(date), 6)); return `${a.getMonth()+1}.${a.getDate()} – ${b2.getMonth()+1}.${b2.getDate()}`; })() : mode === "month" ? `${D0.getFullYear()}년 ${D0.getMonth()+1}월` : `${D0.getFullYear()}년`;
   h += `<div class="calnav"><button class="iconbtn" data-act="cstep" data-v="-1" aria-label="이전">${I.back}</button><b>${title}</b><button class="iconbtn fwd" data-act="cstep" data-v="1" aria-label="다음">${I.back}</button>${date !== t ? `<button class="btn sec xs" data-act="ctoday">오늘</button>` : ""}</div>`;
   const calTaskRow = m => taskRow(m, true, false, {showTime:false, showDate:false});
-  const addBtn = d => `<button class="morebtn add" data-act="taskadd" data-ev="1" data-d="${d}">+ 일정·미션 추가</button>`;
   const byTime = l => l.slice().sort((a,b) => (a.time||"99") < (b.time||"99") ? -1 : (a.time||"99") > (b.time||"99") ? 1 : a.done - b.done);
   if (mode === "day"){
     const l = by[date] || [], untimed = l.filter(m => !m.time), timed = l.filter(m => m.time), ev = evs[date] || [], evAll = ev.filter(e => !e.time), evTimed = ev.filter(e => e.time);
@@ -2944,7 +2943,7 @@ function viewCal(){
       const hItems = hbTimed.filter(q => (+q.time.slice(0,2) || 24) === hr), eItems = evTimed.filter(e => evHour(e) === hr);
       h += `<div class="tlrow ${now ? "now" : ""}" data-h="${hr}"><span class="tlh num">${hl(hr)}</span><div class="tlc">${eItems.map(evBlock).join("")}${items.map(calTaskRow).join("")}${hItems.map(q => calHabitChip(q, date)).join("")}${(!items.length && !hItems.length && !eItems.length) ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : ""}</div></div>`; }
     h += `</div>`;
-    h += `${addBtn(date)}</section>`;
+    h += `</section>`;
   } else if (mode === "week"){
     const s0 = sunStart(date), days = Array.from({length:7}, (_, i) => addD(s0, i)), hl = hr => `${hr}시`;
     const hourOf = m => +m.time.slice(0,2) || 24, nowH = new Date().getHours() || 24;
