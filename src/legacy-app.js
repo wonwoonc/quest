@@ -1569,10 +1569,11 @@ function replyRow(c, child, line){
 /* 대시보드·퀘스트 화면 카드: 기한이 지났으면 카드를 어둡게 덮고 그 위에서 연장 / 달성 / 포기. 스테이지만 지났으면 그 스테이지를 같은 자리에서 처리. */
 function ovLay(g, html){ if (!g || g.owner !== S.me || !S.canWrite) return html;
   const btns = x => `<div class="ovbtns"><button class="btn xs sec" data-act="pdue" data-p="${x.id}">연장</button><button class="btn xs gold" data-act="pdone2" data-p="${x.id}">${isProj(x) ? "완료" : "달성"}</button><button class="btn xs sec" data-act="pcancel" data-p="${x.id}">포기</button></div>`;
+  const ic = `<span class="ovi" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>`;
   let in_ = "";
-  if (isOver(g)) in_ = `<b>기한이 지났어요</b><small class="num">${dday(g.end)}</small>${btns(g)}`;
+  if (isOver(g)) in_ = `${ic}<b>기한이 지났어요</b><small class="num">${dday(g.end)}</small>${btns(g)}`;
   else { const st = isProj(g) ? null : subsOf(g.id).find(isOver);
-    if (st) in_ = `<b>스테이지 기한이 지났어요</b><small>${esc(st.title)} · ${dday(st.end)}</small>${btns(st)}`; }
+    if (st) in_ = `${ic}<b>스테이지 기한이 지났어요</b><small>${esc(st.title)} · ${dday(st.end)}</small>${btns(st)}`; }
   return in_ ? html.replace('class="card pgc', 'class="card pgc isover').replace(/<\/section>\s*$/, `<div class="ovlay">${in_}</div></section>`) : html; }
 function doneProject(pid){ const p = S.projects[pid], sp = isProj(p); if (!p) return;
   run(() => api.putProject(pid, {...p, status:"done", doneAt:Date.now(), progress:goalProgress(p)}), r => { S.quietXp = true; if (sp) syncProgress(p.parentId); rewardSheet({emoji:"🏆", title:sp ? "스테이지 완료!" : "메인 퀘스트 달성!", desc:esc(p.title), share:{ref:{type:"project_done", id:pid, label:p.title, sub:sp}, title:sp ? "🔗 스테이지<br>완료!" : "🏆 메인 퀘스트<br>달성!"}}); }); }

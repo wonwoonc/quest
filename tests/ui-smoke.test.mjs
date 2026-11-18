@@ -1503,10 +1503,10 @@ test('overdue quest: card overlay (dashboard + quest screen), extend, give up (a
   saved.projects={m:{id:'m',owner:'me',title:'지난 메인',status:'active',end:'2000-01-01'},s:{id:'s',owner:'me',parentId:'m',title:'지난 스테이지',status:'active',end:'2000-01-01'},ok:{id:'ok',owner:'me',title:'남은 메인',status:'active',end:'2099-12-31'},m3:{id:'m3',owner:'me',title:'스테이지만 지남',status:'active',end:'2099-12-31'},s3:{id:'s3',owner:'me',parentId:'m3',title:'늦은 관문',status:'active',end:'2000-01-01'}};
   saved.mine={...saved.mine,mo:{id:'mo',kind:'mission',name:'남은 미션',projectId:'s',done:false,createdAt:1},md:{id:'md',kind:'mission',name:'끝낸 미션',projectId:'m',done:true,doneAt:2,createdAt:2}};
   const h=await profileUI(saved); h.route('dash'); const app=()=>h.nodes.get('app').innerHTML, ov=()=>h.nodes.get('overlay').innerHTML;
-  assert.match(app(),/data-reo="m" class="card pgc isover[\s\S]*?<div class="ovlay"><b>기한이 지났어요<\/b>[\s\S]*?data-act="pdue" data-p="m"[\s\S]*?data-act="pdone2" data-p="m"[\s\S]*?data-act="pcancel" data-p="m">포기/);
+  assert.match(app(),/data-reo="m" class="card pgc isover[\s\S]*?<div class="ovlay"><span class="ovi"[\s\S]*?<b>기한이 지났어요<\/b>[\s\S]*?data-act="pdue" data-p="m"[\s\S]*?data-act="pdone2" data-p="m"[\s\S]*?data-act="pcancel" data-p="m">포기/);
   assert.match(app(),/data-reo="m3" class="card pgc isover[\s\S]*?스테이지 기한이 지났어요[\s\S]*?늦은 관문[\s\S]*?data-act="pdue" data-p="s3"[\s\S]*?data-act="pdone2" data-p="s3">완료/);
   assert.doesNotMatch(app(),/data-reo="ok" class="card pgc isover/);
-  h.route('qmanage'); assert.match(app(),/data-p="m" role="button"[\s\S]*?<div class="ovlay"><b>기한이 지났어요/);
+  h.route('qmanage'); assert.match(app(),/data-p="m" role="button"[\s\S]*?<div class="ovlay"><span class="ovi"[\s\S]*?<b>기한이 지났어요/);
   h.click('project',{p:'m'}); assert.doesNotMatch(app(),/기한이 지났어요/);
   h.click('pdue',{p:'s3'}); assert.match(ov(),/기한 연장/); h.click('pext-q',{v:'30'}); h.click('pext-go'); await h.settle();
   assert.ok(h.snapshot().projects.s3.end>'2000-01-01');
