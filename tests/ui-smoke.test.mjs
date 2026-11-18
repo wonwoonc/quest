@@ -1523,7 +1523,7 @@ test('calendar events: add from empty slot (no reward), shown in day/week/month 
   const h=await profileUI(); const app=()=>h.nodes.get('app').innerHTML, ov=()=>h.nodes.get('overlay').innerHTML, T=h.snapshot().profiles?.me?.stats;
   const day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
   h.route('cal'); assert.match(app(),/data-act="taskadd" data-ev="1"/);
-  h.click('taskadd',{ev:'1',d:day,tm:'10:00'}); assert.match(ov(),/일정 추가/); assert.match(ov(),/data-act="ev-type" data-v="ev" aria-pressed="true">일정[\s\S]*?data-act="ev-type" data-v="ms" aria-pressed="false">미션/); assert.doesNotMatch(ov(),/난이도|XP|코인을/);
+  h.click('taskadd',{ev:'1',d:day,tm:'10:00'}); assert.match(ov(),/일정 추가/); assert.match(ov(),/data-act="ev-type" data-v="ms" aria-pressed="false">미션[\s\S]*?data-act="ev-type" data-v="ev" aria-pressed="true">일정/); assert.doesNotMatch(ov(),/난이도|XP|코인을/);
   assert.match(ov(),/시작[\s\S]*?data-k="due"[\s\S]*?data-tk="time">10:00[\s\S]*?종료[\s\S]*?data-k="edate"[\s\S]*?data-tk="etime">11:00/); assert.doesNotMatch(ov(),/class="tw"|evwl/);
   h.click('tmset',{tk:'etime'}); assert.match(ov(),/class="tw" data-tk="etime"/); h.click('tmdone'); assert.doesNotMatch(ov(),/class="tw"/); assert.doesNotMatch(ov(),/ev-dur/);
   h.nodes.set('ta-name',{value:'치과 정기검진'}); const before=JSON.stringify(h.snapshot().economy?.events||[]).length;

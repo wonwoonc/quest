@@ -3996,7 +3996,7 @@ const evCol = (c, lab, dk2, tk) => `<div class="evcol"><span class="evpl">${lab}
 const evWhen = c => `<div class="field evwhen1"><div class="evtw">${evCol(c, "시작", "due", "time")}<span class="evdash">–</span>${evCol(c, "종료", "edate", "etime")}</div>
   ${c._dp ? miniCal(c, c._dp) : ""}${c._tw && !c.allday ? timeWheel(c, TK(c), true) : ""}
   <div class="evopt"><button class="chip" data-act="ev-allday" aria-pressed="${!!c.allday}">종일</button><button class="chip" data-act="ev-more" aria-pressed="${!!c._evx}" aria-expanded="${!!c._evx}">장소·메모</button></div></div>`;
-const evSwitch = c => c.evOK ? `<div class="chips evtype" role="group" aria-label="종류">${[["ev","일정"],["ms","미션"]].map(([v,l]) => `<button class="chip" data-act="ev-type" data-v="${v}" aria-pressed="${(v === "ev") === !!c.ev}">${l}</button>`).join("")}</div>` : "";
+const evSwitch = c => c.evOK ? `<div class="chips evtype" role="group" aria-label="종류">${[["ms","미션"],["ev","일정"]].map(([v,l]) => `<button class="chip" data-act="ev-type" data-v="${v}" aria-pressed="${(v === "ev") === !!c.ev}">${l}</button>`).join("")}</div>` : "";
 const keepEvFields = c => { const p = $("#ev-place"), n = $("#ev-note"); if (p) c.place = p.value; if (n) c.note = n.value; };
 function planField(c, daily){
   const after = afterLabel(c);
