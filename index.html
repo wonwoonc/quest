@@ -1504,6 +1504,14 @@ a.row{color:inherit;text-decoration:none}
 .wgc .wti.wck.done .wtx span{color:var(--muted)!important;text-decoration:line-through}
 :root[data-theme="dark"] .wgc .wti.wev .wtx span{color:#AFC8F5!important}:root[data-theme="dark"] .wgc .wti.habit .wtx span{color:#FFB46B}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .wgc .wti.wev .wtx span{color:#AFC8F5!important}:root:not([data-theme="light"]) .wgc .wti.habit .wtx span{color:#FFB46B}}
+
+/* 일 보기: 일정 시간은 이름 오른쪽에. 미션은 초록(월 보기와 같은 색) — 일·주 보기 공통 */
+.tl .qrow .t{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;min-width:0}
+.tl .qrow.evq .task-meta{margin:0}
+.tl .qrow:not(.evq):not(.hbq):not(.ghost) .check{border-color:var(--accent)}
+.tl .qrow:not(.evq):not(.hbq):not(.ghost) .t b:not(.done){color:color-mix(in srgb,var(--accent) 70%,var(--ink))}
+.wgc .wti.wck:not(.wev):not(.habit):not(.ghost) .wchk{border-color:var(--accent)}
+.wgc .wti.wck:not(.wev):not(.habit):not(.ghost):not(.done) .wtx span{color:color-mix(in srgb,var(--accent) 70%,var(--ink))}
 </style>
 <script type="module" src="./src/entry.js"></script>
 </body></html>
