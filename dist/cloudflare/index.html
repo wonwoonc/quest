@@ -1565,11 +1565,15 @@ a.row{color:inherit;text-decoration:none}
 /* 모바일 대시보드: 프로필을 퀘스트 줄 맨 앞에 퀘스트 카드 높이로(PC는 왼쪽 열 그대로) */
 .wdp-m{display:none}
 @media (max-width:1023.98px){
-.wd-ggrid.hs > .wdp.wdp-m{display:flex!important;flex:0 0 132px!important;padding:0 12px 12px!important;gap:1px!important;margin:0;scroll-snap-align:start;overflow:hidden}
-.wd-ggrid.hs > .wdp-m .wdp-cv{margin:0 -12px 6px!important;height:auto!important;aspect-ratio:1/1}
-.wd-ggrid.hs > .wdp-m .wdp-name h3{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wd-ggrid.hs > .wdp-m .editp,.wd-ggrid.hs > .wdp-m .bio,.wd-ggrid.hs > .wdp-m .counts,.wd-ggrid.hs > .wdp-m .barmeta .coinm{display:none}
-.wd-ggrid.hs > .wdp-m .wdp-lv{font-size:12px;margin:0 0 4px}.wd-ggrid.hs > .wdp-m .barmeta{font-size:11px}
+.wd-ggrid.hs > .wdp.wdp-m{display:flex!important;flex:0 0 132px!important;padding:0 11px 10px!important;gap:4px!important;margin:0;scroll-snap-align:start;overflow:hidden;align-self:stretch}
+.wd-ggrid.hs > .wdp-m .wdp-cv{margin:0 -11px 4px!important;height:84px!important;aspect-ratio:auto}
+.wd-ggrid.hs > .wdp-m .wdp-fig{transform:scale(.78);transform-origin:center 60%}
+.wd-ggrid.hs > .wdp-m .wdp-name{gap:5px;min-width:0}
+.wd-ggrid.hs > .wdp-m .wdp-name h3{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.wd-ggrid.hs > .wdp-m .wdp-lvm{flex:none;font-size:11.5px;font-weight:800;color:var(--accent)}
+.wd-ggrid.hs > .wdp-m .barmeta{font-size:11px;margin-top:0;display:flex;justify-content:space-between}
+.wd-ggrid.hs > .wdp-m .barmeta .coinm{display:inline!important}
+}
 }
 </style>
 <script>
@@ -3970,6 +3974,12 @@ function profHead(uid){ const mine = uid === S.me, p = prof(uid), posts = feedSo
     <div class="counts ccl"><button data-act="dstory" data-u="${esc(uid)}"><b class="num">${posts.length}</b><span>스토리</span></button><button data-act="flist" data-v="followers" data-u="${esc(uid)}"><b class="num">${followers}</b><span>팔로워</span></button><button data-act="flist" data-v="following" data-u="${esc(uid)}"><b class="num">${following}</b><span>팔로잉</span></button></div>
 ${dots}`, side);
 }
+/* 모바일 대시보드 퀘스트 줄 맨 앞의 작은 프로필: 캐릭터 · 이름+Lv · 경험치 막대 · XP와 코인 */
+function mobProfCard(uid){ const s = statsOf(uid), c = colorOf(uid);
+  return `<section class="card wdp wdp-m" style="--pc:${c};background:color-mix(in srgb,${c} 11%,var(--card))"><div class="wdp-cv" ${uid === S.me ? `data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기"` : ""} style="background:linear-gradient(160deg,color-mix(in srgb,${c} 22%,var(--card)),color-mix(in srgb,${c} 55%,var(--card)))"><div class="wdp-fig">${fig(uid, 150, 104)}</div></div>
+    <div class="wdp-name"><h3>${esc(nameOf(uid))}</h3><span class="wdp-lvm num">Lv.${s.L}</span></div>
+    <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
+    <div class="barmeta lft"><span class="num">${s.need === 0 ? "MAX" : `${fmt(s.cur)}/${fmt(s.need)}`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div></section>`; }
 function webProfCard(uid){
   const s = statsOf(uid), p = prof(uid), c = colorOf(uid), posts = feedSorted().filter(x => x.author === uid).length;
   const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
@@ -3998,7 +4008,7 @@ function viewWebDash(){
     const nav = WEB.matches && list.length > 2 ? `<button class="wd-rnav" data-act="wdgs" data-v="-1" aria-label="이전 ${nm}">${I.back}</button><button class="wd-rnav fwd" data-act="wdgs" data-v="1" aria-label="다음 ${nm}">${I.back}</button>` : "";
     return `${nav ? `<div class="wd-ovnav">${nav}</div>` : ""}
       ${(() => { const addc = `<button class="wd-addcard" data-act="sheet" data-k="add" data-v="${kind}" aria-label="${nm} 생성"><span class="wd-plus">+</span><b>${nm} 생성</b></button>`;
-        return `<div class="wd-ggrid hs">${WEB.matches ? "" : webProfCard(uid).replace('class="card wdp"', 'class="card wdp wdp-m"')}${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(?=<div class="metric">)|(?=<div class="pgmeta">)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; const subs = x.parentId ? [] : subsOf(x.id); return `<div class="wdbar"><span class="num">${x.parentId ? "" : `스테이지 ${subs.filter(y => y.status === "done").length}/${subs.length} · `}미션 ${pr.done}/${pr.total}</span></div>`; }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).map((html, i) => ovLay(list[i], html)).join("")}${addc}</div>`; })()}`; };
+        return `<div class="wd-ggrid hs">${WEB.matches ? "" : mobProfCard(uid)}${list.map(x => pgCard(x).replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`).replace(/<span>✅ 미션 [^<]*<\/span>/, "").replace(/<span>🔗 스테이지 [^<]*<\/span>/, "").replace(/<span>📈 [^<]*<\/span>/, "").replace(/(?=<div class="metric">)|(?=<div class="pgmeta">)/, () => { const pr = goalProgress(x), tp = pr.total ? Math.round(pr.done/pr.total*100) : 0; const subs = x.parentId ? [] : subsOf(x.id); return `<div class="wdbar"><span class="num">${x.parentId ? "" : `스테이지 ${subs.filter(y => y.status === "done").length}/${subs.length} · `}미션 ${pr.done}/${pr.total}</span></div>`; }).replace('<div class="pgmeta"></div>', "").replace(/(<span class="parlab">[\s\S]*?<\/span>)<h3>([\s\S]*?)<\/h3>/, "<h3>$2 $1</h3>")).map((html, i) => ovLay(list[i], html)).join("")}${addc}</div>`; })()}`; };
   const goals = `${strip(gs, "메인 퀘스트", "big")}
 `;
   let h = "";

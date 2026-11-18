@@ -1565,11 +1565,15 @@ a.row{color:inherit;text-decoration:none}
 /* 모바일 대시보드: 프로필을 퀘스트 줄 맨 앞에 퀘스트 카드 높이로(PC는 왼쪽 열 그대로) */
 .wdp-m{display:none}
 @media (max-width:1023.98px){
-.wd-ggrid.hs > .wdp.wdp-m{display:flex!important;flex:0 0 132px!important;padding:0 12px 12px!important;gap:1px!important;margin:0;scroll-snap-align:start;overflow:hidden}
-.wd-ggrid.hs > .wdp-m .wdp-cv{margin:0 -12px 6px!important;height:auto!important;aspect-ratio:1/1}
-.wd-ggrid.hs > .wdp-m .wdp-name h3{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wd-ggrid.hs > .wdp-m .editp,.wd-ggrid.hs > .wdp-m .bio,.wd-ggrid.hs > .wdp-m .counts,.wd-ggrid.hs > .wdp-m .barmeta .coinm{display:none}
-.wd-ggrid.hs > .wdp-m .wdp-lv{font-size:12px;margin:0 0 4px}.wd-ggrid.hs > .wdp-m .barmeta{font-size:11px}
+.wd-ggrid.hs > .wdp.wdp-m{display:flex!important;flex:0 0 132px!important;padding:0 11px 10px!important;gap:4px!important;margin:0;scroll-snap-align:start;overflow:hidden;align-self:stretch}
+.wd-ggrid.hs > .wdp-m .wdp-cv{margin:0 -11px 4px!important;height:84px!important;aspect-ratio:auto}
+.wd-ggrid.hs > .wdp-m .wdp-fig{transform:scale(.78);transform-origin:center 60%}
+.wd-ggrid.hs > .wdp-m .wdp-name{gap:5px;min-width:0}
+.wd-ggrid.hs > .wdp-m .wdp-name h3{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.wd-ggrid.hs > .wdp-m .wdp-lvm{flex:none;font-size:11.5px;font-weight:800;color:var(--accent)}
+.wd-ggrid.hs > .wdp-m .barmeta{font-size:11px;margin-top:0;display:flex;justify-content:space-between}
+.wd-ggrid.hs > .wdp-m .barmeta .coinm{display:inline!important}
+}
 }
 </style>
 <script type="module" src="./src/demo-entry.js"></script>
