@@ -1429,13 +1429,15 @@ a.row{color:inherit;text-decoration:none}
 .wrseg{margin-bottom:12px}
 /* D-day 지난 퀘스트: 카드 위 연장 / 달성 / 포기 */
 .pgc.isover{position:relative;overflow:hidden}
-.pgc .ovlay{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:16px 18px;text-align:center;color:#fff;background:rgba(10,14,12,.74);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:inherit;cursor:default}
-.pgc .ovlay .ovi{width:30px;height:30px;border-radius:50%;background:rgba(229,72,77,.18);color:#FF8F92;display:grid;place-items:center;margin-bottom:4px}.pgc .ovlay .ovi svg{width:17px;height:17px}
+.pgc .ovlay{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:16px 18px;text-align:center;color:var(--ink);background:color-mix(in srgb,var(--card) 82%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:inherit;cursor:default}
+.pgc .ovlay .ovi{width:30px;height:30px;border-radius:50%;background:#FDECEC;color:#E5484D;display:grid;place-items:center;margin-bottom:4px}.pgc .ovlay .ovi svg{width:17px;height:17px}
 .pgc .ovlay b{font-size:15px;font-weight:800}
-.pgc .ovlay small{font-size:12.5px;font-weight:700;color:#FF9A9C;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pgc .ovlay small .ddlate{color:inherit}
+.pgc .ovlay small{font-size:12.5px;font-weight:700;color:#E5484D;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pgc .ovlay small .ddlate{color:inherit}
 .pgc .ovlay .ovbtns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;max-width:240px;margin-top:12px}
-.pgc .ovlay .ovbtns .btn{background:rgba(255,255,255,.12);color:#fff;padding:8px 0;font-size:13px;border-radius:10px;box-shadow:none;border:0}
-.pgc .ovlay .ovbtns .btn.gold{background:#fff;color:#18201C}
+.pgc .ovlay .ovbtns .btn{background:var(--fill);color:var(--ink);padding:8px 0;font-size:13px;border-radius:10px;box-shadow:none;border:0}
+.pgc .ovlay .ovbtns .btn.gold{background:var(--accent);color:#fff}
+:root[data-theme="dark"] .pgc .ovlay .ovi{background:rgba(229,72,77,.18);color:#FF8F92}:root[data-theme="dark"] .pgc .ovlay small{color:#FF8A8D}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pgc .ovlay .ovi{background:rgba(229,72,77,.18);color:#FF8F92}:root:not([data-theme="light"]) .pgc .ovlay small{color:#FF8A8D}}
 .st.cx{background:var(--fill);color:var(--muted)}
 .pgc:has(.st.cx){opacity:.72}
 .trophyline.cxline{color:var(--muted)}
