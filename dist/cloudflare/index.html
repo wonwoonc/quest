@@ -1455,10 +1455,9 @@ a.row{color:inherit;text-decoration:none}
 .evwl .evwt{flex:1;display:flex;align-items:baseline;gap:8px;min-width:0}.evwl .evwt em{margin-left:auto;font-style:normal;font-size:12.5px;font-weight:600;color:var(--muted);flex:none}
 .evpan{display:grid;gap:10px;background:color-mix(in srgb,var(--fill) 60%,transparent);border-radius:14px;padding:12px}
 .evpl{font-size:12px;font-weight:700;color:var(--muted)}
-.evdays{display:grid;grid-template-columns:repeat(6,1fr) 40px;gap:6px}
-.evdays button{border:0;border-radius:10px;background:var(--card);padding:6px 0;font:inherit;display:grid;gap:1px;justify-items:center;cursor:pointer;color:var(--ink)}.evdays button small{font-size:11.5px;font-weight:700;color:var(--sub)}.evdays button b{font-size:15px}
-.evdays button.on{background:var(--accent);color:#fff}.evdays button.on small{color:#fff}.evdays button:disabled{opacity:.35}
-.evdays .evcal{display:grid;place-items:center}.evdays .evcal svg{width:18px;height:18px;color:var(--sub)}.evdays .evcal.on svg{color:#fff}
+.evdb{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;border:0;border-radius:10px;background:var(--card);padding:8px 6px;font:inherit;font-size:14px;font-weight:700;color:var(--ink);cursor:pointer}
+.evdb svg{width:15px;height:15px;color:var(--sub);flex:none}.evdb.on{box-shadow:0 0 0 1.5px var(--accent) inset;color:var(--accent)}.evdb.on svg{color:var(--accent)}
+.evtw{align-items:start!important}.evtw .evdash{align-self:center;margin-top:28px}
 .evtw{display:grid;grid-template-columns:minmax(0,1fr) 12px minmax(0,1fr);align-items:center;gap:2px}.evtw > div{display:grid;gap:4px;justify-items:center;min-width:0;width:100%}.evtw .tw{width:100%;margin:0;padding:0;background:var(--card)}.evtw .twwrap{gap:2px}.evtw .twc{width:44px}.evtw .twband{left:6px;right:6px}.evtw .twc span{font-size:16px}.evtw .twc span.on{font-size:19px}.evtw .evdash{text-align:center;font-weight:800;color:var(--muted)}
 .evopt{display:flex;gap:6px}
 .qrow.evq .evbar{width:26px;flex:none;display:grid;place-items:center}.qrow.evq .evbar:before{content:"";width:4px;height:30px;border-radius:4px;background:#3D7BE0}
@@ -4117,12 +4116,10 @@ const evWhenText = c => { const ed = c.edate && c.edate > c.due ? c.edate : "", 
   return `<span class="num">${main}</span>${d ? `<em>${d}</em>` : ""}`; };
 const CLOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
 const CALI = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>`;
-const evDays = (c, k) => { const v = c[k] || c.due, st = addD(v, -1), min = k === "edate" ? c.due : "";
-  return `<div class="evdays">${Array.from({length:6}, (_, i) => addD(st, i)).map(d => { const x = pd(d); return `<button class="${d === v ? "on" : ""}" data-act="dppick" data-k="${k}" data-v="${d}"${min && d < min ? " disabled" : ""}><small>${WD[x.getDay()]}</small><b class="num">${x.getDate()}</b></button>`; }).join("")}<button class="evcal ${c._dp === k ? "on" : ""}" data-act="dpopen" data-k="${k}" aria-label="달력에서 고르기">${CALI}</button></div>${c._dp === k ? miniCal(c, k) : ""}`; };
+const evCol = (c, lab, dk2, tk) => `<div><span class="evpl">${lab}</span><button class="evdb ${c._dp === dk2 ? "on" : ""}" data-act="dpopen" data-k="${dk2}" aria-expanded="${c._dp === dk2}">${CALI}<span class="num">${evDL(c[dk2] || c.due)}</span></button>${c.allday ? "" : timeWheel(c, tk, false)}</div>`;
 const evWhen = c => `<div class="field evwhen1"><button class="evwl ${c._wo ? "on" : ""}" data-act="ev-when" aria-expanded="${!!c._wo}">${CLOCK}<span class="evwt">${evWhenText(c)}</span></button>
-  ${c._wo ? `<div class="evpan">${c.multi ? `<span class="evpl">시작일</span>` : ""}${evDays(c, "due")}${c.multi ? `<span class="evpl">종료일</span>${evDays(c, "edate")}` : ""}
-    ${c.allday ? "" : `<div class="evtw"><div><span class="evpl">시작</span>${timeWheel(c, "time", false)}</div><span class="evdash">–</span><div><span class="evpl">종료</span>${timeWheel(c, "etime", false)}</div></div>`}
-    <div class="evopt"><button class="chip" data-act="ev-allday" aria-pressed="${!!c.allday}">종일</button><button class="chip" data-act="ev-multi" aria-pressed="${!!c.multi}">여러 날</button></div></div>` : ""}</div>`;
+  ${c._wo ? `<div class="evpan"><div class="evtw">${evCol(c, "시작", "due", "time")}<span class="evdash">–</span>${evCol(c, "종료", "edate", "etime")}</div>${c._dp ? miniCal(c, c._dp) : ""}
+    <div class="evopt"><button class="chip" data-act="ev-allday" aria-pressed="${!!c.allday}">종일</button></div></div>` : ""}</div>`;
 const evSwitch = c => c.evOK ? `<div class="chips evtype" role="group" aria-label="종류">${[["ev","일정"],["ms","미션"]].map(([v,l]) => `<button class="chip" data-act="ev-type" data-v="${v}" aria-pressed="${(v === "ev") === !!c.ev}">${l}</button>`).join("")}</div>` : "";
 const keepEvFields = c => { const p = $("#ev-place"), n = $("#ev-note"); if (p) c.place = p.value; if (n) c.note = n.value; };
 function planField(c, daily){
@@ -4688,7 +4685,7 @@ document.addEventListener("click", e => {
     case "delpost": e.stopPropagation(); if (S.armed === "dp"+pid){ S.armed = null; const inPost = S.view.name === "post"; run(() => api.delPost(pid), () => { closeSheet(); toast("스토리를 삭제했어요"); if (inPost) history.back(); }); } else { arm("dp"+pid); if (S.compose) renderSheet(); } return;
     case "dpopen": preserveSheetDrafts(); keepEvFields(c); c._dp = c._dp === b.dataset.k ? null : b.dataset.k; c._dpm = null; if (c._dp) c._tw = false; renderSheet(); return;
     case "dpnav": { const base = new Date((c._dpm || ((c._dp === "jd" ? S.planner.date : c[c._dp]) || today()).slice(0,8) + "01")+"T00:00"); base.setMonth(base.getMonth() + +b.dataset.v); c._dpm = dk(base.getTime()).slice(0,8) + "01"; renderSheet(); return; }
-    case "dppick": if (b.dataset.k === "jd"){ c._dp = null; c._dpm = null; jLoad(b.dataset.v); return; } preserveSheetDrafts(); c[b.dataset.k] = b.dataset.v; if (b.dataset.k === "due" && c.ev){ if (!c.multi || !c.edate || c.edate < c.due) c.edate = c.due; } else if (b.dataset.k === "due"){ c.period = ""; if (!c.time) c.time = "09:00"; c._tw = true; } if (b.dataset.k === "edate" && c.edate < c.due) c.edate = c.due; c._dp = null; c._dpm = null; renderSheet(); return;
+    case "dppick": if (b.dataset.k === "jd"){ c._dp = null; c._dpm = null; jLoad(b.dataset.v); return; } preserveSheetDrafts(); keepEvFields(c); c._due0 = c.due; c[b.dataset.k] = b.dataset.v; if (b.dataset.k === "due" && c.ev){ const span = c._due0 && c.edate ? Math.max(0, Math.round((pd(c.edate) - pd(c._due0)) / 864e5)) : 0; c.edate = addD(c.due, span); } else if (b.dataset.k === "due"){ c.period = ""; if (!c.time) c.time = "09:00"; c._tw = true; } if (b.dataset.k === "edate" && c.edate < c.due) c.edate = c.due; c._dp = null; c._dpm = null; renderSheet(); return;
     case "dpclear": c[b.dataset.k] = ""; c._dp = null; renderSheet(); return;
     case "taskadd": { if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"taskadd", lv:"normal", due:b.dataset.d || today(), time:b.dataset.tm || "", period:"", projectId:pid || null, ...(b.dataset.ev ? {evOK:true, ev:true, allday:!b.dataset.tm, time:b.dataset.tm || "09:00", edate:b.dataset.d || today(), etime:addMin(b.dataset.tm || "09:00", 60)} : {})}); delete S.drafts["ev-place"]; delete S.drafts["ev-note"]; setTimeout(() => { const x = $("#ta-name"); x && x.focus(); }, 50); return; }
     case "submit-taskadd": { const name = ($("#ta-name").value||"").trim();
@@ -4704,10 +4701,9 @@ document.addEventListener("click", e => {
     case "ev-type": { const ev = b.dataset.v === "ev"; if (ev === !!c.ev) return; preserveSheetDrafts(); keepEvFields(c); c.ev = ev; c._tk = "time"; c._tw = false; c._dp = null; if (!c.ev && !c.time) c.time = "09:00"; renderSheet(); return; }
     case "ev-allday": preserveSheetDrafts(); keepEvFields(c); c.allday = !c.allday; c._tw = false; renderSheet(); return;
     case "ev-when": preserveSheetDrafts(); keepEvFields(c); c._wo = !c._wo; c._dp = null; renderSheet(); return;
-    case "ev-multi": preserveSheetDrafts(); keepEvFields(c); c.multi = !c.multi; if (!c.multi) c.edate = c.due; else if (!c.edate || c.edate <= c.due) c.edate = addD(c.due, 1); c._dp = null; renderSheet(); return;
     case "ev-more": preserveSheetDrafts(); keepEvFields(c); c._evx = true; renderSheet(); return;
     case "evedit": { e.stopPropagation(); const ev = S.mine[id]; if (!ev || !S.canWrite) return; S.drafts["ta-name"] = ev.name; delete S.drafts["ev-place"]; delete S.drafts["ev-note"];
-      openSheet({type:"taskadd", eid:id, evOK:true, ev:true, due:ev.date, edate:evEDate(ev), multi:evEDate(ev) !== ev.date, allday:!ev.time, time:ev.time || "09:00", etime:evEnd(ev) || addMin(ev.time || "09:00", 60), place:ev.place || "", note:ev.note || "", _evx:!!(ev.place || ev.note), lv:"normal", period:"", projectId:null}); return; }
+      openSheet({type:"taskadd", eid:id, evOK:true, ev:true, due:ev.date, edate:evEDate(ev), allday:!ev.time, time:ev.time || "09:00", etime:evEnd(ev) || addMin(ev.time || "09:00", 60), place:ev.place || "", note:ev.note || "", _evx:!!(ev.place || ev.note), lv:"normal", period:"", projectId:null}); return; }
     case "evdel": { const ev = S.mine[c.eid]; if (!ev) return; ask({t:"이 일정을 삭제할까요?", d:esc(ev.name), ok:"삭제"}, () => run(() => api.delMine(c.eid), () => { closeSheet(); toast("일정을 삭제했어요"); })); return; }
     case "pl-mode": QM().mode = b.dataset.v; QM().sel = []; break;
     case "pl-tab": QM().ptab = b.dataset.v; break;

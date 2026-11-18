@@ -1537,8 +1537,8 @@ test('calendar events: add from empty slot (no reward), shown in day/week/month 
   assert.equal(h.snapshot().mine[ev.id].time,''); assert.match(app(),/tlrow allday[\s\S]*?evb/);
   h.click('evedit',{id:ev.id}); h.click('ev-type',{v:'ms'}); assert.match(ov(),/미션으로 바꾸기/); assert.match(ov(),/난이도/); h.click('submit-taskadd'); await h.settle();
   const s2=h.snapshot(); assert.ok(!s2.mine[ev.id]); assert.ok(Object.values(s2.mine).some(m=>m.kind==='mission'&&m.name==='치과 정기검진'));
-  h.click('taskadd',{ev:'1',d:day}); h.click('ev-when'); assert.match(ov(),/data-act="ev-allday" aria-pressed="true"/); assert.doesNotMatch(ov(),/class="evtw"/);
-  const nx=new Date(Date.parse(day+'T00:00Z')+2*864e5).toISOString().slice(0,10); h.click('ev-multi'); assert.match(ov(),/종료일/); h.click('dppick',{k:'edate',v:nx}); assert.match(ov(),/종일/);
+  h.click('taskadd',{ev:'1',d:day}); h.click('ev-when'); assert.match(ov(),/data-act="ev-allday" aria-pressed="true"/); assert.doesNotMatch(ov(),/class="tw" data-tk/);
+  const nx=new Date(Date.parse(day+'T00:00Z')+2*864e5).toISOString().slice(0,10); assert.doesNotMatch(ov(),/ev-multi|여러 날/); assert.match(ov(),/시작[\s\S]*?data-k="due"[\s\S]*?종료[\s\S]*?data-k="edate"/); h.click('dpopen',{k:'edate'}); h.click('dppick',{k:'edate',v:nx}); assert.match(ov(),/종일/);
   h.nodes.set('ta-name',{value:'지울 일정'}); h.click('submit-taskadd'); await h.settle();
   { const m=Object.values(h.snapshot().mine).find(m=>m.kind==='event'); assert.equal(m.edate,nx); assert.equal(m.time,''); }
   h.click('cmode',{v:'month'}); assert.equal((app().match(/<i class="ev">/g)||[]).length>=2,true); h.click('cmode',{v:'day'});
