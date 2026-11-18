@@ -1524,7 +1524,8 @@ a.row{color:inherit;text-decoration:none}
 .tlrow.merged{min-height:calc(var(--rows) * 37px)}
 .tlrow .tlh{display:flex;flex-direction:column}.tlrow.merged .tlh span{height:37px;flex:none}
 .wgc.cell[style*="span"]{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
-.chip.etx{padding-left:10px;padding-right:10px;color:var(--muted)}
+.tw2{display:grid;gap:8px;margin:10px 0 4px;background:var(--fill);border-radius:16px;padding:10px}.tw2 .tw{background:var(--card)}
+.tw2ok{height:34px;border:0;border-radius:10px;background:var(--accent-soft);color:var(--accent);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 </style>
 <script>
 (function(){"use strict";
@@ -2167,7 +2168,8 @@ function dueLabel(m){ if (m.period && m.due){ if (m.done) return ""; return perE
   const d = dueOf(m); if (!d || m.done) return ""; const t = today(); if (d < t) return `<span class="tday late">기한 지남</span>`; if (d === t) return S._noToday ? "" : `<span class="tday">오늘</span>`; if (d === tomorrow()) return `<span class="tday soft">내일</span>`; const x = new Date(d+"T00:00"); return `<span class="tday soft">${x.getMonth()+1}/${x.getDate()}</span>`; }
 /* 미션 날짜: 버튼 하나. 새 미션은 오늘이 기본값이고, 누르면 달력이 열린다. */
 const dueField = (c, extra = "", bare = false) => { const t = today(), tm = tomorrow(), lab = !c.due || c.period ? "날짜" : c.due === t ? "오늘" : c.due === tm ? "내일" : fmtD(c.due);
-  return `<div class="field">${bare ? "" : `<span class="lab">날짜·시간 <span class="hint">필수</span></span>`}<div class="chips"><button class="chip" data-act="dpopen" data-k="due" aria-pressed="${!!(c.due && !c.period)}">📅 ${lab}</button><button class="chip" data-act="tmset" data-tk="time" aria-pressed="${!!c.time}">🕒 <span class="tmval" data-tk="time">${c.time ? tmLabel(c.time) : "시간"}</span></button>${c.time ? `<button class="chip etchip" data-act="tmset" data-tk="etime" aria-pressed="${!!c.etime}">~ <span class="tmval" data-tk="etime">${c.etime ? tmLabel(c.etime) : "종료"}</span></button>${c.etime ? `<button class="chip etx" data-act="et-clear" aria-label="종료 시간 지우기">×</button>` : ""}` : ""}${extra}</div>${c._dp === "due" ? miniCal(c, "due") : ""}${c._tw ? timeWheel(c) : ""}</div>`; };
+  return `<div class="field">${bare ? "" : `<span class="lab">날짜·시간 <span class="hint">필수</span></span>`}<div class="chips"><button class="chip" data-act="dpopen" data-k="due" aria-pressed="${!!(c.due && !c.period)}">📅 ${lab}</button><button class="chip" data-act="tmset" data-tk="time" aria-pressed="${!!c.time}">🕒 <span class="tmval" data-tk="time">${c.time ? tmLabel(c.time) : "시간"}</span>${c.time && c.etime ? `–<span class="tmval" data-tk="etime">${tmLabel(c.etime)}</span>` : ""}</button>${extra}</div>${c._dp === "due" ? miniCal(c, "due") : ""}${c._tw ? `<div class="tw2"><div class="evtw"><div><span class="evpl">시작</span>${timeWheel(c, "time", false)}</div><span class="evdash">–</span><div><span class="evpl">종료</span>${timeWheel(c, "etime", false)}</div></div><button class="tw2ok" data-act="tmdone">완료</button></div>` : ""}</div>`; };
+/* 미션 시간: 시작을 고르면 종료가 자동으로 1시간 뒤로 잡히고, 같은 창에서 바로 고칠 수 있다(dueField 위 참고) */
 const TW_H = 36;
 const TK = c => c._tk || "time"; /* 시간 바퀴가 고치는 칸: 기본 time, 일정 종료는 etime */
 const tmvalEl = (c, k = TK(c)) => document.querySelector(`#overlay .tmval[data-tk="${k}"]`) || (k === "time" ? document.querySelector("#overlay .tmval") : null);
@@ -4816,7 +4818,7 @@ document.addEventListener("click", e => {
     case "gdone": S.gDone = S.gDone === pid ? null : pid; break;
     case "actmore": S.actN = (S.actN || 10) + 10; break;
     case "jfold": { const k = b.dataset.k; if (!S.jOpen) S.jOpen = new Set(); S.jOpen.has(k) ? S.jOpen.delete(k) : S.jOpen.add(k); if (S.compose && S.compose.type === "logs"){ renderSheet(); return; } break; }
-    case "tmset": { preserveSheetDrafts(); keepEvFields(c); const tk = b.dataset.tk || "time"; if (!c.time) c.time = "09:00"; if (tk === "etime" && !c.etime) c.etime = addMin(c.time, 60);
+    case "tmset": { preserveSheetDrafts(); keepEvFields(c); const tk = b.dataset.tk || "time"; if (!c.time) c.time = "09:00"; if ((tk === "etime" || ((c.type === "taskadd" || c.type === "tedit") && !c.ev)) && (!c.etime || c.etime <= c.time)) c.etime = addMin(c.time, 60);
       if (c.etime && c._tw && TK(c) === "time" && tk !== "time" && (c.edate || c.due) === c.due && (c.etime || "") <= (c.time || "")) c.etime = addMin(c.time, 60);
       c._tw = !(c._tw && TK(c) === tk); c._tk = tk; if (c._tw){ c._dp = null; c._pp = null; } renderSheet(); return; }
     case "et-clear": preserveSheetDrafts(); c.etime = ""; if (TK(c) === "etime") c._tw = false; renderSheet(); return;

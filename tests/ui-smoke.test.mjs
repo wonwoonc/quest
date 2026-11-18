@@ -1554,10 +1554,12 @@ test('mission end time: set, saved, shown in every hour it covers (continuation 
   const h=await profileUI(); const app=()=>h.nodes.get('app').innerHTML, ov=()=>h.nodes.get('overlay').innerHTML;
   const day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
   h.route('cal'); h.click('taskadd',{ev:'1',d:day,tm:'09:00'}); h.click('ev-type',{v:'ms'});
-  assert.match(ov(),/data-act="tmset" data-tk="etime"[^>]*>~ <span class="tmval" data-tk="etime">10:00/);
+  assert.match(ov(),/data-act="tmset" data-tk="time"[^>]*>🕒 <span class="tmval" data-tk="time">9:00<\/span>–<span class="tmval" data-tk="etime">10:00/); assert.doesNotMatch(ov(),/etchip|et-clear/);
+  h.click('tmset',{tk:'time'}); assert.match(ov(),/class="tw2"[\s\S]*?class="tw" data-tk="time"[\s\S]*?class="tw" data-tk="etime"/); h.click('tmdone');
   h.nodes.set('ta-name',{value:'긴 미션'}); h.click('submit-taskadd'); await h.settle();
   const m=Object.values(h.snapshot().mine).find(x=>x.name==='긴 미션'); assert.equal(m.time,'09:00'); assert.equal(m.etime,'10:00');
-  h.click('tedit',{id:m.id}); assert.match(ov(),/data-tk="etime">10:00/); h.click('et-clear'); assert.doesNotMatch(ov(),/data-tk="etime">10:00/); h.click('sheet-close');
+  h.click('tedit',{id:m.id}); assert.match(ov(),/data-tk="etime">10:00/); h.click('sheet-close');
+  h.route('dash'); h.click('taskadd',{ev:'ms'}); assert.doesNotMatch(ov(),/data-tk="etime"/); h.click('tmset',{tk:'time'}); assert.match(ov(),/data-tk="time">9:00<\/span>–<span class="tmval" data-tk="etime">10:00/); h.click('sheet-close'); h.route('cal');
   h.click('taskadd',{ev:'1',d:day,tm:'10:00'}); h.nodes.set('ta-name',{value:'긴 일정'}); h.click('tmset',{tk:'etime'}); h.click('tmdone');
   { const c=h.snapshot(); } h.click('submit-taskadd'); await h.settle();
   const e=Object.values(h.snapshot().mine).find(x=>x.name==='긴 일정'); assert.equal(e.etime,'11:00');
