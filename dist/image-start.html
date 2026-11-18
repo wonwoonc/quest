@@ -923,7 +923,7 @@ input[type=date]#nf-date{max-width:220px}.ntdel{display:block;margin:14px auto 0
 .mcell i.hab.done{background:var(--fill);color:var(--muted);text-decoration:line-through}
 .mcell i.hab .mchk:disabled{cursor:default}
 .wgrid{height:calc(38px + 9 * 39px);overflow:auto;overscroll-behavior:contain;background:var(--card);border-radius:20px;position:relative}
-.wg{display:grid;grid-template-columns:52px repeat(7,calc((min(100vw - 32px, 540px) - 52px)/2.6));position:relative;width:max-content}
+.wg{display:grid;grid-template-columns:52px repeat(7,calc((min(100vw - 32px, 540px) - 52px)/2.2));position:relative;width:max-content}
 .wgc{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 55%,transparent);min-height:38px;min-width:0}
 .wgc.corner,.wgc.head{position:sticky;top:0;z-index:2;background:var(--card);min-height:0}
 .wgc.corner{left:0;z-index:3;border-left:0}
@@ -1518,6 +1518,10 @@ a.row{color:inherit;text-decoration:none}
 .tlempty.tlmore::before{content:"+";font-size:15px;font-weight:600;line-height:1}
 .tlempty.tlmore:hover{opacity:1}
 .wgc.cell .tlempty.tlmore{flex:1}
+
+/* 여러 시간에 걸친 미션·일정: 이어지는 칸은 흐리게. 미션 종료 시간 칩 */
+.qrow.cont,.wti.cont{opacity:.5}
+.chip.etx{padding-left:10px;padding-right:10px;color:var(--muted)}
 </style>
 <script>
 (function(){"use strict";
@@ -2160,13 +2164,13 @@ function dueLabel(m){ if (m.period && m.due){ if (m.done) return ""; return perE
   const d = dueOf(m); if (!d || m.done) return ""; const t = today(); if (d < t) return `<span class="tday late">기한 지남</span>`; if (d === t) return S._noToday ? "" : `<span class="tday">오늘</span>`; if (d === tomorrow()) return `<span class="tday soft">내일</span>`; const x = new Date(d+"T00:00"); return `<span class="tday soft">${x.getMonth()+1}/${x.getDate()}</span>`; }
 /* 미션 날짜: 버튼 하나. 새 미션은 오늘이 기본값이고, 누르면 달력이 열린다. */
 const dueField = (c, extra = "", bare = false) => { const t = today(), tm = tomorrow(), lab = !c.due || c.period ? "날짜" : c.due === t ? "오늘" : c.due === tm ? "내일" : fmtD(c.due);
-  return `<div class="field">${bare ? "" : `<span class="lab">날짜·시간 <span class="hint">필수</span></span>`}<div class="chips"><button class="chip" data-act="dpopen" data-k="due" aria-pressed="${!!(c.due && !c.period)}">📅 ${lab}</button><button class="chip" data-act="tmset" aria-pressed="${!!c.time}">🕒 <span class="tmval">${c.time ? tmLabel(c.time) : "시간"}</span></button>${extra}</div>${c._dp === "due" ? miniCal(c, "due") : ""}${c._tw ? timeWheel(c) : ""}</div>`; };
+  return `<div class="field">${bare ? "" : `<span class="lab">날짜·시간 <span class="hint">필수</span></span>`}<div class="chips"><button class="chip" data-act="dpopen" data-k="due" aria-pressed="${!!(c.due && !c.period)}">📅 ${lab}</button><button class="chip" data-act="tmset" data-tk="time" aria-pressed="${!!c.time}">🕒 <span class="tmval" data-tk="time">${c.time ? tmLabel(c.time) : "시간"}</span></button>${c.time ? `<button class="chip etchip" data-act="tmset" data-tk="etime" aria-pressed="${!!c.etime}">~ <span class="tmval" data-tk="etime">${c.etime ? tmLabel(c.etime) : "종료"}</span></button>${c.etime ? `<button class="chip etx" data-act="et-clear" aria-label="종료 시간 지우기">×</button>` : ""}` : ""}${extra}</div>${c._dp === "due" ? miniCal(c, "due") : ""}${c._tw ? timeWheel(c) : ""}</div>`; };
 const TW_H = 36;
 const TK = c => c._tk || "time"; /* 시간 바퀴가 고치는 칸: 기본 time, 일정 종료는 etime */
 const tmvalEl = (c, k = TK(c)) => document.querySelector(`#overlay .tmval[data-tk="${k}"]`) || (k === "time" ? document.querySelector("#overlay .tmval") : null);
 const boxK = (c, box) => (box && box.dataset.tk) || TK(c);
 /* 일정: 시작을 옮기면 같은 날 종료도 같은 길이만큼 따라 옮긴다 */
-function evShift(c, k, prev){ if (!c.ev || k !== "time" || !prev || !c.etime || (c.edate || c.due) !== c.due) return; const mm = t => { const [a, b] = t.split(":").map(Number); return a*60 + b; };
+function evShift(c, k, prev){ if (k !== "time" || !prev || !c.etime || (c.edate || c.due) !== c.due) return; const mm = t => { const [a, b] = t.split(":").map(Number); return a*60 + b; };
   const d = mm(c.time) - mm(prev); if (!d) return; c.etime = addMin("00:00", Math.max(mm(c.time) + 5, Math.min(23*60 + 55, mm(c.etime) + d)));
   const eb = document.querySelector('#overlay .tw[data-tk="etime"]'); if (eb){ eb._quiet = Date.now(); const [eh, em] = c.etime.split(":").map(Number); eb.querySelector('[data-tw="h"]').scrollTop = eh * TW_H; eb.querySelector('[data-tw="m"]').scrollTop = (Math.round(em/5) % 12) * TW_H; }
   evLine(c); }
@@ -2654,7 +2658,7 @@ function habitRow(q){
 }
 const lateDays = m => !m.done && m.origDue && m.origDue < (m.due || today()) ? Math.round((pd(today()) - pd(m.origDue)) / DAY) : 0;
 function taskTimeTag(m){
-  return m.time ? `<span class="tday soft">${tmLabel(m.time)}</span>` : "";
+  return m.time ? `<span class="tday soft">${tmLabel(m.time)}${m.etime && m.etime > m.time ? `–${tmLabel(m.etime)}` : ""}</span>` : "";
 }
 function taskRow(m, showGoal = true, nested = false, {showTime = true, showDate = true} = {}){
   const meta = [], ld = lateDays(m), tag = showTime ? taskTimeTag(m) : "";
@@ -2924,6 +2928,11 @@ const habitsOn = d => { const t0 = pd(d).getTime(); return mineOf("quest").filte
 function calHabitChip(q, d){ const done = q.doneHabit, canEdit = d === today();
   return `<div class="wti wck habit ${done?"done":""}" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><button class="wchk ${done?"on":""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit?"":"disabled"} aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(q.name)}</span></div></div>`; }
 /* 일 보기의 일퀘: 미션 줄과 같은 모양, 체크만 주황 */
+/* 시작–종료가 걸친 시간 칸마다 보여 준다(시작 칸은 그대로, 이어지는 칸은 흐리게). 0시(24)는 시작일 때만. */
+const hmm = t => { const [a, b] = (t || "0:0").split(":").map(Number); return a*60 + b; };
+const spanHr = (time, etime, hr) => { const sh = +time.slice(0,2) || 24; if (sh === hr) return 1; if (hr === 24) return 0; const st = hmm(time), en = etime && hmm(etime) > st ? hmm(etime) : st, r0 = hr*60; return r0 < en && r0 + 60 > st ? 2 : 0; };
+const evEndTm = e => evEDate(e) !== e.date ? "24:00" : evEnd(e);
+const contCls = (html, sp) => sp === 2 ? html.replace(/class="(row qrow|wti wck)/, 'class="$1 cont') : html;
 function calHabitRow(q, d){ const done = q.doneHabit, canEdit = d === today();
   return `<div class="row qrow hbq" data-act="hedit" data-id="${esc(q.id)}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="hcheckd" data-id="${esc(q.id)}" data-d="${esc(d)}" ${canEdit ? "" : "disabled"} aria-pressed="${!!done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b></span></div>`; }
 function calendarDaySheet(date, asPage = false){
@@ -2981,9 +2990,9 @@ function viewCal(){
     const hl = hr => `${hr}시`, nowH = new Date().getHours() || 24;
     h += `<section class="card tight tl">${evAll.map((e, i) => `<div class="tlrow allday"><span class="tlh">${i ? "" : "종일"}</span><div class="tlc">${evRow(e)}</div></div>`).join("")}${byTime(untimed).map((m, i) => `<div class="tlrow allday"><span class="tlh">${i || evAll.length ? "" : "종일"}</span><div class="tlc">${calTaskRow(m)}</div></div>`).join("")}${hbAll.length ? `<div class="tlrow allday"><span class="tlh">종일</span><div class="tlc">${hbAll.map(q => calHabitRow(q, date)).join("")}</div></div>` : ""}
       <div class="tlscroll" id="tlscroll" data-d="${date}" data-first="${timed.length || evTimed.length ? Math.min(...timed.map(m => +m.time.slice(0,2) || 24), ...evTimed.map(evHour)) : (date === t ? nowH : 8)}">`;
-    for (let hr = 1; hr <= 24; hr++){ const items = byTime(timed.filter(m => (+m.time.slice(0,2) || 24) === hr)), now = date === t && nowH === hr;
-      const hItems = hbTimed.filter(q => (+q.time.slice(0,2) || 24) === hr), eItems = evTimed.filter(e => evHour(e) === hr);
-      h += `<div class="tlrow ${now ? "now" : ""}" data-h="${hr}"><span class="tlh num">${hl(hr)}</span><div class="tlc">${eItems.map(evRow).join("")}${items.map(calTaskRow).join("")}${hItems.map(q => calHabitRow(q, date)).join("")}${(!items.length && !hItems.length && !eItems.length) ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : `<button class="tlempty tlmore" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 하나 더 추가"></button>`}</div></div>`; }
+    for (let hr = 1; hr <= 24; hr++){ const items = byTime(timed.filter(m => spanHr(m.time, m.etime, hr))), now = date === t && nowH === hr;
+      const hItems = hbTimed.filter(q => (+q.time.slice(0,2) || 24) === hr), eItems = evTimed.filter(e => spanHr(e.time, evEndTm(e), hr));
+      h += `<div class="tlrow ${now ? "now" : ""}" data-h="${hr}"><span class="tlh num">${hl(hr)}</span><div class="tlc">${eItems.map(e => contCls(evRow(e), spanHr(e.time, evEndTm(e), hr))).join("")}${items.map(m => contCls(calTaskRow(m), spanHr(m.time, m.etime, hr))).join("")}${hItems.map(q => calHabitRow(q, date)).join("")}${(!items.length && !hItems.length && !eItems.length) ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : `<button class="tlempty tlmore" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 하나 더 추가"></button>`}</div></div>`; }
     h += `</div>`;
     h += `</section>`;
   } else if (mode === "week"){
@@ -2998,8 +3007,8 @@ function viewCal(){
     h += `<div class="wgc corner"></div>` + days.map(d => { const x = pd(d); return `<button class="wgc head ${d === t ? "is-today" : ""} ${x.getDay() === 0 ? "sun" : x.getDay() === 6 ? "sat" : ""}" data-act="cdate" data-v="${d}"><b>${WD[x.getDay()]}</b><span class="num">${x.getMonth()+1}/${x.getDate()}</span></button>`; }).join("");
     if (anyAllday) h += `<div class="wgc tlab">종일</div>` + days.map(d => `<div class="wgc cell allday ${d === t ? "is-today" : ""}">${(evs[d] || []).filter(e => !e.time).map(evChip).join("")}${byTime((by[d] || []).filter(m => !m.time)).map(chip).join("")}${hbByDay[d].filter(q => !q.time).map(q => calHabitChip(q, d)).join("")}</div>`).join("");
     for (let hr = 1; hr <= 24; hr++){
-      h += `<div class="wgc tlab num ${days.includes(t) && nowH === hr ? "now" : ""}" data-h="${hr}">${hl(hr)}</div>` + days.map(d => { const items = byTime((by[d] || []).filter(m => m.time && hourOf(m) === hr)); const hq = hbByDay[d].filter(q => q.time && (+q.time.slice(0,2) || 24) === hr), eq = (evs[d] || []).filter(e => e.time && evHour(e) === hr);
-        return `<div class="wgc cell ${d === t ? "is-today" : ""}">${eq.map(evChip).join("")}${items.map(chip).join("")}${hq.map(q => calHabitChip(q, d)).join("")}${(!items.length && !hq.length && !eq.length) ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${d}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : `<button class="tlempty tlmore" data-act="taskadd" data-ev="1" data-d="${d}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 하나 더 추가"></button>`}</div>`; }).join("");
+      h += `<div class="wgc tlab num ${days.includes(t) && nowH === hr ? "now" : ""}" data-h="${hr}">${hl(hr)}</div>` + days.map(d => { const items = byTime((by[d] || []).filter(m => m.time && spanHr(m.time, m.etime, hr))); const hq = hbByDay[d].filter(q => q.time && (+q.time.slice(0,2) || 24) === hr), eq = (evs[d] || []).filter(e => e.time && spanHr(e.time, evEndTm(e), hr));
+        return `<div class="wgc cell ${d === t ? "is-today" : ""}">${eq.map(e => contCls(evChip(e), spanHr(e.time, evEndTm(e), hr))).join("")}${items.map(m => contCls(chip(m), spanHr(m.time, m.etime, hr))).join("")}${hq.map(q => calHabitChip(q, d)).join("")}${(!items.length && !hq.length && !eq.length) ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${d}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : `<button class="tlempty tlmore" data-act="taskadd" data-ev="1" data-d="${d}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 하나 더 추가"></button>`}</div>`; }).join("");
     }
     h += `</div></div>`;
   } else if (mode === "month"){
@@ -4618,7 +4627,7 @@ document.addEventListener("click", e => {
     case "dpnav": { const base = new Date((c._dpm || ((c._dp === "jd" ? S.planner.date : c[c._dp]) || today()).slice(0,8) + "01")+"T00:00"); base.setMonth(base.getMonth() + +b.dataset.v); c._dpm = dk(base.getTime()).slice(0,8) + "01"; renderSheet(); return; }
     case "dppick": if (b.dataset.k === "jd"){ c._dp = null; c._dpm = null; jLoad(b.dataset.v); return; } preserveSheetDrafts(); keepEvFields(c); c._due0 = c.due; c[b.dataset.k] = b.dataset.v; if (b.dataset.k === "due" && c.ev){ const span = c._due0 && c.edate ? Math.max(0, Math.round((pd(c.edate) - pd(c._due0)) / 864e5)) : 0; c.edate = addD(c.due, span); } else if (b.dataset.k === "due"){ c.period = ""; if (!c.time) c.time = "09:00"; c._tw = true; } if (b.dataset.k === "edate" && c.edate < c.due) c.edate = c.due; c._dp = null; c._dpm = null; renderSheet(); return;
     case "dpclear": c[b.dataset.k] = ""; c._dp = null; renderSheet(); return;
-    case "taskadd": { if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"taskadd", lv:"normal", due:b.dataset.d || today(), time:b.dataset.tm || "", period:"", projectId:pid || null, ...(b.dataset.ev ? {evOK:true, ev:b.dataset.ev !== "ms", allday:b.dataset.ev !== "ms" && !b.dataset.tm, time:b.dataset.tm || (b.dataset.ev === "ms" ? "" : "09:00"), edate:b.dataset.d || today(), etime:addMin(b.dataset.tm || "09:00", 60)} : {})}); delete S.drafts["ev-place"]; delete S.drafts["ev-note"]; setTimeout(() => { const x = $("#ta-name"); x && x.focus(); }, 50); return; }
+    case "taskadd": { if (!canAct()){ toast("먼저 캐릭터를 만들어 주세요"); return; } openSheet({type:"taskadd", lv:"normal", due:b.dataset.d || today(), time:b.dataset.tm || "", period:"", projectId:pid || null, ...(b.dataset.ev ? {evOK:true, ev:b.dataset.ev !== "ms", allday:b.dataset.ev !== "ms" && !b.dataset.tm, time:b.dataset.tm || (b.dataset.ev === "ms" ? "" : "09:00"), edate:b.dataset.d || today(), etime:b.dataset.ev === "ms" ? "" : addMin(b.dataset.tm || "09:00", 60)} : {})}); delete S.drafts["ev-place"]; delete S.drafts["ev-note"]; setTimeout(() => { const x = $("#ta-name"); x && x.focus(); }, 50); return; }
     case "submit-taskadd": { const name = ($("#ta-name").value||"").trim();
       if (c.ev){ if (!name){ toast("일정 이름을 적어 주세요"); $("#ta-name").focus(); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; }
         const ed = c.edate && c.edate >= c.due ? c.edate : c.due;
@@ -4627,7 +4636,7 @@ document.addEventListener("click", e => {
         const old = c.eid && S.mine[c.eid];
         run(() => api.putMine(c.eid || uid8(), {...(old || {createdAt:Date.now()}), ...ev}), () => { delete S.drafts["ta-name"]; closeSheet(); dumpDone(c); delete S.drafts["ev-place"]; delete S.drafts["ev-note"]; toast(old ? "일정을 고쳤어요" : "일정을 추가했어요"); }); return; }
       if (!name){ toast("미션 이름을 적어 주세요"); $("#ta-name").focus(); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } const pj = c.projectId || null;
-      run(() => api.putMine(uid8(), {kind:"mission", name, ...readPlan(c, false), lv:c.lv||"normal", area:(c.area||[]).slice(0,2), due:c.due||"", time:c.due ? (c.time||"") : "", period:"", today:false, projectId:pj, ...(c.noteId ? {noteId:c.noteId} : {}), done:false, createdAt:Date.now()}).then(r => c.eid && S.mine[c.eid] ? api.delMine(c.eid).then(() => r) : r), () => { delete S.drafts["ta-name"]; closeSheet(); dumpDone(c); toast(c.eid ? "미션으로 바꿨어요" : "✅ 미션을 추가했어요"); if (pj) syncProgress(pj); }); return; }
+      run(() => api.putMine(uid8(), {kind:"mission", name, ...readPlan(c, false), lv:c.lv||"normal", area:(c.area||[]).slice(0,2), due:c.due||"", time:c.due ? (c.time||"") : "", etime:c.due && c.time && c.etime > c.time ? c.etime : "", period:"", today:false, projectId:pj, ...(c.noteId ? {noteId:c.noteId} : {}), done:false, createdAt:Date.now()}).then(r => c.eid && S.mine[c.eid] ? api.delMine(c.eid).then(() => r) : r), () => { delete S.drafts["ta-name"]; closeSheet(); dumpDone(c); toast(c.eid ? "미션으로 바꿨어요" : "✅ 미션을 추가했어요"); if (pj) syncProgress(pj); }); return; }
     case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
     case "ev-type": { const ev = b.dataset.v === "ev"; if (ev === !!c.ev) return; preserveSheetDrafts(); keepEvFields(c); c.ev = ev; c._tk = "time"; c._tw = false; c._dp = null; if (!c.time) c.time = "09:00"; if (c.ev){ if (!c.edate || c.edate < c.due) c.edate = c.due; if (!c.etime || c.etime <= c.time) c.etime = addMin(c.time, 60); } renderSheet(); return; }
     case "ev-allday": preserveSheetDrafts(); keepEvFields(c); c.allday = !c.allday; c._tw = false; renderSheet(); return;
@@ -4795,9 +4804,10 @@ document.addEventListener("click", e => {
     case "actmore": S.actN = (S.actN || 10) + 10; break;
     case "jfold": { const k = b.dataset.k; if (!S.jOpen) S.jOpen = new Set(); S.jOpen.has(k) ? S.jOpen.delete(k) : S.jOpen.add(k); if (S.compose && S.compose.type === "logs"){ renderSheet(); return; } break; }
     case "tmset": { preserveSheetDrafts(); keepEvFields(c); const tk = b.dataset.tk || "time"; if (!c.time) c.time = "09:00"; if (tk === "etime" && !c.etime) c.etime = addMin(c.time, 60);
-      if (c.ev && c._tw && TK(c) === "time" && tk !== "time" && (c.edate || c.due) === c.due && (c.etime || "") <= (c.time || "")) c.etime = addMin(c.time, 60);
+      if (c.etime && c._tw && TK(c) === "time" && tk !== "time" && (c.edate || c.due) === c.due && (c.etime || "") <= (c.time || "")) c.etime = addMin(c.time, 60);
       c._tw = !(c._tw && TK(c) === tk); c._tk = tk; if (c._tw){ c._dp = null; c._pp = null; } renderSheet(); return; }
-    case "tmdone": c._tw = false; if (c.ev && TK(c) === "time" && (c.edate || c.due) === c.due && (c.etime || "") <= (c.time || "")) c.etime = addMin(c.time, 60); renderSheet(); return;
+    case "et-clear": preserveSheetDrafts(); c.etime = ""; if (TK(c) === "etime") c._tw = false; renderSheet(); return;
+    case "tmdone": c._tw = false; if (c.etime && TK(c) === "time" && (c.edate || c.due) === c.due && (c.etime || "") <= (c.time || "")) c.etime = addMin(c.time, 60); renderSheet(); return;
     case "shareday": openCompose({fixed:true, title:"🎉 오늘 퀘스트<br>모두 완료!"}); return;
     case "suggest": { const n = b.dataset.v, lv = (SUGGEST.find(x => x[0] === n)||[])[1] || "easy"; if (dupQ(n)){ toast(DUPMSG); return; } b.disabled = true;
       run(() => api.putMine(uid8(), {kind:"quest", name:n, days:[0,1,2,3,4,5,6], lv, active:true, done:{}, createdAt:Date.now()}), () => toast(`🔥 '${esc(n)}' 추가`)); return; }
@@ -4825,9 +4835,9 @@ document.addEventListener("click", e => {
       const pidN = uid8(), end = c.end || "";
       run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, title:name, start:today(), end, status:c.pstat === "planned" ? "planned" : "active", area:c.area||[], metric, progress:{done:0,total:0}, createdAt:Date.now()}); },
         () => { done0(); toast("🎯 메인 퀘스트를 만들었어요"); openGoal(pidN); }); return; }
-    case "tedit": { e.stopPropagation(); const m = S.mine[id]; if (!m || !S.canWrite) return; S.drafts["te-name"] = m.name; S.drafts["te-note"] = m.note || ""; openSheet({type:"tedit", id, place:m.place || "", time:m.time || "", lv:m.lv || "normal", due:m.period ? m.due : dueOf(m), period:m.period || "", projectId:m.projectId || null}); return; }
+    case "tedit": { e.stopPropagation(); const m = S.mine[id]; if (!m || !S.canWrite) return; S.drafts["te-name"] = m.name; S.drafts["te-note"] = m.note || ""; openSheet({type:"tedit", id, place:m.place || "", time:m.time || "", etime:m.etime || "", lv:m.lv || "normal", due:m.period ? m.due : dueOf(m), period:m.period || "", projectId:m.projectId || null}); return; }
     case "submit-tedit": { const m = S.mine[c.id], name = ($("#te-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; }
-      const old = m.projectId, nm = {...m, name, ...readPlan(c, false), note:($("#te-note").value||"").trim(), lv:c.lv, projectId:c.projectId || null, due:c.due || "", time:c.due ? (c.time||"") : "", period:c.due ? (c.period||"") : "", today:false};
+      const old = m.projectId, nm = {...m, name, ...readPlan(c, false), note:($("#te-note").value||"").trim(), lv:c.lv, projectId:c.projectId || null, due:c.due || "", time:c.due ? (c.time||"") : "", etime:c.due && c.time && c.etime > c.time ? c.etime : "", period:c.due ? (c.period||"") : "", today:false};
       run(() => api.putMine(c.id, nm), () => { closeSheet(); toast("저장했어요"); if (old) syncProgress(old); if (nm.projectId && nm.projectId !== old) syncProgress(nm.projectId); }); return; }
     case "tdel": { const tid = c.id; if (S.armed !== "td"+tid){ arm("td"+tid); renderSheet(); return; } S.armed = null; const pj = S.mine[tid].projectId;
       run(() => api.delMine(tid), () => { closeSheet(); toast("미션을 삭제했어요"); if (pj) syncProgress(pj); }); return; }

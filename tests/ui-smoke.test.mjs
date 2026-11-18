@@ -603,7 +603,7 @@ for (const mode of ['day','week','month','year']) {
     assert.deepEqual(timeBadges(taskMarkup(h.nodes.get('app').innerHTML,'tm')),['9:00'],'leaving calendar restores time badges');
     h.route('cal'); h.click('tedit',{id:'tm'});
     assert.match(h.nodes.get('overlay').innerHTML,/data-act="tmset"[^>]*aria-pressed="true"/,'calendar task editor retains time control');
-    assert.match(h.nodes.get('overlay').innerHTML,/<span class="tmval">9:00<\/span>/,'calendar editor retains scheduled time');
+    assert.match(h.nodes.get('overlay').innerHTML,/<span class="tmval" data-tk="time">9:00<\/span>/,'calendar editor retains scheduled time');
     assert.match(h.nodes.get('overlay').innerHTML,/data-act="dpopen" data-k="due"/,'calendar editor retains date control');
   });
 }
@@ -1548,4 +1548,30 @@ test('calendar events: add from empty slot (no reward), shown in day/week/month 
   { const m=Object.values(h.snapshot().mine).find(m=>m.kind==='event'&&m.name==='지울 일정'); assert.equal(m.edate,nx); assert.equal(m.time,''); }
   h.click('cmode',{v:'month'}); assert.equal((app().match(/<i class="ev">/g)||[]).length>=2,true); h.click('cmode',{v:'day'});
   const e2=Object.values(h.snapshot().mine).find(m=>m.kind==='event'&&m.name==='지울 일정'); h.click('evedit',{id:e2.id}); h.click('evdel'); h.click('cfok'); await h.settle(); assert.ok(!h.snapshot().mine[e2.id]);
+});
+
+test('mission end time: set, saved, shown in every hour it covers (continuation rows dimmed)',async()=>{
+  const h=await profileUI(); const app=()=>h.nodes.get('app').innerHTML, ov=()=>h.nodes.get('overlay').innerHTML;
+  const day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
+  h.route('cal'); h.click('taskadd',{ev:'1',d:day,tm:'09:00'}); h.click('ev-type',{v:'ms'});
+  assert.match(ov(),/data-act="tmset" data-tk="etime"[^>]*>~ <span class="tmval" data-tk="etime">10:00/);
+  h.nodes.set('ta-name',{value:'긴 미션'}); h.click('submit-taskadd'); await h.settle();
+  const m=Object.values(h.snapshot().mine).find(x=>x.name==='긴 미션'); assert.equal(m.time,'09:00'); assert.equal(m.etime,'10:00');
+  h.click('tedit',{id:m.id}); assert.match(ov(),/data-tk="etime">10:00/); h.click('et-clear'); assert.doesNotMatch(ov(),/data-tk="etime">10:00/); h.click('sheet-close');
+  h.click('taskadd',{ev:'1',d:day,tm:'10:00'}); h.nodes.set('ta-name',{value:'긴 일정'}); h.click('tmset',{tk:'etime'}); h.click('tmdone');
+  { const c=h.snapshot(); } h.click('submit-taskadd'); await h.settle();
+  const e=Object.values(h.snapshot().mine).find(x=>x.name==='긴 일정'); assert.equal(e.etime,'11:00');
+  const row=hr=>{ const a=app(); const i=a.indexOf(`data-h="${hr}"`); return a.slice(i, a.indexOf('data-h="',i+10)); };
+  assert.match(row(9),/긴 미션/); assert.doesNotMatch(row(10),/긴 미션/);
+  assert.match(row(10),/class="row qrow evq"[^>]*>[\s\S]*?긴 일정/); assert.doesNotMatch(row(11),/긴 일정/);
+});
+
+test('day/week view: long mission and event appear in each covered hour, later hours dimmed',async()=>{
+  const base=await profileUI(), saved=base.snapshot(), day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
+  saved.mine={...saved.mine,lm:{id:'lm',kind:'mission',name:'긴미션',lv:'normal',due:day,time:'13:00',etime:'15:00',done:false,createdAt:1},le:{id:'le',kind:'event',name:'긴일정',date:day,time:'10:00',etime:'12:30',createdAt:2}};
+  const h=await profileUI(saved); h.route('cal'); const app=()=>h.nodes.get('app').innerHTML;
+  const row=hr=>{ const a=app(); const i=a.indexOf(`data-h="${hr}"`); return a.slice(i, a.indexOf('data-h="',i+10)); };
+  assert.match(row(10),/class="row qrow evq"[^>]*>[\s\S]*?긴일정/); assert.match(row(11),/class="row qrow cont evq"[\s\S]*?긴일정/); assert.match(row(12),/cont evq[\s\S]*?긴일정/); assert.doesNotMatch(row(13),/긴일정/);
+  assert.match(row(13),/긴미션/); assert.doesNotMatch(row(13),/cont[^"]*"[^>]*data-id="lm"/); assert.match(row(14),/class="row qrow cont[^"]*"[^>]*data-id="lm"/); assert.doesNotMatch(row(15),/긴미션/);
+  h.click('cmode',{v:'week'}); const w=app(); assert.ok((w.match(/긴일정/g)||[]).length>=3); assert.ok((w.match(/긴미션/g)||[]).length>=2);
 });
