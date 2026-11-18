@@ -1441,7 +1441,7 @@ a.row{color:inherit;text-decoration:none}
 .st.cx{background:var(--fill);color:var(--muted)}
 .pgc:has(.st.cx){opacity:.72}
 .trophyline.cxline{color:var(--muted)}
-.pextq{margin-bottom:12px}
+
 
 /* 일정(event): 파란 블록 · 체크·보상 없음 */
 .evb{display:flex;flex-direction:column;justify-content:flex-start;gap:1px;width:100%;box-sizing:border-box;border-radius:9px;background:#E8EEFB;border-left:3px solid #3D7BE0;padding:6px 9px;cursor:pointer;text-align:left;margin:2px 0}
@@ -4220,7 +4220,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-p="${p.id}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
     return sheetWrap(kind, "", `<div class="sheetlist mlist">${item("gedit", "수정", sp ? "이름 · 마감일 · 메인 퀘스트" : "이름 · 마감일 · 수치 기록")}${p.status !== "done" ? item("pstat", isPlanned(p) ? "진행 시작하기" : "시작 전으로 바꾸기", isPlanned(p) ? "진행 중으로 바꿔요" : "아직 시작하지 않은 퀘스트로 표시해요") : ""}${p.status !== "done" ? item("compose", "스토리 쓰기", "진행 과정을 커뮤니티에 공유해요") : ""}${item("pdel", S.armed === "px"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", sp ? "연결된 미션도 함께 삭제돼요" : "스테이지와 미션도 함께 삭제돼요", true)}</div>`); }
   if (c.type === "pdue"){ const p = S.projects[c.pid]; if (!p){ closeSheet(); return; }
-    return sheetWrap("기한 연장", esc(p.title), `<div class="chips pextq">${[[7,"1주"],[14,"2주"],[30,"1달"]].map(([n,l]) => `<button class="chip" data-act="pext-q" data-v="${n}" aria-pressed="${c.end === addD(today(), n)}">+${l}</button>`).join("")}</div>
+    return sheetWrap("기한 연장", esc(p.title), `
       ${datePick(c, "end", "새 기한", false, true)}<button class="btn full" data-act="pext-go">연장하기</button>`); }
   if (c.type === "gedit"){ const p = S.projects[c.pid]; if (!p){ closeSheet(); return; } const sp = isProj(p);
     const gs = goalsOf(S.me).filter(g => g.status !== "done" || g.id === p.parentId);
@@ -4733,7 +4733,6 @@ document.addEventListener("click", e => {
     case "pcancel": { const p = S.projects[pid]; if (!p) return; const sp = isProj(p), n = openMissionsOf(pid), ks = sp ? 0 : subsOf(pid).filter(x => x.status !== "done").length;
       ask({t:`이 ${sp ? "스테이지" : "메인 퀘스트"}를 포기할까요?`, d:`보상 없이 '포기'로 보관돼요. 스토리와 끝낸 미션은 그대로 남아요.${ks ? ` 끝내지 않은 스테이지 ${ks}개도 함께 포기돼요.` : ""}${n ? ` 끝내지 않은 미션 ${n}개는 삭제돼요.` : ""}`, ok:"포기하기"}, () => cancelProject(pid)); return; }
     case "pdue": { const p = S.projects[pid]; if (!p) return; openSheet({type:"pdue", pid, end:addD(today(), 7)}); return; }
-    case "pext-q": c.end = addD(today(), +b.dataset.v); c._dp = null; renderSheet(); return;
     case "pext-go": { const p = S.projects[c.pid]; if (!p) return; if (!c.end || c.end <= today()){ toast("오늘 이후 날짜를 골라 주세요"); return; } const d = {...p, end:c.end}; delete d.id;
       run(() => api.putProject(c.pid, d), () => { closeSheet(); toast(`${fmtD(c.end)}까지 연장했어요`); }); return; }
     case "prestore": { const p = S.projects[pid]; if (!p) return; const d = {...p, status:"active"}; delete d.id; delete d.cancelAt;

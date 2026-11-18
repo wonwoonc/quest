@@ -1508,7 +1508,7 @@ test('overdue quest: card overlay (dashboard + quest screen), extend, give up (a
   assert.doesNotMatch(app(),/data-reo="ok" class="card pgc isover/);
   h.route('qmanage'); assert.match(app(),/data-p="m" role="button"[\s\S]*?<div class="ovlay"><span class="ovi"[\s\S]*?<b>기한이 지났어요/);
   h.click('project',{p:'m'}); assert.doesNotMatch(app(),/기한이 지났어요/);
-  h.click('pdue',{p:'s3'}); assert.match(ov(),/기한 연장/); h.click('pext-q',{v:'30'}); h.click('pext-go'); await h.settle();
+  h.click('pdue',{p:'s3'}); assert.match(ov(),/기한 연장/); h.click('dppick',{k:'end',v:'2099-01-31'}); h.click('pext-go'); await h.settle();
   assert.ok(h.snapshot().projects.s3.end>'2000-01-01');
   h.click('pcancel',{p:'m'}); assert.match(ov(),/포기할까요/); assert.match(ov(),/스테이지 1개도 함께 포기/); assert.match(ov(),/미션 1개는 삭제/);
   h.click('cfok'); await h.settle(); const sn=h.snapshot();
