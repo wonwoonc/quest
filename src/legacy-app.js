@@ -1969,10 +1969,11 @@ const evWhenText = c => { const ed = c.edate && c.edate > c.due ? c.edate : "", 
   return `<span class="num">${main}</span>${d ? `<em>${d}</em>` : ""}`; };
 const CLOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
 const CALI = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>`;
-const evCol = (c, lab, dk2, tk) => `<div><span class="evpl">${lab}</span><button class="evdb ${c._dp === dk2 ? "on" : ""}" data-act="dpopen" data-k="${dk2}" aria-expanded="${c._dp === dk2}">${CALI}<span class="num">${evDL(c[dk2] || c.due)}</span></button>${c.allday ? "" : timeWheel(c, tk, false)}</div>`;
-const evWhen = c => `<div class="field evwhen1"><button class="evwl ${c._wo ? "on" : ""}" data-act="ev-when" aria-expanded="${!!c._wo}">${CLOCK}<span class="evwt">${evWhenText(c)}</span></button>
-  ${c._wo ? `<div class="evpan"><div class="evtw">${evCol(c, "시작", "due", "time")}<span class="evdash">–</span>${evCol(c, "종료", "edate", "etime")}</div>${c._dp ? miniCal(c, c._dp) : ""}
-    <div class="evopt"><button class="chip" data-act="ev-allday" aria-pressed="${!!c.allday}">종일</button></div></div>` : ""}</div>`;
+/* 시작 | 종료를 좌우로 항상 보여 준다(누른 칸의 날짜·시간이 기본값). 날짜를 누르면 달력, 시간을 누르면 시간 바퀴가 아래에 열린다. */
+const evCol = (c, lab, dk2, tk) => `<div class="evcol"><span class="evpl">${lab}</span><button class="evdb ${c._dp === dk2 ? "on" : ""}" data-act="dpopen" data-k="${dk2}" aria-expanded="${c._dp === dk2}">${CALI}<span class="num">${evDL(c[dk2] || c.due)}</span></button>${c.allday ? "" : `<button class="evdb ${c._tw && TK(c) === tk ? "on" : ""}" data-act="tmset" data-tk="${tk}" aria-expanded="${!!(c._tw && TK(c) === tk)}">${CLOCK}<span class="tmval num" data-tk="${tk}">${tmLabel(c[tk] || "09:00")}</span></button>`}</div>`;
+const evWhen = c => `<div class="field evwhen1"><div class="evtw">${evCol(c, "시작", "due", "time")}<span class="evdash">–</span>${evCol(c, "종료", "edate", "etime")}</div>
+  ${c._dp ? miniCal(c, c._dp) : ""}${c._tw && !c.allday ? timeWheel(c, TK(c), true) : ""}
+  <div class="evopt"><button class="chip" data-act="ev-allday" aria-pressed="${!!c.allday}">종일</button></div></div>`;
 const evSwitch = c => c.evOK ? `<div class="chips evtype" role="group" aria-label="종류">${[["ev","일정"],["ms","미션"]].map(([v,l]) => `<button class="chip" data-act="ev-type" data-v="${v}" aria-pressed="${(v === "ev") === !!c.ev}">${l}</button>`).join("")}</div>` : "";
 const keepEvFields = c => { const p = $("#ev-place"), n = $("#ev-note"); if (p) c.place = p.value; if (n) c.note = n.value; };
 function planField(c, daily){
@@ -2553,7 +2554,6 @@ document.addEventListener("click", e => {
     case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
     case "ev-type": { const ev = b.dataset.v === "ev"; if (ev === !!c.ev) return; preserveSheetDrafts(); keepEvFields(c); c.ev = ev; c._tk = "time"; c._tw = false; c._dp = null; if (!c.ev && !c.time) c.time = "09:00"; renderSheet(); return; }
     case "ev-allday": preserveSheetDrafts(); keepEvFields(c); c.allday = !c.allday; c._tw = false; renderSheet(); return;
-    case "ev-when": preserveSheetDrafts(); keepEvFields(c); c._wo = !c._wo; c._dp = null; renderSheet(); return;
     case "ev-more": preserveSheetDrafts(); keepEvFields(c); c._evx = true; renderSheet(); return;
     case "evedit": { e.stopPropagation(); const ev = S.mine[id]; if (!ev || !S.canWrite) return; S.drafts["ta-name"] = ev.name; delete S.drafts["ev-place"]; delete S.drafts["ev-note"];
       openSheet({type:"taskadd", eid:id, evOK:true, ev:true, due:ev.date, edate:evEDate(ev), allday:!ev.time, time:ev.time || "09:00", etime:evEnd(ev) || addMin(ev.time || "09:00", 60), place:ev.place || "", note:ev.note || "", _evx:!!(ev.place || ev.note), lv:"normal", period:"", projectId:null}); return; }
