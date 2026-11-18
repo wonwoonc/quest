@@ -1531,7 +1531,7 @@ test('calendar events: add from empty slot (no reward), shown in day/week/month 
   assert.equal(ev.name,'치과 정기검진'); assert.equal(ev.date,day); assert.equal(ev.time,'10:00'); assert.equal(ev.etime,'11:00'); assert.equal(ev.edate,day);
   assert.equal(JSON.stringify(sn.economy?.events||[]).length,before);
   assert.match(app(),/class="tlrow[^"]*" data-h="10"[\s\S]*?class="row qrow evq" data-act="evedit"[\s\S]*?evcheck[\s\S]*?치과 정기검진[\s\S]*?10:00–11:00/);
-  h.click('cmode',{v:'week'}); assert.match(app(),/wti wev/); h.click('cmode',{v:'month'}); assert.match(app(),/<i class="ev">/); h.click('cmode',{v:'day'});
+  h.click('cmode',{v:'week'}); assert.match(app(),/wti wck wev[\s\S]*?data-act="evcheck"/); h.click('cmode',{v:'month'}); assert.match(app(),/<i class="ev">/); h.click('cmode',{v:'day'});
   h.route('dash'); assert.match(app(),/<p class="grp">오늘[\s\S]*?class="row qrow evq" data-act="evedit"[\s\S]*?치과 정기검진[\s\S]*?10:00–11:00/); assert.doesNotMatch(app(),/evtoday/);
   { const xp0=JSON.stringify(h.snapshot().profiles); h.click('evcheck',{id:ev.id}); await h.settle(); assert.equal(h.snapshot().mine[ev.id].done,true); assert.match(app(),/check evck on/); assert.equal(JSON.stringify(h.snapshot().profiles),xp0); h.click('evcheck',{id:ev.id}); await h.settle(); assert.equal(h.snapshot().mine[ev.id].done,false); }
   assert.match(app(),/data-act="taskadd" data-ev="ms">\+ 미션 추가/); h.click('taskadd',{ev:'ms'}); assert.match(ov(),/미션 추가/); assert.match(ov(),/data-v="ms" aria-pressed="true"/);
