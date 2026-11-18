@@ -1483,6 +1483,18 @@ a.row{color:inherit;text-decoration:none}
 .qrow.hbq .check.hbck{border-color:#F08A24}.qrow.hbq .check.hbck.on{background:#F08A24;border-color:#F08A24;color:#fff}.qrow.hbq .check.hbck:disabled{opacity:.6}
 .qrow.hbq .t b{color:#C2610C}.qrow.hbq .t b.done{color:var(--muted)}.qrow.hbq .task-meta{color:#F08A24}
 :root[data-theme="dark"] .qrow.hbq .t b{color:#FFB46B}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qrow.hbq .t b{color:#FFB46B}}
+
+/* 월 보기: 미션·일퀘도 일정과 같은 모양(연한 바탕 + 왼쪽 굵은 선 + 진한 글자). 미션 초록, 일퀘 주황, 일정 파랑 */
+.mtask .days i:not(.more){border-left:2.5px solid var(--accent);padding-left:4px;background:color-mix(in srgb,var(--accent) 12%,var(--card));color:color-mix(in srgb,var(--accent) 65%,var(--ink))}
+.mtask .days i:not(.more) .mtx span{font-weight:700;color:inherit}
+.mtask .days i.hab{border-left-color:#F08A24;background:color-mix(in srgb,#F08A24 13%,var(--card));color:color-mix(in srgb,#F08A24 62%,var(--ink))}
+.mtask .days i.late{border-left-color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,var(--card));color:var(--warn)}
+.mtask .days i.done,.mtask .days i.hab.done{border-left-color:color-mix(in srgb,var(--muted) 60%,transparent);background:var(--fill);color:var(--muted)}
+.mtask .days i.done .mtx span{text-decoration:line-through;font-weight:600}
+.mtask .days i.ev{border-left-color:#3D7BE0;background:#E8EEFB;color:#24467F}
+:root[data-theme="dark"] .mtask .days i.ev{background:rgba(61,123,224,.18);color:#AFC8F5}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mtask .days i.ev{background:rgba(61,123,224,.18);color:#AFC8F5}}
+@media (max-width:1023.98px){.mtask .days i:not(.more){border-left-width:2px;padding-left:2px}}
 </style>
 <!--APP_ENTRY-->
 </body></html>
