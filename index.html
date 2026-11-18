@@ -1530,7 +1530,23 @@ a.row{color:inherit;text-decoration:none}
 /* 모든 체크 박스: 일퀘 체크와 같은 20px, 오른쪽 아래에 꼬리가 달린 Q 모양(테두리 색을 그대로 따라감) */
 .check,.wchk{width:20px!important;height:20px!important;border-width:1.6px!important;overflow:visible}
 .check svg,.wchk svg{width:12px;height:12px}
-.check::before,.wchk::before{content:"";position:absolute;right:-3.5px;bottom:-1.5px;width:7px;height:0;border-top:1.8px solid;border-color:inherit;border-radius:2px;transform:rotate(45deg);pointer-events:none}
+/* Q 꼬리: 원의 오른쪽 아래(45°) 테두리를 가로질러 안에서 밖으로 짧게 빠지는 획. 둥근 끝, 테두리와 같은 굵기·색 */
+.check::before,.wchk::before{content:"";position:absolute;left:12.1px;top:15.35px;width:8.2px;height:1.7px;background:var(--qtail,currentColor);border-radius:2px;transform:rotate(45deg);transform-origin:center;pointer-events:none}
+.check,.wchk{--qtail:var(--chk)}
+.check.on,.wchk.on{--qtail:var(--done)}
+.tl .qrow:not(.evq):not(.hbq):not(.ghost) .check,.wgc .wti.wck:not(.wev):not(.habit):not(.ghost) .wchk{--qtail:var(--accent)}
+.qrow.evq .check.evck,.wgc .wti.wev .wchk{--qtail:#3D7BE0}
+.qrow.hbq .check.hbck,.wgc .wti.habit .wchk{--qtail:#F08A24}
+.wchk{--qtail:var(--muted)}.wchk.on{--qtail:var(--accent)}
+.wgc .wti.wck:not(.wev):not(.habit):not(.ghost) .wchk.on{--qtail:var(--accent)}
+
+/* 일·주 보기 추가: 항목이 있는 칸도 빈 곳(항목 오른쪽·아래)을 누르면 그 시간에 추가. 보이는 + 없음 */
+.tlrow{position:relative}.wgc.cell{position:relative}
+.tlempty.tlmore{position:absolute!important;inset:0;height:auto!important;min-height:0!important;opacity:0!important;z-index:0;border-radius:0}
+.tlempty.tlmore::before{content:none}
+.tl .tlc>*:not(.tlempty),.wgc.cell>*:not(.tlempty){position:relative;z-index:1}
+.tl .tlc>.qrow{width:fit-content;max-width:100%}
+.wgc.cell>.wti{width:fit-content;max-width:100%}
 </style>
 <script type="module" src="./src/entry.js"></script>
 </body></html>
