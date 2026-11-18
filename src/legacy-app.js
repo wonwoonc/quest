@@ -581,7 +581,7 @@ function habitRow(q){
 }
 const lateDays = m => !m.done && m.origDue && m.origDue < (m.due || today()) ? Math.round((pd(today()) - pd(m.origDue)) / DAY) : 0;
 function taskTimeTag(m){
-  return m.time ? `<span class="tday soft">${tmLabel(m.time)}${m.etime && m.etime > m.time ? `–${tmLabel(m.etime)}` : ""}</span>` : "";
+  return m.time ? `<span class="tday soft">${tmLabel(m.time)}</span>` : "";
 }
 function taskRow(m, showGoal = true, nested = false, {showTime = true, showDate = true} = {}){
   const meta = [], ld = lateDays(m), tag = showTime ? taskTimeTag(m) : "";
@@ -843,7 +843,7 @@ function evsByDate(){ const o = {}, put = (d, x) => (o[d] = o[d] || []).push(x);
   for (const k in o) o[k].sort((a,b) => (a.time||"") < (b.time||"") ? -1 : (a.time||"") > (b.time||"") ? 1 : 0); return o; }
 const evBlock = e => { const mn = evMins(e); return `<div class="evb" data-act="evedit" data-id="${esc(e.id)}" role="button" tabindex="0"${mn > 60 ? ` style="min-height:${Math.round(mn/60*37) - 8}px"` : ""}><b>${esc(e.name)}</b><small class="num">${evRange(e)}${e.place ? ` · ${esc(e.place)}` : ""}</small></div>`; };
 /* 대시보드 오늘 목록의 일정: 체크 가능(보상·진행률 없음, 끝낸 표시만) */
-const evRow = (e, meta = true) => `<div class="row qrow evq" data-act="evedit" data-id="${esc(e.id)}" role="button" tabindex="0"><button class="check evck ${e.done ? "on" : ""}" data-act="evcheck" data-id="${esc(e.id)}" aria-pressed="${!!e.done}" aria-label="${esc(e.name)} 끝냄">${I.check}</button><span class="t"><b class="${e.done ? "done" : ""}">${esc(e.name)}</b>${meta ? `<small class="task-meta num">${evRange(e)}${e.place ? ` · ${esc(e.place)}` : ""}</small>` : ""}</span></div>`;
+const evRow = (e, meta = true) => `<div class="row qrow evq" data-act="evedit" data-id="${esc(e.id)}" role="button" tabindex="0"><button class="check evck ${e.done ? "on" : ""}" data-act="evcheck" data-id="${esc(e.id)}" aria-pressed="${!!e.done}" aria-label="${esc(e.name)} 끝냄">${I.check}</button><span class="t"><b class="${e.done ? "done" : ""}">${esc(e.name)}</b>${meta ? `<small class="task-meta num">${e.time ? tmLabel(e.time) : "종일"}${e.place ? ` · ${esc(e.place)}` : ""}</small>` : ""}</span></div>`;
 const evChip = e => `<div class="wti wck wev ${e.done ? "done" : ""}" data-act="evedit" data-id="${esc(e.id)}" role="button" tabindex="0" title="${esc(e.name)} ${evRange(e)}"><button class="wchk ${e.done ? "on" : ""}" data-act="evcheck" data-id="${esc(e.id)}" aria-pressed="${!!e.done}" aria-label="${esc(e.name)} 끝냄">${I.check}</button><div class="wtx"><span>${esc(e.name)}</span></div></div>`;
 function tasksByDate(){ const o = {}; for (const m of mineOf("mission").filter(m => isOwnPrivateEntry(m, S.me))){ const d = dateOf(m); if (d) (o[d] = o[d] || []).push(m); if (!m.done && m.origDue && m.origDue !== d) (o[m.origDue] = o[m.origDue] || []).push({...m, _ghost:true}); } return o; }
 const dayActivityIndex = () => buildDayActivityIndex({mine:S.mine, feed:S.feed, projects:S.projects, me:S.me});
