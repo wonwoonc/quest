@@ -924,6 +924,8 @@ test('completion UI uses approved amounts, confirmation protects undo, manual go
   h.click('mcheck',{id:'tm'});h.click('cfok');await h.settle();assert.equal(h.snapshot().mine.tm.done,false);
   assert.doesNotMatch(h.nodes.get('toast').innerHTML,/XP|코인/);
   h.click('project',{p:'main'});assert.doesNotMatch(h.nodes.get('app').innerHTML,/활동일·주간 횟수 제한 없음|지금 완료 시|같은 목표는 평생 한 번만 지급/);assert.doesNotMatch(h.nodes.get('app').innerHTML,/XP|코인/);
+  h.click('pdone',{p:'main'});await h.settle();assert.notEqual(h.snapshot().projects.main.status,'done','open stage/missions block 달성');
+  h.click('mcheck',{id:'tm'});await h.settle();h.click('mcheck',{id:'ts'});await h.settle();h.click('pdone',{p:'sub'});h.click('pdone',{p:'sub'});await h.settle();h.click('sheet-close');
   h.click('pdone',{p:'main'});h.click('pdone',{p:'main'});await h.settle();
   assert.equal(h.snapshot().projects.main.status,'done');
   const claim=h.snapshot().economy.claims[JSON.stringify(['goal','main'])];assert.equal(claim.xp,200);assert.equal(claim.coins,100);
@@ -1624,4 +1626,12 @@ test('daily quests link to a main quest: main-only picker, checkable on the main
   H.click('tqpick',{m:'main',t:'어떤 메인 퀘스트를 위한 습관인가요?'}); assert.match(ov(),/data-act="tqset" data-v="main"/); assert.doesNotMatch(ov(),/data-act="tqexp"|data-v="sub"/);
   H.click('sheet-close'); H.click('sheet-close');
   H.click('pcancel',{p:'main'}); assert.match(ov(),/연결된 일일 퀘스트 1개도 보관하기/);
+});
+
+test('main quest can be achieved only when every stage and mission is done; earlier achievements that miss this go back to active', async () => {
+  const snap = (await linkedUI()).snapshot();
+  snap.projects.main.status = 'done'; snap.projects.main.doneAt = Date.now() - 1000;
+  const H = await profileUI(snap); await new Promise(r => setTimeout(r, 30));
+  assert.notEqual(H.snapshot().projects.main.status, 'done', 'achieved main quest with open stage/missions is restored to active');
+  H.click('pdone2',{p:'main'}); assert.doesNotMatch(H.nodes.get('overlay').innerHTML,/메인 퀘스트를 달성할까요/);
 });

@@ -2291,6 +2291,14 @@ const on = v => !!(v && (v.at || (typeof v === "number" && v > 0)));
 function dday(end){ if (!end) return ""; const n = Math.round((dayStart(new Date(end).getTime()) - dayStart(Date.now()))/DAY); return n > 0 ? "D-"+n : n === 0 ? "D-Day" : `<span class="ddlate">${-n}일 지남</span>`; }
 const isToday = m => m.period ? perAnchor(m.period, today()) === m.due : m.due ? m.due <= today() : (m.today === true || (m.today == null && (m.pri === "focus" || m.pri === "p1")));
 const dueOf = m => m.due || (!m.done && isToday(m) ? today() : "");
+/* 메인 퀘스트 달성 조건: 포기하지 않은 스테이지가 모두 완료되고, 메인·스테이지의 미션이 모두 끝나야 한다. */
+function goalLeft(p){ if (!p || p.parentId) return {st:0, m:0}; const st = subsOf(p.id).filter(x => x.status !== "done").length, ids = famIds(p);
+  return {st, m:mineOf("mission").filter(m => ids.includes(m.projectId) && !m.done).length}; }
+const goalLeftMsg = L => `아직 ${[L.st ? `스테이지 ${L.st}개` : "", L.m ? `미션 ${L.m}개` : ""].filter(Boolean).join(" · ")}가 남았어요. 모두 끝내면 달성할 수 있어요.`;
+/* 예전에 조건 없이 달성한 메인 퀘스트는 진행 중으로 되돌린다(앱을 열 때 한 번). 보상은 되돌려지고, 나중에 달성하면 다시 받는다. */
+function fixGoals(){ if (S._goalFix || !S.me || !S.canWrite || !api || S.mode === "loading") return; S._goalFix = true;
+  const bad = goalsOf(S.me).filter(p => p.status === "done" && (goalLeft(p).st || goalLeft(p).m)); if (!bad.length) return;
+  (async () => { for (const p of bad){ const d = {...p, status:"active"}; delete d.id; delete d.doneAt; await api.putProject(p.id, d); } })().then(() => toast(`남은 스테이지·미션이 있는 메인 퀘스트 ${bad.length}개를 진행 중으로 되돌렸어요`, 3600), () => { S._goalFix = false; }); }
 function rollOver(){ if (!S.me || !S.canWrite || !api || S.mode === "loading") return; const t = today(), late = mineOf("mission").filter(m => !m.done && !m.period && m.due && m.due < t);
   if (!late.length || S.rolling) return; S.rolling = true;
   (async () => { for (const m of late){ try{ const nm = {...m, due:t, origDue:m.origDue || m.due}; S.mine[m.id] = nm; MINE_KEY = null; await api.putMine(m.id, nm); }catch(e){} } S.rolling = false; schedule(); })(); }
@@ -2679,7 +2687,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   const sel = fid && a.selectionStart != null ? [a.selectionStart, a.selectionEnd] : null;
   const v = S.view.name;
   if (v === "profile" && !S.view.uid) S.view.uid = S.me;
-  rollOver();
+  rollOver(); fixGoals();
    const dash = v === "dash" && hasProfile();
   $("#app").innerHTML = (dash || v === "qmanage" ? firstGame() : "") + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, daily:viewDaily, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, learn:viewLearn, calday:viewCalDay, dash:viewFeed, write:viewWrite}[v] || viewToday)());
   { const gg = dash && $(".wd-goals .wd-ggrid"); if (gg && S.wdGs) gg.scrollLeft = S.wdGs; }
@@ -3884,7 +3892,7 @@ function lhRow(q){ const done = !!(q.done || {})[today()], st = streakOf(q), nd 
 /* 메인 퀘스트를 달성·포기할 때 연결된 일일 퀘스트를 보관할지 함께 묻는다(기본: 계속) */
 const habitChk = pid => { const n = isProj(S.projects[pid]) ? 0 : linkedHabits(pid).length; return n ? {label:`연결된 일일 퀘스트 ${n}개도 보관하기`, on:false} : null; };
 async function archiveLinked(pid){ for (const q of linkedHabits(pid)) await api.putMine(q.id, {...q, active:false}); }
-function doneProject(pid){ const p = S.projects[pid], sp = isProj(p); if (!p) return;
+function doneProject(pid){ const p = S.projects[pid], sp = isProj(p); if (!p) return; { const L = goalLeft(p); if (L.st || L.m){ toast(goalLeftMsg(L), 3200); return; } }
   run(() => api.putProject(pid, {...p, status:"done", doneAt:Date.now(), progress:goalProgress(p)}), r => { S.quietXp = true; if (sp) syncProgress(p.parentId); rewardSheet({emoji:"🏆", title:sp ? "스테이지 완료!" : "메인 퀘스트 달성!", desc:esc(p.title), share:{ref:{type:"project_done", id:pid, label:p.title, sub:sp}, title:sp ? "🔗 스테이지<br>완료!" : "🏆 메인 퀘스트<br>달성!"}}); }); }
 /* 포기: 퀘스트(와 끝내지 않은 스테이지)는 '포기'로 보관, 끝내지 않은 미션은 정리. 끝낸 미션·스토리·수치 기록은 그대로 남는다. 보상 없음. */
 function cancelProject(pid){ const p = S.projects[pid]; if (!p) return; const sp = isProj(p), at = Date.now();
@@ -5032,8 +5040,8 @@ document.addEventListener("click", e => {
       S.planner = {cond:d.cond ?? 70, emo:d.emo || null, share:!!diaryPost(id), date:d.date, edit:true, from}; S.drafts["pl-text"] = d.text || ""; openSheet({type:"diary"}); return; }
     case "ldel": { if (S.armed !== "ld"+id){ arm("ld"+id); return; } S.armed = null; const post = diaryPost(id), from = S.planner.from;
       run(async () => { await api.delMine(id); if (post) await api.delPost(post.id); }, () => { S.planner = {cond:70, emo:null, share:false}; delete S.drafts["pl-text"]; if (S.compose) closeSheet(); toast("저널을 삭제했어요"); if (from === "logs") openSheet({type:"logs"}); }); return; }
-    case "pdone": { if (S.armed !== "pd"+pid){ arm("pd"+pid); return; } S.armed = null; doneProject(pid); return; }
-    case "pdone2": { const p = S.projects[pid]; if (!p) return; const sp = isProj(p); ask({t:`이 ${sp ? "스테이지를 완료" : "메인 퀘스트를 달성"}할까요?`, d:esc(p.title), ok:sp ? "완료" : "달성", check:habitChk(pid)}, arch => { if (arch) archiveLinked(pid).catch(() => {}); doneProject(pid); }); return; }
+    case "pdone": { { const L = goalLeft(S.projects[pid]); if (L.st || L.m){ toast(goalLeftMsg(L), 3200); return; } } if (S.armed !== "pd"+pid){ arm("pd"+pid); return; } S.armed = null; doneProject(pid); return; }
+    case "pdone2": { const p = S.projects[pid]; if (!p) return; const sp = isProj(p); { const L = goalLeft(p); if (L.st || L.m){ toast(goalLeftMsg(L), 3200); return; } } ask({t:`이 ${sp ? "스테이지를 완료" : "메인 퀘스트를 달성"}할까요?`, d:esc(p.title), ok:sp ? "완료" : "달성", check:habitChk(pid)}, arch => { if (arch) archiveLinked(pid).catch(() => {}); doneProject(pid); }); return; }
     case "pcancel": { const p = S.projects[pid]; if (!p) return; const sp = isProj(p), n = openMissionsOf(pid), ks = sp ? 0 : subsOf(pid).filter(x => x.status !== "done").length;
       ask({t:`이 ${sp ? "스테이지" : "메인 퀘스트"}를 포기할까요?`, d:`보상 없이 '포기'로 보관돼요. 스토리와 끝낸 미션은 그대로 남아요.${ks ? ` 끝내지 않은 스테이지 ${ks}개도 함께 포기돼요.` : ""}${n ? ` 끝내지 않은 미션 ${n}개는 삭제돼요.` : ""}`, ok:"포기하기", check:habitChk(pid)}, arch => { if (arch) archiveLinked(pid).catch(() => {}); cancelProject(pid); }); return; }
     case "pdue": { const p = S.projects[pid]; if (!p) return; openSheet({type:"pdue", pid, end:addD(today(), 7)}); return; }
