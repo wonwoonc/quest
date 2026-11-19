@@ -2393,9 +2393,10 @@ document.addEventListener("keydown", e => { const inp = e.target; if (!inp || !i
 document.addEventListener("focusout", e => { const inp = e.target; if (!inp || !inp.classList || !inp.classList.contains("twinput")) return; const t = twInputSet(inp, true) && parseHM(inp.value); if (t) inp.value = t; else if (S.compose) { inp.value = S.compose[inp.dataset.tk || "time"] || "09:00"; inp.classList.remove("bad"); } });
 /* PC 마우스 휠: 한 번 굴릴 때 한 칸씩만 움직이게 민감도를 낮춘다(트랙패드는 작은 값을 모아서 한 칸) */
 document.addEventListener("wheel", e => { const col = e.target.closest && e.target.closest(".twc"); if (!col) return; e.preventDefault();
-  const now = Date.now(); if (now - (col._wt || 0) > 250) col._wa = 0; col._wt = now; col._wa = (col._wa || 0) + (e.deltaMode ? e.deltaY * 40 : e.deltaY);
-  if (Math.abs(col._wa) < 40 || now - (col._ws || 0) < 90) return; const dir = Math.sign(col._wa), busy = now - (col._ws || 0) < 400; col._wa = 0; col._ws = now;
-  const n = col.querySelectorAll("span").length, cur = busy && col._tgt != null ? col._tgt : Math.round(col.scrollTop / TW_H), nx = Math.max(0, Math.min(n - 1, cur + dir)); col._tgt = nx; col.scrollTo({top:nx * TW_H, behavior:"smooth"}); }, {passive:false});
+  /* 휠을 한 번에 많이 굴려도 한 번의 동작(손을 멈추기 전까지)은 한 칸만 움직인다 */
+  const now = Date.now(), gap = now - (col._wt || 0); col._wt = now; if (gap > 220){ col._wa = 0; col._wd = false; } if (col._wd) return;
+  col._wa = (col._wa || 0) + (e.deltaMode ? e.deltaY * 40 : e.deltaY); if (Math.abs(col._wa) < 30) return; col._wd = true;
+  const n = col.querySelectorAll("span").length, cur = Math.round(col.scrollTop / TW_H), nx = Math.max(0, Math.min(n - 1, cur + Math.sign(col._wa))); col.scrollTo({top:nx * TW_H, behavior:"smooth"}); }, {passive:false});
 function initTW(){ document.querySelectorAll("#overlay .tw.twin").forEach(b => { const i = b.querySelector(".twinput"); if (i) twListSync(b, i.value, false); }); const ti = document.querySelector("#overlay .twinput"); const ae = document.activeElement; if (ti && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName || "") && ae.isConnected)){ try { ti.focus(); ti.select(); } catch (_) {} }
   document.querySelectorAll("#overlay .twc").forEach(el => { el.scrollTop = (+el.dataset.sel) * TW_H; el.querySelectorAll("span").forEach((x, i) => x.classList.toggle("on", i === +el.dataset.sel)); }); }
 function twCommit(inp){ const c = S.compose; if (!c || inp._done || !inp.isConnected) return; inp._done = true; const k = inp.dataset.tw, n = parseInt(inp.value, 10), box = inp.closest(".tw"); inp.remove(); if (isNaN(n)) return;
