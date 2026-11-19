@@ -49,6 +49,13 @@ export async function build() {
   // 앱 없이 열리는 공개 페이지(앱스토어 등록용): /privacy, /delete-account
   const {publicPages} = await import('./public-pages.mjs');
   for (const [file, html] of Object.entries(await publicPages(root))) await writeFile(path.join(cf, file), html);
+  // 완성본 웹앱(/app): app/ 폴더를 그대로 복사하고 서비스 워커 캐시 이름에 내용 해시를 넣는다
+  {
+    const {readdir, readFile: rf, cp, rm} = await import('node:fs/promises'); const {createHash} = await import('node:crypto');
+    const src = path.join(root,'app'), out = path.join(cf,'app'); await rm(out,{recursive:true,force:true}); await cp(src,out,{recursive:true});
+    const h = createHash('sha256'); for (const f of (await readdir(src,{recursive:true})).sort()) { try { h.update(f); h.update(await rf(path.join(src,f))); } catch {} }
+    const sw = path.join(out,'sw.js'); await writeFile(sw,(await rf(sw,'utf8')).replace('__BUILD__',h.digest('hex').slice(0,10)));
+  }
   await writeFile(path.join(cf,'_headers'),`/*
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
@@ -58,6 +65,8 @@ export async function build() {
 /
   Cache-Control: no-cache
 /index.html
+  Cache-Control: no-cache
+/app/*
   Cache-Control: no-cache
 `);
   console.log('Built dist/quest.html + dist/quest-demo.html; dev index.html + demo.html; dist/cloudflare/');
