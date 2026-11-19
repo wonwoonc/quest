@@ -962,13 +962,17 @@ test('existing rest days and old ticket ledger survive browsing/reload and still
   assert.deepEqual(h.snapshot().mine.oldTicket,initial.mine.oldTicket);
   assert.deepEqual(h.snapshot().economy.purchases,initial.economy.purchases);
 });
-test('shop has no items tab; it opens on rewards and keeps add copy',async()=>{
-  const h=await profileUI();h.route('shop');
+test('shop: 경험 / 아이템 / 획득 내역 tabs (no style catalog); rewards split by type, legacy rewards count as 경험',async()=>{
+  const snap=(await profileUI()).snapshot();
+  snap.mine.rDo={id:'rDo',kind:'reward',name:'영화 보기',cost:100,repeat:'repeat',createdAt:1};
+  snap.mine.rGet={id:'rGet',kind:'reward',name:'새 운동화',cost:500,repeat:'once',rt:'get',createdAt:2};
+  const h=await profileUI(snap);h.route('shop');
   let html=h.nodes.get('app').innerHTML;
-  assert.doesNotMatch(html,/아이템/);
   assert.doesNotMatch(html,/style-buy/);
-  assert.match(html,/하고 싶은 거 \/ 갖고 싶은 거/);
-  assert.doesNotMatch(html,/data-v="history"/);
+  assert.match(html,/data-act="shoptab" data-v="do" aria-pressed="true">경험[\s\S]*data-v="get"[^>]*>아이템[\s\S]*data-v="log"[^>]*>획득 내역/);
+  assert.match(html,/영화 보기/);assert.doesNotMatch(html,/새 운동화/);assert.match(html,/data-k="reward" data-v="do"/);
+  h.click('shoptab',{v:'get'});html=h.nodes.get('app').innerHTML;assert.match(html,/새 운동화/);assert.doesNotMatch(html,/영화 보기/);
+  h.click('shoptab',{v:'log'});html=h.nodes.get('app').innerHTML;assert.match(html,/아직 획득한 보상이 없어요/);
 });
 
 // Small markup tree reader: validates actual built output ancestry, not a source substring only.
