@@ -1608,6 +1608,9 @@ a.row{color:inherit;text-decoration:none}
 .pillLv,.wdp-name .pillLv,.cname .pillLv,.stpi h2 .pillLv{color:var(--lv)}
 /* 모바일 대시보드: 캐릭터·퀘스트 카드 높이 살짝 키움 */
 @media (max-width:1023.98px){.wd-ggrid.hs > .wdp-m .wdp-cv{min-height:122px}.wd-ggrid.hs > *{min-height:176px}.wd-ggrid.hs > .pgc.pgc{padding-top:24px;padding-bottom:24px}}
+/* 퀘스트 메뉴 모바일: 표지 접기 */
+.pgc > .cvwrap.pgcv{margin:-22px -20px 6px}.pgc > .cvwrap.pgcv .qcover{margin:0}
+.pgc > .cvopen.pgcv{margin:-22px -20px 6px;width:calc(100% + 40px);border-radius:var(--r) var(--r) 0 0}
 </style>
 <script>
 (function(){"use strict";
@@ -3606,13 +3609,17 @@ function viewDaily(){
 }
 const plCard = g => pgCard(g).replace(/<div class="pgsubs">[\s\S]*?<\/div>\s*<\/section>$/, "</section>");
 /* 퀘스트 메뉴: 메인 퀘스트만. 칩 전체/진행/대기/달성. 카드에 스테이지 표시 없음(스테이지는 상세 화면에서). 일일 퀘스트는 대시보드 일일 칩의 '관리'에서. */
+/* 퀘스트 메뉴(모바일만): 카드 표지를 접고 펼 수 있다. 접은 목록은 이 기기에 저장. */
+function cvFoldQ(g, html){ if (WEB.matches) return html; const cv = coverHtml(g, {badge:false}); if (!cv || !html.includes(cv)) return html;
+  const up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`;
+  return html.replace(cv, (LS.get("cvfoldq", [])).includes(g.id) ? `<button class="cvopen pgcv" data-act="cvfoldq" data-p="${g.id}">표지 펴기 <span style="display:inline-flex;transform:rotate(180deg)">${up}</span></button>` : `<div class="cvwrap pgcv">${cv}<button class="cvtog" data-act="cvfoldq" data-p="${g.id}" aria-label="표지 접기">${up}</button></div>`); }
 function viewPlan(){
   const all = goalsOf(S.me), Q = QM();
   const act = all.filter(g => g.status !== "done" && !isPlanned(g)).sort(gOrder), later = all.filter(g => g.status !== "done" && isPlanned(g)).sort(gOrder), done = all.filter(g => g.status === "done").sort((a,b) => (b.doneAt || 0) - (a.doneAt || 0));
   if (!["all", "active", "later", "done"].includes(Q.ptab)) Q.ptab = "all";
   const tab = Q.ptab, T = t => tab === "all" || tab === t;
   /* 모바일은 위아래 한 줄씩, PC는 여러 줄 격자(.plgrid). 전체 칩의 달성은 최근 3개 + '달성 전체 보기'. */
-  const sec = (t, list, extra = "", empty = "", more = "", btn = "", reo = false) => `<div class="subhead${btn ? " dqhead" : ""}"><h2>${t} <span class="num">${list.length}</span></h2>${btn}</div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => ovLay(g, reo && S.canWrite ? plCard(g).replace('<section class="card pgc', `<section data-reo="${g.id}" class="card pgc`) : plCard(g))).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
+  const sec = (t, list, extra = "", empty = "", more = "", btn = "", reo = false) => `<div class="subhead${btn ? " dqhead" : ""}"><h2>${t} <span class="num">${list.length}</span></h2>${btn}</div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => ovLay(g, cvFoldQ(g, reo && S.canWrite ? plCard(g).replace('<section class="card pgc', `<section data-reo="${g.id}" class="card pgc`) : plCard(g)))).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
   let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태" data-swipe>${[["all","전체",all.length],["active","진행",act.length],["later","대기",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
   const mkBtn = `<button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">+ 생성</button>`;
   if (T("active")) h += sec("진행 중", act, "", "이루고 싶은 목표를 퀘스트로 만들어 보세요.", "", mkBtn, true);
@@ -5062,6 +5069,7 @@ document.addEventListener("click", e => {
     case "rolldis": LS.set("rolldis", today()); break;
     case "rolldel": { if (S.armed !== "rolldel") return; S.armed = null; const t0 = today(), ls = mineOf("mission").filter(m => !m.done && m.origDue && m.origDue < t0 && m.due === t0), pjs = new Set(ls.map(m => m.projectId).filter(Boolean));
       run(async () => { for (const m of ls) await api.delMine(m.id); }, () => { toast(`지난 미션 ${ls.length}개를 삭제했어요`); pjs.forEach(syncProgress); }); return; }
+    case "cvfoldq": { const l = LS.get("cvfoldq", []), i = l.indexOf(pid); if (i >= 0) l.splice(i, 1); else l.push(pid); LS.set("cvfoldq", l); break; }
     case "cvfold": { const l = LS.get("cvopen", []), i = l.indexOf(pid); if (i >= 0) l.splice(i, 1); else l.push(pid); LS.set("cvopen", l); break; }
     case "mfold": { const l = LS.get("mopen", []), k = b.dataset.k; LS.set("mopen", l.includes(k) ? l.filter(x => x !== k) : [...l, k]); break; }
     case "gtmore": { const cur = S.gtN && S.gtN.pid === pid ? S.gtN.n : 10; S.gtN = {pid, n:cur + 10}; break; }
