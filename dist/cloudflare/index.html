@@ -2776,7 +2776,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
 }
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 /* PC: 상단 알림·프로필 버튼을 화면마다 다른 본문 폭의 오른쪽 끝에 맞춘다 */
-function alignTop(){ const tb = $("#topbar"), app = $("#app"); if (!tb || !app) return; try { const mw = WEB.matches ? getComputedStyle(app).maxWidth : "none"; tb.style.maxWidth = mw && mw !== "none" ? mw : ""; } catch (_) {} }
+function alignTop(){ const tb = $("#topbar"), app = $("#app"); if (!tb || !app) return; try { const ref = app.dataset.v === "cal" && app.querySelector(":scope > .seg") || app, mw = WEB.matches ? getComputedStyle(ref).maxWidth : "none"; tb.style.maxWidth = mw && mw !== "none" ? mw : ""; } catch (_) {} }
 try { addEventListener("resize", () => alignTop()); } catch (_) {}
 function renderTop(){
   const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || v === "daily" || v === "write" || (v === "profile" && S.view.uid !== S.me);
