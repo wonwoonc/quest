@@ -1590,6 +1590,7 @@ a.row{color:inherit;text-decoration:none}
 .twopt{flex:none;border:0;background:transparent;color:var(--ink);font:600 15px/1 inherit;padding:8px 0;border-radius:8px;cursor:pointer;text-align:center}
 .twopt:hover{background:var(--fill)}
 .twopt.on{background:var(--accent-soft);color:var(--accent);font-weight:800}
+#topbar .iconbtn[aria-current="page"]{color:var(--accent)}
 </style>
 <script>
 (function(){"use strict";
@@ -2657,8 +2658,8 @@ function renderTop(){
   const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", daily:"일일 퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드", write:S.wrMode === "dump" ? "브레인 덤프" : "스토리 쓰기"}[v] || (isMine() ? "프로필" : "");
   const n = activityItems().filter(x => x.at > actSeen).length + followReqs().filter(x => !(x.at <= actSeen)).length;
   setHtml($("#topbar"), `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : `<button class="iconbtn menubtn" data-act="drawer" aria-label="메뉴 열기" aria-expanded="${document.body.classList.contains("drawer")}">${MENU_SVG}</button>`}<h1${sub ? "" : ' class="tmain"'}>${title}</h1>
-    ${S.me && !TRIAL && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
-    ${hasProfile() && !isMine() && v !== "settings" ? `<a class="iconbtn" href="#me" aria-label="프로필">${PROFILE_SVG}</a>` : ""}`);
+    ${S.me && !TRIAL && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림"${v === "activity" ? ' aria-current="page"' : ""}>${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
+    ${hasProfile() && v !== "settings" ? `<a class="iconbtn" href="#me" aria-label="프로필"${isMine() ? ' aria-current="page"' : ""}>${PROFILE_SVG}</a>` : ""}`);
 }
 /* 메뉴: 사용자가 순서를 정한다(설정 › 메뉴 순서). 데스크탑은 사이드바에 전부 + 설정, 휴대폰은 하단에 앞의 5개 + 왼쪽 위 메뉴(서랍)에 전부 + 설정. */
 const NAV = {

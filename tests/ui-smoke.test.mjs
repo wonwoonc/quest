@@ -1379,7 +1379,7 @@ test('menu: bottom bar = dash/community/+write/shop/notes; profile moved to the 
   const drw=h.nodes.get('drawer').innerHTML;
   assert.deepEqual([...drw.matchAll(/data-act="navgo" data-v="(\w+)"/g)].map(m=>m[1]),['qmanage','dash','feed','shop','notes','cal','settings']);
   assert.match(drw,/data-v="shop" aria-current="page"/);
-  h.route('me');assert.match(h.nodes.get('topbar').innerHTML,/<h1 class="tmain">프로필/);assert.doesNotMatch(h.nodes.get('topbar').innerHTML,/aria-label="프로필"/,'no profile button on the profile page itself');
+  h.route('me');assert.match(h.nodes.get('topbar').innerHTML,/<h1 class="tmain">프로필/);assert.match(h.nodes.get('topbar').innerHTML,/aria-label="프로필" aria-current="page"/,'profile button stays on the profile page, marked current');assert.match(h.nodes.get('topbar').innerHTML,/aria-label="알림"/);
   h.route('settings');assert.match(h.nodes.get('topbar').innerHTML,/data-act="back"[\s\S]*<h1>설정/,'sub pages keep back + title');assert.doesNotMatch(h.nodes.get('topbar').innerHTML,/menubtn/);
   h.click('navedit');assert.match(h.nodes.get('overlay').innerHTML,/메뉴 순서[\s\S]*하단 메뉴[\s\S]*메뉴 버튼에만/);
   h.click('nav-mv',{v:'#qmanage',d:'-1'});
