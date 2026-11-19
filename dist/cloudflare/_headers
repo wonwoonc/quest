@@ -8,3 +8,5 @@
   Cache-Control: no-cache
 /index.html
   Cache-Control: no-cache
+/next/*
+  Cache-Control: no-cache
