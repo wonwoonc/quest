@@ -1194,7 +1194,7 @@ test('대시보드 일일 › 관리: opens the 일일 퀘스트 page (cards + �
 });
 test('퀘스트 › 메인 (today view): covers and sub/task toggles start folded and open on tap',async()=>{
   const h=await linkedUI();h.route('today');h.click('qtab',{t:'main'});let html=h.nodes.get('app').innerHTML;
-  assert.match(html,/data-act="cvfold" data-p="main">표지 펴기/);assert.match(html,/data-act="mfold" data-k="main" aria-expanded="false"/);assert.match(html,/data-act="mfold" data-k="s:main" aria-expanded="false"/);
+  assert.match(html,/data-act="cvfold" data-p="main" aria-label="표지 펴기">/);assert.match(html,/data-act="mfold" data-k="main" aria-expanded="false"/);assert.match(html,/data-act="mfold" data-k="s:main" aria-expanded="false"/);
   h.click('mfold',{k:'main'});h.click('cvfold',{p:'main'});html=h.nodes.get('app').innerHTML;
   assert.match(html,/data-act="mfold" data-k="main" aria-expanded="true"/);assert.match(html,/aria-label="표지 접기"/);
 });

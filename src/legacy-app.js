@@ -798,7 +798,7 @@ function mainTab(){
   for (const g of act){
     const links = subsOf(g.id).filter(x => x.status !== "done");
     const cvF = !(LS.get("cvopen", [])).includes(g.id), up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`;
-    h += `<section class="card tight mq qlist" data-reo="${g.id}">${cvF ? `<button class="cvopen" data-act="cvfold" data-p="${g.id}">표지 펴기 <span style="display:inline-flex;transform:rotate(180deg)">${up}</span></button>` : `<div class="cvwrap">${coverHtml(g, {badge:false})}<button class="cvtog" data-act="cvfold" data-p="${g.id}" aria-label="표지 접기">${up}</button></div>`}<div class="mqh mqh2" data-act="project" data-p="${g.id}" role="button" tabindex="0">${qHead(g)}</div>
+    h += `<section class="card tight mq qlist" data-reo="${g.id}">${cvF ? `<button class="cvopen" data-act="cvfold" data-p="${g.id}" aria-label="표지 펴기"><span style="display:inline-flex;transform:rotate(180deg)">${up}</span></button>` : `<div class="cvwrap">${coverHtml(g, {badge:false})}<button class="cvtog" data-act="cvfold" data-p="${g.id}" aria-label="표지 접기">${up}</button></div>`}<div class="mqh mqh2" data-act="project" data-p="${g.id}" role="button" tabindex="0">${qHead(g)}</div>
       ${(() => { const all = subsOf(g.id); const sk = "s:" + g.id, shut = !mOpen(sk); return `<div class="mqsubs"><button class="tfold" data-act="mfold" data-k="${sk}" aria-expanded="${!shut}"><span>스테이지 <em class="num">${all.filter(x => x.status === "done").length}/${all.length}</em></span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : all.map(x => goalRow(x, true)).join("") + `<button class="tadd-pill" data-act="sheet" data-k="sub" data-p="${g.id}">+ 스테이지 생성</button>`}</div>`; })()}
       ${(() => { const ts = [g.id, ...links.map(x => x.id)].flatMap(id => subsFor(id)).sort((a,b) => a.done - b.done || isToday(b) - isToday(a) || (a.createdAt||0) - (b.createdAt||0)), shut = !mOpen(g.id), left = ts.filter(m => !m.done).length;
         return `<button class="tfold" data-act="mfold" data-k="${g.id}" aria-expanded="${!shut}"><span>미션 ${ts.length ? `<em class="num">${left ? `${left}개 남음` : "모두 완료"}</em>` : ""}</span><span class="chev2 ${shut ? "" : "open"}">${I.chev}</span></button>${shut ? "" : ts.map(m => taskRow(m, false)).join("") + `<button class="tadd-pill" data-act="taskadd" data-p="${g.id}">+ 미션 추가</button>`}`; })()}</section>`;
@@ -1318,7 +1318,7 @@ const plCard = g => pgCard(g).replace(/<div class="pgsubs">[\s\S]*?<\/div>\s*<\/
 /* 퀘스트 메뉴(모바일만): 카드 표지를 접고 펼 수 있다. 접은 목록은 이 기기에 저장. */
 function cvFoldQ(g, html){ if (WEB.matches) return html; const cv = coverHtml(g, {badge:false}); if (!cv || !html.includes(cv)) return html;
   const up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`;
-  return html.replace(cv, (LS.get("cvfoldq", [])).includes(g.id) ? `<button class="cvopen pgcv" data-act="cvfoldq" data-p="${g.id}">표지 펴기 <span style="display:inline-flex;transform:rotate(180deg)">${up}</span></button>` : `<div class="cvwrap pgcv">${cv}<button class="cvtog" data-act="cvfoldq" data-p="${g.id}" aria-label="표지 접기">${up}</button></div>`); }
+  return html.replace(cv, (LS.get("cvfoldq", [])).includes(g.id) ? `<button class="cvopen pgcv" data-act="cvfoldq" data-p="${g.id}" aria-label="표지 펴기"><span style="display:inline-flex;transform:rotate(180deg)">${up}</span></button>` : `<div class="cvwrap pgcv">${cv}<button class="cvtog" data-act="cvfoldq" data-p="${g.id}" aria-label="표지 접기">${up}</button></div>`); }
 function viewPlan(){
   const all = goalsOf(S.me), Q = QM();
   const act = all.filter(g => g.status !== "done" && !isPlanned(g)).sort(gOrder), later = all.filter(g => g.status !== "done" && isPlanned(g)).sort(gOrder), done = all.filter(g => g.status === "done").sort((a,b) => (b.doneAt || 0) - (a.doneAt || 0));
@@ -1654,7 +1654,7 @@ function viewGoal(){
   // 상단 표지는 접은 상태가 기본값. 펴 두면 이 기기에서 기억한다.
   const cvUp = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`, cvOpen = (LS.get("cvopen", [])).includes(p.id);
   let h = `<section class="card thead">
-    ${cvOpen ? `<div class="cvwrap thcv">${coverHtml(p, {badge:false})}<button class="cvtog" data-act="cvfold" data-p="${p.id}" aria-label="표지 접기">${cvUp}</button></div>` : `<button class="cvopen thcv" data-act="cvfold" data-p="${p.id}">표지 펴기 <span style="display:inline-flex;transform:rotate(180deg)">${cvUp}</span></button>`}
+    ${cvOpen ? `<div class="cvwrap thcv">${coverHtml(p, {badge:false})}<button class="cvtog" data-act="cvfold" data-p="${p.id}" aria-label="표지 접기">${cvUp}</button></div>` : `<button class="cvopen thcv" data-act="cvfold" data-p="${p.id}" aria-label="표지 펴기"><span style="display:inline-flex;transform:rotate(180deg)">${cvUp}</span></button>`}
     <div class="gth"><h2>${esc(p.title)}</h2>${mine ? `<button class="pmenu" data-act="gmenu" data-p="${p.id}" aria-label="${kind} 메뉴">${I.menu}</button>` : ""}</div>
     ${par ? `<button class="parentlink" data-act="project" data-p="${par.id}">🎯 ${esc(par.title)} ${I.chev}</button>` : ""}
     <div class="tags">${isCx(p) ? `<span class="tag">포기</span>` : p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" && !isCx(p) ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "영역" : "메인 퀘스트 영역"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}</div>
@@ -1680,7 +1680,6 @@ function viewGoal(){
       ${p.status !== "done" ? `<button class="morebtn add" data-act="taskadd" data-p="${p.id}">+ 미션 추가</button>` : ""}</section>`;
   }
   h += posts.length ? `<article class="card feedcard">${posts.map((x, i) => postRow(x, {line:i < posts.length-1, inThread:true})).join("")}</article>` : `<div class="card empty">아직 스토리가 없어요.</div>`;
-  if (mine) h += `<button class="btn sec full gdelbtn" data-act="pdel" data-p="${p.id}">${S.armed === "px"+p.id ? "한 번 더 누르면 삭제돼요" : `${kind} 삭제`}</button>`;
   return h;
 }
 
