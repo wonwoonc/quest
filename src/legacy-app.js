@@ -1745,14 +1745,14 @@ ${dots}`, side);
 /* 모바일 대시보드 퀘스트 줄 맨 앞의 작은 프로필: 캐릭터 · 이름+Lv · 경험치 막대 · XP와 코인 */
 function mobProfCard(uid){ const s = statsOf(uid), c = colorOf(uid);
   return `<section class="card wdp wdp-m" style="--pc:${c};background:color-mix(in srgb,${c} 11%,var(--card))"><div class="wdp-cv" ${uid === S.me ? `data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기"` : ""} style="background:linear-gradient(160deg,color-mix(in srgb,${c} 22%,var(--card)),color-mix(in srgb,${c} 55%,var(--card)))"><div class="wdp-fig">${fig(uid, 150, 104)}</div></div>
-    <div class="wdp-name"><h3>${esc(nameOf(uid))}</h3><span class="wdp-lvm num">Lv.${s.L}</span></div>
+    <div class="wdp-name"><h3>${esc(nameOf(uid))}</h3><span class="pillLv num">Lv.${s.L}</span></div>
     <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
     <div class="barmeta lft"><span class="num">${s.need === 0 ? "MAX" : `${fmt(s.cur)}/${fmt(s.need)}`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div></section>`; }
 function webProfCard(uid){
   const s = statsOf(uid), p = prof(uid), c = colorOf(uid), posts = feedSorted().filter(x => x.author === uid).length;
   const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
   return `<section class="card wdp" style="--pc:${c};background:color-mix(in srgb,${c} 11%,var(--card))"><div class="wdp-cv" ${uid === S.me ? `data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기"` : ""} style="background:linear-gradient(160deg,color-mix(in srgb,${c} 22%,var(--card)),color-mix(in srgb,${c} 55%,var(--card)))"><div class="wdp-fig">${fig(uid, 150, 104)}</div></div>
-    <div class="wdp-name"><h3>${esc(nameOf(uid))}</h3><span class="wdp-lvm num">Lv.${s.L}</span>${uid === S.me && S.canWrite ? `<button class="editp" data-act="sheet" data-k="profile">프로필 편집</button>` : ""}</div>
+    <div class="wdp-name"><h3>${esc(nameOf(uid))}</h3><span class="pillLv num">Lv.${s.L}</span>${uid === S.me && S.canWrite ? `<button class="editp" data-act="sheet" data-k="profile">프로필 편집</button>` : ""}</div>
     <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
     <div class="barmeta lft"><span class="num">${s.need===0?'MAX':`${fmt(s.cur)} / ${fmt(s.need)} XP`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div>
     ${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ""}
@@ -2198,7 +2198,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     <button class="btn big full" data-act="submit-taskadd" ${S.busy?"disabled":""}>추가</button>`);
   if (c.type === "flist"){ const fol = c.kind === "followers", ids = Object.values(S.follows).filter(f => fol ? f.to === c.uid : f.from === c.uid).sort((a,b) => (b.at||0) - (a.at||0)).map(f => fol ? f.from : f.to).filter(x => x !== c.uid);
     return sheetWrap(fol ? `팔로워 ${ids.length}` : `팔로잉 ${ids.length}`, "", ids.length ? `<div class="fl-list">${ids.map(u => { const p = prof(u), me0 = u === S.me, f = isFollowing(S.me, u);
-      return `<div class="fl-row">${av(u, 44)}<button class="t" data-act="profile" data-u="${esc(u)}"><b>${esc(nameOf(u))}${me0 ? " (나)" : ""}</b><small>Lv.${statsOf(u).L}${p.bio ? " · " + esc(p.bio) : ""}</small></button>${!me0 && hasProfile() && S.canWrite ? `<button class="btn ${f || pendingTo(u) ? "sec" : "soft"} sm" data-act="follow" data-u="${esc(u)}">${folLabel(u)}</button>` : ""}</div>`; }).join("")}</div>` : `<p class="empty-row">${fol ? "아직 팔로워가 없어요." : "아직 팔로잉하는 사람이 없어요."}</p>`); }
+      return `<div class="fl-row">${av(u, 44)}<button class="t" data-act="profile" data-u="${esc(u)}"><b>${esc(nameOf(u))}${me0 ? " (나)" : ""} <span class="pillLv num">Lv.${statsOf(u).L}</span></b>${p.bio ? `<small>${esc(p.bio)}</small>` : ""}</button>${!me0 && hasProfile() && S.canWrite ? `<button class="btn ${f || pendingTo(u) ? "sec" : "soft"} sm" data-act="follow" data-u="${esc(u)}">${folLabel(u)}</button>` : ""}</div>`; }).join("")}</div>` : `<p class="empty-row">${fol ? "아직 팔로워가 없어요." : "아직 팔로잉하는 사람이 없어요."}</p>`); }
   if (c.type === "confirm") return sheetWrap("", "", `<div class="cfbox"><h3>${c.t}</h3>${c.d ? `<p>${c.d}</p>` : ""}<div class="btnrow">${c.alert ? `<button class="btn big full" data-act="cfno">확인</button>` : `<button class="btn sec big" data-act="cfno">취소</button><button class="btn big ${c.safe ? "" : "cfdel"}" data-act="cfok">${c.ok}</button>`}</div></div>`);
   if (c.type === "mlog"){ const pj = S.projects[c.pid]; if (!pj || !pj.metric){ closeSheet(); return; } const m = pj.metric, lv = lastVal(pj), u = esc(m.unit);
     return sheetWrap(`수치 기록`, "", `<p class="mlog-t">${esc(pj.title)}</p>
