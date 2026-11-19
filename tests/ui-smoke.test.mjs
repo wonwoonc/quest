@@ -1612,7 +1612,7 @@ test('daily quests link to a main quest: main-only picker, checkable on the main
   snap.mine.hab = {id:'hab',kind:'quest',name:'매일 달리기',projectId:'main',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],time:'07:00',lv:'easy',active:true,done:{},createdAt:1};
   const H = await profileUI(snap), ov = () => H.nodes.get('overlay').innerHTML, app = () => H.nodes.get('app').innerHTML;
   H.click('project',{p:'main'});
-  assert.match(app(),/<h2>일일 퀘스트<\/h2>[\s\S]*?data-act="qcheck" data-id="hab"[\s\S]*?매일 달리기/); assert.doesNotMatch(app(),/이번 주 \d+\/\d+/);
+  assert.match(app(),/<h2>일일 퀘스트<\/h2>[\s\S]*?data-act="qcheck" data-id="hab"[\s\S]*?매일 달리기/); assert.doesNotMatch(app(),/이번 주 \d+\/\d+/); assert.match(app(),/매일 달리기<\/b><small><span class="lhwhen now">오늘<\/span><span class="fire">🔥 0일 연속/);
   assert.match(app(),/class="mday[^"]*">오늘 · /,'missions grouped by date');
   H.click('gmview',{v:'week'}); assert.match(app(),/class="mday[^"]*">이번 주 · /); H.click('gmview',{v:'month'}); assert.match(app(),/class="mday[^"]*">이번 달 · /); H.click('gmview',{v:'day'});
   assert.match(app(),/data-act="sheet" data-k="add" data-v="daily" data-p="main"/);

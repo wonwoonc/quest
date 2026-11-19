@@ -1662,8 +1662,10 @@ function mGroup(d, mode){ if (!d) return ["", "날짜 없음", ""]; const t = to
     return [k, k === tk ? `이번 달 · ${lb}` : k < tk ? `지난 달 · ${lb}` : lb, k === tk ? " now" : k < tk ? " late" : ""]; }
   return [d, mDayLabel(d), d < t ? " late" : d === t ? " now" : ""]; }
 function byDay(list, row, mode = "day"){ let h = "", last = null; for (const m of list){ const [k, lb, cls] = mGroup(dueOf(m) || "", mode); if (k !== last){ last = k; h += `<div class="mday${cls}">${lb}</div>`; } h += row(m); } return h; }
-function lhRow(q){ const done = !!(q.done || {})[today()];
-  return `<div class="row qrow lhrow" data-act="hedit" data-id="${q.id}" data-d="${today()}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b></span></div>`; }
+function nextOn(q){ const r = qRepeat(q), t = today(); for (let i = 0; i < 120; i++){ const d = addD(t, i); if (occursOn(r, d)) return d; } return ""; }
+function lhRow(q){ const done = !!(q.done || {})[today()], st = streakOf(q), nd = nextOn(q), t = today(), D0 = nd ? pd(nd) : null;
+  const when = !nd ? "" : nd === t ? "오늘" : nd === addD(t, 1) ? "내일" : `${D0.getMonth()+1}/${D0.getDate()} (${WD[D0.getDay()]})`;
+  return `<div class="row qrow lhrow" data-act="hedit" data-id="${q.id}" data-d="${today()}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b><small>${when ? `<span class="lhwhen${nd === t ? " now" : ""}">${when}</span>` : ""}<span class="fire">🔥 ${st.cur || 0}${streakUnit(q)} 연속</span></small></span></div>`; }
 /* 메인 퀘스트를 달성·포기할 때 연결된 일일 퀘스트를 보관할지 함께 묻는다(기본: 계속) */
 const habitChk = pid => { const n = isProj(S.projects[pid]) ? 0 : linkedHabits(pid).length; return n ? {label:`연결된 일일 퀘스트 ${n}개도 보관하기`, on:false} : null; };
 async function archiveLinked(pid){ for (const q of linkedHabits(pid)) await api.putMine(q.id, {...q, active:false}); }
