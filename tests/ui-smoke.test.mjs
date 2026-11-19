@@ -822,7 +822,7 @@ test('dashboard/profile/shop omit the entire economy summary and retain balances
       assert.match(html,new RegExp(`🪙 ${balances(before).gold}`));
       assert.doesNotMatch(html,/data-act="shop-tab"/);
     }else{
-      assert.match(html,/Lv\.\d+/);assert.match(html,/role="progressbar" aria-label="레벨 진행도"/);
+      assert.match(html,/Lv\d+/);assert.match(html,/role="progressbar" aria-label="레벨 진행도"/);
       assert.match(html,/class="num coinm"/);assert.match(html,/\d+ \/ [\d,]+ XP/);
     }
     assert.deepEqual(h.snapshot(),before);
@@ -935,7 +935,7 @@ for(const xp of [106919,106920,106920+1000000])test(`level UI stays finite at XP
     const html=h.nodes.get('app').innerHTML;assert.doesNotMatch(html,/NaN|Infinity|0 \/ 0 XP|다음 레벨까지 0 XP/);
     assert.match(html,/aria-valuemax="100"/);
     if(xp>=106920){assert.match(html,/MAX/);assert.match(html,/width:100%/);assert.doesNotMatch(html,/다음 레벨까지/);}
-    else assert.match(html,/Lv\.99/);
+    else assert.match(html,/Lv99/);
   }
 });
 test('existing rest days and old ticket ledger survive browsing/reload and still block activity payout',async()=>{
@@ -1151,9 +1151,9 @@ test('level-up popup shows how much each stat rose (+N) from the points saved up
   saved.projects={m1:{id:'m1',owner:'me',title:'마라톤',end:'2099-12-31',status:'active',area:['health']}};
   for(const i of [1,2,3])saved.mine['t'+i]={id:'t'+i,kind:'mission',name:'달리기'+i,due:T,projectId:'m1',lv:'epic',done:false,createdAt:i};
   const h=await profileUI(saved);
-  h.click('mcheck',{id:'t1'});await h.settle();assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/Lv\.2 달성/);
+  h.click('mcheck',{id:'t1'});await h.settle();assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/Lv2 달성/);
   h.click('mcheck',{id:'t2'});await h.settle();const html=h.nodes.get('overlay').innerHTML;
-  assert.match(html,/Lv\.2 달성/);assert.match(html,/체력<\/b><\/button><b class="stl num">\d+<em class="stup">\+10<\/em><\/b>/);assert.doesNotMatch(html,/지력<\/b><\/button><b class="stl num">\d+<em/);
+  assert.match(html,/Lv2 달성/);assert.match(html,/체력<\/b><\/button><b class="stl num">\d+<em class="stup">\+10<\/em><\/b>/);assert.doesNotMatch(html,/지력<\/b><\/button><b class="stl num">\d+<em/);
 });
 test('main quest page shows sub quests as cards with progress and next task',async()=>{
   const base=await profileUI(),saved=base.snapshot();
@@ -1276,7 +1276,7 @@ test('level up opens the profile popup',async()=>{
   }
   assert.ok(hit, 'level-up popup should open');
   const html = h.nodes.get('overlay').innerHTML;
-  assert.match(html, /Lv\.\d+ 달성/); assert.match(html, /레벨이 올랐어요</); assert.match(html, /class="card stprof"/); assert.match(html, /능력치/); assert.doesNotMatch(html, /class="card wdp"|꾸미기|lvshop/);
+  assert.match(html, /Lv\d+ 달성/); assert.match(html, /레벨이 올랐어요</); assert.match(html, /class="card stprof"/); assert.match(html, /능력치/); assert.doesNotMatch(html, /class="card wdp"|꾸미기|lvshop/);
   h.click('sheet-close'); await h.settle();
   assert.equal(h.nodes.get('overlay').innerHTML, '');
 });
