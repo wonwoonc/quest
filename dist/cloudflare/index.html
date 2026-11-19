@@ -2252,6 +2252,8 @@ function processEconomy(s,before,at,me='me') {
     if(m.kind==='buy'&&!old&&!e.purchases[id])redeemPersonal(s,m.rewardId,id,at);
     if(m.kind==='buy'&&old&&e.purchases[id]&&!e.purchases[id].legacy){const p=e.purchases[id];if(m.cost!==p.cost||m.rewardId!==p.rewardId||m.state!==p.state)throw new Error('구매 내역은 전용 명령으로만 변경할 수 있습니다.');}
   }
+  // 완료한 미션을 삭제하면 그 완료로 받은 경험치·코인(첫 완료 보너스 포함)을 회수한다. 주간 보너스는 아래에서 다시 계산된다.
+  for(const [id,old] of Object.entries(before.mine))if(old.kind==='mission'&&old.done&&!s.mine[id])activity(s,key('task',id),'task',old,koreaDate(at),at,false);
   for(const [id,old] of Object.entries(before.mine))if(old.kind==='note'&&!s.mine[id]){reverse(s,key('note',id),at);for(const x of old.sessions||[])reverse(s,key('study',id,x.id),at);}
   for(const [id,p] of Object.entries(s.feed)){const old=before.feed[id];if(p.author===me&&p.ref&&Number.isFinite(p.value)&&p.value!==old?.value)metric(s,p.ref.id,p.value,at);}
   for(const [id,p] of Object.entries(s.projects))if(p.owner===me){const old=before.projects[id],fp=fingerprint(s,p);
@@ -3826,7 +3828,7 @@ function qmDo(v){
     return run(async () => { for (const x of qs) if ((x.active !== false) !== on) await api.putMine(x.id, {...x, active:on}); }, () => done(on ? "보관을 해제했어요" : "보관했어요"));
   }
   const ms = ids.map(id => S.mine[id]).filter(Boolean), pjs = new Set(ms.map(m => m.projectId).filter(Boolean));
-  if (v === "del") return ask({t:`미션 ${ms.length}개를 삭제할까요?`, d:"되돌릴 수 없어요.", ok:"삭제"}, () => run(async () => { for (const m of ms) await api.delMine(m.id); }, () => { done(`미션 ${ms.length}개를 삭제했어요`); pjs.forEach(syncProgress); }));
+  if (v === "del") return ask({t:`미션 ${ms.length}개를 삭제할까요?`, d:ms.some(m => m.done) ? "완료한 미션으로 받은 경험치와 코인도 회수돼요. 되돌릴 수 없어요." : "되돌릴 수 없어요.", ok:"삭제"}, () => run(async () => { for (const m of ms) await api.delMine(m.id); }, () => { done(`미션 ${ms.length}개를 삭제했어요`); pjs.forEach(syncProgress); }));
   const d = v === "today" ? t : tomorrow(), open = ms.filter(m => !m.done);
   if (!open.length){ done("완료한 미션은 옮길 수 없어요"); schedule(); return; }
   return run(async () => { for (const m of open){ const nm = {...m, due:d, period:""}; delete nm.origDue; if (!nm.time) nm.time = "09:00"; await api.putMine(m.id, nm); } }, () => done(`미션 ${open.length}개를 ${d === t ? "오늘" : "내일"}로 옮겼어요`));
@@ -4908,7 +4910,7 @@ document.addEventListener("click", e => {
   if (CONF[a] && !b.dataset.confirmed){ e.stopPropagation();
     const sp = a === "pdel" && isProj(S.projects[pid]);
     const key = {pdel:"px"+pid, tdel:"td"+(c && c.id), hdel:"hd"+(c && c.id), delpost:"dp"+pid, rdel:"rd"+(c && c.id), block:"bl"+u, ldel:"ld"+id, rolldel:"rolldel", "nt-del":"nd"+id, "dr-del":"dd"+(c && c.edit), "bd-del":"bd"+id, "bd-rm":"bx"+id, rdelreply:"rx"+b.dataset.c}[a];
-    const msg = {pdel:sp ? ["스테이지를 삭제할까요?", "연결된 미션도 함께 삭제돼요."] : ["메인 퀘스트를 삭제할까요?", "아래 스테이지와 연결된 미션도 함께 삭제돼요."], tdel:["미션을 삭제할까요?", ""], hdel:["일일 퀘스트를 삭제할까요?", "지금까지 쌓은 연속 기록도 함께 사라져요."], delpost:["스토리를 삭제할까요?", "공감과 답글도 함께 삭제돼요."], rdel:["보상을 삭제할까요?", ""], block:["이 사람을 차단할까요?", "이 사람의 스토리와 답글이 모두 안 보여요."], rolldel:[`지난 미션 ${mineOf("mission").filter(m => !m.done && m.origDue && m.origDue < today() && m.due === today()).length}개를 삭제할까요?`, "오늘로 넘어온 미션만 삭제돼요. 되돌릴 수 없어요."], ldel:["저널을 삭제할까요?", diaryPost(id) ? "커뮤니티에 공유한 스토리도 함께 삭제돼요." : ""],
+    const msg = {pdel:sp ? ["스테이지를 삭제할까요?", "연결된 미션도 함께 삭제돼요."] : ["메인 퀘스트를 삭제할까요?", "아래 스테이지와 연결된 미션도 함께 삭제돼요."], tdel:["미션을 삭제할까요?", c && S.mine[c.id] && S.mine[c.id].done ? "완료하고 받은 경험치와 코인도 함께 회수돼요." : ""], hdel:["일일 퀘스트를 삭제할까요?", "지금까지 쌓은 연속 기록도 함께 사라져요."], delpost:["스토리를 삭제할까요?", "공감과 답글도 함께 삭제돼요."], rdel:["보상을 삭제할까요?", ""], block:["이 사람을 차단할까요?", "이 사람의 스토리와 답글이 모두 안 보여요."], rolldel:[`지난 미션 ${mineOf("mission").filter(m => !m.done && m.origDue && m.origDue < today() && m.due === today()).length}개를 삭제할까요?`, "오늘로 넘어온 미션만 삭제돼요. 되돌릴 수 없어요."], ldel:["저널을 삭제할까요?", diaryPost(id) ? "커뮤니티에 공유한 스토리도 함께 삭제돼요." : ""],
       "nt-del":["자료를 삭제할까요?", "첨부한 파일도 함께 삭제돼요. 되돌릴 수 없어요."], "dr-del":["서랍을 삭제할까요?", "서랍 안의 자료는 메모 서랍으로 옮겨져요."],
       "bd-del":["이 생각을 삭제할까요?", "되돌릴 수 없어요."], "bd-rm":["이 생각을 삭제할까요?", "되돌릴 수 없어요."], rdelreply:["답글을 삭제할까요?", "삭제한 답글은 되돌릴 수 없어요."]}[a];
     S.pend = {key, data:{...b.dataset}}; S.parentSheet = c || null; S.compose = {type:"confirm", t:msg[0], d:msg[1], ok:a === "block" ? "차단" : "삭제"}; renderSheet(); return; }
@@ -5283,8 +5285,8 @@ document.addEventListener("click", e => {
     case "submit-tedit": { const m = S.mine[c.id], name = ($("#te-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; }
       const old = m.projectId, nm = {...m, name, ...readPlan(c, false), note:($("#te-note").value||"").trim(), lv:c.lv, area:(c.area||[]).slice(0,2), projectId:c.projectId || null, due:c.due || "", time:c.due ? (c.time||"") : "", etime:c.due && c.time && c.etime > c.time ? c.etime : "", period:c.due ? (c.period||"") : "", today:false};
       run(() => api.putMine(c.id, nm), () => { closeSheet(); toast("저장했어요"); if (old) syncProgress(old); if (nm.projectId && nm.projectId !== old) syncProgress(nm.projectId); }); return; }
-    case "tdel": { const tid = c.id; if (S.armed !== "td"+tid){ arm("td"+tid); renderSheet(); return; } S.armed = null; const pj = S.mine[tid].projectId;
-      run(() => api.delMine(tid), () => { closeSheet(); toast("미션을 삭제했어요"); if (pj) syncProgress(pj); }); return; }
+    case "tdel": { const tid = c.id; if (S.armed !== "td"+tid){ arm("td"+tid); renderSheet(); return; } S.armed = null; const pj = S.mine[tid].projectId, wasDone = !!S.mine[tid].done;
+      run(() => api.delMine(tid), () => { closeSheet(); toast(wasDone ? "미션을 삭제하고 받은 보상을 회수했어요" : "미션을 삭제했어요"); if (pj) syncProgress(pj); }); return; }
     case "share-after": { const sh = c.share; closeSheet(); openCompose({ref:sh.ref, fixed:true, title:sh.title}); return; }
     case "rw-rep": preserveSheetDrafts(); c.repeat = c.repeat === "once" ? "repeat" : "once"; renderSheet(); return;
     case "submit-reward": { const name = ($("#rw-name").value||"").trim(); if (!name){ toast("보상 이름을 적어 주세요"); return; }

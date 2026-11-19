@@ -151,6 +151,8 @@ export function processEconomy(s,before,at,me='me') {
     if(m.kind==='buy'&&!old&&!e.purchases[id])redeemPersonal(s,m.rewardId,id,at);
     if(m.kind==='buy'&&old&&e.purchases[id]&&!e.purchases[id].legacy){const p=e.purchases[id];if(m.cost!==p.cost||m.rewardId!==p.rewardId||m.state!==p.state)throw new Error('구매 내역은 전용 명령으로만 변경할 수 있습니다.');}
   }
+  // 완료한 미션을 삭제하면 그 완료로 받은 경험치·코인(첫 완료 보너스 포함)을 회수한다. 주간 보너스는 아래에서 다시 계산된다.
+  for(const [id,old] of Object.entries(before.mine))if(old.kind==='mission'&&old.done&&!s.mine[id])activity(s,key('task',id),'task',old,koreaDate(at),at,false);
   for(const [id,old] of Object.entries(before.mine))if(old.kind==='note'&&!s.mine[id]){reverse(s,key('note',id),at);for(const x of old.sessions||[])reverse(s,key('study',id,x.id),at);}
   for(const [id,p] of Object.entries(s.feed)){const old=before.feed[id];if(p.author===me&&p.ref&&Number.isFinite(p.value)&&p.value!==old?.value)metric(s,p.ref.id,p.value,at);}
   for(const [id,p] of Object.entries(s.projects))if(p.owner===me){const old=before.projects[id],fp=fingerprint(s,p);

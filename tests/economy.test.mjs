@@ -45,9 +45,9 @@ test('difficulty changes never recalculate; reversal and restoration use origina
   h.at('2026-11-03');delta(await h.api.putMine('a',{...h.state.mine.a,done:true}),10,40);
   assert.equal(economySummary(h.state,Date.parse('2026-11-03T03:00:00Z')).dailyXP,0);assert.equal(balances(h.state).gold,40);
 });
-test('delete activity, diary and goal does not remove minted growth; recreate source cannot duplicate',async()=>{
-  const h=setup();await putTask(h,'a');const b=balances(h.state);await h.api.delMine('a');assert.equal(balances(h.state).xp,b.xp);
-  delta(await putTask(h,'a'),0,0);
+test('deleting a done mission reverses it, recreating restores only the original; diary deletion keeps growth',async()=>{
+  const h=setup();delta(await putTask(h,'a'),30,60);delta(await h.api.delMine('a'),-30,-60);
+  delta(await putTask(h,'a'),30,60);assert.equal(balances(h.state).xp,30);assert.equal(balances(h.state).raw,60);
   delta(await h.api.putMine('d',{kind:'diary',date:'2026-11-02',text:'private'}),10,5);
   await h.api.delMine('d');delta(await h.api.putMine('other-d',{kind:'diary',date:'2026-11-02'}),0,0);
 });
@@ -240,4 +240,15 @@ test('study sessions are tracked without XP/coins; completing every chapter comp
   delta(await h.api.putMine('n1',{...note,ch:[{id:'c1',t:'1강',st:'done'},{id:'c2',t:'2강',st:'done'}]}),30,30);
   delta(await h.api.putMine('n1',{...note,ch:[{id:'c1',t:'1강',st:'done'},{id:'c2',t:'2강',st:'done'}],f:{title:'수정'}}),0,0);
   delta(await h.api.delMine('n1'),-30,-30);
+});
+test('deleting a completed mission takes back its XP and coins (incl. first bonus and weekly bonus); undone or open missions change nothing',async()=>{
+  const h=setup();
+  delta(await putTask(h,'a','normal'),30,60); // 30 + 첫 완료 30
+  delta(await h.api.delMine('a'),-30,-60);
+  delta(await putTask(h,'b','easy',null,false),0,0);delta(await h.api.delMine('b'),0,0);
+  await putTask(h,'c','tiny');await h.api.putMine('c',{...h.state.mine.c,done:false});delta(await h.api.delMine('c'),0,0);
+  // 3일 활동 주간 보너스(60/30)도 기준 미달이면 회수
+  h.at('2026-11-03');await putTask(h,'d1');h.at('2026-11-04');await putTask(h,'d2');h.at('2026-11-05');await putTask(h,'d3');
+  delta(await h.api.delMine('d3'),-30-60,-30-30);
+  assert.equal(balances(h.state).xp,60);
 });
