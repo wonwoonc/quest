@@ -1640,8 +1640,13 @@ a.row{color:inherit;text-decoration:none}
 .slrow .t{flex:1;min-width:0}.slrow .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .slcost{flex:none;font-size:13px;font-weight:800;color:var(--sub)}
 .field .chips .chip small{font-weight:500;color:var(--muted);margin-left:2px}
-.gmseg{margin:2px 0 4px}.gmseg button{padding-top:6px;padding-bottom:6px;font-size:13px}
 .lhrow .t small{display:flex;gap:8px;align-items:center}.lhwhen{font-weight:700;color:var(--muted)}.lhwhen.now{color:var(--accent)}
+/* 미션 날짜 칩: 전체 / 특정 날짜 */
+.gmchip{display:inline-flex;align-items:center;gap:2px;margin-left:8px;margin-right:auto;border:0;border-radius:999px;background:var(--fill);color:var(--sub);font:inherit;font-size:12.5px;font-weight:700;padding:4px 10px;cursor:pointer;line-height:1.3}
+.gmchip svg{width:13px;height:13px}
+.gmchip.on{background:var(--accent-soft);color:var(--accent);padding:0 4px 0 0}
+.gmchip.on button{border:0;background:none;color:inherit;font:inherit;padding:4px 4px 4px 10px;cursor:pointer}
+.gmchip .gmx{padding:2px 6px!important;font-size:15px!important;line-height:1}
 </style>
 <script type="module" src="./src/demo-entry.js"></script>
 </body></html>

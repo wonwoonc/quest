@@ -1614,7 +1614,11 @@ test('daily quests link to a main quest: main-only picker, checkable on the main
   H.click('project',{p:'main'});
   assert.match(app(),/<h2>일일 퀘스트<\/h2>[\s\S]*?data-act="qcheck" data-id="hab"[\s\S]*?매일 달리기/); assert.doesNotMatch(app(),/이번 주 \d+\/\d+/); assert.match(app(),/매일 달리기<\/b><small><span class="lhwhen now">오늘<\/span><span class="fire">🔥 0일 연속/);
   assert.match(app(),/class="mday[^"]*">오늘 · /,'missions grouped by date');
-  H.click('gmview',{v:'week'}); assert.match(app(),/class="mday[^"]*">이번 주 · /); H.click('gmview',{v:'month'}); assert.match(app(),/class="mday[^"]*">이번 달 · /); H.click('gmview',{v:'day'});
+  assert.match(app(),/<h2>미션<\/h2><button class="gmchip" data-act="gmpick" data-p="main">전체/);
+  H.click('gmpick',{p:'main'}); assert.match(ov(),/날짜로 보기[\s\S]*data-act="gmset" data-v=""[\s\S]*오늘 · [\s\S]*미션 \d+개/);
+  { const d = ov().match(/data-act="gmset" data-v="(\d{4}-\d\d-\d\d)"/)[1]; H.click('gmset',{v:d}); }
+  assert.match(app(),/class="gmchip on"><button data-act="gmpick" data-p="main">오늘 · /); assert.doesNotMatch(app(),/class="mday/);
+  H.click('gmall'); assert.match(app(),/class="gmchip" data-act="gmpick"/);
   assert.match(app(),/data-act="sheet" data-k="add" data-v="daily" data-p="main"/);
   H.click('sheet',{k:'add',v:'daily',p:'main'}); assert.match(ov(),/연결할 메인 퀘스트[\s\S]*?🎯 메인 연결 대상/);
   H.click('tqpick',{m:'main',t:'어떤 메인 퀘스트를 위한 습관인가요?'}); assert.match(ov(),/data-act="tqset" data-v="main"/); assert.doesNotMatch(ov(),/data-act="tqexp"|data-v="sub"/);
