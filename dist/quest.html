@@ -1574,7 +1574,14 @@ a.row{color:inherit;text-decoration:none}
 .wd-ggrid.hs > .wdp-m .barmeta{font-size:10.5px;line-height:1.1;margin-top:0;display:flex;justify-content:space-between}
 .wd-ggrid.hs > .wdp-m .barmeta .coinm{display:inline!important}
 }
-}
+.tw.twin{padding:12px 12px 52px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.tw.twin .twinput{width:132px;height:52px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:700 26px/1 inherit;font-variant-numeric:tabular-nums;text-align:center;letter-spacing:1px;outline:none}
+.tw.twin .twinput:focus{border-color:var(--accent)}
+.tw.twin .twinput.bad{border-color:#E5484D}
+.tw.twin .twhint{font-size:12px;color:var(--sub)}
+.evtw .tw.twin,.tw2 .tw.twin{padding:10px 8px}
+.evtw .tw.twin .twinput,.tw2 .tw.twin .twinput{display:block;margin:0 auto;width:100%;max-width:132px;height:46px;font-size:22px}
+.evtw .tw.twin .twhint,.tw2 .tw.twin .twhint{display:none}
 </style>
 <script>
 (function(){"use strict";
@@ -2226,13 +2233,25 @@ const boxK = (c, box) => (box && box.dataset.tk) || TK(c);
 /* 일정: 시작을 옮기면 같은 날 종료도 같은 길이만큼 따라 옮긴다 */
 function evShift(c, k, prev){ if (k !== "time" || !prev || !c.etime || (c.edate || c.due) !== c.due) return; const mm = t => { const [a, b] = t.split(":").map(Number); return a*60 + b; };
   const d = mm(c.time) - mm(prev); if (!d) return; c.etime = addMin("00:00", Math.max(mm(c.time) + 5, Math.min(23*60 + 55, mm(c.etime) + d)));
-  const eb = document.querySelector('#overlay .tw[data-tk="etime"]'); if (eb){ eb._quiet = Date.now(); const [eh, em] = c.etime.split(":").map(Number); eb.querySelector('[data-tw="h"]').scrollTop = eh * TW_H; eb.querySelector('[data-tw="m"]').scrollTop = (Math.round(em/5) % 12) * TW_H; }
+  const eb = document.querySelector('#overlay .tw[data-tk="etime"]'); if (eb && eb.classList.contains("twin")){ const ei = eb.querySelector(".twinput"); if (ei && document.activeElement !== ei) ei.value = c.etime; } else if (eb){ eb._quiet = Date.now(); const [eh, em] = c.etime.split(":").map(Number); eb.querySelector('[data-tw="h"]').scrollTop = eh * TW_H; eb.querySelector('[data-tw="m"]').scrollTop = (Math.round(em/5) % 12) * TW_H; }
   evLine(c); }
 const evLine = c => { const t = document.querySelector("#overlay .evwhen1 .evwt"); if (t) t.innerHTML = evWhenText(c); const v = tmvalEl(c, "etime"); if (v) v.textContent = tmLabel(c.etime); };
-function timeWheel(c, k = TK(c), ok = true){ const [h, m] = (c[k] || "09:00").split(":").map(Number), mi = Math.round(m/5) % 12;
+function timeWheel(c, k = TK(c), ok = true){ if (typeof WEB !== "undefined" && WEB.matches) return `<div class="tw twin" data-tk="${k}"><input type="text" class="twinput" data-tk="${k}" inputmode="numeric" maxlength="5" value="${c[k] || "09:00"}" placeholder="예: 930" aria-label="시간 입력" autocomplete="off"><span class="twhint">숫자만 입력해도 돼요 (930 → 09:30)</span>${ok ? `<button class="tw-ok" data-act="tmdone">완료</button>` : ""}</div>`;
+  const [h, m] = (c[k] || "09:00").split(":").map(Number), mi = Math.round(m/5) % 12;
   const col = (k, n, step, sel) => `<div class="twc" data-tw="${k}" data-sel="${sel}"><i></i><i></i>${Array.from({length:n}, (_, i) => `<span>${pad(i*step)}</span>`).join("")}<i></i><i></i></div>`;
   return `<div class="tw" data-tk="${k}"><div class="twwrap"><div class="twband"></div>${col("h", 24, 1, h)}<b>:</b>${col("m", 12, 5, mi)}</div>${ok ? `<button class="tw-ok" data-act="tmdone">완료</button>` : ""}</div>`; }
-function initTW(){ document.querySelectorAll("#overlay .twc").forEach(el => { el.scrollTop = (+el.dataset.sel) * TW_H; el.querySelectorAll("span").forEach((x, i) => x.classList.toggle("on", i === +el.dataset.sel)); }); }
+function parseHM(v){ v = String(v || "").trim().replace(/[.\s]/g, ":"); let h, m; if (v.includes(":")){ const [a, b = "0"] = v.split(":"); if (!/^\d{1,2}$/.test(a) || !/^\d{0,2}$/.test(b)) return null; h = +a; m = +(b || 0); }
+  else { if (!/^\d{1,4}$/.test(v)) return null; if (v.length <= 2){ h = +v; m = 0; } else { h = +v.slice(0, v.length - 2); m = +v.slice(-2); } }
+  return h > 23 || m > 59 ? null : `${pad(h)}:${pad(m)}`; }
+function twInputSet(inp, done){ const c = S.compose; if (!c) return false; const raw = inp.value.trim(); if (!done && !/^(\d{1,2}:\d{2}|\d{4})$/.test(raw)){ inp.classList.remove("bad"); return false; } const t = parseHM(raw); inp.classList.toggle("bad", !t && inp.value.trim() !== ""); if (!t) return false;
+  const K = inp.dataset.tk || "time", prev = c[K]; c[K] = t; const v = tmvalEl(c, K); if (v) v.textContent = tmLabel(t); if (prev !== t){ evShift(c, K, prev); evLine(c); } try { planPrev(); } catch (_) {} return true; }
+document.addEventListener("focusin", e => { const inp = e.target; if (inp && inp.classList && inp.classList.contains("twinput")) setTimeout(() => { try { inp.select(); } catch (_) {} }, 0); });
+document.addEventListener("input", e => { const inp = e.target; if (inp && inp.classList && inp.classList.contains("twinput")) twInputSet(inp); });
+document.addEventListener("keydown", e => { const inp = e.target; if (!inp || !inp.classList || !inp.classList.contains("twinput") || e.key !== "Enter") return; e.preventDefault(); if (!twInputSet(inp, true)) return;
+  const box = inp.closest(".tw"), ok = box && box.querySelector(".tw-ok"); if (ok) ok.click(); else { const all = [...document.querySelectorAll("#overlay .twinput")], nx = all[all.indexOf(inp) + 1]; if (nx){ nx.focus(); nx.select(); } } });
+document.addEventListener("focusout", e => { const inp = e.target; if (!inp || !inp.classList || !inp.classList.contains("twinput")) return; const t = twInputSet(inp, true) && parseHM(inp.value); if (t) inp.value = t; else if (S.compose) { inp.value = S.compose[inp.dataset.tk || "time"] || "09:00"; inp.classList.remove("bad"); } });
+function initTW(){ const ti = document.querySelector("#overlay .twinput"); const ae = document.activeElement; if (ti && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName || "") && ae.isConnected)){ try { ti.focus(); ti.select(); } catch (_) {} }
+  document.querySelectorAll("#overlay .twc").forEach(el => { el.scrollTop = (+el.dataset.sel) * TW_H; el.querySelectorAll("span").forEach((x, i) => x.classList.toggle("on", i === +el.dataset.sel)); }); }
 function twCommit(inp){ const c = S.compose; if (!c || inp._done || !inp.isConnected) return; inp._done = true; const k = inp.dataset.tw, n = parseInt(inp.value, 10), box = inp.closest(".tw"); inp.remove(); if (isNaN(n)) return;
   const K = boxK(c, box), prev = c[K]; let [h, m] = (c[K] || "09:00").split(":").map(Number); if (k === "h") h = Math.max(0, Math.min(23, n)); else m = Math.max(0, Math.min(59, n));
   c[K] = `${pad(h)}:${pad(m)}`; evShift(c, K, prev); S._twQuiet = Date.now(); const hs = box.querySelector('[data-tw="h"]'), ms = box.querySelector('[data-tw="m"]');
