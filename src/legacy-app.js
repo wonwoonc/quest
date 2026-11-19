@@ -1307,6 +1307,11 @@ function viewQManage(){
   return `<div class="plback"><button class="link" data-act="pl-mode" data-v="plan">${I.back}<span>퀘스트로 돌아가기</span></button></div>` + viewTidy();
 }
 /* next open task across a main quest and its sub quests */
+/* 일일 퀘스트 달력: 작은 네모 한 달치. 한 날은 주황. 카드 안 달력을 누르면 올해 전체. */
+function hMonth(q, ym, tap = false){ const [Y, M] = ym.split("-").map(Number), f = new Date(Y, M - 1, 1).getDay(), n = new Date(Y, M, 0).getDate(), t = today(), dn = q.done || {}, c0 = q.createdAt ? activityDate(q.createdAt) : "";
+  let c = ""; for (let i = 0; i < f; i++) c += `<i class="e"></i>`;
+  let k = 0; for (let d = 1; d <= n; d++){ const ds = `${ym}-${pad(d)}`, on = !!dn[ds]; if (on) k++; c += `<i class="${on ? "on" : ds > t || ds < c0 ? "fu" : ""}${ds === t ? " t" : ""}" title="${M}/${d}${on ? " 완료" : ""}"></i>`; }
+  return `<div class="hmon${tap ? " tap" : ""}"${tap ? ` data-act="hyear" data-id="${q.id}" role="button" tabindex="0" aria-label="올해 기록 보기"` : ""}><div class="hmh"><b>${M}월</b><span class="num">${k}일</span></div><div class="hmg">${c}</div></div>`; }
 function dailyCard(q){
   const st = streakOf(q), lv = HLV[lvKey(q.lv)], t = today(), dn = !!(q.done || {})[t], sch = isSched(q, Date.now());
   const chip = dn ? `<span class="st">✓ 오늘 완료</span>` : sch ? `<span class="st plan">오늘 할 일</span>` : `<span class="st plan">오늘 쉬는 날</span>`;
@@ -1315,6 +1320,7 @@ function dailyCard(q){
     <h3>${esc(q.name)}</h3>
     ${afterOf(q) || q.place ? `<p class="pgplan">${afterOf(q) ? `<span class="pmeta">${AFT}${esc(afterOf(q))}</span>` : ""}${q.place ? `<span class="pmeta">${PIN}${esc(q.place)}</span>` : ""}</p>` : ""}
     <div class="pgmeta"><span>${lv.e} ${esc(lv.n)}</span><span>${repeatLabel(q)}</span><span>최장 ${st.best}${streakUnit(q)} · 총 ${st.total}회</span></div>
+    ${hMonth(q, t.slice(0, 7), true)}
   </section>`;
 }
 /* 일일 퀘스트 관리 페이지(#daily): 대시보드 일일 칩의 '관리'에서 들어온다. 예전 퀘스트 메뉴의 일일 탭과 같은 카드 + 보관 목록. */
@@ -2281,6 +2287,8 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     </div><button class="btn big full" data-act="sheet-close">확인</button>`); }
   if (c.type === "ppick"){ const par = S.parentSheet || {}, gs = goalsOf(S.me).filter(g => g.status !== "done");
     return sheetWrap("어떤 메인 퀘스트의 스테이지인가요?", "", `<div class="sheetlist mlist">${gs.map(g => `<button class="row mitem" data-act="ppset" data-v="${g.id}"><span class="t"><b>🎯 ${esc(g.title)}</b><small>메인 퀘스트${g.end ? " · " + dday(g.end) : ""}</small></span>${par.parentId === g.id ? `<span class="pick">✓</span>` : ""}</button>`).join("") || `<p class="empty-row">진행 중인 메인 퀘스트가 없어요.</p>`}</div>`); }
+  if (c.type === "hyear"){ const q = S.mine[c.id]; if (!q){ closeSheet(); return; } const Y = c.y || +today().slice(0, 4), tot = Object.keys(q.done || {}).filter(d => d.startsWith(Y + "-")).length;
+    return sheetWrap(esc(q.name), "", `<div class="hyhead"><button data-act="hyy" data-v="${Y - 1}" aria-label="이전 해">${I.back}</button><b class="num">${Y}년 · ${tot}일</b><button class="fwd" data-act="hyy" data-v="${Y + 1}" aria-label="다음 해">${I.back}</button></div><div class="hyear">${Array.from({length:12}, (_, i) => hMonth(q, `${Y}-${pad(i + 1)}`)).join("")}</div>`); }
   if (c.type === "gmpick"){ const cur = S.gmDate && S.gmDate.p === c.pid ? S.gmDate.d : "", t = today(), ym = c.ym || (cur || t).slice(0, 7), [Y, M] = ym.split("-").map(Number);
     const first = new Date(Y, M - 1, 1), n = new Date(Y, M, 0).getDate(), lead = first.getDay(); let cells = "";
     for (let i = 0; i < lead; i++) cells += `<span class="gmd pad"></span>`;
@@ -2910,6 +2918,8 @@ document.addEventListener("click", e => {
     case "rtset": preserveSheetDrafts(); S.drafts["rw-name"] = ($("#rw-name") || {}).value || S.drafts["rw-name"] || ""; c.cost = ($("#rw-cost") || {}).value ?? c.cost; c.rt = b.dataset.v; renderSheet(); return;
     case "gmpick": { const all = (S._gmAll && S._gmAll.p === pid ? S._gmAll.list : []), cnt = {}; for (const m of all){ const d = dueOf(m) || ""; cnt[d] = (cnt[d] || 0) + 1; } openSheet({type:"gmpick", pid, cnt}); return; }
     case "gmset": S.gmDate = b.dataset.v ? {p:c.pid, d:b.dataset.v} : null; S.gmV = null; closeSheet(); schedule(); return;
+    case "hyear": e.stopPropagation(); openSheet({type:"hyear", id}); return;
+    case "hyy": c.y = +b.dataset.v; renderSheet(); return;
     case "gmall": S.gmDate = null; S.gmV = null; schedule(); return;
     case "gmv": { const on = S.gmV && S.gmV.p === pid && S.gmV.v === b.dataset.v; S.gmV = on ? null : {p:pid, v:b.dataset.v, d:(S.gmV && S.gmV.p === pid && S.gmV.d) || (S.gmDate && S.gmDate.p === pid && S.gmDate.d) || today()}; S.gmDate = null; schedule(); return; }
     case "gmnav": { if (!S.gmV) return; const n = +b.dataset.v, D1 = pd(S.gmV.d); if (S.gmV.v === "week") S.gmV.d = addD(S.gmV.d, 7 * n); else { D1.setDate(1); D1.setMonth(D1.getMonth() + n); S.gmV.d = dk(D1.getTime()); } schedule(); return; }

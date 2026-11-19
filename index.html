@@ -1672,15 +1672,27 @@ a.row{color:inherit;text-decoration:none}
 /* 미션 주/월: 캘린더와 같은 디자인(주 보기는 시간 칸 없이) */
 .qlist > .gmnav{margin:2px 14px 8px}
 .qlist > .gmwk{height:auto;max-height:none;margin:0 10px 10px;border:1px solid color-mix(in srgb,var(--line) 70%,transparent);border-radius:16px;overflow-x:auto;overflow-y:hidden}
-.gmwk .wg{grid-template-columns:repeat(7,calc((min(100vw - 32px, 540px) - 20px)/2.2))}
+.gmwk .wg{grid-template-columns:repeat(7,calc((min(100vw - 32px, 540px) - 20px)/1.8))}
 .gmwk .wgc.head{position:static;cursor:pointer}
 .gmwk .wgc.cell{min-height:150px;padding:4px 3px}
 .gmwk .wgc:nth-child(7n+1){border-left:0}
 .qlist > .gmmo{margin:0 10px 10px;border:1px solid color-mix(in srgb,var(--line) 70%,transparent);border-radius:16px;overflow:hidden}
 .gmmo .mcell .mtx{cursor:pointer}.gmmo .mcell i.more{cursor:pointer}
-@media (min-width:1024px){.gmwk .wg{grid-template-columns:repeat(7,minmax(0,1fr));width:100%}}
+@media (min-width:1024px){.gmwk .wg{grid-template-columns:repeat(7,150px);width:max-content}}
 /* 날짜 선택 달력: 일요일부터, 토·일 색 */
 .dpgrid.wk span.sun,.dpgrid button.sun:not(.sel):not(.tdy){color:#E5484D}.dpgrid.wk span.sat,.dpgrid button.sat:not(.sel):not(.tdy){color:#3D7BE0}
+/* 일일 퀘스트 달력(작은 네모) */
+.hmon{margin-top:8px;padding:8px 10px 10px;border-radius:12px;background:var(--fill)}
+.hmon.tap{cursor:pointer}
+.hmh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}.hmh b{font-size:12.5px;font-weight:800}.hmh span{font-size:11.5px;font-weight:700;color:#F08A24}
+.hmg{display:grid;grid-template-columns:repeat(7,12px);gap:3px}
+.hmg i{width:12px;height:12px;border-radius:3px;background:color-mix(in srgb,var(--ink) 14%,var(--card))}
+.hmg i.e{background:none}.hmg i.fu{background:color-mix(in srgb,var(--ink) 7%,var(--card))}
+.hmg i.on{background:#F08A24}.hmg i.t{box-shadow:0 0 0 1.5px var(--ink)}
+.hyhead{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px}.hyhead b{font-size:15px;font-weight:800}
+.hyhead button{width:34px;height:34px;border:0;border-radius:10px;background:var(--fill);color:var(--ink);display:grid;place-items:center;cursor:pointer}.hyhead button svg{width:17px;height:17px}.hyhead .fwd svg{transform:rotate(180deg)}
+.hyear{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.hyear .hmon{margin:0}
 </style>
 <script type="module" src="./src/entry.js"></script>
 </body></html>

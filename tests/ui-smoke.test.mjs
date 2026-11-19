@@ -1647,3 +1647,14 @@ test('missions inherit the linked main/stage area and the mission edit sheet has
   H.click('sheet-close');
   H.click('tedit',{id:'tm'}); assert.match(ov(),/영역[\s\S]*data-act="aset" data-v="health" aria-pressed="true"/);
 });
+
+test('daily quest cards show this month as small squares (done days orange) and open the whole year', async () => {
+  const snap = (await linkedUI()).snapshot();
+  const now = new Date(), ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  snap.mine.hab = {id:'hab',kind:'quest',name:'매일 달리기',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:true,done:{[`${ym}-01`]:1},createdAt:new Date(now.getFullYear(),0,1).getTime()};
+  const H = await profileUI(snap); H.route('daily');
+  const html = H.nodes.get('app').innerHTML;
+  assert.match(html,/class="hmon tap" data-act="hyear" data-id="hab"[\s\S]*?<b>\d+월<\/b><span class="num">1일<\/span>[\s\S]*?<i class="on"/);
+  H.click('hyear',{id:'hab'}); const ov = H.nodes.get('overlay').innerHTML;
+  assert.equal((ov.match(/class="hmon"/g) || []).length, 12); assert.match(ov,/년 · 1일/);
+});
