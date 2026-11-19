@@ -1637,3 +1637,13 @@ test('main quest can be achieved only when every stage and mission is done; earl
   assert.notEqual(H.snapshot().projects.main.status, 'done', 'achieved main quest with open stage/missions is restored to active');
   H.click('pdone2',{p:'main'}); assert.doesNotMatch(H.nodes.get('overlay').innerHTML,/메인 퀘스트를 달성할까요/);
 });
+
+test('missions inherit the linked main/stage area and the mission edit sheet has an area field', async () => {
+  const snap = (await linkedUI()).snapshot(); snap.projects.main.area = ['health'];
+  const H = await profileUI(snap), ov = () => H.nodes.get('overlay').innerHTML;
+  H.click('taskadd',{p:'main'}); assert.match(ov(),/data-act="aset" data-v="health" aria-pressed="true"/);
+  H.click('sheet-close');
+  H.click('taskadd'); assert.doesNotMatch(ov(),/data-v="health" aria-pressed="true"/); H.click('tqpick'); H.click('tqexp',{v:'main'}); H.click('tqset',{v:'sub'}); assert.match(ov(),/data-act="aset" data-v="health" aria-pressed="true"/,'stage inherits main area');
+  H.click('sheet-close');
+  H.click('tedit',{id:'tm'}); assert.match(ov(),/영역[\s\S]*data-act="aset" data-v="health" aria-pressed="true"/);
+});
