@@ -1660,6 +1660,8 @@ a.row{color:inherit;text-decoration:none}
 .gmd.on{background:var(--accent)!important}.gmd.on b,.gmd.on i{color:var(--accent-ink)!important}
 .gmd.pad{pointer-events:none}
 @media (hover:hover){.gmd:not(.pad):not(.on):hover{background:var(--fill)}.gmd.has:not(.on):hover{background:color-mix(in srgb,var(--accent-soft) 70%,var(--accent) 12%)}}
+/* PC 메인 퀘스트·스테이지 화면: 스테이지 카드(260px) 3장이 들어가는 폭 */
+@media (min-width:1024px){#app[data-v="project"]{max-width:808px}#app[data-v="project"] .plgrid.hsc{margin:0;padding:2px 0 10px}}
 </style>
 <script type="module" src="./src/demo-entry.js"></script>
 </body></html>

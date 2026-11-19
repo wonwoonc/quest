@@ -1660,6 +1660,8 @@ a.row{color:inherit;text-decoration:none}
 .gmd.on{background:var(--accent)!important}.gmd.on b,.gmd.on i{color:var(--accent-ink)!important}
 .gmd.pad{pointer-events:none}
 @media (hover:hover){.gmd:not(.pad):not(.on):hover{background:var(--fill)}.gmd.has:not(.on):hover{background:color-mix(in srgb,var(--accent-soft) 70%,var(--accent) 12%)}}
+/* PC 메인 퀘스트·스테이지 화면: 스테이지 카드(260px) 3장이 들어가는 폭 */
+@media (min-width:1024px){#app[data-v="project"]{max-width:808px}#app[data-v="project"] .plgrid.hsc{margin:0;padding:2px 0 10px}}
 </style>
 <script>
 (function(){"use strict";
@@ -3922,7 +3924,7 @@ function viewGoal(){
     const trows = openT.slice(0, gN).map(bare).join("") + (fd && !openT.length && !doneT.length ? `<p class="empty-row">이 날짜에는 미션이 없어요.</p>` : "") + (openT.length > gN ? `<button class="morebtn more10" data-act="gtmore" data-p="${p.id}">더 보기 <em class="num">${openT.length - gN}</em></button>` : "")
       + (doneT.length ? `<button class="tfold" data-act="gdone" data-p="${p.id}" aria-expanded="${dOpen}"><span>완료 <em class="num">${doneT.length}개</em></span><span class="chev2 ${dOpen ? "open" : ""}">${I.chev}</span></button>${dOpen ? doneT.map(bare).join("") : ""}` : ""); 
     if (!sp){ const hs = linkedHabits(p.id);
-      if (hs.length || (p.status !== "done" && !isCx(p))) h += `<section class="card tight qlist lhcard"><div class="ch"><h2>일일 퀘스트</h2><span class="side num">${hs.length}</span></div>${hs.map(lhRow).join("")}${hs.length ? "" : `<p class="empty-row">이 목표를 위해 매일 하는 일을 연결해 보세요.</p>`}
+      if (hs.length || (p.status !== "done" && !isCx(p))) h += `<section class="card tight qlist lhcard"><div class="ch"><h2>일일 퀘스트</h2><span class="side num">${hs.length}</span></div>${hs.map(lhRow).join("")}${hs.length ? "" : `<p class="empty-row">이 목표를 위해 매일 하는 일을 추가해 보세요.</p>`}
         ${p.status !== "done" && !isCx(p) ? `<button class="morebtn add" data-act="sheet" data-k="add" data-v="daily" data-p="${p.id}">+ 일일 퀘스트 추가</button>` : ""}</section>`; }
     h += `<section class="card tight qlist"><div class="ch"><h2>미션</h2>${allT.length ? (fd ? `<span class="gmchip on"><button data-act="gmpick" data-p="${p.id}">${mDayLabel(fd)}</button><button class="gmx" data-act="gmall" aria-label="전체 보기">×</button></span>` : `<button class="gmchip" data-act="gmpick" data-p="${p.id}">전체 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`) : ""}<span class="side num">${allT.filter(m => m.done).length}/${allT.length}</span></div>${trows}${allT.length ? "" : `<p class="empty-row">미션이 없어요.</p>`}
       ${p.status !== "done" ? `<button class="morebtn add" data-act="taskadd" data-p="${p.id}">+ 미션 추가</button>` : ""}</section>`;
