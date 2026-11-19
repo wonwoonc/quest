@@ -1614,6 +1614,7 @@ test('daily quests link to a main quest: main-only picker, checkable on the main
   H.click('project',{p:'main'});
   assert.match(app(),/<h2>일일 퀘스트<\/h2>[\s\S]*?data-act="qcheck" data-id="hab"[\s\S]*?매일 달리기/); assert.doesNotMatch(app(),/이번 주 \d+\/\d+/);
   assert.match(app(),/class="mday[^"]*">오늘 · /,'missions grouped by date');
+  H.click('gmview',{v:'week'}); assert.match(app(),/class="mday[^"]*">이번 주 · /); H.click('gmview',{v:'month'}); assert.match(app(),/class="mday[^"]*">이번 달 · /); H.click('gmview',{v:'day'});
   assert.match(app(),/data-act="sheet" data-k="add" data-v="daily" data-p="main"/);
   H.click('sheet',{k:'add',v:'daily',p:'main'}); assert.match(ov(),/연결할 메인 퀘스트[\s\S]*?🎯 메인 연결 대상/);
   H.click('tqpick',{m:'main',t:'어떤 메인 퀘스트를 위한 습관인가요?'}); assert.match(ov(),/data-act="tqset" data-v="main"/); assert.doesNotMatch(ov(),/data-act="tqexp"|data-v="sub"/);

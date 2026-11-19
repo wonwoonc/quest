@@ -1640,6 +1640,7 @@ a.row{color:inherit;text-decoration:none}
 .slrow .t{flex:1;min-width:0}.slrow .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .slcost{flex:none;font-size:13px;font-weight:800;color:var(--sub)}
 .field .chips .chip small{font-weight:500;color:var(--muted);margin-left:2px}
+.gmseg{margin:2px 0 4px}.gmseg button{padding-top:6px;padding-bottom:6px;font-size:13px}
 </style>
 <script>
 (function(){"use strict";
@@ -3978,7 +3979,13 @@ function ovLay(g, html){ if (!g || g.owner !== S.me || !S.canWrite) return html;
 const linkedHabits = pid => mineOf("quest").filter(q => q.projectId === pid && q.active !== false).sort(habitOrder);
 /* 미션 목록을 날짜별로 묶는다(날짜 머리글 + 그날 미션) */
 function mDayLabel(d){ if (!d) return "날짜 없음"; const t = today(), D0 = pd(d), md = `${D0.getMonth()+1}/${D0.getDate()} (${WD[D0.getDay()]})`; return d === t ? `오늘 · ${md}` : d === addD(t, 1) ? `내일 · ${md}` : d < t ? `지난 날짜 · ${md}` : md; }
-function byDay(list, row){ let h = "", last = null; for (const m of list){ const d = dueOf(m) || ""; if (d !== last){ last = d; h += `<div class="mday${d && d < today() ? " late" : d === today() ? " now" : ""}">${mDayLabel(d)}</div>`; } h += row(m); } return h; }
+function mGroup(d, mode){ if (!d) return ["", "날짜 없음", ""]; const t = today();
+  if (mode === "week"){ const k = sunStart(d), tk = sunStart(t), a = pd(k), b2 = pd(addD(k, 6)), rg = `${a.getMonth()+1}/${a.getDate()} – ${b2.getMonth()+1}/${b2.getDate()}`;
+    return [k, k === tk ? `이번 주 · ${rg}` : k === addD(tk, 7) ? `다음 주 · ${rg}` : k < tk ? `지난 주 · ${rg}` : rg, k === tk ? " now" : k < tk ? " late" : ""]; }
+  if (mode === "month"){ const k = d.slice(0, 7), tk = t.slice(0, 7), [y, m] = k.split("-").map(Number), lb = `${y !== +t.slice(0, 4) ? y + "년 " : ""}${m}월`;
+    return [k, k === tk ? `이번 달 · ${lb}` : k < tk ? `지난 달 · ${lb}` : lb, k === tk ? " now" : k < tk ? " late" : ""]; }
+  return [d, mDayLabel(d), d < t ? " late" : d === t ? " now" : ""]; }
+function byDay(list, row, mode = "day"){ let h = "", last = null; for (const m of list){ const [k, lb, cls] = mGroup(dueOf(m) || "", mode); if (k !== last){ last = k; h += `<div class="mday${cls}">${lb}</div>`; } h += row(m); } return h; }
 function lhRow(q){ const done = !!(q.done || {})[today()];
   return `<div class="row qrow lhrow" data-act="hedit" data-id="${q.id}" data-d="${today()}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b></span></div>`; }
 /* 메인 퀘스트를 달성·포기할 때 연결된 일일 퀘스트를 보관할지 함께 묻는다(기본: 계속) */
@@ -4024,9 +4031,9 @@ function viewGoal(){
     const tkey = m => (dueOf(m) || "9999-99-99") + " " + (m.time || "99:99"); const srt = allT.sort((a,b) => a.done - b.done || (tkey(a) < tkey(b) ? -1 : tkey(a) > tkey(b) ? 1 : 0) || (a.createdAt||0) - (b.createdAt||0));
     const bare = m => taskRow(m, false);
     const openT = srt.filter(m => !m.done), doneT = srt.filter(m => m.done), gN = (S.gtN && S.gtN.pid === p.id) ? S.gtN.n : 10, dOpen = S.gDone === p.id;
-    const trows = byDay(openT.slice(0, gN), bare) + (openT.length > gN ? `<button class="morebtn more10" data-act="gtmore" data-p="${p.id}">더 보기 <em class="num">${openT.length - gN}</em></button>` : "")
+    const gv = ["day","week","month"].includes(S.gmView) ? S.gmView : "day", trows = byDay(openT.slice(0, gN), bare, gv) + (openT.length > gN ? `<button class="morebtn more10" data-act="gtmore" data-p="${p.id}">더 보기 <em class="num">${openT.length - gN}</em></button>` : "")
       + (doneT.length ? `<button class="tfold" data-act="gdone" data-p="${p.id}" aria-expanded="${dOpen}"><span>완료 <em class="num">${doneT.length}개</em></span><span class="chev2 ${dOpen ? "open" : ""}">${I.chev}</span></button>${dOpen ? doneT.map(bare).join("") : ""}` : ""); 
-    h += `<section class="card tight qlist"><div class="ch"><h2>미션</h2><span class="side num">${allT.filter(m => m.done).length}/${allT.length}</span></div>${trows}${allT.length ? "" : `<p class="empty-row">미션이 없어요.</p>`}
+    h += `<section class="card tight qlist"><div class="ch"><h2>미션</h2><span class="side num">${allT.filter(m => m.done).length}/${allT.length}</span></div>${allT.length ? `<div class="seg gmseg" role="group" aria-label="미션 보기">${[["day","일"],["week","주"],["month","월"]].map(([k, l]) => `<button data-act="gmview" data-v="${k}" aria-pressed="${gv === k}">${l}</button>`).join("")}</div>` : ""}${trows}${allT.length ? "" : `<p class="empty-row">미션이 없어요.</p>`}
       ${p.status !== "done" ? `<button class="morebtn add" data-act="taskadd" data-p="${p.id}">+ 미션 추가</button>` : ""}</section>`;
     if (!sp){ const hs = linkedHabits(p.id);
       if (hs.length || (p.status !== "done" && !isCx(p))) h += `<section class="card tight qlist lhcard"><div class="ch"><h2>일일 퀘스트</h2><span class="side num">${hs.length}</span></div>${hs.map(lhRow).join("")}${hs.length ? "" : `<p class="empty-row">이 목표를 위해 매일 하는 일을 연결해 보세요.</p>`}
@@ -5199,6 +5206,7 @@ document.addEventListener("click", e => {
       const doc = {...(old || {}), kind:"reward", name, cost, repeat:c.repeat === 'once' ? 'once' : 'repeat', rt:c.rt === "get" ? "get" : "do", img:c.img || null, createdAt:(old && old.createdAt) || Date.now()}; delete doc.id; delete doc.tier;
       run(() => api.putMine(id0, doc), () => { delete S.drafts["rw-name"]; closeSheet(); toast(c.id ? "보상을 수정했어요" : "🎁 보상을 등록했어요"); }); return; }
     case "rtset": preserveSheetDrafts(); S.drafts["rw-name"] = ($("#rw-name") || {}).value || S.drafts["rw-name"] || ""; c.cost = ($("#rw-cost") || {}).value ?? c.cost; c.rt = b.dataset.v; renderSheet(); return;
+    case "gmview": S.gmView = b.dataset.v; schedule(); return;
     case "shoptab": S.shopTab = b.dataset.v; schedule(); return;
     case "redit": { const r = S.mine[id]; if (!r) return; S.drafts["rw-name"] = r.name; openSheet({type:"reward", id, cost:priceOf(r), img:r.img || null, repeat:r.repeat === "once" ? "once" : "repeat", rt:rType(r)}); return; }
     case "rimg": choosePhotos(false, async list => { if (!S.compose || S.compose.type !== "reward") return; S.compose.img = await shrinkImg(list[0], 640, 90000); renderSheet(); }); return;
