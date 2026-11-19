@@ -1607,11 +1607,13 @@ a.row{color:inherit;text-decoration:none}
 :root{--lv:#8A938F}:root[data-theme="dark"]{--lv:#7D8883}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--lv:#7D8883}}
 .pillLv,.wdp-name .pillLv,.cname .pillLv,.stpi h2 .pillLv{color:var(--lv)}
 /* 모바일 대시보드: 캐릭터·퀘스트 카드 높이 살짝 키움 */
-@media (max-width:1023.98px){.wd-ggrid.hs > .wdp-m .wdp-cv{min-height:138px}.wd-ggrid.hs > *{min-height:192px}.wd-ggrid.hs > .pgc.pgc{padding-top:24px;padding-bottom:24px}}
+@media (max-width:1023.98px){.wd-ggrid.hs > .wdp-m .wdp-cv{min-height:158px}.wd-ggrid.hs > *{min-height:212px}.wd-ggrid.hs > .pgc.pgc{padding-top:24px;padding-bottom:24px}}
 /* 퀘스트 메뉴 모바일: 표지 접기 */
 .pgc > .cvwrap.pgcv{margin:-22px -20px 6px}.pgc > .cvwrap.pgcv .qcover{margin:0}
 .pgc > .cvopen.pgcv{margin:-22px -20px 6px;width:calc(100% + 40px);border-radius:var(--r) var(--r) 0 0}
 .pgc > .cvopen.pgcv{padding:4px 0;font-size:12px;line-height:1.4}
+/* 모바일 대시보드 퀘스트 카드: 위아래 회색 띠 */
+@media (max-width:1023.98px){.wd-ggrid.hs > .pgc.pgc{box-shadow:inset 0 12px 0 var(--seg),inset 0 -12px 0 var(--seg);padding-top:28px!important;padding-bottom:28px!important}}
 </style>
 <script type="module" src="./src/entry.js"></script>
 </body></html>
