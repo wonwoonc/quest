@@ -3857,7 +3857,6 @@ function ovLay(g, html){ if (!g || g.owner !== S.me || !S.canWrite) return html;
 const linkedHabits = pid => mineOf("quest").filter(q => q.projectId === pid && q.active !== false).sort(habitOrder);
 /* 미션 목록을 날짜별로 묶는다(날짜 머리글 + 그날 미션) */
 function mDayLabel(d){ if (!d) return "날짜 없음"; const t = today(), D0 = pd(d), md = `${D0.getMonth()+1}/${D0.getDate()} (${WD[D0.getDay()]})`; return d === t ? `오늘 · ${md}` : d === addD(t, 1) ? `내일 · ${md}` : d < t ? `지난 날짜 · ${md}` : md; }
-function byDay(list, row){ let h = "", last = null; for (const m of list){ const d = dueOf(m) || ""; if (d !== last){ last = d; h += `<div class="mday${d && d < today() ? " late" : d === today() ? " now" : ""}">${mDayLabel(d)}</div>`; } h += row(m); } return h; }
 function nextOn(q){ const r = qRepeat(q), t = today(); for (let i = 0; i < 120; i++){ const d = addD(t, i); if (occursOn(r, d)) return d; } return ""; }
 function lhRow(q){ const done = !!(q.done || {})[today()], st = streakOf(q), nd = nextOn(q), t = today(), D0 = nd ? pd(nd) : null;
   const when = !nd ? "" : nd === t ? `<span class="tday">오늘</span>` : nd === tomorrow() ? `<span class="tday soft">내일</span>` : `<span class="tday soft">${D0.getMonth()+1}/${D0.getDate()}</span>`;
@@ -3906,7 +3905,7 @@ function viewGoal(){
     const bare = m => taskRow(m, false);
     const fd = S.gmDate && S.gmDate.p === p.id ? S.gmDate.d : null, shown = fd ? srt.filter(m => (dueOf(m) || "") === fd) : srt; S._gmAll = {p:p.id, list:srt};
     const openT = shown.filter(m => !m.done), doneT = shown.filter(m => m.done), gN = (S.gtN && S.gtN.pid === p.id) ? S.gtN.n : 10, dOpen = S.gDone === p.id;
-    const trows = (fd ? openT.slice(0, gN).map(bare).join("") : byDay(openT.slice(0, gN), bare)) + (fd && !openT.length && !doneT.length ? `<p class="empty-row">이 날짜에는 미션이 없어요.</p>` : "") + (openT.length > gN ? `<button class="morebtn more10" data-act="gtmore" data-p="${p.id}">더 보기 <em class="num">${openT.length - gN}</em></button>` : "")
+    const trows = openT.slice(0, gN).map(bare).join("") + (fd && !openT.length && !doneT.length ? `<p class="empty-row">이 날짜에는 미션이 없어요.</p>` : "") + (openT.length > gN ? `<button class="morebtn more10" data-act="gtmore" data-p="${p.id}">더 보기 <em class="num">${openT.length - gN}</em></button>` : "")
       + (doneT.length ? `<button class="tfold" data-act="gdone" data-p="${p.id}" aria-expanded="${dOpen}"><span>완료 <em class="num">${doneT.length}개</em></span><span class="chev2 ${dOpen ? "open" : ""}">${I.chev}</span></button>${dOpen ? doneT.map(bare).join("") : ""}` : ""); 
     h += `<section class="card tight qlist"><div class="ch"><h2>미션</h2>${allT.length ? (fd ? `<span class="gmchip on"><button data-act="gmpick" data-p="${p.id}">${mDayLabel(fd)}</button><button class="gmx" data-act="gmall" aria-label="전체 보기">×</button></span>` : `<button class="gmchip" data-act="gmpick" data-p="${p.id}">전체 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`) : ""}<span class="side num">${allT.filter(m => m.done).length}/${allT.length}</span></div>${trows}${allT.length ? "" : `<p class="empty-row">미션이 없어요.</p>`}
       ${p.status !== "done" ? `<button class="morebtn add" data-act="taskadd" data-p="${p.id}">+ 미션 추가</button>` : ""}</section>`;
