@@ -4757,7 +4757,7 @@ const UNDO_ASK = {t:"완료를 취소할까요?", d:"완료 보상이 함께 회
 function ask(o, cb){ S.parentSheet = S.compose && S.compose.type !== "confirm" ? S.compose : null; S.compose = {type:"confirm", t:esc(o.t), d:esc(o.d || ""), ok:esc(o.ok || "확인"), safe:!!o.safe, chk:o.check ? {label:esc(o.check.label), on:!!o.check.on} : null, cb}; renderSheet(); }
 function askAsync(text){ return new Promise(res => { let done = false; ask({t:text, ok:"확인"}, () => { done = true; res(true); }); const c0 = S.compose; const iv = setInterval(() => { if (S.compose !== c0 && !done){ clearInterval(iv); res(false); } else if (done) clearInterval(iv); }, 200); }); }
 let tt = 0;
-function toast(html, ms = 2200){ const t = $("#toast"); t.innerHTML = html; t.classList.toggle("act", /data-act=/.test(html)); t.classList.toggle("mid", !!($("#overlay").innerHTML || "").trim()); t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), ms); }
+function toast(html, ms = 2200){ const t = $("#toast"); t.innerHTML = html; t.classList.toggle("act", /data-act=/.test(html)); t.classList.toggle("mid", !!($("#overlay").innerHTML || "").trim() || ms > 2200 || String(html).replace(/<[^>]*>/g, "").length > 24); /* 설명이 긴 안내는 화면 가운데에 */ t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), ms); }
 /* '+N XP' 떠오르기: 마지막으로 누른 자리(5초 안) 위, 없으면 화면 아래 가운데 */
 function xpFloat(n){ S.lastXpFloat = n; try { xpFloat0(n); } catch (e) {} }
 function xpFloat0(n){ if (typeof document === "undefined" || !document.body || !document.createElement) return; const t = S.lastTap && Date.now() - S.lastTap.at < 5000 ? S.lastTap : null;
