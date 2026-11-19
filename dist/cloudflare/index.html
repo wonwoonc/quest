@@ -1640,7 +1640,6 @@ a.row{color:inherit;text-decoration:none}
 .slrow .t{flex:1;min-width:0}.slrow .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .slcost{flex:none;font-size:13px;font-weight:800;color:var(--sub)}
 .field .chips .chip small{font-weight:500;color:var(--muted);margin-left:2px}
-.lhrow .t small{display:flex;gap:8px;align-items:center}.lhwhen{font-weight:700;color:var(--muted)}.lhwhen.now{color:var(--accent)}
 /* 미션 날짜 칩: 전체 / 특정 날짜 */
 .gmchip{display:inline-flex;align-items:center;gap:2px;margin-left:8px;margin-right:auto;border:0;border-radius:999px;background:var(--fill);color:var(--sub);font:inherit;font-size:12.5px;font-weight:700;padding:4px 10px;cursor:pointer;line-height:1.3}
 .gmchip svg{width:13px;height:13px}
@@ -3988,8 +3987,8 @@ function mDayLabel(d){ if (!d) return "날짜 없음"; const t = today(), D0 = p
 function byDay(list, row){ let h = "", last = null; for (const m of list){ const d = dueOf(m) || ""; if (d !== last){ last = d; h += `<div class="mday${d && d < today() ? " late" : d === today() ? " now" : ""}">${mDayLabel(d)}</div>`; } h += row(m); } return h; }
 function nextOn(q){ const r = qRepeat(q), t = today(); for (let i = 0; i < 120; i++){ const d = addD(t, i); if (occursOn(r, d)) return d; } return ""; }
 function lhRow(q){ const done = !!(q.done || {})[today()], st = streakOf(q), nd = nextOn(q), t = today(), D0 = nd ? pd(nd) : null;
-  const when = !nd ? "" : nd === t ? "오늘" : nd === addD(t, 1) ? "내일" : `${D0.getMonth()+1}/${D0.getDate()} (${WD[D0.getDay()]})`;
-  return `<div class="row qrow lhrow" data-act="hedit" data-id="${q.id}" data-d="${today()}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b><small>${when ? `<span class="lhwhen${nd === t ? " now" : ""}">${when}</span>` : ""}<span class="fire">🔥 ${st.cur || 0}${streakUnit(q)} 연속</span></small></span></div>`; }
+  const when = !nd ? "" : nd === t ? `<span class="tday">오늘</span>` : nd === tomorrow() ? `<span class="tday soft">내일</span>` : `<span class="tday soft">${D0.getMonth()+1}/${D0.getDate()}</span>`;
+  return `<div class="row qrow lhrow" data-act="hedit" data-id="${q.id}" data-d="${today()}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b><small class="task-meta">${when}${q.time ? ` <span class="tday soft">${tmLabel(q.time)}</span>` : ""} <span class="fire">🔥 ${st.cur || 0}${streakUnit(q)}</span></small></span></div>`; }
 /* 메인 퀘스트를 달성·포기할 때 연결된 일일 퀘스트를 보관할지 함께 묻는다(기본: 계속) */
 const habitChk = pid => { const n = isProj(S.projects[pid]) ? 0 : linkedHabits(pid).length; return n ? {label:`연결된 일일 퀘스트 ${n}개도 보관하기`, on:false} : null; };
 async function archiveLinked(pid){ for (const q of linkedHabits(pid)) await api.putMine(q.id, {...q, active:false}); }
