@@ -2773,7 +2773,7 @@ function renderNav(){
   // PC 사이드바·서랍은 퀘스트를 맨 위에(하단 메뉴에 퀘스트가 없을 때). 하단 메뉴는 메뉴 순서의 앞 4개 그대로.
   const bar = order.slice(0, NAV_BAR), list = bar.includes("#qmanage") ? order : ["#qmanage", ...order.filter(h => h !== "#qmanage")];
   // PC 사이드바 맨 위: 쓰기 버튼(스토리 · 브레인 덤프). 휴대폰에서는 하단 + 버튼을 쓰므로 숨긴다.
-  const pcw = hasProfile() && S.canWrite ? `<a href="#write" class="pcwr" aria-label="쓰기" ${cur(v === "write")}>${PLUS_SVG}<span>쓰기</span></a>` : "";
+  const pcw = hasProfile() && S.canWrite ? `<a href="#write" class="pcwr" aria-label="남기기" ${cur(v === "write")}>${PLUS_SVG}<span>남기기</span></a>` : "";
   setHtml($("#nav"), `${pcw}${list.map(h => { const [l, svg, on] = NAV[h], bi = bar.indexOf(h); return (bi === 2 ? write : "") + `<a href="${h}"${bi < 0 ? ' class="nm"' : ""} aria-label="${l}" ${cur(on(v))}>${svg}<span>${l}</span></a>`; }).join("")}
     <a href="#settings" class="nset" aria-label="설정" ${cur(v === "settings")}>${I.gear}<span>설정</span></a>
     <button class="navtog" data-act="navtog" aria-label="${S.navMini ? "사이드바 펼치기" : "사이드바 접기"}" title="${S.navMini ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/><path d="${S.navMini ? "M13.5 10l2 2-2 2" : "M16 10l-2 2 2 2"}" stroke-linecap="round"/></svg></button>`);
@@ -3321,7 +3321,7 @@ function noteSheet(c){
     <div class="chips ntkinds" role="group" aria-label="서랍">${noteDrawers(S).filter(d => !d.hidden || d.k === c.cat).map(K => `<button class="chip" data-act="nt-kind" data-v="${K.k}" aria-pressed="${c.cat === K.k}">${nic(K.ic)}${esc(K.l)}</button>`).join("")}</div>
     ${C.f.map(x => field(x) + (C.k === "ref" && x.k === "url" ? `<div class="field"><span class="lab">파일 첨부</span><div class="flist">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < F_MAX ? `<button class="fadd" data-act="nf-pick">+ 파일 선택</button>` : ""}</div></div>` : "")).join("")}
     ${C.pt ? `<div class="field"><span class="lab">영역 <span class="hint">선택 · 비우면 ${area ? "연결한 퀘스트나 서랍 기본값을 따라요" : "영역 점수는 쌓이지 않아요"}</span></span><div class="chips">${AREAS.map(([k,,,l]) => `<button class="chip achip" data-act="nt-area" data-v="${k}" aria-pressed="${c.area === k}">${aIcon(k)}${l}</button>`).join("")}</div></div>` : ""}
-    ${gs.length ? `<div class="field"><span class="lab">연결할 퀘스트 <span class="hint">선택</span></span><div class="chips">${gs.map(p => `<button class="chip" data-act="cset" data-f="projectId" data-v="${p.id}" aria-pressed="${c.projectId === p.id}">${nic(p.parentId ? "link" : "target")}${esc(p.title)}</button>`).join("")}</div></div>` : ""}
+    ${gs.length ? linkPick(c, "연결할 퀘스트", "어떤 퀘스트의 자료인가요?") : ""}
     ${n && noteComplete(S, n) ? `<p class="ntreward done">${nic("check")}완성한 자료예요.</p>` : ntRewardLine(C, area)}
     <button class="btn big full" data-act="submit-note" ${S.busy ? "disabled" : ""}>저장</button>
     ${n ? `<button class="link danger ntdel" data-act="nt-del" data-id="${n.id}">${S.armed === "nd"+n.id ? "한 번 더 누르면 삭제돼요" : "삭제"}</button>` : ""}`);
@@ -4456,9 +4456,9 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
   if (c.type === "ppick"){ const par = S.parentSheet || {}, gs = goalsOf(S.me).filter(g => g.status !== "done");
     return sheetWrap("어떤 메인 퀘스트의 스테이지인가요?", "", `<div class="sheetlist mlist">${gs.map(g => `<button class="row mitem" data-act="ppset" data-v="${g.id}"><span class="t"><b>🎯 ${esc(g.title)}</b><small>메인 퀘스트${g.end ? " · " + dday(g.end) : ""}</small></span>${par.parentId === g.id ? `<span class="pick">✓</span>` : ""}</button>`).join("") || `<p class="empty-row">진행 중인 메인 퀘스트가 없어요.</p>`}</div>`); }
   if (c.type === "tqpick"){ const par = S.parentSheet || {}, gs = goalsOf(S.me).filter(g => g.status !== "done"), orphan = Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId));
-    const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="tqset" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${par.projectId === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
+    const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="tqset" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${(c.m === "ref" ? (par.ref || {}).id : par.projectId) === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
     const body = gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphan.map(x => it(x, true)).join("");
-    return sheetWrap("어떤 퀘스트의 미션인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 퀘스트가 없어요.</p>`}</div>${par.projectId ? `<button class="btn sec full" data-act="tqset" data-v="">연결 안 함</button>` : ""}`); }
+    return sheetWrap(c.t || "어떤 퀘스트의 미션인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 퀘스트가 없어요.</p>`}</div>${(c.m === "ref" ? par.ref : par.projectId) ? `<button class="btn sec full" data-act="tqset" data-v="">연결 안 함</button>` : ""}`); }
   if (c.type === "qpick"){ const gs = goalsOf(S.me).filter(g => g.status !== "done"), orphanSubs = Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId));
     const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="inref" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${S.inRef === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
     const body = (gs.length || orphanSubs.length ? gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphanSubs.map(x => it(x, true)).join("") : "")
@@ -4483,7 +4483,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     ${p.status !== "done" ? statusField(c) : ""}
     ${areaField(c)}
     ${metricFields(c)}
-    ${sp ? `<div class="field"><span class="lab">메인 퀘스트</span><div class="chips">${gs.map(g => `<button class="chip" data-act="cset" data-f="parentId" data-v="${g.id}" aria-pressed="${c.parentId===g.id}">🎯 ${esc(g.title)}</button>`).join("")}</div></div>` : ""}
+    ${sp ? parentPick(c) : ""}
     ${coverField(c)}
     <button class="btn big full" data-act="submit-gedit" ${S.busy?"disabled":""}>저장</button>
     <button class="btn full sec" style="margin-top:10px;color:var(--warn)" data-act="pdel" data-p="${p.id}">${S.armed === "px"+p.id ? "한 번 더 누르면 삭제돼요" : sp ? "스테이지 삭제" : "메인 퀘스트 삭제"}</button>`); }
@@ -4502,13 +4502,11 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
 }
 function parentPick(c){ const p = c.parentId && S.projects[c.parentId];
   return `<div class="field"><span class="lab">메인 퀘스트</span><div class="dprow">${p ? `<button class="btn soft sm qpb" data-act="ppick">🎯 ${esc(p.title)}</button>` : `<button class="btn sec sm" data-act="ppick">🎯 퀘스트</button>`}</div></div>`; }
-function linkPick(c){ const p = c.projectId && S.projects[c.projectId];
-  return `<div class="field"><span class="lab">퀘스트 <span class="hint">선택</span></span><div class="dprow">${p ? `<button class="btn soft sm qpb" data-act="tqpick">${esc(goalLabel(p))}</button><button class="qx" data-act="tqclear" aria-label="퀘스트 연결 빼기">×</button>` : `<button class="btn sec sm" data-act="tqpick">🎯 퀘스트</button>`}</div></div>`; }
-function linkChips(sel, act, label, optional){
-  const gs = goalsOf(S.me).filter(g => g.status !== "done"); if (!gs.length) return "";
-  const chip = p => act === "cset" ? `<button class="chip" data-act="cset" data-f="projectId" data-v="${p.id}" aria-pressed="${sel===p.id}">${esc(goalLabel(p))}</button>` : `<button class="chip" data-act="cref" data-v="${p.id}" aria-pressed="${sel===p.id}">${esc(goalLabel(p))}</button>`;
-  return `<div class="field"><span class="lab">${label} ${optional ? '<span class="hint">메인 또는 스테이지 · 선택</span>' : ""}</span>${gs.map(g => `<div class="chips linkgrp">${chip(g)}${subsOf(g.id).filter(s => s.status !== "done").map(chip).join("")}</div>`).join("")}</div>`;
-}
+function linkPick(c, lab = "퀘스트", t = ""){ const p = c.projectId && S.projects[c.projectId];
+  return `<div class="field"><span class="lab">${lab} <span class="hint">선택</span></span><div class="dprow">${p ? `<button class="btn soft sm qpb" data-act="tqpick" data-t="${esc(t)}">${esc(goalLabel(p))}</button><button class="qx" data-act="tqclear" aria-label="퀘스트 연결 빼기">×</button>` : `<button class="btn sec sm" data-act="tqpick" data-t="${esc(t)}">🎯 퀘스트</button>`}</div></div>`; }
+/* 스토리에 퀘스트 연결: 칩 대신 버튼 하나 → 팝업에서 고르기 */
+function refPick(c){ const r = c.ref, p = r && r.type === "project" && S.projects[r.id];
+  return `<div class="field"><span class="lab">연결 <span class="hint">선택</span></span><div class="dprow">${p ? `<button class="btn soft sm qpb" data-act="tqpick" data-m="ref" data-t="어떤 퀘스트의 스토리인가요?">${esc(goalLabel(p))}</button><button class="qx" data-act="cref" data-v="" aria-label="퀘스트 연결 빼기">×</button>` : `<button class="btn sec sm" data-act="tqpick" data-m="ref" data-t="어떤 퀘스트의 스토리인가요?">🎯 퀘스트</button>`}</div></div>`; }
 function metricFields(c){
   const cu = c.unit === "__c", ul = cu ? esc(S.drafts["pj-unit"]||"") : esc(c.unit||"");
   return `<div class="field"><span class="lab">수치로 기록 <span class="hint">선택 · 변화가 그래프로 보여요</span></span>
@@ -4524,7 +4522,7 @@ function postSheet(quick){
   const lastV = pj && pj.metric ? lastVal(pj) : null;
   sheetWrap(c.title || "스토리 쓰기", "", (c.fixed ? "" : quick) + `
     ${refLabel ? `<div class="ref ${r.type==="quest"?"quest":r.type==="project_done"?"done":r.type==="diary"?"diary":""}" style="margin:0 0 16px"><span class="rt"><b>${refLabel}</b>${r.type === "mission" ? taskTimeTag(r) : ""}</span></div>` :
-      linkChips(r ? r.id : null, "cref", "연결", false)}
+      (goalsOf(S.me).some(g => g.status !== "done") ? refPick(c) : "")}
     ${pj && pj.metric ? `<div class="field"><label class="lab" for="po-val">오늘의 숫자 <span class="hint">지난 기록 ${numFmt(lastV)}${esc(pj.metric.unit)} · 목표 ${numFmt(pj.metric.target)}${esc(pj.metric.unit)}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="po-val" placeholder="${numFmt(lastV)}" value="${D("po-val")}"><span>${esc(pj.metric.unit)}</span></div></div>` : ""}
     <div class="field"><textarea id="po-text" rows="4" maxlength="1000" placeholder="새 스토리를 써 보세요" aria-label="스토리">${D("po-text")}</textarea></div>
     <div class="field"><span class="lab">사진 <span class="hint">최대 ${MAX_IMGS}장</span></span><div class="thumbs">${c.photos.map((src,i) => `<div><img src="${esc(src)}" alt="첨부 사진 ${i+1}"><button data-act="cunphoto" data-i="${i}" aria-label="사진 빼기">×</button></div>`).join("")}${c.photos.length < MAX_IMGS ? `<button class="addph" data-act="cphoto">+ 사진</button>` : ""}</div></div>
@@ -4706,10 +4704,10 @@ document.addEventListener("click", e => {
     case "inunphoto": S.inPhotos.splice(+b.dataset.i, 1); break;
     case "inref": S.inRef = b.dataset.v || null; if (S.compose && S.compose.type === "qpick") closeSheet(); break;
     case "qpick": openSheet({type:"qpick"}); return;
-    case "tqpick": { ["ta-name","te-name","te-note","ad-name"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); S.parentSheet = c; openSheet({type:"tqpick"}); return; }
-    case "ppick": { ["ad-name","sp-title","pj-ms","pj-mt","pj-unit"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); S.parentSheet = c; openSheet({type:"ppick"}); return; }
+    case "tqpick": { preserveSheetDrafts(); ["ta-name","te-name","te-note","ad-name"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); S.parentSheet = c; openSheet({type:"tqpick", m:b.dataset.m || "", t:b.dataset.t || ""}); return; }
+    case "ppick": { preserveSheetDrafts(); ["ad-name","sp-title","pj-ms","pj-mt","pj-unit"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); S.parentSheet = c; openSheet({type:"ppick"}); return; }
     case "ppset": { const par = S.parentSheet; if (par) par.parentId = b.dataset.v; closeSheet(); return; }
-    case "tqset": { const par = S.parentSheet; if (par) par.projectId = b.dataset.v || null; closeSheet(); return; }
+    case "tqset": { const par = S.parentSheet; if (par){ if (c.m === "ref") par.ref = b.dataset.v ? {type:"project", id:b.dataset.v, label:S.projects[b.dataset.v].title} : null; else par.projectId = b.dataset.v || null; } closeSheet(); return; }
     case "tqclear": c.projectId = null; renderSheet(); return;
     case "inpost": { const text = ($("#ps-text").value||"").trim(), ph = S.inPhotos || []; let value;
       const vEl = $("#ps-val"); if (vEl && vEl.value.trim()){ value = parseNum(vEl.value); if (value == null){ toast("숫자만 넣어 주세요"); return; } }

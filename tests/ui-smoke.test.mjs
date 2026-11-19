@@ -1591,3 +1591,13 @@ test('daily quest: a one-day time change moves it on that day only and can be re
   h.click('hedit',{id:'hq'}); assert.doesNotMatch(ov(),/hscope"|hrevert|hday|매일 7:00/);
   h.click('sheet-close'); h.route('dash'); h.click('dpane',{v:'daily'}); assert.match(app(),/data-act="hedit" data-id="hq" data-d="/);
 });
+
+test('quest pickers are popups (no chip rows): story link, note link, stage parent',async()=>{
+  const base=await profileUI(), saved=base.snapshot();
+  saved.projects={g1:{id:'g1',owner:'me',title:'유튜브 기획',status:'active',createdAt:1},g2:{id:'g2',owner:'me',title:'마라톤',status:'active',createdAt:2},st:{id:'st',owner:'me',parentId:'g1',title:'대본 쓰기',status:'active',createdAt:3}};
+  const h=await profileUI(saved); const ov=()=>h.nodes.get('overlay').innerHTML;
+  h.route('write'); h.click('compose'); 
+  assert.match(ov()+h.nodes.get('app').innerHTML,/data-act="tqpick" data-m="ref"/); { assert.doesNotMatch(ov(),/data-act="cref" data-v="g1"/); h.click('tqpick',{m:'ref',t:'어떤 퀘스트의 스토리인가요?'}); assert.match(ov(),/어떤 퀘스트의 스토리인가요\?[\s\S]*?data-act="tqset" data-v="g1"[\s\S]*?data-v="st"/); h.click('tqset',{v:'st'}); assert.match(ov(),/data-act="tqpick" data-m="ref"[^>]*>[^<]*대본 쓰기/); }
+  h.click('sheet-close');
+  h.click('project',{p:'st'}); h.click('gedit',{p:'st'}); assert.match(ov(),/data-act="ppick">🎯 유튜브 기획/); assert.doesNotMatch(ov(),/data-f="parentId"/);
+});
