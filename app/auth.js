@@ -5,7 +5,7 @@ import {auth} from "./cloud.js";
 import {app, act, startUser, startGuest, T, uid, useApp, event} from "./store.js";
 import {EVERYDAY, AREAS, AREA_KEYS, addM} from "./logic.js";
 import {createQuest} from "./actions.js";
-import {APP} from "./config.js";
+import {APP, PREVIEW} from "./config.js";
 
 const KR = {invalid_credentials:"이메일 또는 비밀번호가 맞지 않아요.", email_not_confirmed:"메일함에서 인증 링크를 먼저 눌러 주세요.", user_already_exists:"이미 가입된 이메일이에요. 로그인해 주세요.", weak_password:"비밀번호는 8자 이상으로 정해 주세요.", over_email_send_rate_limit:"메일을 너무 자주 보냈어요. 잠시 후 다시 시도해 주세요.", network:"인터넷 연결을 확인해 주세요.", validation_failed:"이메일 형식을 확인해 주세요."};
 const kr = e => KR[e.code] || e.message || "잠시 후 다시 시도해 주세요.";
@@ -24,9 +24,10 @@ export function Auth({recovery}){
     <h1>할 일이 경험치가 되는<br/>나의 성장 RPG</h1>
     <p>큰 목표는 퀘스트로, 오늘 할 일은 미션으로. 체크할 때마다 캐릭터가 자라요.</p>
     <ul class="perks">${["한 줄로 적으면 날짜·시간·반복까지 알아서 정리", "AI가 목표를 스테이지와 이번 주 미션으로 설계", "연속 기록, 휴식권, 보상 상점으로 끝까지"].map(p => html`<li><${I.ok}/>${p}</li>`)}</ul>
+    ${PREVIEW ? html`<button class="btn" onClick=${() => { startGuest(); }}>시작하기</button><p class="fine">미리보기예요. 기록은 이 브라우저에만 저장돼요. 로그인·결제·AI 설계·알림은 정식 주소(myquestline.pages.dev/app)에서 쓸 수 있어요.</p>` : html`
     <button class="btn" onClick=${() => setMode("up")}>무료로 시작하기</button>
     <button class="btn sec" onClick=${() => setMode("in")}>이미 계정이 있어요</button>
-    <button class="linkbtn" onClick=${() => { startGuest(); event("guest"); }}>가입 없이 둘러보기</button>
+    <button class="linkbtn" onClick=${() => { startGuest(); event("guest"); }}>가입 없이 둘러보기</button>`}
   </div>`;
   const title = {in:"로그인", up:"가입하기", forgot:"비밀번호 찾기", reset:"새 비밀번호"}[mode];
   return html`<div class="authbox">

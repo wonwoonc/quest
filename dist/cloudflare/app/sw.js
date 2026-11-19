@@ -1,5 +1,5 @@
 /* 퀘스트라인 서비스 워커: 화면 파일을 저장해 오프라인에서도 열리게 하고, 알림을 띄운다 */
-const V = "ql-app-b87d8c836e";
+const V = "ql-app-1158b431c1";
 const SHELL = ["./", "./index.html", "./app.css", "./main.js", "./ui.js", "./store.js", "./logic.js", "./cloud.js", "./actions.js", "./sheets.js", "./today.js", "./quests.js", "./record.js", "./me.js", "./auth.js", "./push.js", "./config.js", "./vendor/preact.js", "./vendor/hooks.js", "./vendor/htm.js", "./icon.svg", "./icon-192.png", "./manifest.webmanifest"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("ql-app-") && k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

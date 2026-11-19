@@ -4,6 +4,7 @@ import {useState, useEffect} from "./vendor/hooks.js";
 import {html, I, SheetHost, ToastHost, openSheet, toast} from "./ui.js";
 import {app, useApp, LS, startUser, startGuest, setMode, grantShields} from "./store.js";
 import {auth} from "./cloud.js";
+import {PREVIEW} from "./config.js";
 import {Today} from "./today.js";
 import {Quests, QuestView} from "./quests.js";
 import {Record} from "./record.js";
@@ -45,8 +46,8 @@ function App(){
   const guest = !auth.user;
   const screen = r.name === "quests" ? html`<${Quests}/>` : r.name === "q" ? html`<${QuestView} id=${r.arg} key=${r.arg}/>` : r.name === "record" ? html`<${Record}/>` : r.name === "me" ? html`<${Me} sub=${r.arg}/>` : html`<${Today}/>`;
   return html`<main class="app" id="main">
-      ${guest && html`<div class="demo"><span>둘러보기 중 · <b>이 기기에만</b> 저장돼요</span><a href="#auth" onClick=${() => setMode("auth")}>로그인하고 보관</a></div>`}
-      ${r.name === "today" && html`<${InstallTip}/>`}
+      ${PREVIEW ? html`<div class="demo"><span>미리보기 · <b>이 브라우저에만</b> 저장돼요</span></div>` : guest && html`<div class="demo"><span>둘러보기 중 · <b>이 기기에만</b> 저장돼요</span><a href="#auth" onClick=${() => setMode("auth")}>로그인하고 보관</a></div>`}
+      ${r.name === "today" && !PREVIEW && html`<${InstallTip}/>`}
       ${screen}
     </main>
     <${Nav} name=${r.name}/><${SheetHost}/><${ToastHost}/><${PartyHost}/>`;
@@ -58,7 +59,7 @@ async function boot(){
   if (red && red.error) toast(red.error);
   if (red && red.type === "recovery"){ app.mode = "recovery"; setMode("recovery"); return; }
   if (auth.user) await startUser();
-  else if (LS.get("ql:guest")) startGuest();
+  else if (LS.get("ql:guest") || (PREVIEW && LS.get("ql:state:guest"))) startGuest();
   else setMode("auth");
   /* 날짜가 바뀌면 다시 그리고 휴식권 지급 확인 */
   let day = new Date().getDate(); setInterval(() => { const d = new Date().getDate(); if (d !== day){ day = d; grantShields(); setMode(app.mode); } }, 30000);
@@ -66,4 +67,4 @@ async function boot(){
 boot();
 
 /* 오프라인용 서비스 워커. 새 버전이 오면 다음에 열 때 적용 */
-if ("serviceWorker" in navigator && location.protocol === "https:") addEventListener("load", () => navigator.serviceWorker.register("./sw.js", {scope:"./"}).catch(() => {}));
+if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") addEventListener("load", () => navigator.serviceWorker.register("./sw.js", {scope:"./"}).catch(() => {}));

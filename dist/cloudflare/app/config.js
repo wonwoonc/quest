@@ -9,6 +9,8 @@ export const BIZ = {
   phone: "",                      // 고객센터 전화
   email: "wonwoonc10@gmail.com",  // 문의 메일
 };
+/* 아티팩트 미리보기: 서버 없이 이 브라우저에만 저장. 로그인·결제·AI·알림은 정식 주소에서 */
+export const PREVIEW = !!globalThis.QL_PREVIEW;
 export const APP = {
   name: "퀘스트라인",
   effective: "2026년 12월 1일",   // 약관 시행일

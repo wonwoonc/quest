@@ -1,9 +1,11 @@
 /* 퀘스트라인 — 웹 푸시 구독. 서버 설정(VAPID 공개키)이 없으면 'unsupported'로 둔다 */
 import {store as cloud, api} from "./cloud.js";
+import {PREVIEW} from "./config.js";
 const ok = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 const reg = () => navigator.serviceWorker.getRegistration("./");
 const b64 = s => { const p = "=".repeat((4 - s.length % 4) % 4), r = atob((s + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...r].map(c => c.charCodeAt(0))); };
 export async function pushState(){
+  if (PREVIEW) return "unsupported";
   if (!ok()) return "unsupported";
   if (Notification.permission === "denied") return "denied";
   try { const r = await reg(); const s = r && await r.pushManager.getSubscription(); return s ? "on" : "off"; } catch (_) { return "off"; }

@@ -6,6 +6,7 @@ import {app, useApp, act, T, uid, pass, event} from "./store.js";
 import {api, auth} from "./cloud.js";
 import {toggle, postpone, createQuest, achieve, reopen, giveUp, removeQuest, canAdd} from "./actions.js";
 import {QuickAdd, Paywall} from "./sheets.js";
+import {PREVIEW} from "./config.js";
 import {openItem} from "./today.js";
 
 const mainsOf = (S, status) => live(S, "quests").filter(q => !q.parent && (status === "active" ? q.status === "active" : status === "done" ? q.status === "done" : q.status === "gaveup")).sort((a, b) => status === "active" ? (a.order || 0) - (b.order || 0) : (b.doneAt || "").localeCompare(a.doneAt || ""));
@@ -52,6 +53,7 @@ const stageDue = (t, due, i, n) => { if (!due) return null; const span = Math.ma
 function AiPlan(){
   const [goal, setGoal] = useState(""), [deadline, setDeadline] = useState(addM(T(), 3)), [now, setNow] = useState(""), [hours, setHours] = useState("30분");
   const [st, setSt] = useState("form"), [plan, setPlan] = useState(null), [msg, setMsg] = useState("");
+  if (PREVIEW) return html`<div class="card note"><b>AI 설계는 정식 주소에서 쓸 수 있어요</b><p>미리보기에서는 서버에 연결하지 않아요. 직접 만들기로 퀘스트를 만들어 보세요.</p></div>`;
   if (!auth.user) return html`<div class="card note"><b>AI 설계는 로그인하면 쓸 수 있어요</b><p>무료로 한 번 체험할 수 있어요. 둘러보기 기록은 로그인하면 그대로 옮겨져요.</p><a class="btn" href="#auth" onClick=${closeSheet}>로그인</a></div>`;
   const ask = async () => {
     setSt("think"); setMsg("");

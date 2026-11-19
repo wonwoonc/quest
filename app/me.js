@@ -7,6 +7,7 @@ import {auth, store as cloud, api} from "./cloud.js";
 import {buy, buyShield, limits} from "./actions.js";
 import {pushState, enablePush, disablePush} from "./push.js";
 import {PERKS} from "./sheets.js";
+import {PREVIEW} from "./config.js";
 
 export function Me({sub}){
   useApp(); const S = app.S, s = sum(), t = T(), [shop, setShop] = useState("do");
@@ -71,6 +72,7 @@ export function Pass(){
   useEffect(() => { if (auth.user && pass()) cloud.payments().then(setPays).catch(() => setPays([])); }, [e.status]);
   const trial = iv === "year" && !e.trialUsed;
   const go = async () => {
+    if (PREVIEW){ toast("결제는 정식 주소에서 할 수 있어요"); return; }
     if (!auth.user){ closeSheet(); location.hash = "#auth"; toast("결제하려면 먼저 로그인해 주세요"); return; }
     setBusy(true); setMsg("");
     try {
@@ -124,7 +126,7 @@ function Settings(){
       ${push === "on" && html`<div class="dtrow"><span>아침</span><input type="time" step="300" value=${S.profile.remindAt} onChange=${e => prof({remindAt:e.target.value})}/><span>저녁</span><input type="time" step="300" value=${S.profile.eveningAt} onChange=${e => prof({eveningAt:e.target.value})}/></div>`}
       ${push === "unsupported" && /iPhone|iPad/.test(navigator.userAgent) && html`<p class="hint">아이폰은 공유 → '홈 화면에 추가'로 설치한 뒤 알림을 켤 수 있어요.</p>`}`}
     </div>
-    <div class="field"><label>데이터</label><button class="btn sec" onClick=${exportData}><${I.download}/>내 기록 내보내기(JSON)</button></div>
-    <div class="field"><label>계정</label>${auth.user ? html`<p class="hint">${auth.user.email}</p><button class="btn sec" onClick=${out}>로그아웃</button><${Confirm} label="계정 삭제" sure="모든 기록이 지워져요. 삭제할까요?" onYes=${del}/>` : html`<p class="hint">지금은 이 기기에만 저장돼요. 로그인하면 기록이 그대로 옮겨지고 다른 기기에서도 볼 수 있어요.</p><a class="btn" href="#auth" onClick=${closeSheet}>로그인 / 가입</a>`}</div>
+    ${!PREVIEW && html`<div class="field"><label>데이터</label><button class="btn sec" onClick=${exportData}><${I.download}/>내 기록 내보내기(JSON)</button></div>`}
+    <div class="field"><label>계정</label>${PREVIEW ? html`<p class="hint">미리보기에서는 로그인하지 않아요. 기록은 이 브라우저에만 저장돼요.</p>` : auth.user ? html`<p class="hint">${auth.user.email}</p><button class="btn sec" onClick=${out}>로그아웃</button><${Confirm} label="계정 삭제" sure="모든 기록이 지워져요. 삭제할까요?" onYes=${del}/>` : html`<p class="hint">지금은 이 기기에만 저장돼요. 로그인하면 기록이 그대로 옮겨지고 다른 기기에서도 볼 수 있어요.</p><a class="btn" href="#auth" onClick=${closeSheet}>로그인 / 가입</a>`}</div>
     <p class="fine"><a href="./legal.html#terms" target="_blank" rel="noopener">이용약관</a> · <a href="./legal.html#refund" target="_blank" rel="noopener">결제·환불</a> · <a href="./legal.html#privacy" target="_blank" rel="noopener">개인정보처리방침</a> · <a href="./legal.html#biz" target="_blank" rel="noopener">사업자 정보</a> · (주)원운컴퍼니 · wonwoonc10@gmail.com</p>`;
 }
