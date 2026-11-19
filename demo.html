@@ -1615,6 +1615,12 @@ a.row{color:inherit;text-decoration:none}
 /* 모바일 대시보드 퀘스트 카드: 위아래 회색 띠 */
 @media (max-width:1023.98px){.wd-ggrid.hs > .pgc.pgc{box-shadow:inset 0 16px 0 var(--seg),inset 0 -16px 0 var(--seg);padding-top:32px!important;padding-bottom:32px!important}}
 @media (max-width:1023.98px){.wd-ggrid.hs > .wdp.wdp-m{padding-bottom:11px!important;gap:4px!important}.wd-ggrid.hs > .wdp-m .wdp-cv{margin-bottom:5px!important}}
+/* 캘린더 퀘스트 제목 흐르기 */
+.calqh h3 .mqt{display:inline-block;white-space:nowrap}
+.calqh h3.mq-on{text-overflow:clip;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+.calqh h3.mq-on .mqt{animation:mqslide var(--mqs,6s) ease-in-out 1.2s infinite}
+@keyframes mqslide{0%,15%{transform:translateX(0)}70%,85%{transform:translateX(var(--mqd))}100%{transform:translateX(0)}}
+@media (prefers-reduced-motion:reduce){.calqh h3.mq-on .mqt{animation:none}.calqh h3.mq-on{text-overflow:ellipsis;-webkit-mask-image:none;mask-image:none}}
 </style>
 <script type="module" src="./src/demo-entry.js"></script>
 </body></html>

@@ -463,7 +463,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   $("#app").innerHTML = (dash || v === "qmanage" ? firstGame() : "") + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, daily:viewDaily, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, learn:viewLearn, calday:viewCalDay, dash:viewFeed, write:viewWrite}[v] || viewToday)());
   { const gg = dash && $(".wd-goals .wd-ggrid"); if (gg && S.wdGs) gg.scrollLeft = S.wdGs; }
   $("#app").dataset.v = S.me && !hasProfile() && S.canWrite ? "profile" : dash ? "dash" : v; $("#app").dataset.pt = v === "profile" || v === "today" ? (S.profTab || "") : "";
-  renderReplyBar(); renderPill(); alignTop();
+  renderReplyBar(); renderPill(); alignTop(); calqMarquee();
   if (fid){ const el = document.getElementById(fid); if (el){ el.focus({preventScroll:true}); if (sel && el.setSelectionRange) try{ el.setSelectionRange(sel[0], sel[1]); }catch(e){} } }
   loadMedia(document);
   { const fm = document.getElementById("feedmore"); if (fm){ if (S._feedIO) S._feedIO.disconnect();
@@ -508,6 +508,10 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
 }
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
 /* PC: 상단 알림·프로필 버튼을 화면마다 다른 본문 폭의 오른쪽 끝에 맞춘다 */
+/* 캘린더 퀘스트 카드 제목이 잘리면 천천히 왼쪽으로 흘려서 끝까지 보여 준다 */
+function calqMarquee(){ document.querySelectorAll(".calqh h3").forEach(h => { const t = h.querySelector(".mqt"); if (!t || !t.style) return; h.classList.remove("mq-on"); const d = t.scrollWidth - h.clientWidth;
+  if (d > 4){ h.style.setProperty("--mqd", -(d + 8) + "px"); h.style.setProperty("--mqs", Math.max(4, (d + 8) / 30 + 3).toFixed(1) + "s"); h.classList.add("mq-on"); } }); }
+try { addEventListener("resize", () => calqMarquee()); } catch (_) {}
 function alignTop(){ const tb = $("#topbar"), app = $("#app"); if (!tb || !app) return; try { const ref = app.dataset.v === "cal" && app.querySelector(":scope > .seg") || app, mw = WEB.matches ? getComputedStyle(ref).maxWidth : "none"; tb.style.maxWidth = mw && mw !== "none" ? mw : ""; } catch (_) {} }
 try { addEventListener("resize", () => alignTop()); } catch (_) {}
 function renderTop(){
@@ -940,7 +944,7 @@ function viewCal(){
   const cgs = mode === "year" ? [] : goalsOf(S.me).filter(p => p.status !== "done" && !isPlanned(p)).sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : (a.end||"9999") > (b.end||"9999") ? 1 : 0);
   if (cgs.length){ const gi = Math.max(0, Math.min(cgs.length - 1, S.calGi || 0)), g = cgs[gi]; S.calGi = gi;
     // 캘린더는 일정이 주인공: 제목 · D-day · 넘기기 한 줄 + 수치 막대만 (상태 칩·수치 글자·스테이지/미션은 뺀다)
-    h += `<section class="card pgc calq" data-act="project" data-p="${g.id}" role="button" tabindex="0"><div class="calqh"><h3>${esc(g.title)}</h3>${g.end ? `<span class="cdd num">${dday(g.end)}</span>` : ""}${cgs.length > 1 ? `<div class="cpager"><button data-act="cgi" data-v="-1" ${gi ? "" : "disabled"} aria-label="이전 퀘스트">${I.back}</button><span class="num">${gi + 1}/${cgs.length}</span><button class="fwd" data-act="cgi" data-v="1" ${gi < cgs.length - 1 ? "" : "disabled"} aria-label="다음 퀘스트">${I.back}</button></div>` : ""}</div>${metricBox(g)}</section>`; }
+    h += `<section class="card pgc calq" data-act="project" data-p="${g.id}" role="button" tabindex="0"><div class="calqh"><h3><span class="mqt">${esc(g.title)}</span></h3>${g.end ? `<span class="cdd num">${dday(g.end)}</span>` : ""}${cgs.length > 1 ? `<div class="cpager"><button data-act="cgi" data-v="-1" ${gi ? "" : "disabled"} aria-label="이전 퀘스트">${I.back}</button><span class="num">${gi + 1}/${cgs.length}</span><button class="fwd" data-act="cgi" data-v="1" ${gi < cgs.length - 1 ? "" : "disabled"} aria-label="다음 퀘스트">${I.back}</button></div>` : ""}</div>${metricBox(g)}</section>`; }
   const title = mode === "day" ? `${D0.getMonth()+1}월 ${D0.getDate()}일 <span class="${D0.getDay() === 6 ? "sat" : D0.getDay() === 0 ? "sun" : ""}">${WD[D0.getDay()]}요일</span>` : mode === "week" ? (() => { const a = pd(sunStart(date)), b2 = pd(addD(sunStart(date), 6)); return `${a.getMonth()+1}.${a.getDate()} – ${b2.getMonth()+1}.${b2.getDate()}`; })() : mode === "month" ? `${D0.getFullYear()}년 ${D0.getMonth()+1}월` : `${D0.getFullYear()}년`;
   h += `<div class="calnav"><button class="iconbtn" data-act="cstep" data-v="-1" aria-label="이전">${I.back}</button><b>${title}</b><button class="iconbtn fwd" data-act="cstep" data-v="1" aria-label="다음">${I.back}</button>${date !== t ? `<button class="btn sec xs" data-act="ctoday">오늘</button>` : ""}</div>`;
   const calTaskRow = m => taskRow(m, true, false, {showTime:false, showDate:false});
