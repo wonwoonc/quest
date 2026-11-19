@@ -1679,6 +1679,8 @@ a.row{color:inherit;text-decoration:none}
 .qlist > .gmmo{margin:0 10px 10px;border:1px solid color-mix(in srgb,var(--line) 70%,transparent);border-radius:16px;overflow:hidden}
 .gmmo .mcell .mtx{cursor:pointer}.gmmo .mcell i.more{cursor:pointer}
 @media (min-width:1024px){.gmwk .wg{grid-template-columns:repeat(7,minmax(0,1fr));width:100%}}
+/* 날짜 선택 달력: 일요일부터, 토·일 색 */
+.dpgrid.wk span.sun,.dpgrid button.sun:not(.sel):not(.tdy){color:#E5484D}.dpgrid.wk span.sat,.dpgrid button.sat:not(.sel):not(.tdy){color:#3D7BE0}
 </style>
 <script type="module" src="./src/entry.js"></script>
 </body></html>

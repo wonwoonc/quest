@@ -1679,6 +1679,8 @@ a.row{color:inherit;text-decoration:none}
 .qlist > .gmmo{margin:0 10px 10px;border:1px solid color-mix(in srgb,var(--line) 70%,transparent);border-radius:16px;overflow:hidden}
 .gmmo .mcell .mtx{cursor:pointer}.gmmo .mcell i.more{cursor:pointer}
 @media (min-width:1024px){.gmwk .wg{grid-template-columns:repeat(7,minmax(0,1fr));width:100%}}
+/* 날짜 선택 달력: 일요일부터, 토·일 색 */
+.dpgrid.wk span.sun,.dpgrid button.sun:not(.sel):not(.tdy){color:#E5484D}.dpgrid.wk span.sat,.dpgrid button.sat:not(.sel):not(.tdy){color:#3D7BE0}
 </style>
 <script>
 (function(){"use strict";
@@ -2444,10 +2446,10 @@ function rollOver(){ if (!S.me || !S.canWrite || !api || S.mode === "loading") r
   if (!late.length || S.rolling) return; S.rolling = true;
   (async () => { for (const m of late){ try{ const nm = {...m, due:t, origDue:m.origDue || m.due}; S.mine[m.id] = nm; MINE_KEY = null; await api.putMine(m.id, nm); }catch(e){} } S.rolling = false; schedule(); })(); }
 const dateOf = m => m.done ? activityDate(m.doneAt) : m.period ? "" : dueOf(m);
-const perAnchor = (per, d) => per === "week" ? monStart(d) : per === "month" ? d.slice(0,8) + "01" : per === "year" ? d.slice(0,5) + "01-01" : d;
+const perAnchor = (per, d) => per === "week" ? sunStart(d) : per === "month" ? d.slice(0,8) + "01" : per === "year" ? d.slice(0,5) + "01-01" : d;
 const perEnd = (per, a) => per === "week" ? addD(a, 6) : per === "month" ? (() => { const x = pd(a); return dk(new Date(x.getFullYear(), x.getMonth()+1, 0).getTime()); })() : per === "year" ? a.slice(0,5) + "12-31" : a;
 function perName(per, a){ const t = today(), x = pd(a);
-  if (per === "week") return a === monStart(t) ? "이번 주" : a === addD(monStart(t), 7) ? "다음 주" : `${x.getMonth()+1}/${x.getDate()} 주`;
+  if (per === "week"){ const w = sunStart(a), x2 = pd(w); return w === sunStart(t) ? "이번 주" : w === addD(sunStart(t), 7) ? "다음 주" : `${x2.getMonth()+1}/${x2.getDate()} 주`; }
   if (per === "month") return a === perAnchor("month", t) ? "이번 달" : `${x.getMonth()+1}월`;
   return a === perAnchor("year", t) ? "올해" : `${x.getFullYear()}년`; }
 const tomorrow = () => dk(Date.now() + DAY);
@@ -2518,11 +2520,11 @@ const tmLabel = v => { if (!v) return ""; const [h, mi] = v.split(":").map(Numbe
 const fmtD = v => { const x = new Date(v+"T00:00"); return `${x.getFullYear() !== new Date().getFullYear() ? x.getFullYear()+"년 " : ""}${x.getMonth()+1}월 ${x.getDate()}일 (${WD[x.getDay()]})`; };
 function miniCal(c, key, max = ""){
   const v = c[key] || "", base = c._dpm || (v || today()).slice(0,8) + "01", f0 = new Date(base+"T00:00"), y = f0.getFullYear(), mo = f0.getMonth(), t = today();
-  const off = (f0.getDay()+6)%7, days = new Date(y, mo+1, 0).getDate();
+  const off = f0.getDay(), days = new Date(y, mo+1, 0).getDate(); // 일요일부터
   let cells = ""; for (let i = 0; i < off; i++) cells += `<span></span>`;
-  for (let d = 1; d <= days; d++){ const ds = `${y}-${pad(mo+1)}-${pad(d)}`; cells += `<button class="${ds === v ? "sel" : ""} ${ds === t ? "tdy" : ""}" data-act="dppick" data-k="${key}" data-v="${ds}"${max && ds > max ? " disabled" : ""}>${d}</button>`; }
+  for (let d = 1; d <= days; d++){ const ds = `${y}-${pad(mo+1)}-${pad(d)}`; const wd = (off + d - 1) % 7; cells += `<button class="${ds === v ? "sel" : ""} ${ds === t ? "tdy" : ""}${wd === 0 ? " sun" : wd === 6 ? " sat" : ""}" data-act="dppick" data-k="${key}" data-v="${ds}"${max && ds > max ? " disabled" : ""}>${d}</button>`; }
   return `<div class="dpcal"><div class="dphead"><button data-act="dpnav" data-v="-1" aria-label="이전 달">${I.back}</button><b>${y}년 ${mo+1}월</b><button class="fwd" data-act="dpnav" data-v="1" aria-label="다음 달">${I.back}</button></div>
-    <div class="dpgrid wk">${["월","화","수","목","금","토","일"].map(w => `<span>${w}</span>`).join("")}</div><div class="dpgrid">${cells}</div></div>`;
+    <div class="dpgrid wk">${WD.map((w, i) => `<span class="${i === 0 ? "sun" : i === 6 ? "sat" : ""}">${w}</span>`).join("")}</div><div class="dpgrid">${cells}</div></div>`;
 }
 const datePick = (c, key, label, optional, required = false) => { const v = c[key] || "";
   return `<div class="field"><span class="lab">${label}${required ? ' <span class="hint">필수</span>' : optional ? ' <span class="hint">선택</span>' : ""}</span><div class="dprow"><button class="dpbtn ${v ? "" : "empty"}" data-act="dpopen" data-k="${key}">📅 ${v ? fmtD(v) : "날짜 선택"}</button>${v && !required ? `<button class="link" data-act="dpclear" data-k="${key}">지우기</button>` : ""}</div>${c._dp === key ? (key === "end" ? `<div class="dppop" data-act="dpstay"><div class="dppop-in" data-act="dpstay" role="dialog" aria-label="${label} 선택"><div class="dppop-h"><b class="dppop-t">${label} 선택</b><button class="iconbtn" data-act="dpopen" data-k="end" aria-label="닫기">${I.close}</button></div>${miniCal(c, key)}</div></div>` : miniCal(c, key)) : ""}</div>`; };
@@ -3225,7 +3227,6 @@ function goalRow(p, nested = false){
 /* ================= calendar ================= */
 const pd = s0 => { const [y,m,d] = s0.split("-").map(Number); return new Date(y, m-1, d); };
 const addD = (s0, n) => { const d = pd(s0); d.setDate(d.getDate()+n); return dk(d.getTime()); };
-const monStart = s0 => { const d = pd(s0), w = (d.getDay()+6)%7; d.setDate(d.getDate()-w); return dk(d.getTime()); };
 const sunStart = s0 => { const d = pd(s0); d.setDate(d.getDate()-d.getDay()); return dk(d.getTime()); }; // 캘린더 주 보기: 일요일부터
 /* 일정(kind:"event"): 체크·보상 없이 캘린더에만 보이는 약속. date+time 부터 edate+etime 까지(time 없으면 종일).
    여러 날에 걸치면 시작일에는 시작 시각에, 나머지 날에는 '종일' 줄에 이어서 보여 준다. 옛 일정(dur 분)도 읽는다. */
