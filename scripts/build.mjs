@@ -49,9 +49,6 @@ export async function build() {
   // 앱 없이 열리는 공개 페이지(앱스토어 등록용): /privacy, /delete-account
   const {publicPages} = await import('./public-pages.mjs');
   for (const [file, html] of Object.entries(await publicPages(root))) await writeFile(path.join(cf, file), html);
-  // 퀘스트라인 넥스트(정식판): next/ 폴더를 그대로 /next/ 경로로 배포한다. 서버 기능은 저장소 루트의 functions/ (Cloudflare Pages Functions).
-  const {cp} = await import('node:fs/promises');
-  await cp(path.join(root,'next'), path.join(cf,'next'), {recursive:true});
   await writeFile(path.join(cf,'_headers'),`/*
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
@@ -61,8 +58,6 @@ export async function build() {
 /
   Cache-Control: no-cache
 /index.html
-  Cache-Control: no-cache
-/next/*
   Cache-Control: no-cache
 `);
   console.log('Built dist/quest.html + dist/quest-demo.html; dev index.html + demo.html; dist/cloudflare/');
