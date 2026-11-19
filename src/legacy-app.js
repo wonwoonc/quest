@@ -654,7 +654,7 @@ function diaryForm(d, P, sheet = false){ const dt = P.date || today(), t0 = toda
     <label class="lab" for="pl-text">일기</label>
     <textarea id="pl-text" rows="8" maxlength="5000" placeholder="오늘 있었던 일, 떠오른 생각을 자유롭게 적어 보세요">${esc(S.drafts["pl-text"] ?? (d && d.text) ?? "")}</textarea>
     <button class="btn big full" data-act="psave" ${S.busy?"disabled":""}>${d ? "수정" : "저장"}${d ? "" : past ? `<span class="x">지난 날짜는 보상 없이 기록만 남아요</span>` : ""}</button>
-    ${d ? `<button class="btn big full sec" style="margin-top:10px;color:var(--warn)" data-act="ldel" data-id="d-${esc(d.date)}">저널 삭제</button>` : ""}`; }
+    ${d && !sheet ? `<button class="btn big full sec" style="margin-top:10px;color:var(--warn)" data-act="ldel" data-id="d-${esc(d.date)}">저널 삭제</button>` : ""}`; }
 const diaryPost = key => Object.values(S.feed).find(p => p.author === S.me && p.ref && p.ref.type === "diary" && p.ref.id === key);
 /* 대시보드 저널 칩: 오늘의 미션처럼 요약 카드 + 목록 카드. 목록 카드에 최근 저널(오늘 포함 3개)과 쓰기·수정 버튼. */
 function logToday(){ const d = S.mine["d-"+today()];
@@ -1105,7 +1105,7 @@ function noteSheet(c){
     ${gs.length ? linkPick(c, "연결할 퀘스트", "어떤 퀘스트의 자료인가요?") : ""}
     ${n && noteComplete(S, n) ? `<p class="ntreward done">${nic("check")}완성한 자료예요.</p>` : ntRewardLine(C, area)}
     <button class="btn big full" data-act="submit-note" ${S.busy ? "disabled" : ""}>저장</button>
-    ${n ? `<button class="link danger ntdel" data-act="nt-del" data-id="${n.id}">${S.armed === "nd"+n.id ? "한 번 더 누르면 삭제돼요" : "삭제"}</button>` : ""}`);
+`, n ? `<button class="pgdel" data-act="nt-del" data-id="${n.id}">삭제</button>` : "");
 }
 function ntSendSheet(c){
   const daily = /매일|매주|아침마다|저녁마다|날마다|주\s*\d+\s*회|하루\s*\d+|꾸준히|습관/.test(c.name);
@@ -1156,7 +1156,7 @@ function viewLearn(){
   if (!LP || LP.id !== n.id) LP = {id:n.id, blocks:noteBlocks(n).map(bkNorm)};
   const rows = [["강사·저자", f.author && esc(f.author)], ["별점", f.rating && stars(f.rating)], ["영역", A && `${aIcon(A[0])}${A[3]}`], ["퀘스트", pj && `${nic("target")}${esc(pj.title)}`], ["링크", f.url && (safeUrl(f.url) ? `<a class="ntlink" href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener noreferrer">${esc(ntHost(safeUrl(f.url)))}</a>` : esc(f.url))], ["학습 목표", f.goal && esc(f.goal), "goal"]].filter(r => r[1]);
   const st = f.status || "예정", rd = !!S.lnRead, fs = S.lnFs || LS.get("lnFs", "m");
-  let h = `<section class="card lnhead"><div class="lntop"><span class="ntcat">${nic("book")}${esc(f.type || "학습")}</span>${done ? `<span class="ntdone">${nic("check")}완성</span>` : ""}<button class="link lnedit" data-act="nt-edit" data-id="${n.id}" data-info="1">정보 수정</button><button class="link lndel" data-act="nt-del" data-id="${n.id}">삭제</button></div>
+  let h = `<section class="card lnhead"><div class="lntop"><span class="ntcat">${nic("book")}${esc(f.type || "학습")}</span>${done ? `<span class="ntdone">${nic("check")}완성</span>` : ""}<button class="link lnedit" data-act="nt-edit" data-id="${n.id}" data-info="1">정보 수정</button><button class="pgdel" data-act="nt-del" data-id="${n.id}">삭제</button></div>
     <h2 class="lntitle">${esc(f.title || "제목 없음")}</h2>
     ${rows.length ? `<dl class="lninfo">${rows.map(([l, v, c]) => `<dt>${l}</dt><dd class="${c || ""}">${v}</dd>`).join("")}</dl>` : ""}
     <div class="lnstatus"><span>상태</span><div class="seg">${LN_STATUS.map(x => `<button data-act="ln-st" data-v="${x}" aria-pressed="${st === x}">${x}</button>`).join("")}</div></div>
@@ -2119,7 +2119,7 @@ function preserveSheetDrafts() {
   document.querySelectorAll('.sheet input[id], .sheet textarea[id]').forEach(el => { if(!['checkbox','radio','file'].includes(el.type)) S.drafts[el.id]=el.value; });
 }
 let sheetDrawn = null; const sheetTops = new WeakMap();
-function sheetWrap(title, desc, body){ const creation=false,sub=title.startsWith('스테이지');/* 같은 팝업을 다시 그릴 때(삭제 버튼 두 번 누르기, 확인창에서 돌아오기 등)는 스크롤 위치를 유지한다 */ const oldSh = $("#overlay .sheet"); if (oldSh && sheetDrawn && typeof sheetDrawn === "object") sheetTops.set(sheetDrawn, oldSh.scrollTop); const keepTop = S.compose && typeof S.compose === "object" ? sheetTops.get(S.compose) || 0 : 0; sheetDrawn = S.compose; const pg = !!(S.compose && (S.compose.type === "note" || S.compose.type === "diary")); /* 자료·저널 추가·수정은 팝업 대신 화면 전체를 쓰는 페이지로 연다 */ $("#overlay").innerHTML = `<div class="scrim${pg ? " pagemode" : ""}" data-act="sheet-bg"><div class="sheet${pg ? " page" : ""}" role="dialog" aria-modal="true">${pg ? `<h2 class="pgh"><button data-act="sheet-close" aria-label="뒤로">${I.back}</button><span>${title}</span></h2>` : `<h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>`}${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}</div></div>`; initTW();  if (keepTop){ const ns = $("#overlay .sheet"); if (ns) ns.scrollTop = keepTop; } }
+function sheetWrap(title, desc, body, right = ""){ const creation=false,sub=title.startsWith('스테이지');/* 같은 팝업을 다시 그릴 때(삭제 버튼 두 번 누르기, 확인창에서 돌아오기 등)는 스크롤 위치를 유지한다 */ const oldSh = $("#overlay .sheet"); if (oldSh && sheetDrawn && typeof sheetDrawn === "object") sheetTops.set(sheetDrawn, oldSh.scrollTop); const keepTop = S.compose && typeof S.compose === "object" ? sheetTops.get(S.compose) || 0 : 0; sheetDrawn = S.compose; const pg = !!(S.compose && (S.compose.type === "note" || S.compose.type === "diary")); /* 자료·저널 추가·수정은 팝업 대신 화면 전체를 쓰는 페이지로 연다 */ $("#overlay").innerHTML = `<div class="scrim${pg ? " pagemode" : ""}" data-act="sheet-bg"><div class="sheet${pg ? " page" : ""}" role="dialog" aria-modal="true">${pg ? `<h2 class="pgh"><button data-act="sheet-close" aria-label="뒤로">${I.back}</button><span>${title}</span>${right}</h2>` : `<h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>`}${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}</div></div>`; initTW();  if (keepTop){ const ns = $("#overlay .sheet"); if (ns) ns.scrollTop = keepTop; } }
 /* 뒤로가기로 팝업 닫기: 팝업이 열리면 기록을 하나 쌓고, 뒤로가기(popstate)가 오면 팝업만 닫는다 */
 let sheetHist = false, popSkip = false;
 const HS = typeof history !== "undefined" && history && history.pushState ? history : null;
@@ -2208,7 +2208,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     <button class="btn big full" data-act="submit-tedit" ${S.busy?"disabled":""}>저장</button>
     <button class="btn full sec" style="margin-top:10px;color:var(--warn)" data-act="tdel">${S.armed === "td"+c.id ? "한 번 더 누르면 삭제" : "삭제"}</button>`); }
   if (c.type === "diary"){ const P = S.planner, dt = P.date || today(), d = S.mine["d-"+dt], x0 = pd(dt);
-    return sheetWrap(dt === today() ? "오늘의 저널" : `${x0.getMonth()+1}월 ${x0.getDate()}일 ${WD[x0.getDay()]}요일 저널`, "", diaryForm(d, P, true)); }
+    return sheetWrap(dt === today() ? "오늘의 저널" : `${x0.getMonth()+1}월 ${x0.getDate()}일 ${WD[x0.getDay()]}요일 저널`, "", diaryForm(d, P, true), d ? `<button class="pgdel" data-act="ldel" data-id="d-${esc(d.date)}">삭제</button>` : ""); }
   if (c.type === "pmenu"){ const p = S.feed[c.pid]; if (!p){ closeSheet(); return; } const mine = p.author === S.me, a = p.author, f = isFollowing(S.me, a);
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-p="${p.id}" data-u="${esc(a)}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
     return sheetWrap(mine ? "내 스토리" : esc(nameOf(a)) + "님의 스토리", "", `<div class="sheetlist mlist">${mine
