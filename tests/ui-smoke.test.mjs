@@ -1617,7 +1617,7 @@ test('daily quests link to a main quest: main-only picker, checkable on the main
   assert.match(app(),/<h2>미션<\/h2><button class="gmchip" data-act="gmpick" data-p="main">전체/);
   H.click('gmpick',{p:'main'}); assert.match(ov(),/날짜로 보기[\s\S]*class="gmg"[\s\S]*class="gmd today[^"]*has[^"]*" data-act="gmset" data-v="\d{4}-\d\d-\d\d"[\s\S]*data-act="gmset" data-v="">전체 보기/);
   { const d = ov().match(/class="gmd today[^"]*" data-act="gmset" data-v="(\d{4}-\d\d-\d\d)"/)[1]; H.click('gmym',{v:'2099-01'}); assert.match(ov(),/2099년 1월/); H.click('gmset',{v:d}); }
-  assert.match(app(),/class="gmchip on"><button data-act="gmpick" data-p="main">오늘 · /); assert.doesNotMatch(app(),/class="mday/);
+  assert.match(app(),/class="gmchip on"><button data-act="gmpick" data-p="main">오늘<\/button>/); assert.doesNotMatch(app(),/class="mday/);
   H.click('gmall'); assert.match(app(),/class="gmchip" data-act="gmpick"/);
   assert.match(app(),/data-act="sheet" data-k="add" data-v="daily" data-p="main"/);
   H.click('sheet',{k:'add',v:'daily',p:'main'}); assert.match(ov(),/연결할 메인 퀘스트[\s\S]*?🎯 메인 연결 대상/);

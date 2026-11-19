@@ -1655,7 +1655,7 @@ function ovLay(g, html){ if (!g || g.owner !== S.me || !S.canWrite) return html;
 /* 메인 퀘스트에 연결된(보관 안 한) 일일 퀘스트 */
 const linkedHabits = pid => mineOf("quest").filter(q => q.projectId === pid && q.active !== false).sort(habitOrder);
 /* 미션 목록을 날짜별로 묶는다(날짜 머리글 + 그날 미션) */
-function mDayLabel(d){ if (!d) return "날짜 없음"; const t = today(), D0 = pd(d), md = `${D0.getMonth()+1}/${D0.getDate()} (${WD[D0.getDay()]})`; return d === t ? `오늘 · ${md}` : d === addD(t, 1) ? `내일 · ${md}` : d < t ? `지난 날짜 · ${md}` : md; }
+function mDayLabel(d){ if (!d) return "날짜 없음"; const t = today(), D0 = pd(d), md = `${D0.getMonth()+1}/${D0.getDate()} (${WD[D0.getDay()]})`; return d === t ? "오늘" : d === addD(t, 1) ? "내일" : d < t ? `지난 날짜 · ${md}` : md; }
 function nextOn(q){ const r = qRepeat(q), t = today(); for (let i = 0; i < 120; i++){ const d = addD(t, i); if (occursOn(r, d)) return d; } return ""; }
 function lhRow(q){ const done = !!(q.done || {})[today()], st = streakOf(q), nd = nextOn(q), t = today(), D0 = nd ? pd(nd) : null;
   const when = !nd ? "" : nd === t ? `<span class="tday">오늘</span>` : nd === tomorrow() ? `<span class="tday soft">내일</span>` : `<span class="tday soft">${D0.getMonth()+1}/${D0.getDate()}</span>`;
