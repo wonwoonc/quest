@@ -2916,7 +2916,7 @@ document.addEventListener("click", e => {
       const doc = {...(old || {}), kind:"reward", name, cost, repeat:c.repeat === 'once' ? 'once' : 'repeat', rt:c.rt === "get" ? "get" : "do", img:c.img || null, createdAt:(old && old.createdAt) || Date.now()}; delete doc.id; delete doc.tier;
       run(() => api.putMine(id0, doc), () => { delete S.drafts["rw-name"]; closeSheet(); toast(c.id ? "보상을 수정했어요" : "🎁 보상을 등록했어요"); }); return; }
     case "rtset": preserveSheetDrafts(); S.drafts["rw-name"] = ($("#rw-name") || {}).value || S.drafts["rw-name"] || ""; c.cost = ($("#rw-cost") || {}).value ?? c.cost; c.rt = b.dataset.v; renderSheet(); return;
-    case "gmpick": { const all = (S._gmAll && S._gmAll.p === pid ? S._gmAll.list : []), cnt = {}; for (const m of all){ const d = dueOf(m) || ""; cnt[d] = (cnt[d] || 0) + 1; } openSheet({type:"gmpick", pid, cnt}); return; }
+    case "gmpick": { if ((S.gmV && S.gmV.p === pid) || (S.gmDate && S.gmDate.p === pid)){ S.gmV = null; S.gmDate = null; schedule(); return; } /* 다른 보기 중이면 먼저 전체로, 전체에서 한 번 더 누르면 날짜 선택 */ const all = (S._gmAll && S._gmAll.p === pid ? S._gmAll.list : []), cnt = {}; for (const m of all){ const d = dueOf(m) || ""; cnt[d] = (cnt[d] || 0) + 1; } openSheet({type:"gmpick", pid, cnt}); return; }
     case "gmset": S.gmDate = b.dataset.v ? {p:c.pid, d:b.dataset.v} : null; S.gmV = null; closeSheet(); schedule(); return;
     case "hyear": e.stopPropagation(); openSheet({type:"hyear", id}); return;
     case "hyy": c.y = +b.dataset.v; renderSheet(); return;

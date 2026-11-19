@@ -1618,7 +1618,7 @@ test('daily quests link to a main quest: main-only picker, checkable on the main
   assert.doesNotMatch(app(),/class="mday/,'no date headers: each mission row carries its own date tag');
   assert.match(app(),/<h2>미션<\/h2><button class="gmchip cur" data-act="gmpick" data-p="main">전체[\s\S]*?data-act="gmv" data-p="main" data-v="week"[^>]*>주<[\s\S]*?data-v="month"[^>]*>월</);
   H.click('gmv',{p:'main',v:'week'}); assert.match(app(),/class="wgrid gmwk"><div class="wg"><button class="wgc head/); assert.doesNotMatch(app(),/class="wgc tlab/); H.click('gmnav',{v:'1'}); assert.match(app(),/class="gmnav"/);
-  H.click('gmv',{p:'main',v:'month'}); assert.match(app(),/class="mgrid mtask gmmo"><div class="wk">[\s\S]*class="mcell/); H.click('gmall');
+  H.click('gmv',{p:'main',v:'month'}); assert.match(app(),/class="mgrid mtask gmmo"><div class="wk">[\s\S]*class="mcell/); H.click('gmpick',{p:'main'}); assert.doesNotMatch(app(),/class="mgrid mtask gmmo"/,'first tap on 전체 returns to the full list'); assert.doesNotMatch(H.nodes.get('overlay').innerHTML,/날짜로 보기/);
   H.click('gmpick',{p:'main'}); assert.match(ov(),/날짜로 보기[\s\S]*class="gmg"[\s\S]*class="gmd today[^"]*has[^"]*" data-act="gmset" data-v="\d{4}-\d\d-\d\d"[\s\S]*data-act="gmset" data-v="">전체 보기/);
   { const d = ov().match(/class="gmd today[^"]*" data-act="gmset" data-v="(\d{4}-\d\d-\d\d)"/)[1]; H.click('gmym',{v:'2099-01'}); assert.match(ov(),/2099년 1월/); H.click('gmset',{v:d}); }
   assert.match(app(),/class="gmchip on" data-act="gmpick" data-p="main">오늘<\/button>/); assert.doesNotMatch(app(),/data-act="gmall"/); assert.doesNotMatch(app(),/class="mday/);
