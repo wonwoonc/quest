@@ -2655,7 +2655,7 @@ try { addEventListener("resize", () => alignTop()); } catch (_) {}
 function renderTop(){
   const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || v === "daily" || v === "write" || (v === "profile" && S.view.uid !== S.me);
   const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", daily:"일일 퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드", write:S.wrMode === "dump" ? "브레인 덤프" : "스토리 쓰기"}[v] || (isMine() ? "프로필" : "");
-  const n = activityItems().filter(x => x.at > actSeen).length + followReqs().length;
+  const n = activityItems().filter(x => x.at > actSeen).length + followReqs().filter(x => !(x.at <= actSeen)).length;
   setHtml($("#topbar"), `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : `<button class="iconbtn menubtn" data-act="drawer" aria-label="메뉴 열기" aria-expanded="${document.body.classList.contains("drawer")}">${MENU_SVG}</button>`}<h1${sub ? "" : ' class="tmain"'}>${title}</h1>
     ${S.me && !TRIAL && v !== "activity" && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림">${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
     ${hasProfile() && !isMine() && v !== "settings" ? `<a class="iconbtn" href="#me" aria-label="프로필">${PROFILE_SVG}</a>` : ""}`);
@@ -4490,7 +4490,7 @@ const openProfile = uid => { S.profTab = "posts"; S.profN = 20; push({name:"prof
 function route(){
   document.body.classList.remove("drawer", "navhide");
   const h = location.hash, prevKey = viewKey(), prev = S.view.name; S.scrolls[prevKey] = scrollY; if (h !== "#goal") S.vstack = [];
-  if (h === "#activity"){ if (prev !== "activity"){ S.actN = 10; S.actSeenView = actSeen; actSeen = Date.now(); LS.set("actSeen", actSeen); } S.view = {name:"activity"}; }
+  if (h === "#activity"){ if (prev !== "activity"){ S.actN = 10; S.actSeenView = actSeen; actSeen = Math.max(Date.now(), ...activityItems().map(x => +x.at || 0), ...followReqs().map(x => +x.at || 0)); LS.set("actSeen", actSeen); } S.view = {name:"activity"}; }
 
   else if (h === "#today" || h === "#grow") S.view = {name:"today"};
   else if (h === "#shop") S.view = {name:"shop"};
