@@ -1640,9 +1640,11 @@ function ovLay(g, html){ if (!g || g.owner !== S.me || !S.canWrite) return html;
   return in_ ? html.replace('class="card pgc', 'class="card pgc isover').replace(/<\/section>\s*$/, `<div class="ovlay">${in_}</div></section>`) : html; }
 /* 메인 퀘스트에 연결된(보관 안 한) 일일 퀘스트 */
 const linkedHabits = pid => mineOf("quest").filter(q => q.projectId === pid && q.active !== false).sort(habitOrder);
-function weekRate(q){ const t = today(), s0 = sunStart(t), r = qRepeat(q); let n = 0, d = 0; for (let i = 0; i < 7; i++){ const k = addD(s0, i); if (k > t) break; if (occursOn(r, k)){ n++; if ((q.done || {})[k]) d++; } } return {n, d}; }
-function lhRow(q){ const st = streakOf(q), w = weekRate(q);
-  return `<button class="row lhrow" data-act="hedit" data-id="${q.id}"><span class="t"><b>${esc(q.name)}</b><small>${esc(repeatLabel(q))}${q.time ? " · " + tmLabel(q.time) : ""}</small></span><span class="lhst num"><b>🔥 ${st.cur}${streakUnit(q)}</b><small>이번 주 ${w.d}/${w.n}</small></span></button>`; }
+/* 미션 목록을 날짜별로 묶는다(날짜 머리글 + 그날 미션) */
+function mDayLabel(d){ if (!d) return "날짜 없음"; const t = today(), D0 = pd(d), md = `${D0.getMonth()+1}/${D0.getDate()} (${WD[D0.getDay()]})`; return d === t ? `오늘 · ${md}` : d === addD(t, 1) ? `내일 · ${md}` : d < t ? `지난 날짜 · ${md}` : md; }
+function byDay(list, row){ let h = "", last = null; for (const m of list){ const d = dueOf(m) || ""; if (d !== last){ last = d; h += `<div class="mday${d && d < today() ? " late" : d === today() ? " now" : ""}">${mDayLabel(d)}</div>`; } h += row(m); } return h; }
+function lhRow(q){ const done = !!(q.done || {})[today()];
+  return `<div class="row qrow lhrow" data-act="hedit" data-id="${q.id}" data-d="${today()}" role="button" tabindex="0"><button class="check hbck ${done ? "on" : ""}" data-act="qcheck" data-id="${q.id}" aria-pressed="${done}" aria-label="${esc(q.name)} 완료">${I.check}</button><span class="t"><b class="${done ? "done" : ""}">${esc(q.name)}</b></span></div>`; }
 /* 메인 퀘스트를 달성·포기할 때 연결된 일일 퀘스트를 보관할지 함께 묻는다(기본: 계속) */
 const habitChk = pid => { const n = isProj(S.projects[pid]) ? 0 : linkedHabits(pid).length; return n ? {label:`연결된 일일 퀘스트 ${n}개도 보관하기`, on:false} : null; };
 async function archiveLinked(pid){ for (const q of linkedHabits(pid)) await api.putMine(q.id, {...q, active:false}); }
@@ -1686,7 +1688,7 @@ function viewGoal(){
     const tkey = m => (dueOf(m) || "9999-99-99") + " " + (m.time || "99:99"); const srt = allT.sort((a,b) => a.done - b.done || (tkey(a) < tkey(b) ? -1 : tkey(a) > tkey(b) ? 1 : 0) || (a.createdAt||0) - (b.createdAt||0));
     const bare = m => taskRow(m, false);
     const openT = srt.filter(m => !m.done), doneT = srt.filter(m => m.done), gN = (S.gtN && S.gtN.pid === p.id) ? S.gtN.n : 10, dOpen = S.gDone === p.id;
-    const trows = openT.slice(0, gN).map(bare).join("") + (openT.length > gN ? `<button class="morebtn more10" data-act="gtmore" data-p="${p.id}">더 보기 <em class="num">${openT.length - gN}</em></button>` : "")
+    const trows = byDay(openT.slice(0, gN), bare) + (openT.length > gN ? `<button class="morebtn more10" data-act="gtmore" data-p="${p.id}">더 보기 <em class="num">${openT.length - gN}</em></button>` : "")
       + (doneT.length ? `<button class="tfold" data-act="gdone" data-p="${p.id}" aria-expanded="${dOpen}"><span>완료 <em class="num">${doneT.length}개</em></span><span class="chev2 ${dOpen ? "open" : ""}">${I.chev}</span></button>${dOpen ? doneT.map(bare).join("") : ""}` : ""); 
     h += `<section class="card tight qlist"><div class="ch"><h2>미션</h2><span class="side num">${allT.filter(m => m.done).length}/${allT.length}</span></div>${trows}${allT.length ? "" : `<p class="empty-row">미션이 없어요.</p>`}
       ${p.status !== "done" ? `<button class="morebtn add" data-act="taskadd" data-p="${p.id}">+ 미션 추가</button>` : ""}</section>`;

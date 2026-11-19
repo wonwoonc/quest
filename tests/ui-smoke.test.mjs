@@ -1603,12 +1603,13 @@ test('quest pickers are popups (no chip rows): story link, note link, stage pare
   h.click('project',{p:'st'}); h.click('gedit',{p:'st'}); assert.match(ov(),/data-act="ppick">🎯 유튜브 기획/); assert.doesNotMatch(ov(),/data-f="parentId"/);
 });
 
-test('daily quests link to a main quest: main-only picker, shown on the main quest screen with streak/week, archive option on 포기', async () => {
+test('daily quests link to a main quest: main-only picker, checkable on the main quest screen, missions by date, archive option on 포기', async () => {
   const snap = (await linkedUI()).snapshot();
   snap.mine.hab = {id:'hab',kind:'quest',name:'매일 달리기',projectId:'main',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],time:'07:00',lv:'easy',active:true,done:{},createdAt:1};
   const H = await profileUI(snap), ov = () => H.nodes.get('overlay').innerHTML, app = () => H.nodes.get('app').innerHTML;
   H.click('project',{p:'main'});
-  assert.match(app(),/<h2>일일 퀘스트<\/h2>[\s\S]*?매일 달리기[\s\S]*?이번 주 \d+\/\d+/);
+  assert.match(app(),/<h2>일일 퀘스트<\/h2>[\s\S]*?data-act="qcheck" data-id="hab"[\s\S]*?매일 달리기/); assert.doesNotMatch(app(),/이번 주 \d+\/\d+/);
+  assert.match(app(),/class="mday[^"]*">오늘 · /,'missions grouped by date');
   assert.match(app(),/data-act="sheet" data-k="add" data-v="daily" data-p="main"/);
   H.click('sheet',{k:'add',v:'daily',p:'main'}); assert.match(ov(),/연결할 메인 퀘스트[\s\S]*?🎯 메인 연결 대상/);
   H.click('tqpick',{m:'main',t:'어떤 메인 퀘스트를 위한 습관인가요?'}); assert.match(ov(),/data-act="tqset" data-v="main"/); assert.doesNotMatch(ov(),/data-act="tqexp"|data-v="sub"/);
