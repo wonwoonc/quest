@@ -95,24 +95,30 @@ const boxK = (c, box) => (box && box.dataset.tk) || TK(c);
 /* 일정: 시작을 옮기면 같은 날 종료도 같은 길이만큼 따라 옮긴다 */
 function evShift(c, k, prev){ if (k !== "time" || !prev || !c.etime || (c.edate || c.due) !== c.due) return; const mm = t => { const [a, b] = t.split(":").map(Number); return a*60 + b; };
   const d = mm(c.time) - mm(prev); if (!d) return; c.etime = addMin("00:00", Math.max(mm(c.time) + 5, Math.min(23*60 + 55, mm(c.etime) + d)));
-  const eb = document.querySelector('#overlay .tw[data-tk="etime"]'); if (eb && eb.classList.contains("twin")){ const ei = eb.querySelector(".twinput"); if (ei && document.activeElement !== ei) ei.value = c.etime; } else if (eb){ eb._quiet = Date.now(); const [eh, em] = c.etime.split(":").map(Number); eb.querySelector('[data-tw="h"]').scrollTop = eh * TW_H; eb.querySelector('[data-tw="m"]').scrollTop = (Math.round(em/5) % 12) * TW_H; }
+  const eb = document.querySelector('#overlay .tw[data-tk="etime"]'); if (eb && eb.classList.contains("twin")){ const ei = eb.querySelector(".twinput"); if (ei && document.activeElement !== ei) ei.value = c.etime; twListSync(eb, c.etime, false); } else if (eb){ eb._quiet = Date.now(); const [eh, em] = c.etime.split(":").map(Number); eb.querySelector('[data-tw="h"]').scrollTop = eh * TW_H; eb.querySelector('[data-tw="m"]').scrollTop = (Math.round(em/5) % 12) * TW_H; }
   evLine(c); }
 const evLine = c => { const t = document.querySelector("#overlay .evwhen1 .evwt"); if (t) t.innerHTML = evWhenText(c); const v = tmvalEl(c, "etime"); if (v) v.textContent = tmLabel(c.etime); };
-function timeWheel(c, k = TK(c), ok = true){ if (typeof WEB !== "undefined" && WEB.matches) return `<div class="tw twin" data-tk="${k}"><input type="text" class="twinput" data-tk="${k}" inputmode="numeric" maxlength="5" value="${c[k] || "09:00"}" placeholder="예: 930" aria-label="시간 입력" autocomplete="off"><span class="twhint">숫자만 입력해도 돼요 (930 → 09:30)</span>${ok ? `<button class="tw-ok" data-act="tmdone">완료</button>` : ""}</div>`;
+function timeWheel(c, k = TK(c), ok = true){ if (typeof WEB !== "undefined" && WEB.matches) return `<div class="tw twin" data-tk="${k}"><input type="text" class="twinput" data-tk="${k}" inputmode="numeric" maxlength="5" value="${c[k] || "09:00"}" placeholder="예: 930" aria-label="시간 입력" autocomplete="off">${twList(c[k] || "09:00")}<span class="twhint">입력하거나 목록에서 고르세요 (930 → 09:30)</span>${ok ? `<button class="tw-ok" data-act="tmdone">완료</button>` : ""}</div>`;
   const [h, m] = (c[k] || "09:00").split(":").map(Number), mi = Math.round(m/5) % 12;
   const col = (k, n, step, sel) => `<div class="twc" data-tw="${k}" data-sel="${sel}"><i></i><i></i>${Array.from({length:n}, (_, i) => `<span>${pad(i*step)}</span>`).join("")}<i></i><i></i></div>`;
   return `<div class="tw" data-tk="${k}"><div class="twwrap"><div class="twband"></div>${col("h", 24, 1, h)}<b>:</b>${col("m", 12, 5, mi)}</div>${ok ? `<button class="tw-ok" data-act="tmdone">완료</button>` : ""}</div>`; }
+const twSel = t => { const [h, m] = t.split(":").map(Number); return pad(h) + ":" + pad(Math.floor(m / 5) * 5); };
+function twList(t){ const sel = twSel(t); return `<div class="twlist" role="listbox" aria-label="5분 단위 시간">${Array.from({length:288}, (_, i) => { const v = pad(Math.floor(i / 12)) + ":" + pad(i % 12 * 5); return `<button type="button" class="twopt num${v === sel ? " on" : ""}" data-v="${v}" role="option" aria-selected="${v === sel}">${v}</button>`; }).join("")}</div>`; }
+function twListSync(box, t, smooth){ const l = box && box.querySelector(".twlist"); if (!l) return; const sel = twSel(t); let on = null; l.querySelectorAll(".twopt").forEach(b => { const y = b.dataset.v === sel; b.classList.toggle("on", y); b.setAttribute("aria-selected", y); if (y) on = b; });
+  if (on) l.scrollTo({top:on.offsetTop - l.clientHeight / 2 + on.offsetHeight / 2, behavior:smooth ? "smooth" : "auto"}); }
+document.addEventListener("click", e => { const b = e.target.closest && e.target.closest(".twopt"); if (!b) return; e.stopPropagation(); const box = b.closest(".tw"), inp = box && box.querySelector(".twinput"); if (!inp) return;
+  inp.value = b.dataset.v; twInputSet(inp, true); twListSync(box, b.dataset.v, true); }, true);
 function parseHM(v){ v = String(v || "").trim().replace(/[.\s]/g, ":"); let h, m; if (v.includes(":")){ const [a, b = "0"] = v.split(":"); if (!/^\d{1,2}$/.test(a) || !/^\d{0,2}$/.test(b)) return null; h = +a; m = +(b || 0); }
   else { if (!/^\d{1,4}$/.test(v)) return null; if (v.length <= 2){ h = +v; m = 0; } else { h = +v.slice(0, v.length - 2); m = +v.slice(-2); } }
   return h > 23 || m > 59 ? null : `${pad(h)}:${pad(m)}`; }
 function twInputSet(inp, done){ const c = S.compose; if (!c) return false; const raw = inp.value.trim(); if (!done && !/^(\d{1,2}:\d{2}|\d{4})$/.test(raw)){ inp.classList.remove("bad"); return false; } const t = parseHM(raw); inp.classList.toggle("bad", !t && inp.value.trim() !== ""); if (!t) return false;
-  const K = inp.dataset.tk || "time", prev = c[K]; c[K] = t; const v = tmvalEl(c, K); if (v) v.textContent = tmLabel(t); if (prev !== t){ evShift(c, K, prev); evLine(c); } try { planPrev(); } catch (_) {} return true; }
+  const K = inp.dataset.tk || "time", prev = c[K]; c[K] = t; twListSync(inp.closest(".tw"), t, true); const v = tmvalEl(c, K); if (v) v.textContent = tmLabel(t); if (prev !== t){ evShift(c, K, prev); evLine(c); } try { planPrev(); } catch (_) {} return true; }
 document.addEventListener("focusin", e => { const inp = e.target; if (inp && inp.classList && inp.classList.contains("twinput")) setTimeout(() => { try { inp.select(); } catch (_) {} }, 0); });
 document.addEventListener("input", e => { const inp = e.target; if (inp && inp.classList && inp.classList.contains("twinput")) twInputSet(inp); });
 document.addEventListener("keydown", e => { const inp = e.target; if (!inp || !inp.classList || !inp.classList.contains("twinput") || e.key !== "Enter") return; e.preventDefault(); if (!twInputSet(inp, true)) return;
   const box = inp.closest(".tw"), ok = box && box.querySelector(".tw-ok"); if (ok) ok.click(); else { const all = [...document.querySelectorAll("#overlay .twinput")], nx = all[all.indexOf(inp) + 1]; if (nx){ nx.focus(); nx.select(); } } });
 document.addEventListener("focusout", e => { const inp = e.target; if (!inp || !inp.classList || !inp.classList.contains("twinput")) return; const t = twInputSet(inp, true) && parseHM(inp.value); if (t) inp.value = t; else if (S.compose) { inp.value = S.compose[inp.dataset.tk || "time"] || "09:00"; inp.classList.remove("bad"); } });
-function initTW(){ const ti = document.querySelector("#overlay .twinput"); const ae = document.activeElement; if (ti && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName || "") && ae.isConnected)){ try { ti.focus(); ti.select(); } catch (_) {} }
+function initTW(){ document.querySelectorAll("#overlay .tw.twin").forEach(b => { const i = b.querySelector(".twinput"); if (i) twListSync(b, i.value, false); }); const ti = document.querySelector("#overlay .twinput"); const ae = document.activeElement; if (ti && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName || "") && ae.isConnected)){ try { ti.focus(); ti.select(); } catch (_) {} }
   document.querySelectorAll("#overlay .twc").forEach(el => { el.scrollTop = (+el.dataset.sel) * TW_H; el.querySelectorAll("span").forEach((x, i) => x.classList.toggle("on", i === +el.dataset.sel)); }); }
 function twCommit(inp){ const c = S.compose; if (!c || inp._done || !inp.isConnected) return; inp._done = true; const k = inp.dataset.tw, n = parseInt(inp.value, 10), box = inp.closest(".tw"); inp.remove(); if (isNaN(n)) return;
   const K = boxK(c, box), prev = c[K]; let [h, m] = (c[K] || "09:00").split(":").map(Number); if (k === "h") h = Math.max(0, Math.min(23, n)); else m = Math.max(0, Math.min(59, n));
@@ -153,7 +159,7 @@ const cxGoalsOf = uid => Object.values(S.projects).filter(p => p.owner === uid &
 /* D-day가 지났는데 아직 달성·취소하지 않은 퀘스트 → 연장 / 달성 / 취소를 고르게 한다 */
 const isOver = p => !!p && !!p.end && p.status !== "done" && !isCx(p) && p.end < today();
 const overOf = uid => Object.values(S.projects).filter(p => p.owner === uid && isOver(p) && !(p.parentId && isCx(S.projects[p.parentId]))).sort((a,b) => a.end < b.end ? -1 : 1);
-const subsOf = gid => Object.values(S.projects).filter(p => p.parentId === gid && !isCx(p)).sort((a,b) => (a.status === "done") - (b.status === "done") || (a.createdAt||0) - (b.createdAt||0));
+const subsOf = gid => Object.values(S.projects).filter(p => p.parentId === gid && !isCx(p)).sort((a,b) => (a.status === "done") - (b.status === "done") || ((a.order ?? 1e9) - (b.order ?? 1e9)) || (a.createdAt||0) - (b.createdAt||0));
 const famIds = p => p.parentId ? [p.id] : [p.id, ...subsOf(p.id).map(x => x.id)];
 const goalLabel = p => p ? (p.parentId ? `🔗 ${p.title}` : `🎯 ${p.title}`) : "";
 
@@ -452,7 +458,7 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   $("#app").innerHTML = (dash || v === "qmanage" ? firstGame() : "") + (dash ? viewWebDash() : ({today:viewToday, feed:viewFeed, post:viewPost, project:viewGoal, profile:viewProfile, activity:viewActivity, settings:viewSettings, qmanage:viewQManage, daily:viewDaily, stats:viewStats, shop:viewShop, cal:viewCal, notes:viewNotes, learn:viewLearn, calday:viewCalDay, dash:viewFeed, write:viewWrite}[v] || viewToday)());
   { const gg = dash && $(".wd-goals .wd-ggrid"); if (gg && S.wdGs) gg.scrollLeft = S.wdGs; }
   $("#app").dataset.v = S.me && !hasProfile() && S.canWrite ? "profile" : dash ? "dash" : v; $("#app").dataset.pt = v === "profile" || v === "today" ? (S.profTab || "") : "";
-  renderReplyBar(); renderPill();
+  renderReplyBar(); renderPill(); alignTop();
   if (fid){ const el = document.getElementById(fid); if (el){ el.focus({preventScroll:true}); if (sel && el.setSelectionRange) try{ el.setSelectionRange(sel[0], sel[1]); }catch(e){} } }
   loadMedia(document);
   { const fm = document.getElementById("feedmore"); if (fm){ if (S._feedIO) S._feedIO.disconnect();
@@ -496,6 +502,9 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   }
 }
 const isMine = () => S.view.name === "profile" && S.view.uid === S.me;
+/* PC: 상단 알림·프로필 버튼을 화면마다 다른 본문 폭의 오른쪽 끝에 맞춘다 */
+function alignTop(){ const tb = $("#topbar"), app = $("#app"); if (!tb || !app) return; try { const mw = WEB.matches ? getComputedStyle(app).maxWidth : "none"; tb.style.maxWidth = mw && mw !== "none" ? mw : ""; } catch (_) {} }
+try { addEventListener("resize", () => alignTop()); } catch (_) {}
 function renderTop(){
   const v = S.view.name, sub = v === "post" || v === "learn" || v === "calday" || v === "project" || v === "activity" || v === "settings" || v === "stats" || v === "daily" || v === "write" || (v === "profile" && S.view.uid !== S.me);
   const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", daily:"일일 퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드", write:S.wrMode === "dump" ? "브레인 덤프" : "스토리 쓰기"}[v] || (isMine() ? "프로필" : "");
@@ -582,7 +591,7 @@ function charCard(uid, extra = "", nameExtra = ""){
   const s = statsOf(uid);
   return `<section class="card pcard" style="--pc:${colorOf(uid)}">
     <div class="char"><div class="stage">${fig(uid, 80, 60)}</div>
-      <div style="min-width:0;flex:1"><h2 class="cname">${esc(nameOf(uid))}${nameExtra}</h2><p>Lv.${s.L} ${rankOf(s.L)}</p>
+      <div style="min-width:0;flex:1"><h2 class="cname">${esc(nameOf(uid))}<span class="pillLv num">Lv.${s.L}</span>${nameExtra}</h2>
         <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
         <div class="barmeta lft"><span class="num">${s.need===0?'MAX':`${fmt(s.cur)} / ${fmt(s.need)} XP`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div></div></div>
     ${extra}</section>`;
@@ -758,7 +767,7 @@ function viewStats(gains = null){
   if (!hasProfile()) return viewToday();
   const s = statsOf(S.me), p = prof(S.me);
   const tiles = [["레벨", `Lv.${s.L}`], ["총 경험치", `${fmt(s.xp)} XP`], ["보유 코인", `🪙 ${fmt(s.gold)}`]];
-  return `<section class="card stprof"><div class="stpf">${av(S.me, 120, false)}</div><div class="stpi"><h2>${esc(nameOf(S.me))}</h2><p>Lv.${s.L} ${rankOf(s.L)}</p>
+  return `<section class="card stprof"><div class="stpf">${av(S.me, 120, false)}</div><div class="stpi"><h2>${esc(nameOf(S.me))}<span class="pillLv num">Lv.${s.L}</span></h2>
       <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
       <div class="barmeta lft"><span class="num">${s.need === 0 ? "MAX" : `Lv.${s.L + 1}까지 ${fmt(s.cur)} / ${fmt(s.need)} XP`}</span></div></div>
     ${p.bio ? `<p class="bio stbio">${esc(p.bio)}</p>` : ""}
@@ -922,8 +931,8 @@ function viewCal(){
   const cnt = d => { const l = (by[d] || []).filter(m => !m._ghost); return {n:l.length, done:l.filter(m => m.done).length, late:l.some(m => !m.done && d < t)}; };
   let h = `<div class="seg" role="group" aria-label="보기" data-swipe>${[["day","일"],["week","주"],["month","월"],["year","연"]].map(([k,l]) => `<button data-act="cmode" data-v="${k}" aria-pressed="${mode===k}">${l}</button>`).join("")}</div>`;
   const D0 = pd(date);
-  // 스테이지가 있는 메인 퀘스트는 진행 중인 스테이지들을, 스테이지가 없으면 메인 퀘스트 자체를 보여 준다(기한 빠른 순).
-  const cgs = mode === "year" ? [] : goalsOf(S.me).filter(p => p.status !== "done").flatMap(g => { const ss = subsOf(g.id).filter(x => x.status !== "done"); return ss.length ? ss : [g]; }).sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : (a.end||"9999") > (b.end||"9999") ? 1 : 0);
+  // 캘린더 위 퀘스트 카드는 진행 중인 메인 퀘스트만 보여 준다(스테이지 제외, 기한 빠른 순).
+  const cgs = mode === "year" ? [] : goalsOf(S.me).filter(p => p.status !== "done").sort((a,b) => (a.end||"9999") < (b.end||"9999") ? -1 : (a.end||"9999") > (b.end||"9999") ? 1 : 0);
   if (cgs.length){ const gi = Math.max(0, Math.min(cgs.length - 1, S.calGi || 0)), g = cgs[gi]; S.calGi = gi;
     // 캘린더는 일정이 주인공: 제목 · D-day · 넘기기 한 줄 + 수치 막대만 (상태 칩·수치 글자·스테이지/미션은 뺀다)
     h += `<section class="card pgc calq" data-act="project" data-p="${g.id}" role="button" tabindex="0"><div class="calqh"><h3>${esc(g.title)}</h3>${g.end ? `<span class="cdd num">${dday(g.end)}</span>` : ""}${cgs.length > 1 ? `<div class="cpager"><button data-act="cgi" data-v="-1" ${gi ? "" : "disabled"} aria-label="이전 퀘스트">${I.back}</button><span class="num">${gi + 1}/${cgs.length}</span><button class="fwd" data-act="cgi" data-v="1" ${gi < cgs.length - 1 ? "" : "disabled"} aria-label="다음 퀘스트">${I.back}</button></div>` : ""}</div>${metricBox(g)}</section>`; }
@@ -1307,11 +1316,11 @@ function viewPlan(){
   if (!["all", "active", "later", "done"].includes(Q.ptab)) Q.ptab = "all";
   const tab = Q.ptab, T = t => tab === "all" || tab === t;
   /* 모바일은 위아래 한 줄씩, PC는 여러 줄 격자(.plgrid). 전체 칩의 달성은 최근 3개 + '달성 전체 보기'. */
-  const sec = (t, list, extra = "", empty = "", more = "", btn = "") => `<div class="subhead${btn ? " dqhead" : ""}"><h2>${t} <span class="num">${list.length}</span></h2>${btn}</div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => ovLay(g, plCard(g))).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
+  const sec = (t, list, extra = "", empty = "", more = "", btn = "", reo = false) => `<div class="subhead${btn ? " dqhead" : ""}"><h2>${t} <span class="num">${list.length}</span></h2>${btn}</div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => ovLay(g, reo && S.canWrite ? plCard(g).replace('<section class="card pgc', `<section data-reo="${g.id}" class="card pgc`) : plCard(g))).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
   let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태" data-swipe>${[["all","전체",all.length],["active","진행",act.length],["later","대기",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
   const mkBtn = `<button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">+ 생성</button>`;
-  if (T("active")) h += sec("진행 중", act, "", "이루고 싶은 목표를 퀘스트로 만들어 보세요.", "", mkBtn);
-  if (T("later") && (later.length || tab === "later")) h += sec("대기 중", later, "", "아직 시작하지 않은 메인 퀘스트가 여기에 모여요.", "", mkBtn);
+  if (T("active")) h += sec("진행 중", act, "", "이루고 싶은 목표를 퀘스트로 만들어 보세요.", "", mkBtn, true);
+  if (T("later") && (later.length || tab === "later")) h += sec("대기 중", later, "", "아직 시작하지 않은 메인 퀘스트가 여기에 모여요.", "", mkBtn, true);
   const cx = cxGoalsOf(S.me);
   if (T("done") && (done.length || tab === "done")) h += sec("달성", done, "", "달성한 메인 퀘스트가 여기에 모여요.", tab === "all" && done.length > 3 ? `<button class="btn sec full qmmore" data-act="pl-tab" data-v="done">달성 전체 보기 <span class="num">${done.length}</span></button>` : "", mkBtn);
   if (tab === "done" && cx.length) h += sec("포기", cx);
@@ -1579,7 +1588,7 @@ function viewFeed(){
 }
 function personRow(u){
   const f = isFollowing(S.me, u), s = statsOf(u);
-  return `<div class="row">${av(u, 44)}<span class="t" data-act="profile" data-u="${esc(u)}" role="button" tabindex="0"><b>${esc(nameOf(u))} <span class="pillLv">Lv.${s.L}</span></b><small>${esc(prof(u).bio || rankOf(s.L))}</small></span>
+  return `<div class="row">${av(u, 44)}<span class="t" data-act="profile" data-u="${esc(u)}" role="button" tabindex="0"><b>${esc(nameOf(u))} <span class="pillLv">Lv.${s.L}</span></b>${prof(u).bio ? `<small>${esc(prof(u).bio)}</small>` : ""}</span>
     ${canAct() ? `<button class="btn ${f || pendingTo(u) ?"sec":"soft"} sm" data-act="follow" data-u="${esc(u)}">${folLabel(u)}</button>` : ""}</div>`;
 }
 function suggestCard(){
@@ -1648,7 +1657,7 @@ function viewGoal(){
   </section>`;
   if (!sp && (subs.length || mine)){ const addable = mine && p.status !== "done" && !isCx(p), cxs = Object.values(S.projects).filter(x => x.parentId === p.id && isCx(x));
     h += `<div class="subhead"><h2>스테이지 <span class="num">${subs.filter(x => x.status === "done").length}/${subs.length}</span></h2></div>
-    <div class="plgrid hsc">${subs.map(x => plCard(x).replace(/<span class="parlab">[\s\S]*?<\/span>/, "")).join("")}${addable ? `<button class="card subc subadd pladdc" data-act="sheet" data-k="sub" data-p="${p.id}"><span class="wd-plus">+</span><b>스테이지 생성</b>${subs.length ? "" : `<small>메인 퀘스트를 작은 관문으로 나눠 보세요</small>`}</button>` : ""}${cxs.map(x => plCard(x).replace(/<span class="parlab">[\s\S]*?<\/span>/, "")).join("")}</div>`; }
+    <div class="plgrid hsc" data-reobox="st">${subs.map(x => { const c0 = plCard(x).replace(/<span class="parlab">[\s\S]*?<\/span>/, ""); return mine ? c0.replace('<section class="card pgc', `<section data-reo="${x.id}" class="card pgc`) : c0; }).join("")}${addable ? `<button class="card subc subadd pladdc" data-act="sheet" data-k="sub" data-p="${p.id}"><span class="wd-plus">+</span><b>스테이지 생성</b>${subs.length ? "" : `<small>메인 퀘스트를 작은 관문으로 나눠 보세요</small>`}</button>` : ""}${cxs.map(x => plCard(x).replace(/<span class="parlab">[\s\S]*?<\/span>/, "")).join("")}</div>`; }
   if (mine){
     const ms = mineOf("mission").filter(m => m.projectId === p.id).sort((x,y) => x.done - y.done);
     const subT = sp ? [] : subs.map(x => ({x, l:mineOf("mission").filter(m => m.projectId === x.id).sort((a,b) => a.done - b.done)})).filter(o => o.l.length);
@@ -1738,8 +1747,7 @@ function webProfCard(uid){
   const s = statsOf(uid), p = prof(uid), c = colorOf(uid), posts = feedSorted().filter(x => x.author === uid).length;
   const followers = Object.values(S.follows).filter(f => f.to === uid).length, following = Object.values(S.follows).filter(f => f.from === uid).length;
   return `<section class="card wdp" style="--pc:${c};background:color-mix(in srgb,${c} 11%,var(--card))"><div class="wdp-cv" ${uid === S.me ? `data-act="statsheet" role="button" tabindex="0" aria-label="능력치 보기"` : ""} style="background:linear-gradient(160deg,color-mix(in srgb,${c} 22%,var(--card)),color-mix(in srgb,${c} 55%,var(--card)))"><div class="wdp-fig">${fig(uid, 150, 104)}</div></div>
-    <div class="wdp-name"><h3>${esc(nameOf(uid))}</h3>${uid === S.me && S.canWrite ? `<button class="editp" data-act="sheet" data-k="profile">프로필 편집</button>` : ""}</div>
-     <p class="wdp-lv">Lv.${s.L} ${rankOf(s.L)}</p>
+    <div class="wdp-name"><h3>${esc(nameOf(uid))}</h3><span class="wdp-lvm num">Lv.${s.L}</span>${uid === S.me && S.canWrite ? `<button class="editp" data-act="sheet" data-k="profile">프로필 편집</button>` : ""}</div>
     <div class="bar" role="progressbar" aria-label="레벨 진행도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.pct}"><i style="width:${s.pct}%"></i></div>
     <div class="barmeta lft"><span class="num">${s.need===0?'MAX':`${fmt(s.cur)} / ${fmt(s.need)} XP`}</span><span class="num coinm">🪙 ${fmt(s.gold)}</span></div>
     ${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ""}
@@ -2386,7 +2394,7 @@ let tapT = null, tapKey = null;
     S._reoJust = Date.now(); if (!save) { schedule(); return; }
     const ids = [...box.querySelectorAll(":scope > [data-reo]")].map(x => x.dataset.reo);
     const rest = goalsOf(S.me).filter(g => g.status !== "done" && !ids.includes(g.id)).sort(gOrder).map(g => g.id);
-    const all = (box.closest(".wd-goals") ? [...ids, ...rest] : ids), ch = [];
+    const all = (box.dataset.reobox === "st" ? ids : [...ids, ...rest]), ch = [];
     all.forEach((id, i) => { const p = S.projects[id]; if (p && p.order !== i){ p.order = i; ch.push(p); } });
     schedule(); if (ch.length) Promise.all(ch.map(p => api.putProject(p.id, {...p}))).then(() => toast("순서를 바꿨어요")).catch(() => toast("순서를 저장하지 못했어요"));
   };
@@ -2400,8 +2408,8 @@ let tapT = null, tapKey = null;
     if (!drag) return; e.preventDefault();
     const {el, box, gh} = drag; if (gh){ gh.style.left = (e.clientX - drag.ox) + "px"; gh.style.top = (e.clientY - drag.oy) + "px"; } el.style.pointerEvents = "none"; const over = document.elementFromPoint(e.clientX, e.clientY); el.style.pointerEvents = "";
     const tg = over && over.closest("[data-reo]"); if (!tg || tg === el || tg.parentNode !== box) { autoScroll(box, e); return; }
-    const r = tg.getBoundingClientRect(), hor = getComputedStyle(box).display === "flex" && getComputedStyle(box).flexDirection.startsWith("row");
-    const after = hor ? e.clientX > r.left + r.width/2 : e.clientY > r.top + r.height/2;
+    const r = tg.getBoundingClientRect(), cs = getComputedStyle(box), hor = cs.display === "flex" && cs.flexDirection.startsWith("row"), grid = cs.display === "grid" && (cs.gridTemplateColumns || "").trim().split(/\s+/).length > 1;
+    const after = hor ? e.clientX > r.left + r.width/2 : grid ? (e.clientY > r.top + r.height * .75 || (e.clientY >= r.top + r.height * .25 && e.clientX > r.left + r.width/2)) : e.clientY > r.top + r.height/2;
     box.insertBefore(el, after ? tg.nextSibling : tg); autoScroll(box, e); }, {passive:false});
   const autoScroll = (box, e) => { const r = box.getBoundingClientRect(); if (box.scrollWidth > box.clientWidth){ if (e.clientX < r.left + 40) box.scrollLeft -= 12; else if (e.clientX > r.right - 40) box.scrollLeft += 12; }
     if (e.clientY < 60) scrollBy(0, -12); else if (e.clientY > innerHeight - 90) scrollBy(0, 12); };
