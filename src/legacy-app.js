@@ -1156,7 +1156,7 @@ function viewLearn(){
   if (!LP || LP.id !== n.id) LP = {id:n.id, blocks:noteBlocks(n).map(bkNorm)};
   const rows = [["강사·저자", f.author && esc(f.author)], ["별점", f.rating && stars(f.rating)], ["영역", A && `${aIcon(A[0])}${A[3]}`], ["퀘스트", pj && `${nic("target")}${esc(pj.title)}`], ["링크", f.url && (safeUrl(f.url) ? `<a class="ntlink" href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener noreferrer">${esc(ntHost(safeUrl(f.url)))}</a>` : esc(f.url))], ["학습 목표", f.goal && esc(f.goal), "goal"]].filter(r => r[1]);
   const st = f.status || "예정", rd = !!S.lnRead, fs = S.lnFs || LS.get("lnFs", "m");
-  let h = `<section class="card lnhead"><div class="lntop"><span class="ntcat">${nic("book")}${esc(f.type || "학습")}</span>${done ? `<span class="ntdone">${nic("check")}완성</span>` : ""}<button class="link lnedit" data-act="nt-edit" data-id="${n.id}" data-info="1">정보 수정</button></div>
+  let h = `<section class="card lnhead"><div class="lntop"><span class="ntcat">${nic("book")}${esc(f.type || "학습")}</span>${done ? `<span class="ntdone">${nic("check")}완성</span>` : ""}<button class="link lnedit" data-act="nt-edit" data-id="${n.id}" data-info="1">정보 수정</button><button class="link lndel" data-act="nt-del" data-id="${n.id}">삭제</button></div>
     <h2 class="lntitle">${esc(f.title || "제목 없음")}</h2>
     ${rows.length ? `<dl class="lninfo">${rows.map(([l, v, c]) => `<dt>${l}</dt><dd class="${c || ""}">${v}</dd>`).join("")}</dl>` : ""}
     <div class="lnstatus"><span>상태</span><div class="seg">${LN_STATUS.map(x => `<button data-act="ln-st" data-v="${x}" aria-pressed="${st === x}">${x}</button>`).join("")}</div></div>
@@ -2763,7 +2763,7 @@ document.addEventListener("click", e => {
       run(async () => { for (const n of moved){ const {f} = ntN(n); await api.putMine(n.id, {...n, cat:"memo", f:{title:f.title || "", body:Object.entries(f).filter(([x]) => x !== "title").map(([, v]) => String(v)).join("\n")}}); }
         await api.putMine("drawers", {kind:"drawers", list:(cfg.list || []).filter(x => x.k !== k), hidden:cfg.hidden || []}); },
         () => { if (S.ntCat === k) S.ntCat = "all"; openSheet({type:"drawers"}); toast(moved.length ? `서랍을 삭제하고 자료 ${moved.length}개를 메모로 옮겼어요` : "서랍을 삭제했어요"); }); return; }
-    case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; { const fs0 = (S.mine[id] && S.mine[id].files) || []; run(() => api.delMine(id), () => { fs0.forEach(x => FDB.del(x.id)); closeSheet(); toast("자료를 삭제했어요"); }); } return;
+    case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; { const fs0 = (S.mine[id] && S.mine[id].files) || []; run(() => api.delMine(id), () => { fs0.forEach(x => FDB.del(x.id)); closeSheet(); toast("자료를 삭제했어요"); if (S.view && S.view.name === "learn" && S.view.id === id){ S.view = {name:"notes"}; LP = null; history.replaceState(history.state, "", "#notes"); schedule(); scrollTo(0, 0); } }); } return;
     case "bd-area": LS.set("bdOff", b.dataset.v === "off"); break;
     case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); if (c && c.type === "bdsort") renderSheet(); break; } S.armed = null; run(() => api.delMine(id), () => { if (S.compose && S.compose.type === "bdsort") closeSheet(); toast("삭제했어요"); }); return;
     case "bd-send": bdSend(id, b.dataset.v); return;
