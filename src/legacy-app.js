@@ -2260,9 +2260,15 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     </div><button class="btn big full" data-act="sheet-close">확인</button>`); }
   if (c.type === "ppick"){ const par = S.parentSheet || {}, gs = goalsOf(S.me).filter(g => g.status !== "done");
     return sheetWrap("어떤 메인 퀘스트의 스테이지인가요?", "", `<div class="sheetlist mlist">${gs.map(g => `<button class="row mitem" data-act="ppset" data-v="${g.id}"><span class="t"><b>🎯 ${esc(g.title)}</b><small>메인 퀘스트${g.end ? " · " + dday(g.end) : ""}</small></span>${par.parentId === g.id ? `<span class="pick">✓</span>` : ""}</button>`).join("") || `<p class="empty-row">진행 중인 메인 퀘스트가 없어요.</p>`}</div>`); }
-  if (c.type === "gmpick"){ const cur = S.gmDate && S.gmDate.p === c.pid ? S.gmDate.d : "", ds = Object.keys(c.cnt || {}).filter(Boolean).sort(), t = today();
-    const it = (v, lb, n) => `<button class="row mitem" data-act="gmset" data-v="${v}"><span class="t"><b>${lb}</b>${n != null ? `<small>미션 ${n}개</small>` : ""}</span>${cur === v ? `<span class="pick">✓</span>` : ""}</button>`;
-    return sheetWrap("날짜로 보기", "", `<div class="sheetlist mlist">${it("", "전체", null)}${ds.includes(t) ? "" : it(t, mDayLabel(t), 0)}${ds.map(d => it(d, mDayLabel(d), c.cnt[d])).join("")}</div>`); }
+  if (c.type === "gmpick"){ const cur = S.gmDate && S.gmDate.p === c.pid ? S.gmDate.d : "", t = today(), ym = c.ym || (cur || t).slice(0, 7), [Y, M] = ym.split("-").map(Number);
+    const first = new Date(Y, M - 1, 1), n = new Date(Y, M, 0).getDate(), lead = first.getDay(); let cells = "";
+    for (let i = 0; i < lead; i++) cells += `<span class="gmd pad"></span>`;
+    for (let d = 1; d <= n; d++){ const k = `${ym}-${pad(d)}`, cnt = (c.cnt || {})[k] || 0, wd = (lead + d - 1) % 7;
+      cells += `<button class="gmd${k === t ? " today" : ""}${k === cur ? " on" : ""}${cnt ? " has" : ""}${wd === 0 ? " sun" : wd === 6 ? " sat" : ""}" data-act="gmset" data-v="${k}" aria-label="${M}월 ${d}일${cnt ? ` 미션 ${cnt}개` : ""}"><b class="num">${d}</b>${cnt ? `<i class="num">${cnt}</i>` : "<i></i>"}</button>`; }
+    const nav = dlt => { const D1 = new Date(Y, M - 1 + dlt, 1); return `${D1.getFullYear()}-${pad(D1.getMonth() + 1)}`; };
+    return sheetWrap("날짜로 보기", "", `<div class="gmcal"><div class="gmh"><button data-act="gmym" data-v="${nav(-1)}" aria-label="이전 달">${I.back}</button><b>${Y !== +t.slice(0, 4) ? Y + "년 " : ""}${M}월</b><button class="fwd" data-act="gmym" data-v="${nav(1)}" aria-label="다음 달">${I.back}</button></div>
+      <div class="gmw">${WD.map((w, i) => `<span class="${i === 0 ? "sun" : i === 6 ? "sat" : ""}">${w}</span>`).join("")}</div><div class="gmg">${cells}</div></div>
+      <button class="btn ${cur ? "sec" : "soft"} full" data-act="gmset" data-v="">전체 보기</button>`); }
   if (c.type === "tqpick"){ const par = S.parentSheet || {}, cur = c.m === "ref" ? (par.ref || {}).id : par.projectId, onlyMain = c.m === "main";
     const gs = goalsOf(S.me).filter(g => g.status !== "done").sort(gOrder), orphan = onlyMain ? [] : Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId));
     if (c.exp === undefined){ const cp = cur && S.projects[cur]; c.exp = cp && cp.parentId ? cp.parentId : null; }
@@ -2884,6 +2890,7 @@ document.addEventListener("click", e => {
     case "gmpick": { const all = (S._gmAll && S._gmAll.p === pid ? S._gmAll.list : []), cnt = {}; for (const m of all){ const d = dueOf(m) || ""; cnt[d] = (cnt[d] || 0) + 1; } openSheet({type:"gmpick", pid, cnt}); return; }
     case "gmset": S.gmDate = b.dataset.v ? {p:c.pid, d:b.dataset.v} : null; closeSheet(); schedule(); return;
     case "gmall": S.gmDate = null; schedule(); return;
+    case "gmym": c.ym = b.dataset.v; renderSheet(); return;
     case "shoptab": S.shopTab = b.dataset.v; schedule(); return;
     case "redit": { const r = S.mine[id]; if (!r) return; S.drafts["rw-name"] = r.name; openSheet({type:"reward", id, cost:priceOf(r), img:r.img || null, repeat:r.repeat === "once" ? "once" : "repeat", rt:rType(r)}); return; }
     case "rimg": choosePhotos(false, async list => { if (!S.compose || S.compose.type !== "reward") return; S.compose.img = await shrinkImg(list[0], 640, 90000); renderSheet(); }); return;

@@ -1615,8 +1615,8 @@ test('daily quests link to a main quest: main-only picker, checkable on the main
   assert.match(app(),/<h2>일일 퀘스트<\/h2>[\s\S]*?data-act="qcheck" data-id="hab"[\s\S]*?매일 달리기/); assert.doesNotMatch(app(),/이번 주 \d+\/\d+/); assert.match(app(),/매일 달리기<\/b><small class="task-meta"><span class="tday">오늘<\/span> <span class="tday soft">7:00<\/span> <span class="fire">🔥 0일<\/span>/); assert.doesNotMatch(app(),/일 연속/);
   assert.doesNotMatch(app(),/class="mday/,'no date headers: each mission row carries its own date tag');
   assert.match(app(),/<h2>미션<\/h2><button class="gmchip" data-act="gmpick" data-p="main">전체/);
-  H.click('gmpick',{p:'main'}); assert.match(ov(),/날짜로 보기[\s\S]*data-act="gmset" data-v=""[\s\S]*오늘 · [\s\S]*미션 \d+개/);
-  { const d = ov().match(/data-act="gmset" data-v="(\d{4}-\d\d-\d\d)"/)[1]; H.click('gmset',{v:d}); }
+  H.click('gmpick',{p:'main'}); assert.match(ov(),/날짜로 보기[\s\S]*class="gmg"[\s\S]*class="gmd today[^"]*has[^"]*" data-act="gmset" data-v="\d{4}-\d\d-\d\d"[\s\S]*data-act="gmset" data-v="">전체 보기/);
+  { const d = ov().match(/class="gmd today[^"]*" data-act="gmset" data-v="(\d{4}-\d\d-\d\d)"/)[1]; H.click('gmym',{v:'2099-01'}); assert.match(ov(),/2099년 1월/); H.click('gmset',{v:d}); }
   assert.match(app(),/class="gmchip on"><button data-act="gmpick" data-p="main">오늘 · /); assert.doesNotMatch(app(),/class="mday/);
   H.click('gmall'); assert.match(app(),/class="gmchip" data-act="gmpick"/);
   assert.match(app(),/data-act="sheet" data-k="add" data-v="daily" data-p="main"/);
