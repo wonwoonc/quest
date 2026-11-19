@@ -1621,6 +1621,17 @@ a.row{color:inherit;text-decoration:none}
 .calqh h3.mq-on .mqt{animation:mqslide var(--mqs,6s) ease-in-out 1.2s infinite}
 @keyframes mqslide{0%,15%{transform:translateX(0)}70%,85%{transform:translateX(var(--mqd))}100%{transform:translateX(0)}}
 @media (prefers-reduced-motion:reduce){.calqh h3.mq-on .mqt{animation:none}.calqh h3.mq-on{text-overflow:ellipsis;-webkit-mask-image:none;mask-image:none}}
+/* 퀘스트 선택 팝업: 메인 → 스테이지 펼치기 */
+.mitem.tqmain{align-items:center}.mitem.tqmain .chev2{margin-left:6px;flex:none;color:var(--muted)}
+/* 메인 퀘스트 화면: 연결된 일일 퀘스트 */
+.lhrow{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.lhrow .t{flex:1;min-width:0}.lhrow .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lhst{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none}.lhst b{font-size:13px;color:#F08A24}.lhst small{font-size:11.5px;color:var(--muted)}
+/* 확인창 체크 항목 */
+.cfchk{display:flex;align-items:center;gap:10px;width:100%;margin:4px 0 14px;padding:12px 14px;border:0;border-radius:12px;background:var(--fill);color:var(--ink);font:inherit;font-size:14px;font-weight:600;text-align:left;cursor:pointer}
+.cfchk i{width:20px;height:20px;border-radius:6px;border:2px solid var(--line);flex:none;display:grid;place-items:center;background:var(--card)}
+.cfchk[aria-pressed="true"] i{background:var(--accent);border-color:var(--accent)}
+.cfchk[aria-pressed="true"] i::after{content:"";width:9px;height:5px;border:2.4px solid #fff;border-top:0;border-right:0;transform:translateY(-1px) rotate(-45deg)}
 </style>
 <script>
 (function(){"use strict";
@@ -3942,6 +3953,14 @@ function ovLay(g, html){ if (!g || g.owner !== S.me || !S.canWrite) return html;
   else { const st = isProj(g) ? null : subsOf(g.id).find(isOver);
     if (st) in_ = `${ic}<b>스테이지 기한이 지났어요</b><small>${esc(st.title)} · ${dday(st.end)}</small>${btns(st)}`; }
   return in_ ? html.replace('class="card pgc', 'class="card pgc isover').replace(/<\/section>\s*$/, `<div class="ovlay">${in_}</div></section>`) : html; }
+/* 메인 퀘스트에 연결된(보관 안 한) 일일 퀘스트 */
+const linkedHabits = pid => mineOf("quest").filter(q => q.projectId === pid && q.active !== false).sort(habitOrder);
+function weekRate(q){ const t = today(), s0 = sunStart(t), r = qRepeat(q); let n = 0, d = 0; for (let i = 0; i < 7; i++){ const k = addD(s0, i); if (k > t) break; if (occursOn(r, k)){ n++; if ((q.done || {})[k]) d++; } } return {n, d}; }
+function lhRow(q){ const st = streakOf(q), w = weekRate(q);
+  return `<button class="row lhrow" data-act="hedit" data-id="${q.id}"><span class="t"><b>${esc(q.name)}</b><small>${esc(repeatLabel(q))}${q.time ? " · " + tmLabel(q.time) : ""}</small></span><span class="lhst num"><b>🔥 ${st.cur}${streakUnit(q)}</b><small>이번 주 ${w.d}/${w.n}</small></span></button>`; }
+/* 메인 퀘스트를 달성·포기할 때 연결된 일일 퀘스트를 보관할지 함께 묻는다(기본: 계속) */
+const habitChk = pid => { const n = isProj(S.projects[pid]) ? 0 : linkedHabits(pid).length; return n ? {label:`연결된 일일 퀘스트 ${n}개도 보관하기`, on:false} : null; };
+async function archiveLinked(pid){ for (const q of linkedHabits(pid)) await api.putMine(q.id, {...q, active:false}); }
 function doneProject(pid){ const p = S.projects[pid], sp = isProj(p); if (!p) return;
   run(() => api.putProject(pid, {...p, status:"done", doneAt:Date.now(), progress:goalProgress(p)}), r => { S.quietXp = true; if (sp) syncProgress(p.parentId); rewardSheet({emoji:"🏆", title:sp ? "스테이지 완료!" : "메인 퀘스트 달성!", desc:esc(p.title), share:{ref:{type:"project_done", id:pid, label:p.title, sub:sp}, title:sp ? "🔗 스테이지<br>완료!" : "🏆 메인 퀘스트<br>달성!"}}); }); }
 /* 포기: 퀘스트(와 끝내지 않은 스테이지)는 '포기'로 보관, 끝내지 않은 미션은 정리. 끝낸 미션·스토리·수치 기록은 그대로 남는다. 보상 없음. */
@@ -3986,6 +4005,9 @@ function viewGoal(){
       + (doneT.length ? `<button class="tfold" data-act="gdone" data-p="${p.id}" aria-expanded="${dOpen}"><span>완료 <em class="num">${doneT.length}개</em></span><span class="chev2 ${dOpen ? "open" : ""}">${I.chev}</span></button>${dOpen ? doneT.map(bare).join("") : ""}` : ""); 
     h += `<section class="card tight qlist"><div class="ch"><h2>미션</h2><span class="side num">${allT.filter(m => m.done).length}/${allT.length}</span></div>${trows}${allT.length ? "" : `<p class="empty-row">미션이 없어요.</p>`}
       ${p.status !== "done" ? `<button class="morebtn add" data-act="taskadd" data-p="${p.id}">+ 미션 추가</button>` : ""}</section>`;
+    if (!sp){ const hs = linkedHabits(p.id);
+      if (hs.length || (p.status !== "done" && !isCx(p))) h += `<section class="card tight qlist lhcard"><div class="ch"><h2>일일 퀘스트</h2><span class="side num">${hs.length}</span></div>${hs.map(lhRow).join("")}${hs.length ? "" : `<p class="empty-row">이 목표를 위해 매일 하는 일을 연결해 보세요.</p>`}
+        ${p.status !== "done" && !isCx(p) ? `<button class="morebtn add" data-act="sheet" data-k="add" data-v="daily" data-p="${p.id}">+ 일일 퀘스트 연결</button>` : ""}</section>`; }
   }
   h += posts.length ? `<article class="card feedcard">${posts.map((x, i) => postRow(x, {line:i < posts.length-1, inThread:true})).join("")}</article>` : `<div class="card empty">아직 스토리가 없어요.</div>`;
   return h;
@@ -4405,6 +4427,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
         more = gs.length ? `${datePick(c, "end", "마감일")}${statusField(c)}${areaField(c)}${metricFields(c)}${parentPick(c)}${coverField(c)}` : `<p class="empty-row" style="padding:4px 0 14px">스테이지는 메인 퀘스트 아래에 만들어요. 먼저 메인 퀘스트를 만들어 주세요.</p>`; }
       else if (K === "daily"){ more = `${repeatField(c)}
         ${planField(c, true)}
+        ${mainLink(c)}
         ${areaField(c)}
         ${difficultySelector(c,'quest','hlv')}`; }
       else more = `${datePick(c, "end", "마감일", false, true)}${statusField(c)}${areaField(c)}${metricFields(c)}${coverField(c)}`;
@@ -4421,6 +4444,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     ${repeatField(c)}
     ${planField(c, true)}
     ${hScope(c, q)}
+    ${mainLink(c)}
     ${difficultySelector(c,'quest','hlv')}
     ${areaField(c)}
     <button class="btn big full" data-act="submit-hedit" ${S.busy?"disabled":""}>저장</button>
@@ -4510,7 +4534,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
   if (c.type === "flist"){ const fol = c.kind === "followers", ids = Object.values(S.follows).filter(f => fol ? f.to === c.uid : f.from === c.uid).sort((a,b) => (b.at||0) - (a.at||0)).map(f => fol ? f.from : f.to).filter(x => x !== c.uid);
     return sheetWrap(fol ? `팔로워 ${ids.length}` : `팔로잉 ${ids.length}`, "", ids.length ? `<div class="fl-list">${ids.map(u => { const p = prof(u), me0 = u === S.me, f = isFollowing(S.me, u);
       return `<div class="fl-row">${av(u, 44)}<button class="t" data-act="profile" data-u="${esc(u)}"><b>${esc(nameOf(u))}${me0 ? " (나)" : ""} <span class="pillLv num">Lv${statsOf(u).L}</span></b>${p.bio ? `<small>${esc(p.bio)}</small>` : ""}</button>${!me0 && hasProfile() && S.canWrite ? `<button class="btn ${f || pendingTo(u) ? "sec" : "soft"} sm" data-act="follow" data-u="${esc(u)}">${folLabel(u)}</button>` : ""}</div>`; }).join("")}</div>` : `<p class="empty-row">${fol ? "아직 팔로워가 없어요." : "아직 팔로잉하는 사람이 없어요."}</p>`); }
-  if (c.type === "confirm") return sheetWrap("", "", `<div class="cfbox"><h3>${c.t}</h3>${c.d ? `<p>${c.d}</p>` : ""}<div class="btnrow">${c.alert ? `<button class="btn big full" data-act="cfno">확인</button>` : `<button class="btn sec big" data-act="cfno">취소</button><button class="btn big ${c.safe ? "" : "cfdel"}" data-act="cfok">${c.ok}</button>`}</div></div>`);
+  if (c.type === "confirm") return sheetWrap("", "", `<div class="cfbox"><h3>${c.t}</h3>${c.d ? `<p>${c.d}</p>` : ""}${c.chk ? `<button class="cfchk" data-act="cfchk" aria-pressed="${c.chk.on}"><i aria-hidden="true"></i>${c.chk.label}</button>` : ""}<div class="btnrow">${c.alert ? `<button class="btn big full" data-act="cfno">확인</button>` : `<button class="btn sec big" data-act="cfno">취소</button><button class="btn big ${c.safe ? "" : "cfdel"}" data-act="cfok">${c.ok}</button>`}</div></div>`);
   if (c.type === "mlog"){ const pj = S.projects[c.pid]; if (!pj || !pj.metric){ closeSheet(); return; } const m = pj.metric, lv = lastVal(pj), u = esc(m.unit);
     return sheetWrap(`수치 기록`, "", `<p class="mlog-t">${esc(pj.title)}</p>
       <div class="field"><label class="lab" for="ml-val">오늘의 수치 <span class="hint">지난 기록 ${numFmt(lv)}${u} · 목표 ${numFmt(m.target)}${u}</span></label><div class="numrow"><input type="text" inputmode="decimal" id="ml-val" placeholder="${numFmt(lv)}" value="${D("ml-val")}"><span>${u}</span></div></div>
@@ -4533,10 +4557,15 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     </div><button class="btn big full" data-act="sheet-close">확인</button>`); }
   if (c.type === "ppick"){ const par = S.parentSheet || {}, gs = goalsOf(S.me).filter(g => g.status !== "done");
     return sheetWrap("어떤 메인 퀘스트의 스테이지인가요?", "", `<div class="sheetlist mlist">${gs.map(g => `<button class="row mitem" data-act="ppset" data-v="${g.id}"><span class="t"><b>🎯 ${esc(g.title)}</b><small>메인 퀘스트${g.end ? " · " + dday(g.end) : ""}</small></span>${par.parentId === g.id ? `<span class="pick">✓</span>` : ""}</button>`).join("") || `<p class="empty-row">진행 중인 메인 퀘스트가 없어요.</p>`}</div>`); }
-  if (c.type === "tqpick"){ const par = S.parentSheet || {}, gs = goalsOf(S.me).filter(g => g.status !== "done"), orphan = Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId));
-    const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="tqset" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${(c.m === "ref" ? (par.ref || {}).id : par.projectId) === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
-    const body = gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphan.map(x => it(x, true)).join("");
-    return sheetWrap(c.t || "어떤 퀘스트의 미션인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 퀘스트가 없어요.</p>`}</div>${(c.m === "ref" ? par.ref : par.projectId) ? `<button class="btn sec full" data-act="tqset" data-v="">연결 안 함</button>` : ""}`); }
+  if (c.type === "tqpick"){ const par = S.parentSheet || {}, cur = c.m === "ref" ? (par.ref || {}).id : par.projectId, onlyMain = c.m === "main";
+    const gs = goalsOf(S.me).filter(g => g.status !== "done").sort(gOrder), orphan = onlyMain ? [] : Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId));
+    if (c.exp === undefined){ const cp = cur && S.projects[cur]; c.exp = cp && cp.parentId ? cp.parentId : null; }
+    const ck = id => cur === id ? `<span class="pick">✓</span>` : "";
+    const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="tqset" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${ck(p.id)}</button>`;
+    const body = gs.map(g => { const ss = onlyMain ? [] : subsOf(g.id).filter(x => x.status !== "done"); if (!ss.length) return it(g, false); const open = c.exp === g.id;
+      return `<button class="row mitem tqmain" data-act="tqexp" data-v="${g.id}" aria-expanded="${open}"><span class="t"><b>🎯 ${esc(g.title)}</b><small>메인 퀘스트 · 스테이지 ${ss.length}개${g.end ? " · " + dday(g.end) : ""}</small></span>${cur === g.id || ss.some(x => x.id === cur) ? `<span class="pick">✓</span>` : ""}<span class="chev2 ${open ? "open" : ""}">${I.chev}</span></button>`
+        + (open ? `<button class="row mitem nested" data-act="tqset" data-v="${g.id}"><span class="t"><b>🎯 메인 퀘스트에 바로 연결</b></span>${ck(g.id)}</button>` + ss.map(x => it(x, true)).join("") : ""); }).join("") + orphan.map(x => it(x, true)).join("");
+    return sheetWrap(c.t || "어떤 퀘스트의 미션인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 ${onlyMain ? "메인 " : ""}퀘스트가 없어요.</p>`}</div>${cur ? `<button class="btn sec full" data-act="tqset" data-v="">연결 안 함</button>` : ""}`); }
   if (c.type === "qpick"){ const gs = goalsOf(S.me).filter(g => g.status !== "done"), orphanSubs = Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId));
     const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="inref" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${S.inRef === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
     const body = (gs.length || orphanSubs.length ? gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphanSubs.map(x => it(x, true)).join("") : "")
@@ -4580,6 +4609,9 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
 }
 function parentPick(c){ const p = c.parentId && S.projects[c.parentId];
   return `<div class="field"><span class="lab">메인 퀘스트</span><div class="dprow">${p ? `<button class="btn soft sm qpb" data-act="ppick">🎯 ${esc(p.title)}</button>` : `<button class="btn sec sm" data-act="ppick">🎯 퀘스트</button>`}</div></div>`; }
+/* 일일 퀘스트 → 메인 퀘스트 연결(선택). 팝업은 메인 퀘스트만 보여 준다. */
+function mainLink(c){ const p = c.projectId && S.projects[c.projectId], t = "어떤 메인 퀘스트를 위한 습관인가요?";
+  return `<div class="field"><span class="lab">연결할 메인 퀘스트 <span class="hint">선택</span></span><div class="dprow">${p ? `<button class="btn soft sm qpb" data-act="tqpick" data-m="main" data-t="${t}">🎯 ${esc(p.title)}</button><button class="qx" data-act="tqclear" aria-label="퀘스트 연결 빼기">×</button>` : `<button class="btn sec sm" data-act="tqpick" data-m="main" data-t="${t}">🎯 퀘스트</button>`}</div></div>`; }
 function linkPick(c, lab = "퀘스트", t = ""){ const p = c.projectId && S.projects[c.projectId];
   return `<div class="field"><span class="lab">${lab} <span class="hint">선택</span></span><div class="dprow">${p ? `<button class="btn soft sm qpb" data-act="tqpick" data-t="${esc(t)}">${esc(goalLabel(p))}</button><button class="qx" data-act="tqclear" aria-label="퀘스트 연결 빼기">×</button>` : `<button class="btn sec sm" data-act="tqpick" data-t="${esc(t)}">🎯 퀘스트</button>`}</div></div>`; }
 /* 스토리에 퀘스트 연결: 칩 대신 버튼 하나 → 팝업에서 고르기 */
@@ -4624,7 +4656,7 @@ const rewardSheet = o => openSheet({type:"reward-got", ...o});
 /* ================= toast / level up ================= */
 // In-app confirm (browser confirm() is blocked inside the hosted artifact viewer).
 const UNDO_ASK = {t:"완료를 취소할까요?", d:"완료 보상이 함께 회수돼요.", ok:"완료 취소"};
-function ask(o, cb){ S.parentSheet = S.compose && S.compose.type !== "confirm" ? S.compose : null; S.compose = {type:"confirm", t:esc(o.t), d:esc(o.d || ""), ok:esc(o.ok || "확인"), safe:!!o.safe, cb}; renderSheet(); }
+function ask(o, cb){ S.parentSheet = S.compose && S.compose.type !== "confirm" ? S.compose : null; S.compose = {type:"confirm", t:esc(o.t), d:esc(o.d || ""), ok:esc(o.ok || "확인"), safe:!!o.safe, chk:o.check ? {label:esc(o.check.label), on:!!o.check.on} : null, cb}; renderSheet(); }
 function askAsync(text){ return new Promise(res => { let done = false; ask({t:text, ok:"확인"}, () => { done = true; res(true); }); const c0 = S.compose; const iv = setInterval(() => { if (S.compose !== c0 && !done){ clearInterval(iv); res(false); } else if (done) clearInterval(iv); }, 200); }); }
 let tt = 0;
 function toast(html, ms = 2200){ const t = $("#toast"); t.innerHTML = html; t.classList.toggle("act", /data-act=/.test(html)); t.classList.toggle("mid", !!($("#overlay").innerHTML || "").trim()); t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), ms); }
@@ -4765,7 +4797,8 @@ document.addEventListener("click", e => {
   switch (a){
     case "preview-login":
     case "preview-kakao": entryScreen = 'character'; S.compose = null; $('#overlay').innerHTML = ''; schedule(); scrollTo(0,0); if (!TRIAL) toast(a === 'preview-kakao' ? '실제 카카오 가입은 연결되지 않았어요. 캐릭터 만들기를 미리 볼 수 있어요.' : '인증 없이 캐릭터 만들기로 이동했어요.'); return;
-    case "cfok": { if (c && c.cb){ const cb = c.cb; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); cb(); return; } const P = S.pend; S.pend = null; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); if (!P) return; S.armed = P.key;
+    case "cfchk": if (c && c.chk){ c.chk.on = !c.chk.on; renderSheet(); } return;
+    case "cfok": { if (c && c.cb){ const cb = c.cb, chk = c.chk && c.chk.on; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); cb(chk); return; } const P = S.pend; S.pend = null; S.compose = S.parentSheet; S.parentSheet = null; renderSheet(); if (!P) return; S.armed = P.key;
       const fb = document.createElement("button"); fb.hidden = true; Object.assign(fb.dataset, P.data, {confirmed:"1"}); document.body.appendChild(fb); fb.click(); fb.remove(); return; }
     case "cfno": closeSheet(); return;
     case "back": if (S.vstack && S.vstack.length){ if (HS){ HS.back(); return; } S.view = S.vstack.pop(); schedule(); scrollTo(0,0); return; } history.length > 1 ? history.back() : go("today"); return;
@@ -4787,6 +4820,7 @@ document.addEventListener("click", e => {
     case "ppset": { const par = S.parentSheet; if (par) par.parentId = b.dataset.v; closeSheet(); return; }
     case "tqset": { const par = S.parentSheet; if (par){ if (c.m === "ref") par.ref = b.dataset.v ? {type:"project", id:b.dataset.v, label:S.projects[b.dataset.v].title} : null; else par.projectId = b.dataset.v || null; } closeSheet(); return; }
     case "tqclear": c.projectId = null; renderSheet(); return;
+    case "tqexp": c.exp = c.exp === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
     case "inpost": { const text = ($("#ps-text").value||"").trim(), ph = S.inPhotos || []; let value;
       const vEl = $("#ps-val"); if (vEl && vEl.value.trim()){ value = parseNum(vEl.value); if (value == null){ toast("숫자만 넣어 주세요"); return; } }
       if (!text && !ph.length && value === undefined){ toast("내용을 적어 주세요"); $("#ps-text").focus(); return; }
@@ -4858,7 +4892,7 @@ document.addEventListener("click", e => {
         openCompose({ref:{type:"project", id:pid, label:S.projects[pid].title}, fixed:true}); } else openCompose(); return;
     case "sheet": { if (!S.canWrite) return; if (!hasProfile() && b.dataset.k !== "profile"){ toast("먼저 캐릭터를 만들어 주세요"); return; }
       const k = b.dataset.k; if (k === "post") return openCompose();
-      if (k === "add" && b.dataset.v === "daily"){ const base0 = {type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:null, parentId:null, unit:null, area:[]}; return openSheet(base0); }
+      if (k === "add" && b.dataset.v === "daily"){ const base0 = {type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:pid && S.projects[pid] && !S.projects[pid].parentId ? pid : null, parentId:null, unit:null, area:[]}; return openSheet(base0); }
       if (k === "sub") return openSheet({type:"add", kind:"sub", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:"", period:"", projectId:null, parentId:pid || null, unit:null, area:[]});
       if (k === "profile") S.swatch = prof(S.me).color || S.swatch;
        if (k === "reward"){delete S.drafts["rw-name"];delete S.drafts['rw-cost'];}
@@ -5065,9 +5099,9 @@ document.addEventListener("click", e => {
     case "ldel": { if (S.armed !== "ld"+id){ arm("ld"+id); return; } S.armed = null; const post = diaryPost(id), from = S.planner.from;
       run(async () => { await api.delMine(id); if (post) await api.delPost(post.id); }, () => { S.planner = {cond:70, emo:null, share:false}; delete S.drafts["pl-text"]; if (S.compose) closeSheet(); toast("저널을 삭제했어요"); if (from === "logs") openSheet({type:"logs"}); }); return; }
     case "pdone": { if (S.armed !== "pd"+pid){ arm("pd"+pid); return; } S.armed = null; doneProject(pid); return; }
-    case "pdone2": { const p = S.projects[pid]; if (!p) return; const sp = isProj(p); ask({t:`이 ${sp ? "스테이지를 완료" : "메인 퀘스트를 달성"}할까요?`, d:esc(p.title), ok:sp ? "완료" : "달성"}, () => doneProject(pid)); return; }
+    case "pdone2": { const p = S.projects[pid]; if (!p) return; const sp = isProj(p); ask({t:`이 ${sp ? "스테이지를 완료" : "메인 퀘스트를 달성"}할까요?`, d:esc(p.title), ok:sp ? "완료" : "달성", check:habitChk(pid)}, arch => { if (arch) archiveLinked(pid).catch(() => {}); doneProject(pid); }); return; }
     case "pcancel": { const p = S.projects[pid]; if (!p) return; const sp = isProj(p), n = openMissionsOf(pid), ks = sp ? 0 : subsOf(pid).filter(x => x.status !== "done").length;
-      ask({t:`이 ${sp ? "스테이지" : "메인 퀘스트"}를 포기할까요?`, d:`보상 없이 '포기'로 보관돼요. 스토리와 끝낸 미션은 그대로 남아요.${ks ? ` 끝내지 않은 스테이지 ${ks}개도 함께 포기돼요.` : ""}${n ? ` 끝내지 않은 미션 ${n}개는 삭제돼요.` : ""}`, ok:"포기하기"}, () => cancelProject(pid)); return; }
+      ask({t:`이 ${sp ? "스테이지" : "메인 퀘스트"}를 포기할까요?`, d:`보상 없이 '포기'로 보관돼요. 스토리와 끝낸 미션은 그대로 남아요.${ks ? ` 끝내지 않은 스테이지 ${ks}개도 함께 포기돼요.` : ""}${n ? ` 끝내지 않은 미션 ${n}개는 삭제돼요.` : ""}`, ok:"포기하기", check:habitChk(pid)}, arch => { if (arch) archiveLinked(pid).catch(() => {}); cancelProject(pid); }); return; }
     case "pdue": { const p = S.projects[pid]; if (!p) return; openSheet({type:"pdue", pid, end:addD(today(), 7)}); return; }
     case "pext-go": { const p = S.projects[c.pid]; if (!p) return; if (!c.end || c.end <= today()){ toast("오늘 이후 날짜를 골라 주세요"); return; } const d = {...p, end:c.end}; delete d.id;
       run(() => api.putProject(c.pid, d), () => { closeSheet(); toast(`${fmtD(c.end)}까지 연장했어요`); }); return; }
@@ -5098,7 +5132,7 @@ document.addEventListener("click", e => {
     case "suggest": { const n = b.dataset.v, lv = (SUGGEST.find(x => x[0] === n)||[])[1] || "easy"; if (dupQ(n)){ toast(DUPMSG); return; } b.disabled = true;
       run(() => api.putMine(uid8(), {kind:"quest", name:n, days:[0,1,2,3,4,5,6], lv, active:true, done:{}, createdAt:Date.now()}), () => toast(`🔥 '${esc(n)}' 추가`)); return; }
     case "hedit": { e.stopPropagation(); const q = S.mine[id]; if (!q || !S.canWrite) return; S.drafts["he-name"] = q.name; const r = qRepeat(q), onD = b.dataset.d || null, ovT = onD ? (q.timeOn || {})[onD] : null;
-    openSheet({type:"hedit", id, onDate:onD, dayT:ovT || null, place:q.place || "", after:q.afterId ? "" : (q.after || ""), afterId:q.afterId || null, area:areasOf(q), days:((r.days||q.days||[])).slice(), hlv:lvKey(q.lv), time:q.time||"09:00", rpt:r.type,
+    openSheet({type:"hedit", id, projectId:q.projectId && S.projects[q.projectId] ? q.projectId : null, onDate:onD, dayT:ovT || null, place:q.place || "", after:q.afterId ? "" : (q.after || ""), afterId:q.afterId || null, area:areasOf(q), days:((r.days||q.days||[])).slice(), hlv:lvKey(q.lv), time:q.time||"09:00", rpt:r.type,
       rweeks:r.weeks||2, revery:r.every||3, rday:r.day||15, rmonths:r.months||3, ron:r.on||2, roff:r.off||1,
       ranchor:r.anchor || activityDate(q.createdAt) || today()}); return; }
     case "submit-hedit": { const q = S.mine[c.id], name = ($("#he-name").value||"").trim(); if (!name){ toast("이름을 적어 주세요"); return; } if (dupQ(name, c.id)){ toast(DUPMSG); return; }
@@ -5108,7 +5142,7 @@ document.addEventListener("click", e => {
       const tOn = {...(q.timeOn || {})}, had = c.onDate ? tOn[c.onDate] : null;
       if (c.onDate){ if (c.dayT && c.dayT !== c.time) tOn[c.onDate] = c.dayT; else delete tOn[c.onDate]; }
       const dayMsg = c.onDate && (tOn[c.onDate] || null) !== (had || null);
-      run(() => api.putMine(c.id, {...q, name, ...readPlan(c, true), time:c.time, timeOn:tOn, repeat:rp2, days:rp2.days||[], lv:c.hlv, area:c.area||[]}), () => { closeSheet(); toast(dayMsg ? (tOn[c.onDate] ? "그날 시간을 바꿨어요" : "원래 시간으로 되돌렸어요") : "저장했어요"); }); return; }
+      run(() => api.putMine(c.id, {...q, name, ...readPlan(c, true), time:c.time, timeOn:tOn, repeat:rp2, days:rp2.days||[], lv:c.hlv, area:c.area||[], projectId:c.projectId || null}), () => { closeSheet(); toast(dayMsg ? (tOn[c.onDate] ? "그날 시간을 바꿨어요" : "원래 시간으로 되돌렸어요") : "저장했어요"); }); return; }
     case "hday": preserveSheetDrafts(); c.dayT = c.dayT || c.time || "09:00"; c._tk = "dayT"; c._tw = true; c._pp = null; renderSheet(); return;
     case "hrevert": preserveSheetDrafts(); c.dayT = null; if (TK(c) === "dayT") c._tw = false; renderSheet(); return;
     case "htoggle": { const q = S.mine[c.id]; run(() => api.putMine(c.id, {...q, active:q.active === false}), () => { closeSheet(); toast(q.active === false ? "보관을 해제했어요" : "보관했어요"); }); return; }
@@ -5118,7 +5152,7 @@ document.addEventListener("click", e => {
       const K = c.kind, done0 = () => { ["ad-name","ad-end","pj-ms","pj-mt","pj-unit"].forEach(k => delete S.drafts[k]); closeSheet(); dumpDone(c); };
       if (K === "once" && !c.due){ toast("날짜를 골라 주세요"); return; } if (K === "once" && !c.time){ toast("시간을 골라 주세요"); return; }
       if (K === "once"){ const pj = c.projectId || null; run(() => api.putMine(uid8(), {kind:"mission", name, ...readPlan(c, false), lv:c.lv||"normal", due:c.due||"", time:c.due ? (c.time||"") : "", period:c.due ? (c.period||"") : "", today:false, projectId:pj, done:false, createdAt:Date.now()}), () => { done0(); toast("✅ 미션을 추가했어요"); if (pj) syncProgress(pj); }); return; }
-      if (K === "daily"){ if (!c.rpt){ toast("반복을 골라 주세요"); return; } const rp = buildRepeat(c); if (needsDays(rp.type) && !rp.days.length){ toast("요일을 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } if (dupQ(name)){ toast(DUPMSG); return; } run(() => api.putMine(uid8(), {kind:"quest", name, ...readPlan(c, true), time:c.time, repeat:rp, days:rp.days||[], lv:c.hlv||"easy", area:c.area||[], active:true, done:{}, ...(c.noteId ? {noteId:c.noteId} : {}), createdAt:Date.now()}), () => { done0(); toast("🔥 일일 퀘스트를 만들었어요"); }); return; }
+      if (K === "daily"){ if (!c.rpt){ toast("반복을 골라 주세요"); return; } const rp = buildRepeat(c); if (needsDays(rp.type) && !rp.days.length){ toast("요일을 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } if (dupQ(name)){ toast(DUPMSG); return; } run(() => api.putMine(uid8(), {kind:"quest", name, ...readPlan(c, true), time:c.time, repeat:rp, days:rp.days||[], lv:c.hlv||"easy", area:c.area||[], projectId:c.projectId || null, active:true, done:{}, ...(c.noteId ? {noteId:c.noteId} : {}), createdAt:Date.now()}), () => { done0(); toast("🔥 일일 퀘스트를 만들었어요"); }); return; }
       if (K === "sub"){ if (!c.end){ toast("마감일을 골라 주세요"); return; } if (!c.parentId){ toast("메인 퀘스트를 골라 주세요"); return; } const mt = readMetric(c); if (mt === false) return; const pidN = uid8(), par = c.parentId, end = c.end || "";
         run(async () => { await api.putProject(pidN, {cover:await saveCover(c), owner:S.me, parentId:par, title:name, start:today(), end, status:c.pstat === "planned" ? "planned" : "active", area:c.area||[], metric:mt, progress:{done:0,total:0}, createdAt:Date.now()}); },
           () => { done0(); syncProgress(par); toast("🔗 스테이지를 만들었어요"); openGoal(pidN); }); return; }
