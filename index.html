@@ -1664,6 +1664,26 @@ a.row{color:inherit;text-decoration:none}
 @media (min-width:1024px){#app[data-v="project"]{max-width:808px}#app[data-v="project"] .plgrid.hsc{margin:0;padding:2px 0 10px}}
 /* PC: 스크롤바가 생기고 없어질 때 본문 폭이 바뀌지 않게 자리를 늘 비워 둔다 */
 @media (min-width:1024px){html{scrollbar-gutter:stable}}
+/* 미션 주/월 보기 */
+.gmchip.gmv{margin-left:4px}.gmchip.cur{background:var(--accent-soft);color:var(--accent)}
+.gmchip + .gmchip.gmv{margin-left:4px}.ch .gmchip:not(.gmv){margin-right:0}.ch .gmchip.gmv:last-of-type{margin-right:auto}
+.gmchip.gmv.on{background:var(--accent);color:var(--accent-ink)}
+.gmnav{display:flex;align-items:center;justify-content:space-between;margin:2px 0 8px}.gmnav b{font-size:14.5px;font-weight:800}
+.gmnav button{width:32px;height:32px;border:0;border-radius:10px;background:var(--fill);color:var(--ink);display:grid;place-items:center;cursor:pointer}.gmnav button svg{width:16px;height:16px}.gmnav .fwd svg{transform:rotate(180deg)}
+.gmwh,.gmgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.gmwh span{font-size:11.5px;font-weight:700;color:var(--muted);text-align:center;padding:2px 0}
+.gmwh .sun,.gmc.sun .gmn{color:#E5484D}.gmwh .sat,.gmc.sat .gmn{color:#3D7BE0}
+.gmc{min-width:0;border-radius:10px;background:var(--fill);padding:4px 3px 5px;display:flex;flex-direction:column;gap:3px}
+.gmgrid.wk .gmc{min-height:120px}.gmgrid.mo .gmc{min-height:72px}
+.gmc.out{opacity:.45}.gmc.today{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.gmn{border:0;background:none;font:inherit;font-size:12.5px;font-weight:800;color:var(--ink);padding:1px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.15}
+.gmn small{font-size:10.5px;font-weight:700;color:inherit;opacity:.8}
+.gmit{display:block;width:100%;border:0;border-left:2.5px solid var(--accent);border-radius:4px;background:var(--card);color:var(--ink);font:inherit;font-size:11px;font-weight:600;text-align:left;padding:2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.gmgrid.wk .gmit{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3}
+.gmit.done{opacity:.55;text-decoration:line-through}
+.gmmore{border:0;background:none;font:inherit;font-size:10.5px;font-weight:800;color:var(--muted);cursor:pointer;padding:0}
+.gmchip.gmv{margin-right:0}.gmchip.gmv.on{padding:4px 10px}
+.qlist > .gmnav,.qlist > .gmwh,.qlist > .gmgrid{margin-left:14px;margin-right:14px}.qlist > .gmgrid{margin-bottom:10px}
 </style>
 <script type="module" src="./src/entry.js"></script>
 </body></html>

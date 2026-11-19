@@ -1177,7 +1177,7 @@ test('nav › 퀘스트: main quests only, chips 전체/진행/대기/달성 fil
   const h=await profileUI(saved);h.route('qmanage');let html=h.nodes.get('app').innerHTML;
   assert.match(html,/data-v="all" aria-pressed="true">전체 <span class="num">3[\s\S]*data-v="active"[^>]*>진행 <span class="num">1[\s\S]*data-v="later"[^>]*>대기 <span class="num">1[\s\S]*data-v="done"[^>]*>달성 <span class="num">1/);
   assert.match(html,/진행 중 <span class="num">1<\/span><\/h2><button[^>]*data-v="big">\+ 생성[\s\S]*메인 A[\s\S]*대기 중 <span class="num">1[\s\S]*대기 메인[\s\S]*달성 <span class="num">1[\s\S]*달성 메인/);
-  assert.doesNotMatch(html,/일일 C|data-v="sub"|data-v="daily"|class="pgsubs"/); assert.match(html, /<span>🔗 스테이지 0\/1<\/span><span>✅ 미션/);
+  assert.doesNotMatch(html,/일일 C|data-v="sub"|data-v="daily"|class="pgsubs"/); assert.match(html, /<span>🔗 스테이지 0\/1<\/span><\/div>/); assert.doesNotMatch(html, /✅ 미션/);
   h.click('pl-tab',{v:'later'});html=h.nodes.get('app').innerHTML;assert.match(html,/대기 메인/);assert.doesNotMatch(html,/메인 A|달성 메인/);
   h.click('pl-tab',{v:'done'});html=h.nodes.get('app').innerHTML;assert.match(html,/달성 메인/);assert.doesNotMatch(html,/메인 A|대기 메인/);
   h.click('pl-tab',{v:'active'});html=h.nodes.get('app').innerHTML;assert.match(html,/data-v="big">\+ 생성[\s\S]*메인 A/);assert.doesNotMatch(html,/대기 메인|달성 메인|class="card subc subadd/);
@@ -1616,11 +1616,13 @@ test('daily quests link to a main quest: main-only picker, checkable on the main
   H.click('project',{p:'main'});
   assert.match(app(),/<h2>일일 퀘스트<\/h2>[\s\S]*?data-act="qcheck" data-id="hab"[\s\S]*?매일 달리기/); assert.doesNotMatch(app(),/이번 주 \d+\/\d+/); assert.match(app(),/매일 달리기<\/b><small class="task-meta"><span class="tday">오늘<\/span> <span class="tday soft">7:00<\/span> <span class="fire">🔥 0일<\/span>/); assert.doesNotMatch(app(),/일 연속/);
   assert.doesNotMatch(app(),/class="mday/,'no date headers: each mission row carries its own date tag');
-  assert.match(app(),/<h2>미션<\/h2><button class="gmchip" data-act="gmpick" data-p="main">전체/);
+  assert.match(app(),/<h2>미션<\/h2><button class="gmchip cur" data-act="gmpick" data-p="main">전체[\s\S]*?data-act="gmv" data-p="main" data-v="week"[^>]*>주<[\s\S]*?data-v="month"[^>]*>월</);
+  H.click('gmv',{p:'main',v:'week'}); assert.match(app(),/class="gmgrid wk"/); H.click('gmnav',{v:'1'}); assert.match(app(),/class="gmnav"/);
+  H.click('gmv',{p:'main',v:'month'}); assert.match(app(),/class="gmwh"[\s\S]*class="gmgrid mo"/); H.click('gmall');
   H.click('gmpick',{p:'main'}); assert.match(ov(),/날짜로 보기[\s\S]*class="gmg"[\s\S]*class="gmd today[^"]*has[^"]*" data-act="gmset" data-v="\d{4}-\d\d-\d\d"[\s\S]*data-act="gmset" data-v="">전체 보기/);
   { const d = ov().match(/class="gmd today[^"]*" data-act="gmset" data-v="(\d{4}-\d\d-\d\d)"/)[1]; H.click('gmym',{v:'2099-01'}); assert.match(ov(),/2099년 1월/); H.click('gmset',{v:d}); }
   assert.match(app(),/class="gmchip on"><button data-act="gmpick" data-p="main">오늘<\/button>/); assert.doesNotMatch(app(),/class="mday/);
-  H.click('gmall'); assert.match(app(),/class="gmchip" data-act="gmpick"/);
+  H.click('gmall'); assert.match(app(),/class="gmchip cur" data-act="gmpick"/);
   assert.match(app(),/data-act="sheet" data-k="add" data-v="daily" data-p="main"/);
   H.click('sheet',{k:'add',v:'daily',p:'main'}); assert.match(ov(),/연결할 메인 퀘스트[\s\S]*?🎯 메인 연결 대상/);
   H.click('tqpick',{m:'main',t:'어떤 메인 퀘스트를 위한 습관인가요?'}); assert.match(ov(),/data-act="tqset" data-v="main"/); assert.doesNotMatch(ov(),/data-act="tqexp"|data-v="sub"/);
