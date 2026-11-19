@@ -1535,8 +1535,8 @@ function metricFor(post){
   return typeof x.ms === "number" && typeof x.mt === "number" ? msim({start:x.ms, target:x.mt, unit:x.mu || ""}, post.value) : "";
 }
 function metricBox(g, withSpark = false){ if (!g) return ""; const m = g.metric;
-  // 수치 기록을 켜지 않은 퀘스트도 같은 자리에 빈 그래프를 보여 준다(값 없음).
-  if (!m) return `<span class="msim none"><span class="msim-t"><small>수치 기록 없음</small></span><span class="bar green"><i style="width:0%"></i></span></span>`;
+  // 수치 기록이 없는 퀘스트는 미션 완료 수로 진행도를 보여 준다(예: 3미션 / 10미션).
+  if (!m){ const pr = goalProgress(g); return msim({unit:"미션", start:0, target:pr.total}, pr.done, null); }
   return msim(m, lastVal(g), withSpark ? [m.start, ...valHist(g.id).map(x => x.value)] : null); }
 function spark(vals, w = 96, h = 40){
   if (vals.length < 2) return "";
