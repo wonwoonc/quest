@@ -2714,9 +2714,10 @@ function render(){ { const a = document.activeElement; if (S.view.name === "lear
   if (ycur && S.yCenter){ S.yCenter = false; requestAnimationFrame(() => window.scrollTo(0, 0)); } // 연 보기는 맨 위(1월)부터
   let announced = false;
   if (S.me && S.lastXp != null){
-    const acts = activityItems(); if (S.notifiedAt == null) S.notifiedAt = Date.now();
-    const fresh = acts.filter(x => x.at > S.notifiedAt);
-    if (fresh.length){ S.notifiedAt = Math.max(...fresh.map(x => x.at)); toast(actText(fresh[0]) + (fresh.length > 1 ? ` 외 ${fresh.length-1}건` : "")); announced = true; }
+    /* 이미 알려 준 알림은 다시 띄우지 않는다: 마지막으로 알린 시각을 기기에 저장하고, 처음엔 지금까지 온 알림을 모두 '알림 끝'으로 본다(서버 시계가 조금 빨라도 새로고침마다 뜨지 않게). */
+    const acts = activityItems(); if (S.notifiedAt == null){ S.notifiedAt = Math.max(LS.get("notifiedAt", 0) || 0, Date.now(), ...acts.map(x => +x.at || 0)); LS.set("notifiedAt", S.notifiedAt); }
+    const fresh = acts.filter(x => x.at > S.notifiedAt && x.at > actSeen);
+    if (fresh.length){ S.notifiedAt = Math.max(...fresh.map(x => x.at)); LS.set("notifiedAt", S.notifiedAt); toast(actText(fresh[0]) + (fresh.length > 1 ? ` 외 ${fresh.length-1}건` : "")); announced = true; }
   }
   if (S.pop){ const pp = S.pop; if (Date.now() - pp.at > 2000) S.pop = null; else { const el = [...document.querySelectorAll(`.check.on[data-id="${pp.id}"]`)].find(x => x.offsetParent); if (el){ S.pop = null; el.classList.remove("bump"); requestAnimationFrame(() => el.classList.add("bump")); } } }
   if (MY && hasProfile()){
