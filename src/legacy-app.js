@@ -1125,7 +1125,7 @@ function noteSheet(c){
   const qRow = gs.length || pj ? `<span class="ntpl">${nic("target")}퀘스트</span><div class="ntpq">${pj ? `<button class="ntpc on" data-act="tqpick" data-t="어떤 퀘스트의 자료인가요?">${esc(goalLabel(pj))}</button><button class="qx" data-act="tqclear" aria-label="퀘스트 연결 빼기">×</button>` : `<button class="ntpc add" data-act="tqpick" data-t="어떤 퀘스트의 자료인가요?">+ 연결</button>`}</div>` : "";
   const aRow = C.pt ? `<span class="ntpl">영역</span><div class="ntpch">${AREAS.map(([k,,,l]) => `<button class="ntpc" data-act="nt-area" data-v="${k}" aria-pressed="${c.area === k}">${l}</button>`).join("")}</div>` : "";
   const fRow = C.k === "ref" ? `<span class="ntpl">파일</span><div class="flist sm">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < F_MAX ? `<button class="ntpc add" data-act="nf-pick">+ 첨부</button>` : ""}</div>` : "";
-  const props = C.f.filter(isProp).map(prop).join("") + fRow + qRow + aRow;
+  const props = C.f.filter(isProp).map(prop).join("") + fRow + qRow + aRow + C.f.filter(x => x.bottom).map(prop).join(""); /* 학습 상태는 영역 아래 */
   const DR = noteDrawers(S).filter(d => !d.hidden || d.k === c.cat);
   const kinds = c.kpick ? `<div class="ntkpick" role="group" aria-label="종류">${DR.map(K => `<button class="ntkp" data-act="nt-kind" data-v="${K.k}" aria-pressed="${!c.unsorted && c.cat === K.k}">${nic(K.ic)}<b>${esc(K.l)}</b></button>`).join("")}</div>` : "";
   const hasUrl = C.k === "memo" && DR.some(d => d.k === "ref") && NT_URL_RE.test(D("nf-title") + " " + D("nf-body"));
@@ -1138,7 +1138,6 @@ function noteSheet(c){
     ${props ? `<div class="ntprops">${props}</div>` : ""}
     ${C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body" && !x.bottom).map(block).join("")}
     ${C.f.some(x => x.k === "body") || ntFreeBody(C) ? `<textarea class="ntbody-in" id="nf-body" data-grow rows="${C.k === "memo" ? 8 : 4}" maxlength="10000" placeholder="${c.unsorted ? "떠오르는 대로 적어요. 서랍은 나중에 정해도 돼요." : C.k === "memo" ? "자유롭게 적어요" : "자유롭게 이어서 적어요"}">${D("nf-body")}</textarea>` : ""}
-    ${C.f.some(x => x.bottom && shown(x)) ? `<div class="ntprops ntbottom">${C.f.filter(x => x.bottom).map(prop).join("")}</div>` : ""}
     ${n && C.k === "learn" && Array.isArray(n.blocks) && n.blocks.some(b => bkText(b).trim()) ? `<button class="ntlnote" data-act="ln-open" data-id="${n.id}">${nic("book")}<span><b>학습 노트</b><small>정리한 노트 ${n.blocks.filter(b => bkText(b).trim()).length}줄 · 열기</small></span><svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>` : ""}
     <div class="ntsug" ${hasUrl ? "" : "hidden"}><span>${nic("link")}링크가 있어요</span><button class="ntpc on" data-act="nt-kind" data-v="ref">참고자료로 정리</button></div>
 `, `<button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>`);
