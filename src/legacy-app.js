@@ -1152,7 +1152,9 @@ function noteSheet(c){
   const xb = x => true ? "" : `<button class="ntx" data-act="nt-hide" data-f="${x.k}" aria-label="${esc(x.l)} 칸 지우기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button>`;
   const isProp = x => x.k !== "title" && !x.task && x.t !== "area" && !x.bottom;
   const ckI2 = `<svg class="ntqck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
-  const prop = x => { const off = hid.includes(x.k); if (!whenOk(x) || (off && !c.tedit)) return ""; const id = "nf-" + x.k, v = vals[x.k], tg = c.tedit ? sw("nt-tog", !off, `data-f="${x.k}" aria-label="${esc(x.l)}"`) : "";
+  /* 학습 '강사·저자'는 종류에 따라 짧은 이름으로(강의 강사 · 영상 채널 · 책·기타 저자): 모든 서랍의 제목 칸 폭을 3글자로 맞춘다 */
+  const AU = {"강의":["강사","예: 김OO"], "영상":["채널","예: 유튜브 채널 이름"]};
+  const prop = x0 => { const x = x0.k === "author" ? {...x0, ...(t => ({l:t[0], p:t[1]}))(AU[(c.vals || {}).type] || ["저자","예: 제임스 클리어"])} : x0; const off = hid.includes(x.k); if (!whenOk(x) || (off && !c.tedit)) return ""; const id = "nf-" + x.k, v = vals[x.k], tg = c.tedit ? sw("nt-tog", !off, `data-f="${x.k}" aria-label="${esc(x.l)}"`) : "";
     if (off) return `<span class="ntpl off">${esc(x.l)}</span><div class="ntpv off"><span class="ntoff">꺼짐</span>${tg}</div>`;
     let ctl;
     if (x.t === "choice" && x.bottom) ctl = `<div class="ntpch">${x.o.map(o => `<button class="ntpc" data-act="nt-val" data-f="${x.k}" data-v="${o}" aria-pressed="${v === o}">${o}</button>`).join("")}</div>`; /* 학습 상태는 칩 그대로 */
