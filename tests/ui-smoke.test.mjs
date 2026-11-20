@@ -1185,17 +1185,17 @@ test('nav › 퀘스트: main quests only, chips 전체/진행/예정/달성 fil
   saved.projects={m1:{id:'m1',owner:'me',title:'메인 A',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'스테이지 B',end:'2099-12-31',status:'active'},m2:{id:'m2',owner:'me',title:'대기 메인',end:'2099-12-31',status:'planned'},m3:{id:'m3',owner:'me',title:'달성 메인',status:'done',doneAt:5}};
   saved.mine.qa={id:'qa',kind:'quest',name:'일일 C',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:true,done:{},createdAt:1};
   const h=await profileUI(saved);h.route('qmanage');let html=h.nodes.get('app').innerHTML;
-  assert.match(html,/data-v="all" aria-pressed="true">전체 <span class="num">3[\s\S]*data-v="active"[^>]*>진행 <span class="num">1[\s\S]*data-v="later"[^>]*>예정 <span class="num">1[\s\S]*data-v="done"[^>]*>달성 <span class="num">1/);
-  assert.match(html,/진행 중 <span class="num">1<\/span><\/h2><button[^>]*data-v="big">\+ 생성[\s\S]*메인 A[\s\S]*예정 <span class="num">1[\s\S]*대기 메인[\s\S]*달성 <span class="num">1[\s\S]*달성 메인/);
+  assert.doesNotMatch(html,/data-v="all"/); assert.match(html,/data-v="active" aria-pressed="true">진행 <span class="num">1[\s\S]*data-v="later"[^>]*>예정 <span class="num">1[\s\S]*data-v="done"[^>]*>달성 <span class="num">1/);
+  assert.match(html,/진행 중 <span class="num">1<\/span><\/h2><button[^>]*data-v="big">\+ 생성[\s\S]*메인 A/); assert.doesNotMatch(html,/대기 메인|달성 메인/);
   assert.doesNotMatch(html,/일일 C|data-v="sub"|data-v="daily"|class="pgsubs"/); assert.match(html, /<span>🔗 스테이지 0\/1<\/span><\/div>/); assert.doesNotMatch(html, /✅ 미션/);
   h.click('pl-tab',{v:'later'});html=h.nodes.get('app').innerHTML;assert.match(html,/대기 메인/);assert.doesNotMatch(html,/메인 A|달성 메인/);
   h.click('pl-tab',{v:'done'});html=h.nodes.get('app').innerHTML;assert.match(html,/달성 메인/);assert.doesNotMatch(html,/메인 A|대기 메인/);
   h.click('pl-tab',{v:'active'});html=h.nodes.get('app').innerHTML;assert.match(html,/data-v="big">\+ 생성[\s\S]*메인 A/);assert.doesNotMatch(html,/대기 메인|달성 메인|class="card subc subadd/);
-  h.click('pl-tab',{v:'bogus'});assert.match(h.nodes.get('app').innerHTML,/data-v="all" aria-pressed="true"/);
+  h.click('pl-tab',{v:'bogus'});assert.match(h.nodes.get('app').innerHTML,/data-v="active" aria-pressed="true"/);
   assert.doesNotMatch(h.nodes.get('app').innerHTML,/plgrid hsc/,'no horizontal scroller');
   const many=h.snapshot();for(let i=0;i<5;i++)many.projects['d'+i]={id:'d'+i,owner:'me',title:'달성 '+i,status:'done',doneAt:10+i};
   const k=await profileUI(many);k.route('qmanage');let a=k.nodes.get('app').innerHTML;
-  assert.equal((a.match(/class="card pgc done"/g)||[]).length,3,'전체 shows 3 latest achieved');assert.match(a,/달성 4[\s\S]*달성 3[\s\S]*달성 2[\s\S]*data-act="pl-tab" data-v="done">달성 전체 보기 <span class="num">6/);
+  assert.equal((a.match(/class="card pgc done"/g)||[]).length,0,'진행 is default');
   k.click('pl-tab',{v:'done'});a=k.nodes.get('app').innerHTML;assert.equal((a.match(/class="card pgc done"/g)||[]).length,6);assert.doesNotMatch(a,/달성 전체 보기/);
 });
 test('대시보드 일일 › 관리: opens the 일일 퀘스트 page (cards + 보관), archived can be restored',async()=>{
@@ -1309,7 +1309,7 @@ test('자료실 저널 서랍: lists own journals only, escaped, opens detail',a
   const html = h.nodes.get('app').innerHTML;
   assert.match(html, /data-v="journal"/); assert.match(html, /class="card ntcard jcard" data-act="dedit" data-id="d-2026-11-02"/); assert.doesNotMatch(html, /class="btn sec xs jedit"/); assert.match(html, /data-act="nt-menu" data-id="d-2026-11-02"/);
   assert.match(html, /11월 2일 월요일/); assert.match(html, /컨디션 80% · 평온/); assert.doesNotMatch(html, /<img src=x>|다른 사용자 저널/);
-  assert.match(html, /data-act="nt-new">\+ 자료 추가/); assert.doesNotMatch(html, /저널 추가/);
+  assert.match(html, /data-act="nt-new" aria-label="자료 추가">[\s\S]*?<span>자료 추가<\/span>/); assert.doesNotMatch(html, /저널 추가/);
   h.click('dedit',{id:'d-2026-11-02'}); assert.match(h.nodes.get('overlay').innerHTML, /스쿼트/); assert.match(h.nodes.get('overlay').innerHTML, /id="nfed"/);
   h.click('sheet-close'); await h.settle(); h.click('nt-menu',{id:'d-2026-11-02'}); assert.match(h.nodes.get('app').innerHTML, /class="ntdd"[\s\S]*data-act="ldel" data-id="d-2026-11-02"/);
 });
@@ -1739,27 +1739,36 @@ test('자료 작성: 완료·삭제 버튼 없음, 뒤로 가면 자동 저장(�
   h.click('nt-del',{id:z.id}); h.click('cfok'); await h.settle(); assert.equal(notes().length,0); assert.equal(h.nodes.get('overlay').innerHTML.includes('nttitle'),false);
   h.click('nt-new'); h.click('nt-kind',{v:'memo'}); h.nodes.set('nf-title',{value:'버릴 글'}); h.click('nt-emenu'); assert.match(ov(),/data-act="nt-discard"/); h.click('nt-discard'); assert.match(ov(),/작성 중인 내용을 지울까요/); h.click('cfok'); await h.settle(); assert.equal(notes().length,0);
 });
-test('자료실 보기: 카드·리스트·표 전환(서랍마다 기억), 표 정렬, 저널 월 보기',async()=>{
+test('자료실 보기: 서랍마다 어울리는 보기(메뉴), 학습 보드·표, 아이디어 보드, 참고자료 종류별, 저널 월',async()=>{
   const base = await profileUI(), saved = base.snapshot();
   saved.mine = {...saved.mine,
     n1:{id:'n1',kind:'note',owner:'me',cat:'learn',f:{title:'가 강의',type:'강의',rating:3,status:'완료'},createdAt:1,updatedAt:1},
-    n2:{id:'n2',kind:'note',owner:'me',cat:'learn',f:{title:'나 책',type:'책',rating:5,status:'진행 중'},createdAt:2,updatedAt:2},
+    n2:{id:'n2',kind:'note',owner:'me',cat:'learn',f:{title:'나 책',type:'책',rating:5,status:'학습 중'},createdAt:2,updatedAt:2},
+    i1:{id:'i1',kind:'note',owner:'me',cat:'idea',f:{title:'러닝 앱'},createdAt:3,updatedAt:3},
+    r1:{id:'r1',kind:'note',owner:'me',cat:'ref',f:{title:'피그마 강좌',media:'영상',url:'https://www.youtube.com/watch?v=1'},createdAt:4,updatedAt:4},
+    r2:{id:'r2',kind:'note',owner:'me',cat:'ref',f:{title:'회고 글',media:'글',url:'https://medium.com/a'},createdAt:5,updatedAt:5},
     'd-2026-11-02':{id:'d-2026-11-02',kind:'diary',date:'2026-11-02',at:1,cond:85,emo:'평온',text:'좋은 날'},
     'd-2026-11-03':{id:'d-2026-11-03',kind:'diary',date:'2026-11-03',at:1,cond:30,emo:'평온',text:'피곤'}};
-  const h = await profileUI(saved); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'learn'}); await h.settle();
-  let html = h.nodes.get('app').innerHTML; assert.match(html, /class="ntvseg"/); assert.match(html, /class="card ntcard"/);
-  h.click('nt-view',{v:'list'}); await h.settle(); html = h.nodes.get('app').innerHTML; assert.match(html, /class="ntlrow" data-act="nt-edit" data-id="n2"/); assert.doesNotMatch(html, /class="card ntcard"/);
-  h.click('nt-view',{v:'table'}); await h.settle(); html = h.nodes.get('app').innerHTML;
-  assert.match(html, /<table class="nttbl">/); assert.match(html, />종류</); assert.match(html, />별점</); assert.match(html, />상태</);
-  h.click('nt-sort',{v:'rating'}); await h.settle(); html = h.nodes.get('app').innerHTML; assert.ok(html.indexOf('가 강의') < html.indexOf('나 책'), 'ascending by rating');
-  h.click('nt-sort',{v:'rating'}); await h.settle(); html = h.nodes.get('app').innerHTML; assert.ok(html.indexOf('나 책') < html.indexOf('가 강의'), 'descending by rating');
-  h.click('nt-cat',{v:'all'}); await h.settle(); assert.match(h.nodes.get('app').innerHTML, /class="card ntcard"/, 'other drawer keeps its own view');
-  h.click('nt-cat',{v:'learn'}); await h.settle(); assert.match(h.nodes.get('app').innerHTML, /<table class="nttbl">/, 'remembered');
-  h.click('nt-cat',{v:'journal'}); await h.settle(); assert.match(h.nodes.get('app').innerHTML, /data-act="nt-view" data-v="month"/); assert.doesNotMatch(h.nodes.get('app').innerHTML, /data-act="nt-view" data-v="table"/);
-  h.click('nt-view',{v:'month'}); h.click('j-mon',{v:'-1'}); await h.settle();
+  const h = await profileUI(saved), app = () => h.nodes.get('app').innerHTML; h.route('notes'); await h.settle();
+  h.click('nt-vmenu'); await h.settle(); let html = app(); assert.match(html, /class="ntvdd"/); assert.match(html, /data-act="nt-view" data-v="list"/); assert.doesNotMatch(html, /data-v="table"|data-v="board"/, '전체: 카드·리스트만');
+  h.click('nt-view',{v:'list'}); await h.settle(); html = app(); assert.doesNotMatch(html, /class="ntvdd"/); assert.match(html, /class="ntlrow" data-act="nt-edit" data-id="n2"/);
+  h.click('nt-cat',{v:'learn'}); await h.settle(); assert.match(app(), /class="card ntcard"/, 'learn keeps its own view');
+  h.click('nt-vmenu'); html = app(); assert.match(html, /data-v="board"[\s\S]*예정 · 학습 중 · 완료/); assert.doesNotMatch(html, /data-v="list"/);
+  h.click('nt-view',{v:'board'}); await h.settle(); html = app(); assert.match(html, /class="ntboard" data-swipe data-kmove="learn"/);
+  assert.match(html, /data-st="학습 중"><h4>학습 중 <span class="num">1[\s\S]*나 책[\s\S]*data-st="완료"><h4>완료 <span class="num">1[\s\S]*가 강의/);
+  h.click('nt-vmenu'); h.click('nt-view',{v:'table'}); await h.settle(); html = app(); assert.match(html, /<table class="nttbl">/); assert.match(html, />별점</);
+  h.click('nt-sort',{v:'rating'}); await h.settle(); html = app(); assert.ok(html.indexOf('가 강의') < html.indexOf('나 책'), 'ascending by rating');
+  h.click('nt-sort',{v:'rating'}); await h.settle(); html = app(); assert.ok(html.indexOf('나 책') < html.indexOf('가 강의'), 'descending by rating');
+  h.click('nt-cat',{v:'idea'}); h.click('nt-vmenu'); h.click('nt-view',{v:'board'}); await h.settle(); html = app();
+  assert.match(html, /data-st="떠올림"><h4>떠올림 <span class="num">1[\s\S]*러닝 앱[\s\S]*다음 행동 없음/); assert.doesNotMatch(html, /data-kmove/, 'idea board is derived, not draggable');
+  h.click('nt-cat',{v:'ref'}); h.click('nt-vmenu'); h.click('nt-view',{v:'group'}); await h.settle(); html = app();
+  assert.match(html, /<h4>글 <span class="num">1[\s\S]*회고 글[\s\S]*medium\.com[\s\S]*<h4>영상 <span class="num">1[\s\S]*youtube\.com/);
+  h.click('nt-cat',{v:'learn'}); await h.settle(); assert.match(app(), /<table class="nttbl">/, 'remembered');
+  h.click('nt-cat',{v:'journal'}); h.click('nt-vmenu'); await h.settle(); assert.match(app(), /data-v="month"[\s\S]*컨디션 달력/);
+  h.click('nt-view',{v:'month'}); await h.settle();
   const t = new Date(), cur = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}`;
-  for (let i = 0; i < 40 && !h.nodes.get('app').innerHTML.includes('2026년 11월'); i++){ h.click('j-mon',{v: cur > '2026-11' ? '-1' : '1'}); await h.settle(); }
-  html = h.nodes.get('app').innerHTML; assert.match(html, /2026년 11월/);
+  for (let i = 0; i < 40 && !app().includes('2026년 11월'); i++){ h.click('j-mon',{v: cur > '2026-11' ? '-1' : '1'}); await h.settle(); }
+  html = app(); assert.match(html, /2026년 11월/);
   assert.match(html, /class="jmc lv3[^"]*" data-act="j-day" data-v="2026-11-02"/); assert.match(html, /class="jmc lv1[^"]*" data-act="j-day" data-v="2026-11-03"/);
   assert.match(html, /기록한 날<\/small><b class="num">2일/); assert.match(html, /평균 컨디션<\/small><b class="num">58%/); assert.match(html, /자주 느낀 감정<\/small><b>평온/);
   h.click('j-day',{v:'2026-11-02'}); assert.match(h.nodes.get('overlay').innerHTML, /좋은 날/);

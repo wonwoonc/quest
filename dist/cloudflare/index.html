@@ -1943,10 +1943,42 @@ a.row{color:inherit;text-decoration:none}
 .ntprops .ntpl{white-space:nowrap}
 
 /* 자료실 보기 전환·리스트·표·저널 월 보기 */
-.ntvseg{display:flex;background:var(--card);border-radius:14px;padding:3px;gap:2px;flex:none}
-.ntvseg button{border:0;background:none;color:var(--muted);width:38px;border-radius:11px;display:grid;place-items:center;cursor:pointer}
-.ntvseg button svg{width:18px;height:18px}
-.ntvseg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.nttools{align-items:stretch}
+.ntsrch{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--card);border-radius:14px;padding:0 14px;color:var(--muted)}
+.ntsrch svg{width:18px;height:18px;flex:none}
+.nttools .ntsrch input{flex:1;min-width:0;padding:12px 0;background:none;border-radius:0}
+.ntvw{position:relative;flex:none;display:flex}
+.ntvbtn{width:46px;border:0;border-radius:14px;background:var(--card);color:var(--sub);display:grid;place-items:center;cursor:pointer}
+.ntvbtn svg{width:20px;height:20px}
+.ntvbtn[aria-expanded="true"]{color:var(--accent);background:var(--accent-soft)}
+.ntvdd{position:absolute;right:0;top:calc(100% + 6px);z-index:30;background:var(--card);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:6px;min-width:190px}
+.ntvdd button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;border-radius:10px;padding:9px 10px;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.ntvdd button svg{width:18px;height:18px;flex:none;color:var(--muted)}
+.ntvdd button span{display:flex;flex-direction:column;gap:1px}
+.ntvdd button b{font-size:14.5px;font-weight:600}.ntvdd button small{font-size:12px;color:var(--muted)}
+.ntvdd button[aria-checked="true"]{background:var(--accent-soft)}.ntvdd button[aria-checked="true"] b,.ntvdd button[aria-checked="true"] svg{color:var(--accent)}
+.nttools .ntadd{display:inline-flex;align-items:center;gap:6px;flex:none}
+.ntadd svg{width:18px;height:18px}
+@media (max-width:640px){.nttools .ntadd{width:46px;padding:0;justify-content:center;border-radius:50%}.ntadd span{display:none}.ntadd svg{width:22px;height:22px}}
+.ntboard{display:flex;gap:10px;overflow-x:auto;margin:12px -16px 0;padding:0 16px 4px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.ntboard::-webkit-scrollbar{display:none}
+.kcol{flex:0 0 min(78%,280px);scroll-snap-align:start;background:color-mix(in srgb,var(--line) 70%,var(--bg));border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px;align-self:flex-start;min-height:120px;transition:box-shadow .15s}
+.kcol.kover{box-shadow:inset 0 0 0 2px var(--accent)}
+.kcol h4{margin:2px 4px 2px;font-size:13.5px;display:flex;gap:6px;align-items:center}.kcol h4 .num{color:var(--muted);font-weight:600}
+.kbc{display:flex;flex-direction:column;gap:3px;width:100%;border:0;background:var(--card);border-radius:12px;padding:11px 12px;font:inherit;text-align:left;color:var(--ink);cursor:pointer}
+.kbc b{font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.kbc small{font-size:12.5px;color:var(--muted)}
+[data-kmove] .kbc{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+.kbc.kdrag{opacity:.35}
+.kghost{position:fixed;z-index:300;pointer-events:none;box-shadow:0 12px 28px rgba(0,0,0,.2);transform:rotate(2deg)}
+.kemp{margin:4px;font-size:13px;color:var(--muted)}
+.kbhint{font-size:12.5px;color:var(--muted);margin:8px 2px 0}
+@media (min-width:900px){.ntboard{margin:12px 0 0;padding:0 0 4px}.kcol{flex:1 1 0}}
+.ntgrp{padding:4px 0 2px}.ntgrp h4{margin:0;padding:10px 14px 4px;font-size:12.5px;color:var(--muted);font-weight:600}
+.ntgrp h4 + .ntlrow{border-top:0}
+.ntfav{width:24px;height:24px;border-radius:7px;background:var(--fill);display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--sub);flex:none}
+.ntfav .nic{width:14px;height:14px;margin:0}
+.ntgrp + .ntgrp{margin-top:10px}
 .ntlist{margin-top:12px;padding:4px 0}
 .ntlrow{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:11px 14px;font:inherit;color:var(--ink);text-align:left;cursor:pointer;border-top:1px solid var(--line)}
 .ntlrow:first-child{border-top:0}
@@ -1990,6 +2022,7 @@ a.row{color:inherit;text-decoration:none}
 .jmsum div{display:flex;flex-direction:column;gap:3px;min-width:0}
 .jmsum small{font-size:12px;color:var(--muted)}
 .jmsum b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ntsrch input:focus{outline:none}.ntsrch:focus-within{box-shadow:0 0 0 2px var(--accent)}
 </style>
 <script>
 (function(){"use strict";
@@ -3761,7 +3794,7 @@ function viewCal(){
 
 /* ================= 자료실 (nav › 자료실): references, ideas, reading notes, study notes ================= */
 /* line icons for 자료실 (no emoji) */
-const NIP = {layout:'<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M3.5 9h17M9 9v11.5"/>', 
+const NIP = {play:'<path d="M8 5.5v13l10.5-6.5z"/>', layout:'<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M3.5 9h17M9 9v11.5"/>', 
   idea:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3Z"/>',
   link:'<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
   book:'<path d="M2.5 4.5h6a3.5 3.5 0 0 1 3.5 3.5v12.5a2.5 2.5 0 0 0-2.5-2.5h-7Z"/><path d="M21.5 4.5h-6A3.5 3.5 0 0 0 12 8v12.5a2.5 2.5 0 0 1 2.5-2.5h7Z"/>',
@@ -3850,10 +3883,18 @@ S.ntSort = null; S.jMonth = null;
 const NT_VIEWS = {card:["카드", '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>'],
   list:["리스트", '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>'],
   table:["표", '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M10 9.5v10"/>'],
+  board:["보드", '<rect x="3.5" y="4.5" width="5" height="15" rx="1.5"/><rect x="9.5" y="4.5" width="5" height="10" rx="1.5"/><rect x="15.5" y="4.5" width="5" height="12" rx="1.5"/>'],
+  group:["종류별", '<path d="M4 5h7M4 13h7"/><path d="M8 9h12M8 17h12"/>'],
   month:["월", '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>']};
-const ntViewOf = cat => { const v = S.ntView[cat], ok = cat === "journal" ? ["card","month"] : ["card","list","table"]; return ok.includes(v) ? v : "card"; };
-function ntViewSeg(cat){ const cur = ntViewOf(cat), ks = cat === "journal" ? ["card","month"] : ["card","list","table"];
-  return `<div class="ntvseg" role="group" aria-label="보기">${ks.map(k => `<button data-act="nt-view" data-v="${k}" aria-pressed="${cur === k}" aria-label="${k === "card" && cat === "journal" ? "목록" : NT_VIEWS[k][0]} 보기" title="${k === "card" && cat === "journal" ? "목록" : NT_VIEWS[k][0]}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NT_VIEWS[k][1]}</svg></button>`).join("")}</div>`; }
+/* 서랍마다 어울리는 보기만: 학습은 상태 보드·표, 아이디어는 실행 단계 보드, 참고자료는 종류별 묶음, 저널은 월 달력 */
+const NT_VSET = {all:["card","list"], learn:["card","board","table"], idea:["card","board"], ref:["card","group"], journal:["card","month"]};
+const NT_VDESC = {learn:{board:"예정 · 학습 중 · 완료", table:"종류 · 별점 · 상태"}, idea:{board:"떠올림 · 실행 중 · 실행함"}, ref:{group:"글 · 영상 · SNS로 묶어서"}, journal:{month:"컨디션 달력"}};
+const ntVSet = cat => NT_VSET[cat] || ["card","list"];
+const ntVL = (cat, k) => cat === "journal" && k === "card" ? "목록" : NT_VIEWS[k][0];
+const ntViewOf = cat => { const v = S.ntView[cat]; return ntVSet(cat).includes(v) ? v : "card"; };
+const ntVIc = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NT_VIEWS[k][1]}</svg>`;
+function ntViewSeg(cat){ const cur = ntViewOf(cat);
+  return `<span class="ntvw"><button class="ntvbtn" data-act="nt-vmenu" aria-label="보기: ${ntVL(cat, cur)}" aria-expanded="${!!S.ntVOpen}" title="보기">${ntVIc(cur)}</button>${S.ntVOpen ? `<div class="ntvdd" role="menu">${ntVSet(cat).map(k => `<button role="menuitemradio" data-act="nt-view" data-v="${k}" aria-checked="${cur === k}">${ntVIc(k)}<span><b>${ntVL(cat, k)}</b>${(NT_VDESC[cat] || {})[k] ? `<small>${NT_VDESC[cat][k]}</small>` : ""}</span></button>`).join("")}</div>` : ""}</span>`; }
 function ntTitle(n){ const {f} = ntN(n); return f.title || (f.url && ntHost(f.url)) || (n.files && n.files[0] && n.files[0].name) || String(f.body || "").split("\n")[0].slice(0, 40) || "제목 없음"; }
 function ntRunL(n){ const ts = ntTasks(n), dq = mineOf("quest").find(q => q.noteId === n.id && q.active !== false);
   return dq ? "일일 진행 중" : ts.length ? (ts.every(m => m.done) ? "실행함" : "미션 진행 중") : ""; }
@@ -3875,6 +3916,21 @@ function ntTable(ns, cat){
   const arrow = c => so === c ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${dir > 0 ? '<path d="M7 14l5-5 5 5"/>' : '<path d="M7 10l5 5 5-5"/>'}</svg>` : "";
   return `<div class="card tight nttblw"><table class="nttbl"><thead><tr>${cols.map(c => `<th class="${c.w ? "w" : ""}" aria-sort="${so === c ? (dir > 0 ? "ascending" : "descending") : "none"}"><button data-act="nt-sort" data-v="${c.k}">${c.l}${arrow(c)}</button></th>`).join("")}</tr></thead>
     <tbody>${rows.map(n => `<tr data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0">${cols.map(c => `<td class="${c.k === "title" ? "tt" : c.w ? "w" : ""}">${c.h ? c.h(n) : esc(String(c.v(n) || ""))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; }
+const LN_ST = ["예정","학습 중","완료"];
+function ntBoard(ns, cat){
+  const cols = cat === "learn" ? [...(ns.some(n => !LN_ST.includes(ntN(n).f.status)) ? [["", "상태 없음"]] : []), ...LN_ST.map(x => [x, x])] : [["떠올림","떠올림"],["실행 중","실행 중"],["실행함","실행함"]];
+  const colOf = n => cat === "learn" ? (LN_ST.includes(ntN(n).f.status) ? ntN(n).f.status : "") : (r => r === "실행함" ? "실행함" : r ? "실행 중" : "떠올림")(ntRunL(n));
+  const sub = n => { const {f} = ntN(n); if (cat === "learn") return [f.type, f.author, stars(f.rating)].filter(Boolean).map(x => x === stars(f.rating) ? x : esc(x)).join(" · ");
+    const ts = ntTasks(n), r = ntRunL(n); return r === "일일 진행 중" ? r : ts.length ? `미션 ${ts.filter(m => m.done).length}/${ts.length}` : "다음 행동 없음"; };
+  return `<div class="ntboard" data-swipe ${cat === "learn" && S.canWrite ? 'data-kmove="learn"' : ""}>${cols.map(([k, l]) => { const xs = ns.filter(n => colOf(n) === k);
+    return `<section class="kcol" data-st="${esc(k)}"><h4>${esc(l)} <span class="num">${xs.length}</span></h4>${xs.map(n => `<button class="kbc" data-act="nt-edit" data-id="${n.id}"><b>${esc(ntTitle(n))}</b>${(v => v ? `<small>${v}</small>` : "")(sub(n))}</button>`).join("") || `<p class="kemp">비어 있어요</p>`}</section>`; }).join("")}</div>
+    ${cat === "learn" && S.canWrite ? `<p class="kbhint">카드를 길게 눌러 다른 칸으로 옮기면 상태가 바뀌어요.</p>` : ""}`; }
+function ntGroups(ns){
+  const MO = ["글","영상","SNS","파일","기타"], key = n => MO.includes(ntN(n).f.media) ? ntN(n).f.media : "", ks = [...MO, ""].filter(k => ns.some(n => key(n) === k));
+  const fav = n => { const {f} = ntN(n), u = f.url && safeUrl(f.url); return f.media === "영상" ? nic("play") : u ? esc(ntHost(u).replace(/^www\./, "").charAt(0).toUpperCase()) : nic("link"); };
+  return ks.map(k => { const xs = ns.filter(n => key(n) === k);
+    return `<section class="card tight ntlist ntgrp"><h4>${k || "종류 없음"} <span class="num">${xs.length}</span></h4>${xs.map(n => { const u = safeUrl(ntN(n).f.url || "");
+      return `<button class="ntlrow" data-act="nt-edit" data-id="${n.id}"><span class="ntfav">${fav(n)}</span><b class="t">${esc(ntTitle(n))}</b>${noteComplete(S, n) ? `<span class="ntdone" aria-label="완성">${nic("check")}</span>` : ""}${u ? `<small>${esc(ntHost(u).replace(/^www\./, ""))}</small>` : ""}</button>`; }).join("")}</section>`; }).join(""); }
 const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 function jMonthView(jAll){
   const t0 = today(), ym = S.jMonth || t0.slice(0, 7), [Y, M] = ym.split("-").map(Number), first = new Date(Y, M-1, 1), days = new Date(Y, M, 0).getDate(), lead = first.getDay();
@@ -3898,11 +3954,11 @@ function viewNotes(){
   const list = q ? inCat.filter(n => (ntText(n) + " " + (n.projectId && S.projects[n.projectId] ? S.projects[n.projectId].title : "")).toLowerCase().includes(q)) : inCat;
   const grid = cat === "all" && !q ? list.filter(n => !n.unsorted) : list; /* 전체 보기에서 분류 안 된 자료는 위 '분류'에 */
   const chip = (k, l, n) => `<button class="chip" data-act="nt-cat" data-v="${k}" aria-pressed="${cat === k}">${l}${n ? ` <span class="num">${n}</span>` : ""}</button>`;
-  return `<div class="nttools"><input type="search" id="nt-q" placeholder="${cat === "journal" ? "저널 검색" : "자료 검색"}" value="${esc(S.ntQ || "")}" aria-label="자료 검색">${ntViewSeg(cat)}<button class="btn" data-act="nt-new">+ 자료 추가</button></div>
+  return `<div class="nttools"><label class="ntsrch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg><input type="search" id="nt-q" placeholder="${cat === "journal" ? "저널 검색" : cat === "all" ? "자료 검색" : esc(noteDrawer(S, cat).l) + " 검색"}" value="${esc(S.ntQ || "")}" aria-label="자료 검색"></label>${ntViewSeg(cat)}<button class="btn ntadd" data-act="nt-new" aria-label="자료 추가"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>자료 추가</span></button></div>
     <div class="chips ntcats" role="group" aria-label="서랍" data-swipe>${chip("all", "전체", all.length)}${DR.filter(d => !d.hidden || d.k === cat).map(d => chip(d.k, `${nic(d.ic)}${esc(d.l)}`, all.filter(n => ntN(n).cat === d.k && !n.unsorted).length)).join("")}${chip("journal", `${nic("journal")}저널`, jAll.length)}<button class="chip ntmng" data-act="dr-manage">+ 서랍</button></div>
     ${cat === "journal" ? (ntViewOf("journal") === "month" ? jMonthView(jAll) : jList.length ? `<div class="ntgrid">${jList.map(jCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 저널이 없어요" : "저널 서랍이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 저널 추가」로 오늘 하루를 남겨 보세요."}</section>`) : ""}
     ${cat === "all" && !q ? ntInbox(all) : ""}
-    ${cat === "journal" ? "" : grid.length ? (v => v === "list" ? ntListRows(grid) : v === "table" ? ntTable(grid, cat) : `<div class="ntgrid">${grid.map(ntCard).join("")}</div>`)(ntViewOf(cat)) : cat === "all" && !q && list.length ? "" : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : cat !== "all" ? `${esc(noteDrawer(S, cat).l)} 서랍이 비어 있어요` : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 자료 추가」로 첫 자료를 담아 보세요."}</section>`}`;
+    ${cat === "journal" ? "" : grid.length ? (v => v === "list" ? ntListRows(grid) : v === "table" ? ntTable(grid, cat) : v === "board" ? ntBoard(grid, cat) : v === "group" ? ntGroups(grid) : `<div class="ntgrid">${grid.map(ntCard).join("")}</div>`)(ntViewOf(cat)) : cat === "all" && !q && list.length ? "" : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : cat !== "all" ? `${esc(noteDrawer(S, cat).l)} 서랍이 비어 있어요` : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 자료 추가」로 첫 자료를 담아 보세요."}</section>`}`;
 }
 /* 자료 작성 화면: 큰 제목 → 서랍별 속성 몇 줄 → 글 상자(요약·이유 등) → 자유 본문. 종류는 위 알약에서 언제든 바꾼다 */
 const NT_URL_RE = /(https?:\/\/|www\.)\S+|\b[\w-]+\.(com|net|org|io|co|kr|me|tv|be|ly)(\/\S*)?/i;
@@ -4321,16 +4377,16 @@ function cvFoldQ(g, html){ if (WEB.matches) return html; const cv = coverHtml(g,
 function viewPlan(){
   const all = goalsOf(S.me), Q = QM();
   const act = all.filter(g => g.status !== "done" && !isPlanned(g)).sort(gOrder), later = all.filter(g => g.status !== "done" && isPlanned(g)).sort(gOrder), done = all.filter(g => g.status === "done").sort((a,b) => (b.doneAt || 0) - (a.doneAt || 0));
-  if (!["all", "active", "later", "done"].includes(Q.ptab)) Q.ptab = "all";
-  const tab = Q.ptab, T = t => tab === "all" || tab === t;
+  if (!["active", "later", "done"].includes(Q.ptab)) Q.ptab = "active"; /* 전체 탭은 없앴다: 진행이 기본 */
+  const tab = Q.ptab, T = t => tab === t;
   /* 모바일은 위아래 한 줄씩, PC는 여러 줄 격자(.plgrid). 전체 칩의 달성은 최근 3개 + '달성 전체 보기'. */
   const sec = (t, list, extra = "", empty = "", more = "", btn = "", reo = false) => `<div class="subhead${btn ? " dqhead" : ""}"><h2>${t} <span class="num">${list.length}</span></h2>${btn}</div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => ovLay(g, cvFoldQ(g, reo && S.canWrite ? plCard(g).replace('<section class="card pgc', `<section data-reo="${g.id}" class="card pgc`) : plCard(g)))).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
-  let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태" data-swipe>${[["all","전체",all.length],["active","진행",act.length],["later","예정",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
+  let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태" data-swipe>${[["active","진행",act.length],["later","예정",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
   const mkBtn = `<button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">+ 생성</button>`;
   if (T("active")) h += sec("진행 중", act, "", "이루고 싶은 목표를 퀘스트로 만들어 보세요.", "", mkBtn, true);
-  if (T("later") && (later.length || tab === "later")) h += sec("예정", later, "", "아직 시작하지 않은 메인 퀘스트가 여기에 모여요.", "", tab === "all" ? "" : mkBtn, true);
+  if (T("later")) h += sec("예정", later, "", "아직 시작하지 않은 메인 퀘스트가 여기에 모여요.", "", mkBtn, true);
   const cx = cxGoalsOf(S.me);
-  if (T("done") && (done.length || tab === "done")) h += sec("달성", done, "", "달성한 메인 퀘스트가 여기에 모여요.", tab === "all" && done.length > 3 ? `<button class="btn sec full qmmore" data-act="pl-tab" data-v="done">달성 전체 보기 <span class="num">${done.length}</span></button>` : "", mkBtn);
+  if (T("done")) h += sec("달성", done, "", "달성한 메인 퀘스트가 여기에 모여요.", "", mkBtn);
   if (tab === "done" && cx.length) h += sec("포기", cx);
   return h;
 }
@@ -5532,6 +5588,28 @@ let tapT = null, tapKey = null;
   document.addEventListener("contextmenu", e => { const el = e.target.closest(".reply[data-rid]"); if (!el) return; e.preventDefault(); lpEnd(); rmenu(el.dataset.rid); });
   document.addEventListener("click", e => { if (S._reoJust && Date.now() - S._reoJust < 400){ e.stopPropagation(); e.preventDefault(); S._reoJust = 0; } }, true);
 })();
+/* 학습 보드: 카드를 길게 눌러 다른 칸으로 옮기면 상태가 바뀐다 */
+(() => { let t = null, p0 = null, drag = null, over = null;
+  const clear = () => { if (t){ clearTimeout(t); t = null; } };
+  const drop = () => { if (!drag) return; drag.g.remove(); drag.c.classList.remove("kdrag"); if (over) over.classList.remove("kover"); const d = drag; drag = null; over = null; return d; };
+  document.addEventListener("pointerdown", e => { const c = e.target.closest && e.target.closest("[data-kmove] .kbc"); if (!c || e.button > 0 || !S.canWrite) return;
+    p0 = {x:e.clientX, y:e.clientY}; clear();
+    t = setTimeout(() => { t = null; const r = c.getBoundingClientRect(), g = c.cloneNode(true); g.className = "kbc kghost"; g.removeAttribute("data-act");
+      g.style.cssText = `width:${r.width}px;left:${r.left}px;top:${r.top}px`; document.body.appendChild(g); c.classList.add("kdrag");
+      drag = {c, g, id:c.dataset.id, dx:p0.x - r.left, dy:p0.y - r.top}; try { navigator.vibrate && navigator.vibrate(12); } catch {} }, 350); });
+  document.addEventListener("pointermove", e => { if (t && p0 && Math.hypot(e.clientX - p0.x, e.clientY - p0.y) > 8) clear(); if (!drag) return;
+    drag.g.style.left = (e.clientX - drag.dx) + "px"; drag.g.style.top = (e.clientY - drag.dy) + "px";
+    const el = document.elementFromPoint(e.clientX, e.clientY), col = el && el.closest && el.closest("[data-kmove] .kcol"); if (col !== over){ if (over) over.classList.remove("kover"); over = col; if (col) col.classList.add("kover"); } });
+  document.addEventListener("touchmove", e => { if (drag) e.preventDefault(); }, {passive:false});
+  document.addEventListener("pointerup", () => { clear(); const col = over, d = drop(); if (!d) return; S._reoJust = Date.now(); if (!col) return;
+    const n = S.mine[d.id]; if (!n) return; const {f} = ntN(n), st = col.dataset.st || undefined; if ((f.status || undefined) === st || (!LN_ST.includes(f.status) && !st)) return;
+    const was = noteComplete(S, n), nf = {...f}; if (st) nf.status = st; else delete nf.status;
+    run(() => api.putMine(n.id, {...n, cat:"learn", f:nf, updatedAt:Date.now()}), r => { toast(!was && noteComplete(S, S.mine[n.id]) && r && r.xp > 0 ? "학습 완성!" : `「${st || "상태 없음"}」 칸으로 옮겼어요`); }); });
+  document.addEventListener("pointercancel", () => { clear(); drop(); });
+  document.addEventListener("contextmenu", e => { if (e.target.closest && e.target.closest("[data-kmove] .kbc")) e.preventDefault(); });
+})();
+/* 보기 메뉴도 바깥을 누르면 닫는다 */
+document.addEventListener("click", e => { if (!e.isTrusted || !S.ntVOpen || (e.target.closest && e.target.closest(".ntvw"))) return; S.ntVOpen = false; e.stopPropagation(); e.preventDefault(); schedule(); }, true);
 /* ⋯ 메뉴(카드·작성 화면)는 바깥을 누르면 닫는다. 닫기만 하고 그 클릭은 넘기지 않는다 */
 document.addEventListener("click", e => { const inside = e.target.closest && e.target.closest(".ntmw"); if (!e.isTrusted) return;
   if (inside){ if (e.target.closest(".ntdd")){ S.ntMenuOpen = null; if (S.compose && (S.compose.type === "note" || S.compose.type === "diary")) S.compose.menu = false; } return; } /* 삭제를 누르면 메뉴는 닫고 확인 창으로 */
@@ -5751,8 +5829,9 @@ document.addEventListener("click", e => {
     case "nf-rm": { e.stopPropagation(); preserveSheetDrafts(); const fid = b.dataset.v; c.files = (c.files || []).filter(x => x.id !== fid); if ((c.newFiles || []).includes(fid)){ c.newFiles = c.newFiles.filter(x => x !== fid); FDB.del(fid); } else (c.rmFiles = c.rmFiles || []).push(fid); renderSheet(); return; }
     case "nf-pick": { const inp = document.createElement("input"); inp.type = "file"; inp.multiple = true; inp.accept = F_ACCEPT; inp.onchange = () => addFiles(c, inp.files); inp.click(); return; }
     case "fv-back": openSheet(c.back); return;
-    case "nt-cat": S.ntCat = b.dataset.v; break;
-    case "nt-view": { const c = S.ntCat === "journal" || noteDrawers(S).some(d => d.k === S.ntCat) ? S.ntCat : "all"; S.ntView = {...S.ntView, [c]:b.dataset.v}; try { LS.set("ntView", S.ntView); } catch {} break; }
+    case "nt-cat": S.ntCat = b.dataset.v; S.ntVOpen = false; break;
+    case "nt-vmenu": S.ntVOpen = !S.ntVOpen; break;
+    case "nt-view": { const c = S.ntCat === "journal" || noteDrawers(S).some(d => d.k === S.ntCat) ? S.ntCat : "all"; S.ntVOpen = false; if (!ntVSet(c).includes(b.dataset.v)) break; S.ntView = {...S.ntView, [c]:b.dataset.v}; try { LS.set("ntView", S.ntView); } catch {} break; }
     case "nt-sort": { const c = S.ntCat || "all", k = b.dataset.v, o = S.ntSort; S.ntSort = o && o.cat === c && o.k === k ? (o.dir > 0 ? {cat:c, k, dir:-1} : null) : {cat:c, k, dir:1}; break; }
     case "j-mon": { const [Y, M] = (S.jMonth || today().slice(0, 7)).split("-").map(Number), d = new Date(Y, M - 1 + (+b.dataset.v), 1), ym = ymd(d).slice(0, 7); if (ym > today().slice(0, 7)) return; S.jMonth = ym; break; }
     case "j-day": { const dt = b.dataset.v; if (!dt || dt > today()) return; const d = S.mine["d-"+dt];
