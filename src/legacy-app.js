@@ -1122,9 +1122,15 @@ function noteSheet(c){
     const box = x.k === "summary";
     return `<div class="${box ? "ntbox sum" : "ntblk"}"><span class="ntbl">${esc(x.l)}${xb(x)}</span><textarea id="${id}" data-grow rows="${box ? 3 : 2}" maxlength="10000" placeholder="${esc(x.p || "")}">${D(id)}</textarea></div>`; };
   const pj = c.projectId && S.projects[c.projectId];
-  const qRow = gs.length || pj ? `<span class="ntpl">${nic("target")}퀘스트</span><div class="ntpq">${pj ? `<button class="ntpc on" data-act="tqpick" data-t="어떤 퀘스트의 자료인가요?">${esc(goalLabel(pj))}</button><button class="qx" data-act="tqclear" aria-label="퀘스트 연결 빼기">×</button>` : `<button class="ntpc add" data-act="tqpick" data-t="어떤 퀘스트의 자료인가요?">+ 연결</button>`}</div>` : "";
+  /* 퀘스트·영역: 누르면 그 자리 아래로 목록이 펼쳐지고, 고르면 접힌다(팝업 없음) */
+  const chev = up => `<svg class="ntdc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${up ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"}"/></svg>`;
+  const qOpen = c.drop === "q", aOpen = c.drop === "a";
+  const mains = goalsOf(S.me).filter(g => g.status !== "done" && !isCx(g)).sort(gOrder);
+  const qList = qOpen ? `<div class="ntdrop" role="listbox">${pj ? `<button class="ntdi" data-act="nt-qset" data-v="">연결 안 함</button>` : ""}${mains.map(g => `<button class="ntdi ${c.projectId === g.id ? "on" : ""}" data-act="nt-qset" data-v="${g.id}">${esc(g.title)}<small>메인${c.projectId === g.id ? " ✓" : ""}</small></button>` + subsOf(g.id).filter(x => x.status !== "done" && !isCx(x)).map(x => `<button class="ntdi sub ${c.projectId === x.id ? "on" : ""}" data-act="nt-qset" data-v="${x.id}">${esc(x.title)}<small>스테이지${c.projectId === x.id ? " ✓" : ""}</small></button>`).join("")).join("")}</div>` : "";
+  const qRow = gs.length || pj ? `<span class="ntpl">${nic("target")}퀘스트</span><div class="ntpq">${pj ? `<button class="ntpc on" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">${esc(goalLabel(pj))}${chev(qOpen)}</button>` : `<button class="ntpc add" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">+ 연결${chev(qOpen)}</button>`}</div>${qList}` : "";
   const aSel = c.area && AREAS.find(a => a[0] === c.area);
-  const aRow = C.pt ? `<span class="ntpl">영역</span><div class="ntpq">${aSel ? `<button class="ntpc on" data-act="nt-apick">${aSel[3]}</button><button class="qx" data-act="nt-area" data-v="${aSel[0]}" aria-label="영역 빼기">×</button>` : `<button class="ntpc add" data-act="nt-apick">+ 선택</button>`}</div>` : "";
+  const aList = aOpen ? `<div class="ntdrop" role="listbox">${aSel ? `<button class="ntdi" data-act="nt-aset" data-v="">선택 안 함</button>` : ""}${AREAS.map(([k,,,l]) => `<button class="ntdi ${c.area === k ? "on" : ""}" data-act="nt-aset" data-v="${k}"><span class="apk">${aIcon(k)}${l}</span>${c.area === k ? "<small>✓</small>" : ""}</button>`).join("")}</div>` : "";
+  const aRow = C.pt ? `<span class="ntpl">영역</span><div class="ntpq">${aSel ? `<button class="ntpc on" data-act="nt-drop" data-v="a" aria-expanded="${aOpen}">${aSel[3]}${chev(aOpen)}</button>` : `<button class="ntpc add" data-act="nt-drop" data-v="a" aria-expanded="${aOpen}">+ 선택${chev(aOpen)}</button>`}</div>${aList}` : "";
   const fRow = C.k === "ref" ? `<span class="ntpl">파일</span><div class="flist sm">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < F_MAX ? `<button class="ntpc add" data-act="nf-pick">+ 첨부</button>` : ""}</div>` : "";
   const bot = C.f.filter(x => x.bottom).map(prop).join("");
   const props = C.f.filter(isProp).map(prop).join("") + fRow + qRow + aRow + (bot ? `<hr class="ntpdiv">${bot}` : ""); /* 학습 상태는 영역 아래, 구분선 하나 두고 */
@@ -2811,6 +2817,9 @@ document.addEventListener("click", e => {
       const mo = K.f.find(x => x.k === "media"), u = S.drafts["nf-url"]; if (mo && u && !(c.vals || {}).media){ const m = ntMediaOf(u); if (m && mo.o.includes(m)){ c.vals = c.vals || {}; c.vals.media = m; } }
       renderSheet(); return; }
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
+    case "nt-drop": preserveSheetDrafts(); c.drop = c.drop === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
+    case "nt-qset": preserveSheetDrafts(); c.projectId = b.dataset.v || null; c.drop = null; renderSheet(); return;
+    case "nt-aset": preserveSheetDrafts(); c.area = b.dataset.v || null; c.drop = null; renderSheet(); return;
     case "nt-apick": preserveSheetDrafts(); S.parentSheet = c; openSheet({type:"apick"}); return;
     case "apick-set": { const par = S.parentSheet; if (par) par.area = b.dataset.v || null; closeSheet(); return; }
     case "nt-area": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
