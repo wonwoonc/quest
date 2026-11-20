@@ -3168,16 +3168,21 @@ function diaryPage(d, P){ const dt = P.date || today(), t0 = today(), past = dt 
   return `<button class="nttitle jtitle" data-act="jdpick" aria-expanded="${open}">${x.getMonth()+1}월 ${x.getDate()}일 ${WD[x.getDay()]}요일${past ? "" : `<small>오늘</small>`}<svg class="ntdc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${open ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"}"/></svg></button>${cal}
     ${past && !d ? `<p class="jpast">지난 날짜는 보상 없이 기록만 남아요</p>` : ""}
     <div class="ntprops">${props}</div>
-    <textarea class="ntbody-in" id="pl-text" data-grow rows="8" maxlength="5000" placeholder="오늘 있었던 일, 떠오른 생각을 자유롭게 적어요">${esc(S.drafts["pl-text"] ?? (d && d.text) ?? "")}</textarea>`; }
+    ${(() => { /* 본문: 자료 작성과 같은 블록 편집기 */ if (!LP || !LP.sheet || LP.c !== c){ const t0 = S.drafts["pl-text"] ?? (d && d.text) ?? "", bb = d && Array.isArray(d.blocks) ? d.blocks.map(bkNorm) : null, nz = v => String(v || "").replace(/\s+/g, " ").trim();
+      LP = {sheet:true, c, id:"nf", blocks:bb && bb.length && nz(bkPlain(bb)) === nz(t0) ? bb : textBlocks(t0)}; }
+      LP.ph = "오늘 있었던 일, 떠오른 생각을 자유롭게 적어요 · '/'로 블록 선택";
+      return `<div class="nfedw"><div class="nted nfed" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}`; })()}`; }
 /* 저널 저장. quiet면 감정이 없어도 저장하고 알림을 띄우지 않는다. 저장할 게 없으면 false */
 function saveDiary(quiet, after){ if (!S.canWrite) return false; const P = S.planner, te = dq("#pl-text"), ce = dq("#pl-cond");
+  const live = !te && LP && LP.sheet && LP.c === S.compose && $("#nfed"); if (live){ bkSync(); S.drafts["pl-text"] = bkPlain(LP.blocks); }
+  const bb = live ? (LP.blocks.some(b => b.t !== "p" || b.ind || /</.test(b.h || "")) ? bkStore(LP.blocks) : undefined) : undefined;
   const text = ((te ? te.value : S.drafts["pl-text"]) || "").trim(), cond = ce ? +ce.value : num(P.cond), share = false; // 저널은 커뮤니티에 공유하지 않는다(예전에 공유한 글은 그대로 두고 내용만 맞춘다)
   const dt = P.date || today(), key = "d-"+dt, existed = !!S.mine[key], from = P.from, old = S.mine[key] || {};
   if (!existed && !text && !P.emo) return false;
-  if (existed && (old.text || "") === text && (old.cond ?? 70) === cond && (old.emo || null) === (P.emo || null)) return false;
+  if (existed && (old.text || "") === text && (old.cond ?? 70) === cond && (old.emo || null) === (P.emo || null) && (!live || JSON.stringify(old.blocks || null) === JSON.stringify(bb || null))) return false;
   if (!quiet && !P.emo){ toast("감정을 골라 주세요"); return null; }
   const post = existed ? diaryPost(key) : null, x1 = pd(dt), label = dt === today() ? "오늘의 저널" : `${x1.getMonth()+1}월 ${x1.getDate()}일의 저널`;
-  return run(async () => { await api.putMine(key, {...old, kind:"diary", date:dt, cond, emo:P.emo || null, text, at:old.at || Date.now()});
+  return run(async () => { await api.putMine(key, {...old, kind:"diary", date:dt, cond, emo:P.emo || null, text, ...(live ? {blocks:bb} : {}), at:old.at || Date.now()});
       if (share && !post) await api.addPost({ref:{type:"diary", id:key, label, extra:{cond, emo:P.emo}}, text, mood:null}, []);
       else if (post) await api.editPost(post.id, {text, ref:{...post.ref, extra:{cond, emo:P.emo}}}); },
     () => { S.planner = {cond:70, emo:null, share:false}; delete S.drafts["pl-text"]; if (after) after(); else if (S.compose && S.compose.type === "diary") closeSheet();
@@ -3790,7 +3795,7 @@ function viewLearn(){
   return h;
 }
 /* ---------- 블록 에디터 ---------- */
-const BK_TYPES = [["p","텍스트","T"],["h1","제목 1","H1"],["h2","제목 2","H2"],["h3","제목 3","H3"],["ul","글머리 목록","•"],["ol","번호 목록","1."],["todo","체크박스","☐"],["toggle","토글","▸"],["quote","인용","│"],["code","코드","</>"],["callout-g","핵심 상자","!"],["callout-r","주의 상자","!"],["callout-y","팁 상자","!"],["callout-b","정보 상자","!"],["divider","구분선","—"]];
+const BK_TYPES = [["p","텍스트","T"],["h1","제목 1","H1"],["h2","제목 2","H2"],["h3","제목 3","H3"],["ul","글머리 목록","•"],["ol","번호 목록","1."],["todo","체크박스","☐"],["toggle","토글","▸"],["quote","인용","│"],["callout-g","핵심 상자","!"],["callout-r","주의 상자","!"],["callout-y","팁 상자","!"],["callout-b","정보 상자","!"],["divider","구분선","—"]];
 const BK_MD = [[/^###\s$/, "h3"], [/^##\s$/, "h2"], [/^#\s$/, "h1"], [/^[-*]\s$/, "ul"], [/^1[.)]\s$/, "ol"], [/^\[\s?\]\s$/, "todo"], [/^>\s$/, "toggle"], [/^["“”]\s$/, "quote"], [/^!\s$/, "callout-g"]];
 let LP = null; /* working copy of the open block editor: 학습 노트 {id, blocks} 또는 자료 작성 본문 {sheet:true, c, blocks} */
 const BKID = () => LP && LP.sheet ? {ed:"#nfed", menu:"#nfbkmenu", sel:"#nfbksel"} : {ed:"#nted", menu:"#bkmenu", sel:"#bksel"};
@@ -3806,7 +3811,7 @@ function bkSan(html){ const t = document.createElement("template"); t.innerHTML 
     if (tg === "a"){ const href = x.getAttribute("href") || ""; return /^https?:\/\//i.test(href) ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${inner}</a>` : inner; } return `<${tg}>${inner}</${tg}>`; }).join("");
   return walk(t.content).replace(/^<br>/, ""); }
 /* Stored blocks are re-checked when a page opens: type/colour from fixed lists, id attribute-safe, body through the same allowlist as typing. */
-const BK_OK = new Set(["p","h1","h2","h3","ul","ol","todo","toggle","callout","code","quote","divider"]);
+const BK_OK = new Set(["p","h1","h2","h3","ul","ol","todo","toggle","callout","quote","divider"]); /* 코드 블록은 뺐다: 예전 코드 블록은 일반 글로 */
 function bkNorm(b){ const o = {...b, id:/^[\w.~:-]{1,64}$/.test(b.id || "") ? b.id : uid8(), t:BK_OK.has(b.t) ? b.t : "p", h:/</.test(b.h || "") ? bkSan(b.h) : String(b.h || "")}; if (!Object.hasOwn(CALLOUT, o.c || "g")) delete o.c; return o; }
 function bkHtml(blocks, ro, ph0){ let ol = {}, hide = 0, tg = -1;
   return blocks.map(b => { const lv = /^h[123]$/.test(b.t) ? +b.t[1] : 0, ind = Math.max(0, Math.min(3, b.ind || 0)); if (lv && hide && lv <= hide) hide = 0; if (tg >= 0 && ind <= tg) tg = -1;
@@ -3836,7 +3841,7 @@ function bkMenu(id, q){ const m = $(BKID().menu), el = bxOf(id); if (!m || !el) 
   S.bkMenu = {id, sel:0, list:list.map(x => x[0])}; m.innerHTML = `<p class="bkmh">블록 선택</p>` + list.map(([k, l, g], i) => `<button data-act="bk-pick" data-v="${k}" class="${i ? "" : "on"}"><span class="${k.startsWith("callout") ? "cc c-" + k.split("-")[1] : ""}">${k.startsWith("callout") ? nic(CALLOUT[k.split("-")[1]][1]) : esc(g)}</span>${l}${BK_KEYS[k] ? `<kbd>${esc(BK_KEYS[k])}</kbd>` : ""}</button>`).join("");
   const r = el.getBoundingClientRect(), pr = $(BKID().ed).getBoundingClientRect(); m.style.top = (r.bottom - pr.top + 4) + "px"; m.hidden = false; }
 const BK_ACTS = [["indent","들여쓰기","⇥"],["outdent","내어쓰기","⇤"]];
-const BK_KEYS = {indent:"Tab", outdent:"Shift+Tab", h1:"#", h2:"##", h3:"###", ul:"-", ol:"1.", todo:"[]", toggle:">", quote:"\"", code:"```", "callout-g":"!", divider:"---"};
+const BK_KEYS = {indent:"Tab", outdent:"Shift+Tab", h1:"#", h2:"##", h3:"###", ul:"-", ol:"1.", todo:"[]", toggle:">", quote:"\"", "callout-g":"!", divider:"---"};
 const bkMenuClose = () => { const m = $(BKID().menu); if (m) m.hidden = true; S.bkMenu = null; };
 function bkPick(t){ const mm = S.bkMenu; if (!mm) return; const el = bxOf(mm.id); if (el) el.innerHTML = ""; bkMenuClose();
   if (t === "indent" || t === "outdent"){ bkSync(); const b = LP.blocks[bkIdx(mm.id)]; if (!b) return; b.ind = Math.max(0, Math.min(3, (b.ind || 0) + (t === "indent" ? 1 : -1))); bkRedraw(mm.id, 0); bkSave(); return; }
@@ -3858,8 +3863,7 @@ document.addEventListener("pointerdown", e => { if (e.target.closest && e.target
 document.addEventListener("input", e => { const bx = e.target.closest && e.target.closest(BKID().ed + " .bx"); if (!bx || !LP) return; const id = bx.dataset.b, b = LP.blocks[bkIdx(id)]; if (!b) return;
   const tx = bx.textContent.replace(/ /g, " ");
   if (b.t !== "code"){ for (const [re, t] of BK_MD) if (re.test(tx) && (b.t === "p" || t === "todo")){ bx.innerHTML = ""; bkSetType(id, t); return; }
-    if (tx === "---"){ bx.innerHTML = ""; bkSetType(id, "divider"); return; }
-    if (tx === "```" && b.t === "p"){ bx.innerHTML = ""; bkSetType(id, "code"); return; } }
+    if (tx === "---"){ bx.innerHTML = ""; bkSetType(id, "divider"); return; } }
   if (tx.startsWith("/") && !tx.includes(" ") && tx.length <= 8) bkMenu(id, tx.slice(1)); else bkMenuClose();
   bkSave(); });
 document.addEventListener("paste", e => { const bx = e.target.closest && e.target.closest(BKID().ed + " .bx"); if (!bx || !LP) return; e.preventDefault(); const t = (e.clipboardData || window.clipboardData)?.getData("text") || "";
@@ -4780,7 +4784,7 @@ function chainSort(qs){ const ids = new Set(qs.map(q => q.id)), out = [], seen =
   const walk = q => { if (seen.has(q.id)) return; seen.add(q.id); out.push(q); kids(q.id).forEach(walk); };
   qs.filter(q => !q.afterId || !ids.has(q.afterId)).forEach(walk); qs.forEach(walk); return out; }
 function preserveSheetDrafts() {
-  if (LP && LP.sheet && $("#nfed")){ bkSync(); S.drafts["nf-body"] = bkPlain(LP.blocks); }
+  if (LP && LP.sheet && $("#nfed")){ bkSync(); S.drafts[S.compose && S.compose.type === "diary" ? "pl-text" : "nf-body"] = bkPlain(LP.blocks); }
   document.querySelectorAll('.sheet input[id], .sheet textarea[id]').forEach(el => { if(!['checkbox','radio','file'].includes(el.type)) S.drafts[el.id]=el.value; });
 }
 let sheetDrawn = null; const sheetTops = new WeakMap();
@@ -5419,7 +5423,7 @@ document.addEventListener("click", e => {
     case "nt-hide": preserveSheetDrafts(); c.hideF = [...new Set([...(c.hideF || []), b.dataset.f])]; delete S.drafts["nf-" + b.dataset.f]; if (c.vals) delete c.vals[b.dataset.f]; renderSheet(); return;
     case "nt-unhide": preserveSheetDrafts(); c.hideF = (c.hideF || []).filter(k => k !== b.dataset.f); renderSheet(); return;
     case "nt-menu": { e.stopPropagation(); if (!S.mine[id]) return; S.ntMenuOpen = S.ntMenuOpen === id ? null : id; S.armed = null; schedule(); return; }
-    case "dj-kind": { if (!c || c.type !== "diary") return; const v = b.dataset.v; if (v === "journal"){ c.kpick = false; renderSheet(); return; } /* 저널 → 다른 서랍: 적던 글은 본문으로 옮긴다 */
+    case "dj-kind": { if (!c || c.type !== "diary") return; preserveSheetDrafts(); const v = b.dataset.v; if (v === "journal"){ c.kpick = false; renderSheet(); return; } /* 저널 → 다른 서랍: 적던 글은 본문으로 옮긴다 */
       const te = document.getElementById("pl-text"), tx = String(te ? te.value : S.drafts["pl-text"] || "").trim(), st = c.fromNote, ed = !!S.planner.edit;
       c.noSave = true; S.planner = {cond:70, emo:null, share:false}; delete S.drafts["pl-text"]; ntKeys().forEach(k => delete S.drafts[k]); if (LP && LP.sheet) LP = null;
       if (st){ Object.assign(S.drafts, st.drafts); /* 자료 추가에서 왔으면 적던 자료 그대로. 새 저널에 더 적었으면 그 글을 본문으로 */

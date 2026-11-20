@@ -1311,13 +1311,13 @@ test('자료실 저널 서랍: lists own journals only, escaped, opens detail',a
   assert.match(html, /data-v="journal"/); assert.match(html, /class="card ntcard jcard" data-act="dedit" data-id="d-2026-11-02"/); assert.doesNotMatch(html, /class="btn sec xs jedit"/); assert.match(html, /data-act="nt-menu" data-id="d-2026-11-02"/);
   assert.match(html, /11월 2일 월요일/); assert.match(html, /컨디션 80% · 평온/); assert.doesNotMatch(html, /<img src=x>|다른 사용자 저널/);
   assert.match(html, /data-act="nt-new">\+ 자료 추가/); assert.doesNotMatch(html, /저널 추가/);
-  h.click('dedit',{id:'d-2026-11-02'}); assert.match(h.nodes.get('overlay').innerHTML, /스쿼트/); assert.match(h.nodes.get('overlay').innerHTML, /id="pl-text"/);
+  h.click('dedit',{id:'d-2026-11-02'}); assert.match(h.nodes.get('overlay').innerHTML, /스쿼트/); assert.match(h.nodes.get('overlay').innerHTML, /id="nfed"/);
   h.click('sheet-close'); await h.settle(); h.click('nt-menu',{id:'d-2026-11-02'}); assert.match(h.nodes.get('app').innerHTML, /class="ntdd"[\s\S]*data-act="ldel" data-id="d-2026-11-02"/);
 });
 test('자료 추가: 서랍 고르기에서 저널을 고르면 저널 작성 화면으로',async()=>{
   const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-new'); assert.match(h.nodes.get('overlay').innerHTML, /data-act="nt-kind" data-v="journal"/);
   h.click('nt-kind',{v:'memo'}); h.nodes.set('nf-title',{value:'오늘 산책'}); h.click('nt-kpick'); h.click('nt-kind',{v:'journal'}); await h.settle();
-  const o = h.nodes.get('overlay').innerHTML; assert.match(o, /id="pl-text"/); assert.match(o, /오늘 산책/);
+  const o = h.nodes.get('overlay').innerHTML; assert.match(o, /id="nfed"/); assert.match(o, /오늘 산책/);
   assert.equal(Object.values(h.snapshot().mine).filter(n => n.kind === 'note').length, 0, 'no stray note saved');
 });
 test('저널 작성 화면에서 다른 서랍으로 바꾸기',async()=>{
