@@ -3662,14 +3662,14 @@ function ntCard(n){
   const h3 = v => v ? `<h3>${esc(v)}</h3>` : "", p = v => v ? `<p class="ntbody">${esc(v)}</p>` : "", sub = (...xs) => { const l = xs.filter(Boolean); return l.length ? `<p class="ntsub">${l.join(" · ")}</p>` : ""; };
   const ts = ntTasks(n), tdone = ts.length && ts.every(m => m.done), dq = mineOf("quest").find(q => q.noteId === n.id && q.active !== false);
   const run0 = dq ? `<span class="ntrun ok">일일 진행 중 · 연속 ${streakOf(dq).cur}${streakUnit(dq)}</span>` : ts.length ? `<span class="ntrun ${tdone ? "ok" : ""}">${tdone ? nic("check") + "실행함" : "미션 진행 중"}</span>` : "";
-  const act = v => v ? `<p class="ntnext">→ ${esc(v)}${run0 ? " " + run0 : ""}</p>` : "";
+  const runL = run0 ? `<p class="ntnext">${run0}</p>` : ""; /* 카드에는 템플릿·본문 내용을 보여 주지 않는다(제목과 정보만) */
   let mid = "";
-  if (cat === "idea") mid = h3(f.title) + p(f.why) + act(f.next);
-  else if (cat === "ref") mid = h3(f.title || (f.url && ntHost(f.url)) || (n.files && n.files[0] && n.files[0].name)) + sub(f.media && esc(f.media)) + (n.files && n.files.length ? `<div class="flist card-f">${n.files.map(x => fChip(x)).join("")}</div>` : "") + p(f.summary) + (f.why ? `<p class="ntnext">저장 이유 · ${esc(f.why)}</p>` : "");
+  if (cat === "idea") mid = h3(f.title) + runL;
+  else if (cat === "ref") mid = h3(f.title || (f.url && ntHost(f.url)) || (n.files && n.files[0] && n.files[0].name)) + sub(f.media && esc(f.media)) + (n.files && n.files.length ? `<div class="flist card-f">${n.files.map(x => fChip(x)).join("")}</div>` : "");
   else if (cat === "learn"){ const first = (Array.isArray(n.blocks) ? n.blocks : noteBlocks(n)).find(x => !/^h|divider/.test(x.t) && bkText(x).trim());
-    mid = h3(f.title) + sub(f.type && esc(f.type), f.author && esc(f.author), stars(f.rating), f.status && `<b class="lnstb ${f.status === "완료" ? "ok" : ""}">${esc(f.status)}</b>`) + (f.quote ? `<blockquote class="ntq">${clip(f.quote)}</blockquote>` : p(f.goal || f.think)); }
+    mid = h3(f.title) + sub(f.type && esc(f.type), f.author && esc(f.author), stars(f.rating), f.status && `<b class="lnstb ${f.status === "완료" ? "ok" : ""}">${esc(f.status)}</b>`); }
   else if (cat === "memo") mid = h3(f.title || String(f.body || "").split("\n")[0].slice(0, 40)); /* 카드에는 본문을 보여 주지 않는다(제목이 없을 때만 첫 줄을 제목으로) */
-  else mid = h3(f.title) + sub(f.status && esc(f.status), f.date && fmtD(f.date), stars(f.rating)) + p(f.summary) + p(f.think) + act(f.apply);
+  else mid = h3(f.title) + sub(f.status && esc(f.status), f.date && fmtD(f.date), stars(f.rating)) + runL;
   const done = noteComplete(S, n), A = AREAS.find(a => a[0] === ntArea(n)[0]);
   return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic(C.ic)}${esc(C.l)}</span>${done ? `<span class="ntdone">${nic("check")}완성${A ? ` · ${A[3]}` : ""}</span>` : ""}<small class="num">${d.getMonth()+1}.${d.getDate()}</small><span class="ntmw"><button class="ntmore" data-act="nt-menu" data-id="${n.id}" aria-label="자료 메뉴" aria-expanded="${S.ntMenuOpen === n.id}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>${S.ntMenuOpen === n.id ? delDrop("nt-del", n.id, "nd" + n.id) : ""}</span></div>${mid}
     ${(f.url) || pj ? `<div class="ntmeta">${f.url ? (safeUrl(f.url) ? `<a class="ntlink" href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener noreferrer">${nic("link")}${esc(ntHost(safeUrl(f.url)))}</a>` : `<span>${nic("link")}${esc(f.url)}</span>`) : ""}${pj ? `<span>${nic("target")}${esc(pj.title)}</span>` : ""}</div>` : ""}</article>`;
