@@ -3961,7 +3961,14 @@ let bkT = 0;
 function bkSave(now){ clearTimeout(bkT); if (LP && LP.sheet){ bkSync(); return; } /* 자료 작성 본문은 화면을 닫을 때 한꺼번에 저장 */ const go0 = () => { if (!LP) return; bkSync(); const n = S.mine[LP.id]; if (!n) return;   api.putMine(LP.id, {...n, blocks:bkStore(LP.blocks), updatedAt:Date.now()}).catch(e => toast(esc(e.message || "저장하지 못했어요"))); };
   if (now) go0(); else bkT = setTimeout(go0, 500); }
 function bkRedraw(focusId, off){ const ed = $(BKID().ed); if (!ed) return; ed.innerHTML = bkHtml(LP.blocks, bkRO(), LP.ph); if (focusId) setCaret(bxOf(focusId), off); }
-function bkSetType(id, t){ bkSync(); const b = LP.blocks[bkIdx(id)]; if (!b) return; const off = caretOff(bxOf(id) || document.body);
+/* 되돌리기(Ctrl+Z)·다시 실행(Ctrl+Shift+Z, Ctrl+Y): 바뀌기 직전 모습을 쌓아 둔다 */
+function bkHist(){ if (!LP) return; bkSync(); const s0 = JSON.stringify(LP.blocks), h = LP.hist || (LP.hist = []); if (h[h.length - 1] !== s0){ h.push(s0); if (h.length > 100) h.shift(); LP.fut = []; } }
+function bkUndo(redo){ if (!LP) return; bkSync(); const cur = JSON.stringify(LP.blocks), h = LP.hist || (LP.hist = []), f = LP.fut || (LP.fut = []);
+  if (!redo){ while (h.length && h[h.length - 1] === cur) h.pop(); if (!h.length) return; f.push(cur); LP.blocks = JSON.parse(h.pop()); }
+  else { if (!f.length) return; h.push(cur); LP.blocks = JSON.parse(f.pop()); }
+  clearTimeout(LP._ht); LP._ht = 0; const a = document.activeElement, fid = a && a.closest && a.closest(".bx") ? a.closest(".bx").dataset.b : null, tg = LP.blocks.find(x => x.id === fid) || LP.blocks[LP.blocks.length - 1];
+  bkMenuClose(); bkRedraw(tg && tg.id, tg ? bkText(tg).length : 0); bkSave(); }
+function bkSetType(id, t){ bkHist(); const b = LP.blocks[bkIdx(id)]; if (!b) return; const off = caretOff(bxOf(id) || document.body);
   if (t === "divider"){ b.t = "divider"; b.h = ""; const nb = {id:uid8(), t:"p", h:""}; LP.blocks.splice(bkIdx(id) + 1, 0, nb); bkRedraw(nb.id, 0); }
   else { if (t.startsWith("callout")){ b.t = "callout"; b.c = t.split("-")[1] || "g"; } else { b.t = t; delete b.c; } if (b.t !== "todo") delete b.ck; if (!/^h/.test(b.t) && b.t !== "toggle") delete b.fold; bkRedraw(id, off); } bkSave(); }
 function bkMenu(id, q){ const m = $(BKID().menu), el = bxOf(id); if (!m || !el) return; const list = [...BK_TYPES, ...BK_ACTS].filter(([k, l]) => !q || l.includes(q) || k.startsWith(q.toLowerCase())); if (!list.length){ m.hidden = true; return; }
@@ -3980,26 +3987,29 @@ function selBar(){ const bar = $(BKID().sel); if (!bar || bkRO()) { if (bar) bar
   const w = bar.offsetWidth, x = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)), top = r.top - bar.offsetHeight - 8;
   bar.style.left = x + "px"; bar.style.top = (top < 60 ? r.bottom + 8 : top) + "px"; }
 document.addEventListener("selectionchange", () => { clearTimeout(selBar.t); selBar.t = setTimeout(selBar, 60); });
-function bkFmt(v){ const sel = getSelection(); if (!sel.rangeCount || sel.isCollapsed) return; const r = sel.getRangeAt(0), bx = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer.closest(".bx") : r.commonAncestorContainer.parentElement.closest(".bx"); if (!bx) return;
+function bkFmt(v){ const sel = getSelection(); if (!sel.rangeCount || sel.isCollapsed) return; bkHist(); const r = sel.getRangeAt(0), bx = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer.closest(".bx") : r.commonAncestorContainer.parentElement.closest(".bx"); if (!bx) return;
   if (v === "b" || v === "i" || v === "u") document.execCommand({b:"bold", i:"italic", u:"underline"}[v]);
   else { const frag = r.extractContents(); if (v === "clear"){ r.insertNode(document.createTextNode(frag.textContent)); }
     else { const tmp = document.createElement("div"); tmp.appendChild(frag); tmp.querySelectorAll("mark,code").forEach(m => m.replaceWith(...m.childNodes)); const el = document.createElement(v === "code" ? "code" : "mark"); if (v !== "code") el.className = v; el.append(...tmp.childNodes); r.insertNode(el); sel.removeAllRanges(); const nr = document.createRange(); nr.selectNodeContents(el); sel.addRange(nr); } }
   bkSave(); selBar(); }
 document.addEventListener("focusout", e => { if (e.target.closest && e.target.closest(BKID().ed)){ setTimeout(() => { const a = document.activeElement; if (!(a && a.closest && a.closest(BKID().ed))){ bkMenuClose(); bkSave(true); if (S.lpPending){ S.lpPending = false; schedule(); } } }, 0); } });
 document.addEventListener("pointerdown", e => { if (e.target.closest && e.target.closest("#bkmenu, #bksel, #nfbkmenu, #nfbksel")) e.preventDefault(); });
-document.addEventListener("input", e => { const bx = e.target.closest && e.target.closest(BKID().ed + " .bx"); if (!bx || !LP) return; const id = bx.dataset.b, b = LP.blocks[bkIdx(id)]; if (!b) return;
+document.addEventListener("input", e => { const bx = e.target.closest && e.target.closest(BKID().ed + " .bx"); if (!bx || !LP) return; clearTimeout(LP._ht); LP._ht = setTimeout(() => { if (LP){ LP._ht = 0; bkHist(); } }, 700); /* 글자를 치다 멈추면 그 모습을 한 단계로 */ const id = bx.dataset.b, b = LP.blocks[bkIdx(id)]; if (!b) return;
   const tx = bx.textContent.replace(/ /g, " ");
   if (b.t !== "code"){ for (const [re, t] of BK_MD) if (re.test(tx) && (b.t === "p" || t === "todo")){ bx.innerHTML = ""; bkSetType(id, t); return; }
     if (tx === "---"){ bx.innerHTML = ""; bkSetType(id, "divider"); return; } }
   if (tx.startsWith("/") && !tx.includes(" ") && tx.length <= 8) bkMenu(id, tx.slice(1)); else bkMenuClose();
   bkSave(); });
-document.addEventListener("paste", e => { const bx = e.target.closest && e.target.closest(BKID().ed + " .bx"); if (!bx || !LP) return; e.preventDefault(); const t = (e.clipboardData || window.clipboardData)?.getData("text") || "";
+document.addEventListener("compositionstart", e => { const bx = e.target.closest && e.target.closest(BKID().ed + " .bx"); if (bx && LP && !LP._ht) bkHist(); }); /* 한글 입력 시작 직전 모습 */
+document.addEventListener("paste", e => { const bx = e.target.closest && e.target.closest(BKID().ed + " .bx"); if (!bx || !LP) return; e.preventDefault(); bkHist(); const t = (e.clipboardData || window.clipboardData)?.getData("text") || "";
   const lines = t.replace(/\r/g, "").split("\n"); if (lines.length < 2){ document.execCommand("insertText", false, t); return; }
   bkSync(); const id = bx.dataset.b, i = bkIdx(id), parse = l => { const m = l.match(/^(\s*)(#{1,3}\s|[-*]\s|\d+[.)]\s|\[\s?\]\s|\[x\]\s|>\s)?(.*)$/i), pre = (m[2] || "").trim(), ind = Math.min(3, Math.floor(m[1].length / 2));
     const t2 = !pre ? "p" : pre[0] === "#" ? "h" + pre.length : /[-*]/.test(pre) ? "ul" : /^\d/.test(pre) ? "ol" : pre[0] === ">" ? "p" : "todo"; return {id:uid8() + Math.random().toString(36).slice(2,5), t:t2, h:esc(m[3]), ind, ...(/\[x\]/i.test(pre) ? {ck:true} : {})}; };
   const nb = lines.filter((l, k) => l.trim() || k < lines.length - 1).map(parse); const cur = LP.blocks[i];
   if (cur && !bkText(cur).trim() && cur.t === "p"){ LP.blocks.splice(i, 1, ...nb); } else LP.blocks.splice(i + 1, 0, ...nb);
   bkRedraw(nb[nb.length - 1].id); bkSave(); }, true);
+document.addEventListener("keydown", e => { if (!(e.ctrlKey || e.metaKey) || (e.key || "").toLowerCase() !== "s") return; const c = S.compose;
+  if ((c && (c.type === "note" || c.type === "diary")) || (S.view && S.view.name === "learn")){ e.preventDefault(); toast(c ? "뒤로 가면 자동으로 저장돼요" : "자동으로 저장돼요"); } });
 /* 본문 맨 앞에서 백스페이스: 바로 위 템플릿 칸이 비었으면 지우고, 내용이 있으면 그 칸 끝으로 이동 */
 function ntBodyBack(){ const c = S.compose; if (!c || c.type !== "note") return;
   const fs = [...document.querySelectorAll("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input")].filter(x => /^nf-/.test(x.id)); const last = fs[fs.length - 1]; if (!last) return;
@@ -4014,7 +4024,15 @@ document.addEventListener("keydown", e => { const bx = e.target.closest && e.tar
   const id = bx.dataset.b, i = bkIdx(id), b = LP.blocks[i]; if (!b) return; const mm = S.bkMenu;
   if (mm && mm.id === id){ const m = $(BKID().menu); if (e.key === "ArrowDown" || e.key === "ArrowUp"){ e.preventDefault(); mm.sel = (mm.sel + (e.key === "ArrowDown" ? 1 : -1) + mm.list.length) % mm.list.length; [...m.querySelectorAll("button")].forEach((x, k) => x.classList.toggle("on", k === mm.sel)); return; }
     if (e.key === "Enter"){ e.preventDefault(); bkPick(mm.list[mm.sel]); return; } if (e.key === "Escape"){ e.preventDefault(); bkMenuClose(); return; } }
-  if ((e.ctrlKey || e.metaKey) && /^[biu]$/i.test(e.key)){ e.preventDefault(); bkFmt(e.key.toLowerCase()); return; }
+  const mod = e.ctrlKey || e.metaKey, kk = (e.key || "").toLowerCase();
+  if (mod && kk === "z"){ e.preventDefault(); bkUndo(e.shiftKey); return; }
+  if (mod && kk === "y"){ e.preventDefault(); bkUndo(true); return; }
+  if (mod && /^[biu]$/i.test(e.key)){ e.preventDefault(); bkFmt(e.key.toLowerCase()); return; }
+  if (mod && e.key === "\\"){ e.preventDefault(); bkFmt("clear"); return; } /* 서식 지우기 */
+  if (mod && e.altKey && /^Digit[0-3]$/.test(e.code)){ e.preventDefault(); const d = e.code.slice(-1); bkSetType(id, d === "0" ? "p" : "h" + d); return; } /* Ctrl+Alt+1~3 제목, 0 본문 */
+  if (mod && e.shiftKey && /^Digit[789]$/.test(e.code)){ e.preventDefault(); bkSetType(id, {7:"ol", 8:"ul", 9:"todo"}[e.code.slice(-1)]); return; } /* Ctrl+Shift+7 번호, 8 글머리, 9 체크박스 */
+  if (mod && e.key === "Enter" && b.t === "todo"){ e.preventDefault(); bkHist(); b.ck = !b.ck; bkRedraw(id, caretOff(bx)); bkSave(); return; } /* Ctrl+Enter 체크 */
+  if (["Enter","Backspace","Delete","Tab"].includes(e.key) || (e.key.length === 1 && !mod && !LP._ht)) bkHist(); /* 구조가 바뀌거나 새로 치기 시작하기 직전 모습 */
   const off = caretOff(bx), len = bx.textContent.length, collapsed = getSelection().isCollapsed;
   if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); if (b.t === "code"){ document.execCommand("insertLineBreak"); return; } bkSync();
     if (!bkText(b).trim() && (["ul","ol","todo","quote","callout","toggle"].includes(b.t) || (b.t === "p" && b.ind))){ /* 빈 줄에서 Enter: 들여쓰기 한 칸 빼기(토글 밖으로) */ if (b.ind){ b.ind--; } else { b.t = "p"; delete b.c; } bkRedraw(id, 0); bkSave(); return; }
@@ -5530,7 +5548,7 @@ document.addEventListener("click", e => {
     case "bk-cc": { if (bkRO()) return; bkSync(); const bl = LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; const ks = Object.keys(CALLOUT); bl.c = ks[(ks.indexOf(bl.c || "g") + 1) % ks.length]; bkRedraw(); bkSave(); return; }
     case "fmt": bkFmt(b.dataset.v); return;
     case "ln-tail": { if (bkRO() || e.target.closest(".blk")) return; bkSync(); const last = LP.blocks[LP.blocks.length - 1]; if (last && last.t === "p" && !bkText(last).trim()){ setCaret(bxOf(last.id)); return; } const nb = {id:uid8(), t:"p", h:""}; LP.blocks.push(nb); bkRedraw(nb.id, 0); bkSave(); return; }
-    case "bk-chk": { if (!LP) return; bkSync(); const bl = LP && LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.ck = !bl.ck; bkRedraw(); bkSave(); return; }
+    case "bk-chk": { if (!LP) return; bkHist(); const bl = LP && LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.ck = !bl.ck; bkRedraw(); bkSave(); return; }
     case "bk-pick": bkPick(b.dataset.v); return;
     case "nt-file": e.stopPropagation(); openFile(b.dataset.v); return;
     case "nf-rm": { e.stopPropagation(); preserveSheetDrafts(); const fid = b.dataset.v; c.files = (c.files || []).filter(x => x.id !== fid); if ((c.newFiles || []).includes(fid)){ c.newFiles = c.newFiles.filter(x => x !== fid); FDB.del(fid); } else (c.rmFiles = c.rmFiles || []).push(fid); renderSheet(); return; }
