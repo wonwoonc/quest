@@ -1843,6 +1843,21 @@ a.row{color:inherit;text-decoration:none}
 .ntprops .ntpl.jtop{align-self:start;padding-top:3px}
 .sheet textarea#pl-text.ntbody-in{resize:none;margin:0;min-height:200px;line-height:1.7}
 .jemoin{display:inline-flex;gap:5px;align-items:center}.sheet .jemoin input{width:92px;padding:6px 10px;font-size:13px;border-radius:8px;min-height:0}
+/* 자료 작성: 퀘스트 연결 팝업 */
+.ntqpop{position:fixed;inset:0;z-index:80;background:rgb(0 0 0 / .35);display:grid;place-items:center;padding:16px}
+.ntqpop-in{background:var(--card);border-radius:20px;padding:14px 12px 12px;width:min(100%,360px);max-height:min(560px,80vh);display:flex;flex-direction:column;box-shadow:0 12px 40px rgb(0 0 0 / .25)}
+.ntqpop-h{display:flex;align-items:center;gap:4px;margin:0 0 8px 6px;min-height:32px}.ntqpop-h b{flex:1;font-size:16px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ntqpop-h .iconbtn{color:var(--muted);flex:none}.ntqpop-h .iconbtn svg{width:20px;height:20px}.ntqpop-h .iconbtn:first-child{margin-left:-6px}
+.ntql{overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.ntqr{display:flex;align-items:stretch;border-radius:12px}.ntqr .ntqi{flex:1;min-width:0}
+.ntqi{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:0;background:none;border-radius:12px;padding:11px 12px;text-align:left;cursor:pointer;color:var(--text)}
+.ntqi>span{display:flex;flex-direction:column;gap:2px;min-width:0}.ntqi b{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ntqi small{font-size:12.5px;color:var(--muted)}
+.ntqi:hover,.ntqs:hover{background:var(--fill)}
+.ntqi.on,.ntqr.on{background:var(--accent-soft)}.ntqi.on b,.ntqr.on b{color:var(--accent);font-weight:700}.ntqr.on small{color:var(--accent)}
+.ntqr.on .ntqi:hover,.ntqr.on .ntqs:hover,.ntqi.on:hover{background:none}
+.ntqck{width:18px;height:18px;color:var(--accent);flex:none}
+.ntqs{flex:none;display:flex;align-items:center;gap:2px;border:0;background:none;border-radius:12px;padding:0 8px 0 10px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}.ntqs svg{width:14px;height:14px}
+.ntqoff{margin-top:8px;border:0;border-top:1px solid var(--line);background:none;padding:12px 0 4px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer}
 </style>
 <script type="module" src="./src/demo-entry.js"></script>
 </body></html>

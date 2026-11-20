@@ -1155,18 +1155,21 @@ function noteSheet(c){
   const qOpen = c.drop === "q", aOpen = c.drop === "a";
   const mains = goalsOf(S.me).filter(g => g.status !== "done" && !isCx(g)).sort(gOrder);
   /* 메인 퀘스트만 먼저. 스테이지가 있는 메인은 누르면 그 아래로 '메인 퀘스트에 연결' + 스테이지가 펼쳐진다 */
-  const qList = qOpen ? `<div class="ntdrop" role="listbox">${pj ? `<button class="ntdi" data-act="nt-qset" data-v="">연결 안 함</button>` : ""}${mains.map(g => { const ss = subsOf(g.id).filter(x => x.status !== "done" && !isCx(x)), mine0 = c.projectId === g.id || ss.some(x => x.id === c.projectId);
-      if (!ss.length) return `<button class="ntdi ${c.projectId === g.id ? "on" : ""}" data-act="nt-qset" data-v="${g.id}">${esc(g.title)}${c.projectId === g.id ? "<small>✓</small>" : ""}</button>`;
-      const ex = c.qexp === g.id;
-      /* 제목을 누르면 메인 퀘스트로 바로 선택, 오른쪽 '스테이지 N'을 누르면 스테이지가 아래로 펼쳐진다 */
-      return `<div class="ntdi2 ${c.projectId === g.id ? "on" : ""}"><button class="ntdm" data-act="nt-qset" data-v="${g.id}">${esc(g.title)}${c.projectId === g.id ? " ✓" : ""}</button><button class="ntds ${ss.some(x => x.id === c.projectId) ? "has" : ""}" data-act="nt-qexp" data-v="${g.id}" aria-expanded="${ex}">스테이지 ${ss.length}${chev(ex)}</button></div>` + (ex ? ss.map(x => `<button class="ntdi sub ${c.projectId === x.id ? "on" : ""}" data-act="nt-qset" data-v="${x.id}">${esc(x.title)}${c.projectId === x.id ? "<small>✓</small>" : ""}</button>`).join("") : ""); }).join("")}</div>` : "";
+  /* 퀘스트 연결: 깔끔한 팝업. 메인 이름을 누르면 바로 연결, 오른쪽 '스테이지 N'을 누르면 팝업 안에서 스테이지 목록으로 넘어간다 */
+  const ckI = `<svg class="ntqck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+  const rtI = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>`;
+  const qSub = qOpen && c.qexp && S.projects[c.qexp], qRowI = (id, t, sm) => `<button class="ntqi ${c.projectId === id ? "on" : ""}" data-act="nt-qset" data-v="${id}"><span><b>${esc(t)}</b>${sm ? `<small>${sm}</small>` : ""}</span>${c.projectId === id ? ckI : ""}</button>`;
+  const qBody = !qOpen ? "" : qSub ? `<div class="ntql">${qRowI(qSub.id, "메인 퀘스트 전체", esc(qSub.title))}${subsOf(qSub.id).filter(x => x.status !== "done" && !isCx(x)).map(x => qRowI(x.id, x.title, "스테이지")).join("")}</div>`
+    : `<div class="ntql">${mains.length ? mains.map(g => { const ss = subsOf(g.id).filter(x => x.status !== "done" && !isCx(x)), inS = ss.find(x => x.id === c.projectId);
+        return `<div class="ntqr ${c.projectId === g.id || inS ? "on" : ""}"><button class="ntqi" data-act="nt-qset" data-v="${g.id}"><span><b>${esc(g.title)}</b>${inS ? `<small>${esc(inS.title)} 선택됨</small>` : g.end ? `<small>${dday(g.end)}</small>` : ""}</span>${c.projectId === g.id ? ckI : ""}</button>${ss.length ? `<button class="ntqs" data-act="nt-qexp" data-v="${g.id}">스테이지 ${ss.length}${rtI}</button>` : ""}</div>`; }).join("") : `<p class="empty-row">진행 중인 메인 퀘스트가 없어요.</p>`}</div>${pj ? `<button class="ntqoff" data-act="nt-qset" data-v="">연결 안 함</button>` : ""}`;
+  const qList = qOpen ? `<div class="ntqpop" data-act="nt-qclose"><div class="ntqpop-in" data-act="dpstay" role="dialog" aria-label="퀘스트 연결"><div class="ntqpop-h">${qSub ? `<button class="iconbtn" data-act="nt-qexp" data-v="" aria-label="뒤로">${I.back}</button>` : ""}<b>${qSub ? esc(qSub.title) : "퀘스트 연결"}</b><button class="iconbtn" data-act="nt-qclose" aria-label="닫기">${I.close}</button></div>${qBody}</div></div>` : "";
   const qRow = gs.length || pj ? `<span class="ntpl">퀘스트</span><div class="ntpq">${pj ? `<button class="ntpc on" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">${esc(pj.title)}${chev(qOpen)}</button>` : `<button class="ntpc add" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">+ 연결${chev(qOpen)}</button>`}</div>${qList}` : "";
   const aSel = c.area && AREAS.find(a => a[0] === c.area);
-  const aList = aOpen ? `<div class="ntdrop" role="listbox">${aSel ? `<button class="ntdi" data-act="nt-aset" data-v="">선택 안 함</button>` : ""}${AREAS.map(([k,,,l]) => `<button class="ntdi ${c.area === k ? "on" : ""}" data-act="nt-aset" data-v="${k}"><span class="apk">${aIcon(k)}${l}</span>${c.area === k ? "<small>✓</small>" : ""}</button>`).join("")}</div>` : "";
-  const aRow = C.pt ? `<span class="ntpl">영역</span><div class="ntpq">${aSel ? `<button class="ntpc on" data-act="nt-drop" data-v="a" aria-expanded="${aOpen}">${aSel[3]}${chev(aOpen)}</button>` : `<button class="ntpc add" data-act="nt-drop" data-v="a" aria-expanded="${aOpen}">+ 선택${chev(aOpen)}</button>`}</div>${aList}` : "";
+  /* 영역: 칩으로 바로 고르기. 고른 칩을 다시 누르면 해제 */
+  const aRow = C.pt ? `<span class="ntpl jtop">영역</span><div class="ntpch">${AREAS.map(([k,,,l]) => `<button class="ntpc" data-act="nt-aset" data-v="${k}" aria-pressed="${c.area === k}">${l}</button>`).join("")}</div>` : "";
   const fRow = C.k === "ref" ? `<span class="ntpl">파일</span><div class="flist sm">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < F_MAX ? `<button class="ntpc add" data-act="nf-pick">+ 첨부</button>` : ""}</div>` : "";
   const bot = C.f.filter(x => x.bottom).map(prop).join("");
-  const props = C.f.filter(isProp).map(prop).join("") + fRow + qRow + aRow + (bot ? `<hr class="ntpdiv">${bot}` : ""); /* 학습 상태는 영역 아래, 구분선 하나 두고 */
+  const props = C.f.filter(isProp).map(prop).join("") + fRow + qRow + aRow + bot; /* 학습 상태는 영역 아래 */
   const DR = noteDrawers(S).filter(d => !d.hidden || d.k === c.cat);
   const kinds = c.kpick ? `<div class="ntkpick" role="group" aria-label="종류">${DR.map(K => `<button class="ntkp" data-act="nt-kind" data-v="${K.k}" aria-pressed="${!c.unsorted && c.cat === K.k}">${nic(K.ic)}<b>${esc(K.l)}</b></button>`).join("")}</div>` : "";
   const hasUrl = C.k === "memo" && DR.some(d => d.k === "ref") && NT_URL_RE.test(D("nf-title") + " " + D("nf-body"));
@@ -2869,10 +2872,11 @@ document.addEventListener("click", e => {
       renderSheet(); return; }
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
     case "nt-tpl": { preserveSheetDrafts(); const K = noteDrawer(S, c.cat); c.blocks = K.f.filter(x => x.k !== "title" && x.k !== "body" && !x.bottom && (x.task || x.t === "area")).map(x => x.k); renderSheet(); setTimeout(() => { const t = $("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input"); t && t.focus(); }, 30); return; }
-    case "nt-drop": { preserveSheetDrafts(); c.drop = c.drop === b.dataset.v ? null : b.dataset.v; if (c.drop === "q"){ const cp = c.projectId && S.projects[c.projectId]; c.qexp = cp && cp.parentId ? cp.parentId : null; } renderSheet(); return; }
-    case "nt-qexp": c.qexp = c.qexp === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
-    case "nt-qset": preserveSheetDrafts(); c.projectId = b.dataset.v || null; c.drop = null; renderSheet(); return;
-    case "nt-aset": preserveSheetDrafts(); c.area = b.dataset.v || null; c.drop = null; renderSheet(); return;
+    case "nt-drop": { preserveSheetDrafts(); c.drop = c.drop === b.dataset.v ? null : b.dataset.v; if (c.drop === "q") c.qexp = null; renderSheet(); return; }
+    case "nt-qexp": c.qexp = b.dataset.v || null; renderSheet(); return;
+    case "nt-qclose": c.drop = null; c.qexp = null; renderSheet(); return;
+    case "nt-qset": preserveSheetDrafts(); c.projectId = b.dataset.v || null; c.drop = null; c.qexp = null; renderSheet(); return;
+    case "nt-aset": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : (b.dataset.v || null); c.drop = null; renderSheet(); return;
     case "nt-apick": preserveSheetDrafts(); S.parentSheet = c; openSheet({type:"apick"}); return;
     case "apick-set": { const par = S.parentSheet; if (par) par.area = b.dataset.v || null; closeSheet(); return; }
     case "nt-area": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
