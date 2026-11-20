@@ -1754,7 +1754,7 @@ test('자료실 보기: 서랍마다 어울리는 보기(메뉴), 학습 보드�
   h.click('nt-view',{v:'list'}); await h.settle(); html = app(); assert.doesNotMatch(html, /class="ntvdd"/); assert.match(html, /class="ntlrow" data-act="nt-edit" data-id="n2"/);
   h.click('nt-cat',{v:'learn'}); await h.settle(); assert.match(app(), /class="card ntcard"/, 'learn keeps its own view');
   h.click('nt-vmenu'); html = app(); assert.match(html, /data-v="board"[\s\S]*예정 · 학습 중 · 완료/); assert.doesNotMatch(html, /data-v="list"/);
-  h.click('nt-view',{v:'board'}); await h.settle(); html = app(); assert.match(html, /class="ntboard" data-swipe data-kmove="learn"/);
+  h.click('nt-view',{v:'board'}); await h.settle(); html = app(); assert.match(html, /class="ntboard" data-kmove="learn"/);
   assert.match(html, /data-st="학습 중"><h4>학습 중 <span class="num">1[\s\S]*나 책[\s\S]*data-st="완료"><h4>완료 <span class="num">1[\s\S]*가 강의/);
   h.click('nt-vmenu'); h.click('nt-view',{v:'table'}); await h.settle(); html = app(); assert.match(html, /<table class="nttbl">/); assert.match(html, />별점</);
   h.click('nt-sort',{v:'rating'}); await h.settle(); html = app(); assert.ok(html.indexOf('가 강의') < html.indexOf('나 책'), 'ascending by rating');

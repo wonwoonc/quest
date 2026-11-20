@@ -1164,7 +1164,7 @@ function ntBoard(ns, cat){
   const colOf = n => cat === "learn" ? (LN_ST.includes(ntN(n).f.status) ? ntN(n).f.status : "") : (r => r === "실행함" ? "실행함" : r ? "실행 중" : "떠올림")(ntRunL(n));
   const sub = n => { const {f} = ntN(n); if (cat === "learn") return [f.type, f.author, stars(f.rating)].filter(Boolean).map(x => x === stars(f.rating) ? x : esc(x)).join(" · ");
     const ts = ntTasks(n), r = ntRunL(n); return r === "일일 진행 중" ? r : ts.length ? `미션 ${ts.filter(m => m.done).length}/${ts.length}` : "실행 전"; };
-  return `<div class="ntboard" data-swipe ${cat === "learn" && S.canWrite ? 'data-kmove="learn"' : ""}>${cols.map(([k, l]) => { const xs = ns.filter(n => colOf(n) === k);
+  return `<div class="ntboard" ${cat === "learn" && S.canWrite ? 'data-kmove="learn"' : ""}>${cols.map(([k, l]) => { const xs = ns.filter(n => colOf(n) === k);
     return `<section class="kcol" data-st="${esc(k)}"><h4>${esc(l)} <span class="num">${xs.length}</span></h4>${xs.map(n => `<button class="kbc" data-act="nt-edit" data-id="${n.id}"><b>${esc(ntTitle(n))}</b>${(v => v ? `<small>${v}</small>` : "")(sub(n))}</button>`).join("") || `<p class="kemp">비어 있어요</p>`}</section>`; }).join("")}</div>
     ${cat === "learn" && S.canWrite ? `<p class="kbhint">카드를 길게 눌러 다른 칸으로 옮기면 상태가 바뀌어요.</p>` : ""}`; }
 function ntGroups(ns){
@@ -2248,12 +2248,13 @@ function keepChipsInView(root){ root.querySelectorAll("[data-swipe], .chips, .se
 { let sw = null;
   document.addEventListener("touchstart", e => { sw = null; if (S.compose || e.touches.length !== 1) return; const t = e.target;
     // 화면 본문 어디서든(글 아래 빈 곳 포함). 상단·메뉴·팝업, 입력칸, 가로로 넘기는 영역은 제외
-    if (!t.closest || t.closest("#topbar,#nav,.nav,#drawer,#overlay,#toast,#replybar,input,textarea,select,[contenteditable],.chips,.seg,.car,[data-reo],.twc,.wgrid")) return;
+    if (!t.closest || t.closest("#topbar,#nav,.nav,#drawer,#overlay,#toast,#replybar,input,textarea,select,[contenteditable],.chips,.seg,.car,.twc,.wgrid")) return; /* 메인 퀘스트 카드(길게 눌러 순서 바꾸기) 위에서도 밀면 넘어간다 */
     for (let el = t; el && el !== document.body; el = el.parentElement){ if (el.scrollWidth > el.clientWidth + 24 && /(auto|scroll)/.test(getComputedStyle(el).overflowX)) return; }
     const g = $("#app [data-swipe]"); if (!g) return; sw = {x:e.touches[0].clientX, y:e.touches[0].clientY, at:Date.now(), g}; }, {passive:true});
   document.addEventListener("touchend", e => { const s0 = sw; sw = null; if (!s0 || !e.changedTouches.length) return;
     const dx = e.changedTouches[0].clientX - s0.x, dy = e.changedTouches[0].clientY - s0.y;
     if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6 || Date.now() - s0.at > 700 || !document.contains(s0.g)) return;
+    if (document.body.classList.contains("reo-lock") || (S._reoJust && Date.now() - S._reoJust < 600)) return; /* 순서 바꾸기로 끌던 손가락이면 넘기지 않는다 */
     const bs = [...s0.g.querySelectorAll("button[data-act]")].filter(b => !b.disabled && b.offsetParent), i = bs.findIndex(b => b.getAttribute("aria-pressed") === "true");
     const nb = bs[i + (dx < 0 ? 1 : -1)]; if (i >= 0 && nb) nb.click(); }, {passive:true});
 }
