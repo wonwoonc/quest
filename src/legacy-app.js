@@ -1125,7 +1125,8 @@ function noteSheet(c){
   const qRow = gs.length || pj ? `<span class="ntpl">${nic("target")}퀘스트</span><div class="ntpq">${pj ? `<button class="ntpc on" data-act="tqpick" data-t="어떤 퀘스트의 자료인가요?">${esc(goalLabel(pj))}</button><button class="qx" data-act="tqclear" aria-label="퀘스트 연결 빼기">×</button>` : `<button class="ntpc add" data-act="tqpick" data-t="어떤 퀘스트의 자료인가요?">+ 연결</button>`}</div>` : "";
   const aRow = C.pt ? `<span class="ntpl">영역</span><div class="ntpch">${AREAS.map(([k,,,l]) => `<button class="ntpc" data-act="nt-area" data-v="${k}" aria-pressed="${c.area === k}">${l}</button>`).join("")}</div>` : "";
   const fRow = C.k === "ref" ? `<span class="ntpl">파일</span><div class="flist sm">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < F_MAX ? `<button class="ntpc add" data-act="nf-pick">+ 첨부</button>` : ""}</div>` : "";
-  const props = C.f.filter(isProp).map(prop).join("") + fRow + qRow + aRow + C.f.filter(x => x.bottom).map(prop).join(""); /* 학습 상태는 영역 아래 */
+  const bot = C.f.filter(x => x.bottom).map(prop).join("");
+  const props = C.f.filter(isProp).map(prop).join("") + fRow + qRow + aRow + (bot ? `<hr class="ntpdiv">${bot}` : ""); /* 학습 상태는 영역 아래, 구분선 하나 두고 */
   const DR = noteDrawers(S).filter(d => !d.hidden || d.k === c.cat);
   const kinds = c.kpick ? `<div class="ntkpick" role="group" aria-label="종류">${DR.map(K => `<button class="ntkp" data-act="nt-kind" data-v="${K.k}" aria-pressed="${!c.unsorted && c.cat === K.k}">${nic(K.ic)}<b>${esc(K.l)}</b></button>`).join("")}</div>` : "";
   const hasUrl = C.k === "memo" && DR.some(d => d.k === "ref") && NT_URL_RE.test(D("nf-title") + " " + D("nf-body"));
