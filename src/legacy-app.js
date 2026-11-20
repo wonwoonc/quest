@@ -1346,7 +1346,8 @@ function noteBlocks(n){ if (Array.isArray(n.blocks)) return n.blocks; const out 
   return out.length ? out : BK_TPL(); }
 const bkText = b => String(b.h || "").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 const CALLOUT = {g:["핵심","check"], r:["주의","alert"], y:["팁","idea"], b:["정보","info"]};
-const BK_SELBAR = id => `<div class="bksel" id="${id}" hidden><button data-act="fmt" data-v="b" aria-label="굵게"><b>B</b></button><button data-act="fmt" data-v="i" aria-label="기울임"><i>I</i></button><button data-act="fmt" data-v="u" aria-label="밑줄"><u>U</u></button><i class="sep"></i><button data-act="fmt" data-v="hl-y" aria-label="노랑 형광펜"><span class="hlc hl-y"></span></button><button data-act="fmt" data-v="hl-g" aria-label="초록 형광펜"><span class="hlc hl-g"></span></button><button data-act="fmt" data-v="hl-p" aria-label="분홍 형광펜"><span class="hlc hl-p"></span></button><i class="sep"></i><button data-act="fmt" data-v="clear" aria-label="서식 지우기">${nic("eraser")}</button></div>`;
+const BK_TC = [["tc-r","빨강"],["tc-o","주황"],["tc-g","초록"],["tc-b","파랑"],["tc-v","보라"],["tc-m","회색"]], BK_HL = [["hl-y","노랑"],["hl-g","초록"],["hl-b","파랑"],["hl-p","분홍"]];
+const BK_SELBAR = id => `<div class="bksel" id="${id}" hidden><div class="bkrow"><button data-act="fmt" data-v="b" aria-label="굵게"><b>B</b></button><button data-act="fmt" data-v="i" aria-label="기울임"><i>I</i></button><button data-act="fmt" data-v="u" aria-label="밑줄"><u>U</u></button><i class="sep"></i><button class="bkpalb" data-act="fmtpal" aria-label="글자색·배경색" aria-expanded="false"><span class="bkA">A</span></button><i class="sep"></i><button data-act="fmt" data-v="clear" aria-label="서식 지우기">${nic("eraser")}</button></div><div class="bkpal"><span class="bkpl">글자</span>${BK_TC.map(([k, l]) => `<button data-act="fmt" data-v="${k}" aria-label="${l} 글자"><span class="tcc ${k}">A</span></button>`).join("")}<span class="bkpl">배경</span>${BK_HL.map(([k, l]) => `<button data-act="fmt" data-v="${k}" aria-label="${l} 배경"><span class="hlc ${k}"></span></button>`).join("")}</div></div>`;
 function viewLearn(){
   const n = S.mine[S.view.id]; if (!n || !hasProfile()) return viewNotes();
   const {f} = ntN(n), pj = n.projectId && S.projects[n.projectId], A = AREAS.find(a => a[0] === ntArea(n)[0]), done = noteComplete(S, n), D0 = noteDrawer(S, "learn");
@@ -1379,10 +1380,11 @@ const bkPlain = bl => bl.filter(b => b.t !== "divider").map(bkText).join("\n").r
 const textBlocks = t => { const ls = String(t || "").replace(/\r/g, "").split("\n"); return (ls.length ? ls : [""]).map(l => ({id:uid8() + Math.random().toString(36).slice(2, 5), t:"p", h:esc(l)})); };
 const bkStore = bl => bl.map(({id, t, h, ind, ck, c, fold}) => ({id, t, h, ...(ind ? {ind} : {}), ...(ck ? {ck} : {}), ...(c ? {c} : {}), ...(fold ? {fold} : {})}));
 function bkSan(html){ const t = document.createElement("template"); t.innerHTML = String(html || "");
-  const ok = {B:"b", STRONG:"b", I:"i", EM:"i", U:"u", S:"s", STRIKE:"s", CODE:"code", A:"a", BR:"br", MARK:"mark"};
+  const ok = {B:"b", STRONG:"b", I:"i", EM:"i", U:"u", S:"s", STRIKE:"s", CODE:"code", A:"a", BR:"br", MARK:"mark", SPAN:"span"};
   const walk = node => [...node.childNodes].map(x => { if (x.nodeType === 3) return esc(x.nodeValue); if (x.nodeType !== 1) return ""; const tg = ok[x.tagName], inner = walk(x);
     if (!tg) return (x.tagName === "DIV" || x.tagName === "P") ? (inner ? "<br>" + inner : "") : inner; if (tg === "br") return "<br>"; if (!inner) return "";
-    if (tg === "mark"){ const c = (x.className.match(/hl-[ygp]/) || ["hl-y"])[0]; return `<mark class="${c}">${inner}</mark>`; }
+    if (tg === "mark"){ const c = (x.className.match(/\bhl-[ygpb]\b/) || ["hl-y"])[0]; return `<mark class="${c}">${inner}</mark>`; }
+    if (tg === "span"){ const c = (String(x.className).match(/\btc-[rogbvm]\b/) || [])[0]; return c ? `<span class="${c}">${inner}</span>` : inner; }
     if (tg === "a"){ const href = x.getAttribute("href") || ""; return /^https?:\/\//i.test(href) ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${inner}</a>` : inner; } return `<${tg}>${inner}</${tg}>`; }).join("");
   return walk(t.content).replace(/^<br>/, ""); }
 /* Stored blocks are re-checked when a page opens: type/colour from fixed lists, id attribute-safe, body through the same allowlist as typing. */
@@ -1434,7 +1436,7 @@ function selBar(){ const bar = $(BKID().sel); if (!bar || bkRO()) { if (bar) bar
   const sel = getSelection();
   const an = sel.rangeCount && !sel.isCollapsed ? sel.anchorNode : null, ae = an && (an.nodeType === 1 ? an : an.parentElement), bx = ae && ae.closest && ae.closest(BKID().ed + " .bx"); /* 단어 더블클릭처럼 시작점이 요소인 경우도 */
   const fn = bx && sel.focusNode, fe = fn && (fn.nodeType === 1 ? fn : fn.parentElement), bx2 = fe && fe.closest && fe.closest(BKID().ed + " .bx"); /* 여러 줄에 걸친 선택도 */
-  if (!bx || !bx2){ bar.hidden = true; return; } const r = sel.getRangeAt(0).getBoundingClientRect(); bar.hidden = false;
+  if (!bx || !bx2){ bar.hidden = true; bar.classList.remove("pal"); return; } const r = sel.getRangeAt(0).getBoundingClientRect(); bar.hidden = false;
   const w = bar.offsetWidth, x = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)), top = r.top - bar.offsetHeight - 8;
   bar.style.left = x + "px"; bar.style.top = (top < 60 ? r.bottom + 8 : top) + "px"; }
 document.addEventListener("selectionchange", () => { clearTimeout(selBar.t); selBar.t = setTimeout(selBar, 60); });
@@ -1442,10 +1444,10 @@ document.addEventListener("selectionchange", () => { clearTimeout(selBar.t); sel
 const FMT_T = {B:"b", STRONG:"b", I:"i", EM:"i", U:"u", S:"s", STRIKE:"s", CODE:"code"};
 function bkChars(bx){ const out = []; const walk = (n, f) => { for (const c of n.childNodes){ if (c.nodeType === 3){ for (let k = 0; k < c.data.length; k++) out.push({ch:c.data[k], f}); }
     else if (c.nodeType === 1){ if (c.tagName === "BR"){ out.push({ch:"\n", f}); continue; } let g = f; const t = FMT_T[c.tagName]; if (t) g = {...g, [t]:1};
-      if (c.tagName === "MARK"){ const h = [...c.classList].find(x => /^hl-/.test(x)); g = {...g, hl:h || "hl-y"}; } if (c.tagName === "A" && c.getAttribute("href")) g = {...g, a:c.getAttribute("href")}; walk(c, g); } } }; walk(bx, {}); return out; }
-function bkCharsHtml(cs){ const key = f => ["b","i","u","s","code"].map(k => f[k] ? k : "").join(",") + "|" + (f.hl || "") + "|" + (f.a || ""); let h = "", i = 0;
+      if (c.tagName === "MARK"){ const h = [...c.classList].find(x => /^hl-/.test(x)); g = {...g, hl:h || "hl-y"}; } if (c.tagName === "SPAN"){ const k = [...c.classList].find(x => /^tc-/.test(x)); if (k) g = {...g, tc:k}; } if (c.tagName === "A" && c.getAttribute("href")) g = {...g, a:c.getAttribute("href")}; walk(c, g); } } }; walk(bx, {}); return out; }
+function bkCharsHtml(cs){ const key = f => ["b","i","u","s","code"].map(k => f[k] ? k : "").join(",") + "|" + (f.hl || "") + "|" + (f.tc || "") + "|" + (f.a || ""); let h = "", i = 0;
   while (i < cs.length){ const f = cs[i].f, kf = key(f); let j = i, t = ""; while (j < cs.length && key(cs[j].f) === kf){ t += cs[j].ch === "\n" ? "<br>" : esc(cs[j].ch); j++; }
-    let x = t; if (f.code) x = `<code>${x}</code>`; if (f.hl) x = `<mark class="${f.hl}">${x}</mark>`; if (f.s) x = `<s>${x}</s>`; if (f.u) x = `<u>${x}</u>`; if (f.i) x = `<i>${x}</i>`; if (f.b) x = `<b>${x}</b>`; if (f.a) x = `<a href="${esc(f.a)}">${x}</a>`; h += x; i = j; }
+    let x = t; if (f.code) x = `<code>${x}</code>`; if (f.tc) x = `<span class="${f.tc}">${x}</span>`; if (f.hl) x = `<mark class="${f.hl}">${x}</mark>`; if (f.s) x = `<s>${x}</s>`; if (f.u) x = `<u>${x}</u>`; if (f.i) x = `<i>${x}</i>`; if (f.b) x = `<b>${x}</b>`; if (f.a) x = `<a href="${esc(f.a)}">${x}</a>`; h += x; i = j; }
   return h; }
 function bkPtOff(bx, node, off){ let n = 0, res = -1; const walk = p => { const ch = p.childNodes; for (let k = 0; k < ch.length; k++){ if (res >= 0) return; if (p === node && k === off){ res = n; return; } const c = ch[k];
       if (c === node && c.nodeType === 3){ res = n + off; return; } if (c.nodeType === 3) n += c.data.length; else if (c.tagName === "BR") n += 1; else if (c.nodeType === 1) walk(c); }
@@ -1464,10 +1466,10 @@ function bkParts(){ const ed = $(BKID().ed); if (!ed || !LP) return null; const 
   const sel = getSelection(); if (!sel.rangeCount || sel.isCollapsed) return null; const r = sel.getRangeAt(0);
   return all.filter(bx => r.intersectsNode(bx)).map(bx => { const cs = bkChars(bx), a = bx.contains(r.startContainer) ? bkPtOff(bx, r.startContainer, r.startOffset) : 0, z = bx.contains(r.endContainer) ? bkPtOff(bx, r.endContainer, r.endOffset) : cs.length; return {bx, cs, a:Math.min(a, cs.length), z:Math.min(z, cs.length)}; }).filter(x => x.z > x.a); }
 function bkFmt(v){ const sel = getSelection(); if (!LP) return; const parts = bkParts(); if (!parts || !parts.length) return; bkHist();
-  const picked = parts.flatMap(x => x.cs.slice(x.a, x.z)).filter(c => c.ch !== "\n" && c.ch.trim()), has = c => v.startsWith("hl-") ? c.f.hl === v : !!c.f[v];
+  const picked = parts.flatMap(x => x.cs.slice(x.a, x.z)).filter(c => c.ch !== "\n" && c.ch.trim()), has = c => v.startsWith("hl-") ? c.f.hl === v : v.startsWith("tc-") ? c.f.tc === v : !!c.f[v];
   const on = v !== "clear" && !(picked.length && picked.every(has)); /* 고른 글자가 모두 이미 그 서식이면 끈다 */
   parts.forEach(x => { for (let k = x.a; k < x.z; k++){ const c = x.cs[k], f = {...c.f}; if (v === "clear"){ c.f = f.a ? {a:f.a} : {}; continue; }
-      if (v.startsWith("hl-")){ if (on) f.hl = v; else delete f.hl; } else { if (on) f[v] = 1; else delete f[v]; } c.f = f; } x.bx.innerHTML = bkCharsHtml(x.cs); });
+      if (v.startsWith("hl-")){ if (on) f.hl = v; else delete f.hl; } else if (v.startsWith("tc-")){ if (on) f.tc = v; else delete f.tc; } else { if (on) f[v] = 1; else delete f[v]; } c.f = f; } x.bx.innerHTML = bkCharsHtml(x.cs); });
   if (LP.msel){ bkSync(); mselPaint(); } else { const p0 = parts[0], p1 = parts[parts.length - 1], [sn, so] = bkPtAt(p0.bx, p0.a), [en, eo] = bkPtAt(p1.bx, p1.z), q = document.createRange(); q.setStart(sn, so); q.setEnd(en, eo); sel.removeAllRanges(); sel.addRange(q); }
   bkSave(); selBar(); }
 let mDrag = null;
@@ -1485,6 +1487,9 @@ document.addEventListener("pointerdown", e => { if (e.target.closest && e.target
 document.addEventListener("input", e => { const bx = e.target.closest && e.target.closest(BKID().ed + " .bx"); if (!bx || !LP) return; clearTimeout(LP._ht); LP._ht = setTimeout(() => { if (LP){ LP._ht = 0; bkHist(); } }, 700); /* 글자를 치다 멈추면 그 모습을 한 단계로 */ const id = bx.dataset.b, b = LP.blocks[bkIdx(id)]; if (!b) return;
   const tx = bx.textContent.replace(/ /g, " ");
   if (b.t !== "code"){ for (const [re, t] of BK_MD) if (re.test(tx) && (b.t === "p" || t === "todo")){ bx.innerHTML = ""; bkSetType(id, t); return; }
+    /* 글이 이미 있는 줄도 맨 앞에 ### 같은 표시를 치면(표시 바로 뒤에 커서) 그 블록으로 바꾸고 표시는 지운다. 글자 서식은 그대로 */
+    if (/^(p|h[123])$/.test(b.t)){ const m = tx.match(/^(###|##|#|[-*]|1[.)]|\[\s?\]|>|["“”]|!)\s/); if (m && tx.length > m[0].length && caretOff(bx) === m[0].length){ const hit = BK_MD.find(([re]) => re.test(m[0]));
+      if (hit && hit[1] !== b.t){ const cs = bkChars(bx).slice(m[0].length); bx.innerHTML = bkCharsHtml(cs); try { const r = document.createRange(); r.setStart(bx, 0); r.collapse(true); const sl = getSelection(); sl.removeAllRanges(); sl.addRange(r); } catch (_) {} bkSetType(id, hit[1]); return; } } }
     if (tx === "---"){ bx.innerHTML = ""; bkSetType(id, "divider"); return; } }
   if (tx.startsWith("/") && !tx.includes(" ") && tx.length <= 8) bkMenu(id, tx.slice(1)); else bkMenuClose();
   bkSave(); });
@@ -3064,6 +3069,7 @@ document.addEventListener("click", e => {
     case "bk-fold": { if (!LP) return; bkSync(); const bl = LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.fold = !bl.fold; bkRedraw(); bkSave(); return; }
     case "bk-cc": { if (bkRO()) return; bkSync(); const bl = LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; const ks = Object.keys(CALLOUT); bl.c = ks[(ks.indexOf(bl.c || "g") + 1) % ks.length]; bkRedraw(); bkSave(); return; }
     case "fmt": bkFmt(b.dataset.v); return;
+    case "fmtpal": { const bar = b.closest(".bksel"); if (!bar) return; const on = bar.classList.toggle("pal"); b.setAttribute("aria-expanded", on); selBar(); return; }
     case "ln-tail": { if (bkRO() || e.target.closest(".blk")) return; bkSync(); const last = LP.blocks[LP.blocks.length - 1]; if (last && last.t === "p" && !bkText(last).trim()){ setCaret(bxOf(last.id)); return; } const nb = {id:uid8(), t:"p", h:""}; LP.blocks.push(nb); bkRedraw(nb.id, 0); bkSave(); return; }
     case "bk-chk": { if (!LP) return; bkHist(); const bl = LP && LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.ck = !bl.ck; bkRedraw(); bkSave(); return; }
     case "bk-pick": bkPick(b.dataset.v); return;

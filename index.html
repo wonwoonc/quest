@@ -2023,6 +2023,22 @@ a.row{color:inherit;text-decoration:none}
 .jmsum small{font-size:12px;color:var(--muted)}
 .jmsum b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ntsrch input:focus{outline:none}.ntsrch:focus-within{box-shadow:0 0 0 2px var(--accent)}
+/* 선택 막대: 글자색·배경색 팔레트 */
+.bksel{flex-direction:column;align-items:stretch}
+.bksel .bkrow{display:flex;align-items:center;gap:2px}
+.bksel .bkpal{display:none;flex-wrap:wrap;align-items:center;gap:2px;max-width:200px;padding:4px 2px 2px;border-top:1px solid rgb(255 255 255 / .14);margin-top:4px}
+.bksel.pal .bkpal{display:flex}
+.bksel .bkpl{font-size:11.5px;color:rgb(255 255 255 / .6);width:100%;padding:2px 6px 0}
+.bksel .bkpal button{min-width:30px;height:30px}
+.bkA{font-weight:800;font-size:15px;line-height:1;padding-bottom:1px;background:linear-gradient(90deg,#FF6B6B,#FFB347,#4CD18F,#5AA9FF,#B48CFF) bottom/100% 3px no-repeat}
+.bksel.pal .bkpalb{background:rgb(255 255 255 / .16)}
+.tcc{font-weight:800;font-size:15px}
+.tcc.tc-r{color:#FF7A7A}.tcc.tc-o{color:#FFAA5C}.tcc.tc-g{color:#4CD18F}.tcc.tc-b{color:#6AB4FF}.tcc.tc-v{color:#BFA0FF}.tcc.tc-m{color:#B5BEB9}
+.hlc.hl-b{background:#C9E4FF}.bx mark.hl-b{background:#C9E4FF}
+.bx .tc-r{color:#D44C47}.bx .tc-o{color:#C76A12}.bx .tc-g{color:#0F8A63}.bx .tc-b{color:#1F6FD1}.bx .tc-v{color:#7B4FC9}.bx .tc-m{color:#7D8883}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bx .tc-r{color:#FF8A84}:root:not([data-theme="light"]) .bx .tc-o{color:#FFB066}:root:not([data-theme="light"]) .bx .tc-g{color:#4CD18F}:root:not([data-theme="light"]) .bx .tc-b{color:#7DB8FF}:root:not([data-theme="light"]) .bx .tc-v{color:#C2A6FF}:root:not([data-theme="light"]) .bx .tc-m{color:#9AA49F}}
+:root[data-theme="dark"] .bx .tc-r{color:#FF8A84}:root[data-theme="dark"] .bx .tc-o{color:#FFB066}:root[data-theme="dark"] .bx .tc-g{color:#4CD18F}:root[data-theme="dark"] .bx .tc-b{color:#7DB8FF}:root[data-theme="dark"] .bx .tc-v{color:#C2A6FF}:root[data-theme="dark"] .bx .tc-m{color:#9AA49F}
+.bx mark .tc-r,.bx mark .tc-o,.bx mark .tc-g,.bx mark .tc-b,.bx mark .tc-v,.bx mark .tc-m{filter:brightness(.8)}
 </style>
 <script type="module" src="./src/entry.js"></script>
 </body></html>

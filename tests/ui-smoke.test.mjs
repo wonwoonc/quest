@@ -1780,3 +1780,7 @@ test('자료는 메인 퀘스트에만 연결',async()=>{
   h.click('nt-drop',{v:'q'}); await h.settle(); const o = h.nodes.get('overlay').innerHTML;
   assert.match(o, /메인 퀘스트 연결/); assert.match(o, /data-act="nt-qset" data-v="mq"/); assert.doesNotMatch(o, /data-v="sq"/);
 });
+test('본문 선택 막대: 글자색·배경색 팔레트',async()=>{
+  const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-new'); h.click('nt-kind',{v:'memo'}); await h.settle();
+  const o = h.nodes.get('overlay').innerHTML; assert.match(o, /data-act="fmtpal"/); assert.match(o, /data-act="fmt" data-v="tc-r"[\s\S]*data-act="fmt" data-v="hl-b"/);
+});
