@@ -1899,7 +1899,7 @@ a.row{color:inherit;text-decoration:none}
 ::highlight(bksel){background-color:rgba(46,110,230,.28)}
 .jtoday[data-act]{cursor:pointer}
 /* 퀘스트 연결 시트 */
-.qsheet-bg{position:fixed;inset:0;z-index:80;background:rgb(0 0 0 / .35);display:flex;align-items:flex-end;justify-content:center}
+.qsheet-bg{position:fixed;inset:0;z-index:200;background:rgb(0 0 0 / .35);display:flex;align-items:flex-end;justify-content:center}
 .qsheet{background:var(--card);width:min(100%,560px);max-height:78vh;border-radius:20px 20px 0 0;padding:8px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;box-shadow:0 -8px 30px rgb(0 0 0 / .18);animation:qsup .2s ease-out}
 @keyframes qsup{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
 .qsgrab{width:36px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 8px;flex:none}
@@ -1916,6 +1916,18 @@ a.row{color:inherit;text-decoration:none}
 .qsp.on,.qsc.on .qsp.on{background:var(--accent);color:#fff}
 .qsoff{margin-top:12px;border:0;background:none;padding:10px 0 2px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;border-top:1px solid var(--line);flex:none}
 .cfpop{z-index:90}.cfpop .ntqpop-in{padding:20px 18px 16px;width:min(100%,340px)}.cfpop .cfbox h3{margin:0 0 6px;font-size:17px}.cfpop .cfbox p{margin:0 0 16px;font-size:14px;color:var(--sub)}.cfpop .btnrow{display:flex;gap:8px}.cfpop .btnrow .btn{flex:1}
+/* 영역 아이콘 한 줄 */
+.ntaic{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;max-width:330px}
+.ntai{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;border-radius:10px;padding:7px 2px 6px;background:var(--fill);color:var(--sub);font:600 11.5px/1.2 var(--f);letter-spacing:0;cursor:pointer;min-width:0}
+.ntai svg{width:18px;height:18px}.ntai span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.ntai[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent)}
+/* 아이디어 실행하기 */
+.ntexecw{position:sticky;bottom:0;padding:14px 0 4px;background:linear-gradient(transparent,var(--card) 35%);margin-top:16px;z-index:5}
+.ntexec{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;border-radius:14px;padding:14px;background:var(--accent);color:#fff;font:700 15px/1.2 var(--f);letter-spacing:0;cursor:pointer}.ntexec svg{width:16px;height:16px}
+.ntrunl{display:flex;align-items:center;gap:8px;margin-top:12px;padding:9px 12px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:700}.ntrunl .nic{width:15px;height:15px;margin:0;flex:none}
+.ntexp{margin:-4px 0 12px;font-size:13px;color:var(--muted)}
+.ntexseg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}.ntexseg button{border:0;border-radius:10px;padding:10px 0;font:600 13.5px/1.2 var(--f);letter-spacing:0;background:var(--fill);color:var(--sub);cursor:pointer}.ntexseg button[aria-selected="true"]{background:var(--accent);color:#fff}
+.qsheet .ntexin{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;margin-bottom:12px;background:var(--card);color:var(--text)}
 </style>
 <!--APP_ENTRY-->
 </body></html>
