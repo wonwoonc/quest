@@ -1825,6 +1825,12 @@ a.row{color:inherit;text-decoration:none}
 .ntdi{padding:9px 11px;font-size:14px}.ntdi.sub{padding-left:22px;font-size:13.5px}
 .ntdi small{display:inline-flex;align-items:center;gap:2px}.ntdi small .ntdc{width:12px;height:12px}
 .ntdrop{width:max-content;max-width:100%;min-width:140px}.ntdi{white-space:nowrap}.ntdi>small{margin-left:14px}
+.ntdi2{display:flex;align-items:stretch;border-top:1px solid var(--line)}.ntdrop>.ntdi2:first-child{border-top:0}
+.ntdi2 .ntdm{flex:1;border:0;background:none;text-align:left;padding:9px 11px;font-size:14px;color:var(--text);cursor:pointer;white-space:nowrap}
+.ntdi2 .ntds{border:0;border-left:1px solid var(--line);background:none;padding:0 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:2px;cursor:pointer;white-space:nowrap}
+.ntdi2 .ntds .ntdc{width:12px;height:12px}.ntdi2 .ntds.has{color:var(--accent);font-weight:700}
+.ntdi2.on .ntdm{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.ntdi2 .ntdm:hover,.ntdi2 .ntds:hover{background:var(--fill)}
 </style>
 <script>
 (function(){"use strict";
@@ -3633,7 +3639,7 @@ function noteSheet(c){
     if (x.t === "choice") ctl = `<div class="ntpch">${x.o.map(o => `<button class="ntpc" data-act="nt-val" data-f="${x.k}" data-v="${o}" aria-pressed="${v === o}">${o}</button>`).join("")}</div>`;
     else if (x.t === "stars") ctl = `<div class="ntrate sm">${[1,2,3,4,5].map(i => `<button data-act="nt-val" data-f="${x.k}" data-v="${i}" aria-label="${i}점" aria-pressed="${(v||0) >= i}">${nic("star")}</button>`).join("")}</div>`;
     else ctl = `<input class="ntpin" type="${x.t === "url" ? "url" : x.t === "date" ? "date" : "text"}" id="${id}" maxlength="${x.t === "url" ? 500 : 200}" placeholder="${esc(x.t === "url" ? "링크 붙여 넣기" : (x.p || "").replace(/^예:\s*/, "") || "적기")}" value="${D(id)}">`;
-    return `<span class="ntpl">${x.t === "url" ? nic("link") : ""}${esc(x.l)}</span><div class="ntpv">${ctl}${tg}</div>`; };
+    return `<span class="ntpl">${esc(x.l)}</span><div class="ntpv">${ctl}${tg}</div>`; };
   const block = x => { if (!shown(x)) return ""; const id = "nf-" + x.k;
     if (x.task) return `<div class="ntbox task"><span class="ntbl">${esc(x.l)}${xb(x)}</span><div class="nttask"><input type="text" id="${id}" maxlength="200" placeholder="${esc(x.p || "")}" value="${D(id)}"><button class="btn sec xs" data-act="nt-task" data-f="${x.k}">미션 추가</button></div></div>`;
     const box = x.k === "summary";
@@ -3647,8 +3653,9 @@ function noteSheet(c){
   const qList = qOpen ? `<div class="ntdrop" role="listbox">${pj ? `<button class="ntdi" data-act="nt-qset" data-v="">연결 안 함</button>` : ""}${mains.map(g => { const ss = subsOf(g.id).filter(x => x.status !== "done" && !isCx(x)), mine0 = c.projectId === g.id || ss.some(x => x.id === c.projectId);
       if (!ss.length) return `<button class="ntdi ${c.projectId === g.id ? "on" : ""}" data-act="nt-qset" data-v="${g.id}">${esc(g.title)}${c.projectId === g.id ? "<small>✓</small>" : ""}</button>`;
       const ex = c.qexp === g.id;
-      return `<button class="ntdi ${mine0 && !ex ? "on" : ""}" data-act="nt-qexp" data-v="${g.id}" aria-expanded="${ex}">${esc(g.title)}<small>스테이지 ${ss.length}${chev(ex)}</small></button>` + (ex ? `<button class="ntdi sub ${c.projectId === g.id ? "on" : ""}" data-act="nt-qset" data-v="${g.id}">메인 퀘스트에 연결${c.projectId === g.id ? "<small>✓</small>" : ""}</button>` + ss.map(x => `<button class="ntdi sub ${c.projectId === x.id ? "on" : ""}" data-act="nt-qset" data-v="${x.id}">${esc(x.title)}${c.projectId === x.id ? "<small>✓</small>" : ""}</button>`).join("") : ""); }).join("")}</div>` : "";
-  const qRow = gs.length || pj ? `<span class="ntpl">${nic("target")}퀘스트</span><div class="ntpq">${pj ? `<button class="ntpc on" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">${esc(goalLabel(pj))}${chev(qOpen)}</button>` : `<button class="ntpc add" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">+ 연결${chev(qOpen)}</button>`}</div>${qList}` : "";
+      /* 제목을 누르면 메인 퀘스트로 바로 선택, 오른쪽 '스테이지 N'을 누르면 스테이지가 아래로 펼쳐진다 */
+      return `<div class="ntdi2 ${c.projectId === g.id ? "on" : ""}"><button class="ntdm" data-act="nt-qset" data-v="${g.id}">${esc(g.title)}${c.projectId === g.id ? " ✓" : ""}</button><button class="ntds ${ss.some(x => x.id === c.projectId) ? "has" : ""}" data-act="nt-qexp" data-v="${g.id}" aria-expanded="${ex}">스테이지 ${ss.length}${chev(ex)}</button></div>` + (ex ? ss.map(x => `<button class="ntdi sub ${c.projectId === x.id ? "on" : ""}" data-act="nt-qset" data-v="${x.id}">${esc(x.title)}${c.projectId === x.id ? "<small>✓</small>" : ""}</button>`).join("") : ""); }).join("")}</div>` : "";
+  const qRow = gs.length || pj ? `<span class="ntpl">퀘스트</span><div class="ntpq">${pj ? `<button class="ntpc on" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">${esc(pj.title)}${chev(qOpen)}</button>` : `<button class="ntpc add" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">+ 연결${chev(qOpen)}</button>`}</div>${qList}` : "";
   const aSel = c.area && AREAS.find(a => a[0] === c.area);
   const aList = aOpen ? `<div class="ntdrop" role="listbox">${aSel ? `<button class="ntdi" data-act="nt-aset" data-v="">선택 안 함</button>` : ""}${AREAS.map(([k,,,l]) => `<button class="ntdi ${c.area === k ? "on" : ""}" data-act="nt-aset" data-v="${k}"><span class="apk">${aIcon(k)}${l}</span>${c.area === k ? "<small>✓</small>" : ""}</button>`).join("")}</div>` : "";
   const aRow = C.pt ? `<span class="ntpl">영역</span><div class="ntpq">${aSel ? `<button class="ntpc on" data-act="nt-drop" data-v="a" aria-expanded="${aOpen}">${aSel[3]}${chev(aOpen)}</button>` : `<button class="ntpc add" data-act="nt-drop" data-v="a" aria-expanded="${aOpen}">+ 선택${chev(aOpen)}</button>`}</div>${aList}` : "";
