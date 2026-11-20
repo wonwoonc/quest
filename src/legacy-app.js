@@ -658,8 +658,7 @@ function diaryPage(d, P){ const dt = P.date || today(), t0 = today(), past = dt 
   const emo = (n, own) => `<button class="ntpc" data-act="pemo" data-v="${esc(n)}" aria-pressed="${P.emo === n}">${esc(n)}</button>`;
   const props = `<span class="ntpl">컨디션</span><div class="ntpv cond jcond"><input type="range" id="pl-cond" min="0" max="100" step="5" value="${num(P.cond)}" style="--p:${num(P.cond)}%" aria-label="컨디션"><b class="num" id="pl-cond-v">${num(P.cond)}%</b></div>
     <span class="ntpl jtop">감정</span><div class="ntpch">${EMOS.map(([n]) => emo(n)).join("")}${myEmos().map(n => emo(n, true)).join("")}${P.custom ? `<span class="jemoin"><input type="text" id="pl-emo" maxlength="10" placeholder="감정" value="${D("pl-emo")}" aria-label="감정 직접 입력"><button class="ntpc on" data-act="emoadd">추가</button></span>` : `<button class="ntpc add" data-act="emocustom">+ 직접</button>`}</div>`;
-  const menu = c.menu && d ? `<div class="ntemenu ntmenu" role="menu"><button class="row mitem danger" data-act="ldel" data-id="d-${esc(d.date)}" role="menuitem"><span class="t"><b>${nic("trash")}${S.armed === "ldd-" + d.date ? "한 번 더 누르면 삭제" : "삭제"}</b></span></button></div>` : "";
-  return `${menu}<button class="nttitle jtitle" data-act="jdpick" aria-expanded="${open}">${x.getMonth()+1}월 ${x.getDate()}일 ${WD[x.getDay()]}요일${past ? "" : `<small>오늘</small>`}<svg class="ntdc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${open ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"}"/></svg></button>${cal}
+  return `<button class="nttitle jtitle" data-act="jdpick" aria-expanded="${open}">${x.getMonth()+1}월 ${x.getDate()}일 ${WD[x.getDay()]}요일${past ? "" : `<small>오늘</small>`}<svg class="ntdc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${open ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"}"/></svg></button>${cal}
     ${past && !d ? `<p class="jpast">지난 날짜는 보상 없이 기록만 남아요</p>` : ""}
     <div class="ntprops">${props}</div>
     <textarea class="ntbody-in" id="pl-text" data-grow rows="8" maxlength="5000" placeholder="오늘 있었던 일, 떠오른 생각을 자유롭게 적어요">${esc(S.drafts["pl-text"] ?? (d && d.text) ?? "")}</textarea>`; }
@@ -1076,7 +1075,7 @@ function ntRewardLine(d, area){
 }
 function jCard(d){
   const [y, m, dd] = d.date.split("-").map(Number), wd = "일월화수목금토"[new Date(y, m-1, dd).getDay()];
-  return `<article class="card ntcard jcard" data-act="journal-view" data-id="${d.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic("journal")}저널</span><small class="num">${m}.${dd}</small></div><h3>${m}월 ${dd}일 ${wd}요일</h3><button class="btn sec xs jedit" data-act="dedit" data-id="${d.id}">수정</button><p class="ntsub">컨디션 ${esc(d.cond ?? "-")}%${d.emo ? ` · ${esc(d.emo)}` : ""}</p></article>`;
+  return `<article class="card ntcard jcard" data-act="dedit" data-id="${d.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic("journal")}저널</span><small class="num">${m}.${dd}</small><span class="ntmw"><button class="ntmore" data-act="nt-menu" data-id="${d.id}" aria-label="저널 메뉴" aria-expanded="${S.ntMenuOpen === d.id}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>${S.ntMenuOpen === d.id ? delDrop("ldel", d.id, "ld" + d.id) : ""}</span></div><h3>${m}월 ${dd}일 ${wd}요일</h3><p class="ntsub">컨디션 ${esc(d.cond ?? "-")}%${d.emo ? ` · ${esc(d.emo)}` : ""}</p></article>`;
 }
 /* 퀘스트 화면의 '자료': 이 퀘스트(메인이면 스테이지 포함)에 연결한 자료실 항목 */
 function qNotes(p, subs, sp){
@@ -1100,11 +1099,11 @@ function ntCard(n){
   if (cat === "idea") mid = h3(f.title) + p(f.why) + act(f.next);
   else if (cat === "ref") mid = h3(f.title || (f.url && ntHost(f.url)) || (n.files && n.files[0] && n.files[0].name)) + sub(f.media && esc(f.media)) + (n.files && n.files.length ? `<div class="flist card-f">${n.files.map(x => fChip(x)).join("")}</div>` : "") + p(f.summary) + (f.why ? `<p class="ntnext">저장 이유 · ${esc(f.why)}</p>` : "");
   else if (cat === "learn"){ const first = (Array.isArray(n.blocks) ? n.blocks : noteBlocks(n)).find(x => !/^h|divider/.test(x.t) && bkText(x).trim());
-    mid = h3(f.title) + sub(f.type && esc(f.type), f.author && esc(f.author), stars(f.rating), f.status && `<b class="lnstb ${f.status === "완료" ? "ok" : ""}">${esc(f.status)}</b>`) + (first ? p(clip(bkText(first), 120)) : (f.quote ? `<blockquote class="ntq">${clip(f.quote)}</blockquote>` : p(f.goal || f.think))); }
-  else if (cat === "memo") mid = h3(f.title) + p(f.body);
-  else mid = h3(f.title) + sub(f.status && esc(f.status), f.date && fmtD(f.date), stars(f.rating)) + p(f.summary || f.body) + p(f.think) + act(f.apply);
+    mid = h3(f.title) + sub(f.type && esc(f.type), f.author && esc(f.author), stars(f.rating), f.status && `<b class="lnstb ${f.status === "완료" ? "ok" : ""}">${esc(f.status)}</b>`) + (f.quote ? `<blockquote class="ntq">${clip(f.quote)}</blockquote>` : p(f.goal || f.think)); }
+  else if (cat === "memo") mid = h3(f.title || String(f.body || "").split("\n")[0].slice(0, 40)); /* 카드에는 본문을 보여 주지 않는다(제목이 없을 때만 첫 줄을 제목으로) */
+  else mid = h3(f.title) + sub(f.status && esc(f.status), f.date && fmtD(f.date), stars(f.rating)) + p(f.summary) + p(f.think) + act(f.apply);
   const done = noteComplete(S, n), A = AREAS.find(a => a[0] === ntArea(n)[0]);
-  return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic(C.ic)}${esc(C.l)}</span>${done ? `<span class="ntdone">${nic("check")}완성${A ? ` · ${A[3]}` : ""}</span>` : ""}<small class="num">${d.getMonth()+1}.${d.getDate()}</small><button class="ntmore" data-act="nt-menu" data-id="${n.id}" aria-label="자료 메뉴"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button></div>${mid}
+  return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic(C.ic)}${esc(C.l)}</span>${done ? `<span class="ntdone">${nic("check")}완성${A ? ` · ${A[3]}` : ""}</span>` : ""}<small class="num">${d.getMonth()+1}.${d.getDate()}</small><span class="ntmw"><button class="ntmore" data-act="nt-menu" data-id="${n.id}" aria-label="자료 메뉴" aria-expanded="${S.ntMenuOpen === n.id}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>${S.ntMenuOpen === n.id ? delDrop("nt-del", n.id, "nd" + n.id) : ""}</span></div>${mid}
     ${(f.url) || pj ? `<div class="ntmeta">${f.url ? (safeUrl(f.url) ? `<a class="ntlink" href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener noreferrer">${nic("link")}${esc(ntHost(safeUrl(f.url)))}</a>` : `<span>${nic("link")}${esc(f.url)}</span>`) : ""}${pj ? `<span>${nic("target")}${esc(pj.title)}</span>` : ""}</div>` : ""}</article>`;
 }
 /* 분류: 브레인 덤프에서 왔거나 서랍을 정하지 않고 저장한 자료. 누르면 열어서 서랍을 고른다 */
@@ -1133,6 +1132,8 @@ const ntMediaOf = u => { const h = (() => { try { return new URL(ntUrl(u)).hostn
   return /(^|\.)(youtube\.com|youtu\.be|vimeo\.com|tv\.naver\.com|chzzk\.naver\.com|twitch\.tv|tiktok\.com)$/.test(h) ? "영상" : /(^|\.)(instagram\.com|threads\.net|x\.com|twitter\.com|facebook\.com)$/.test(h) ? "SNS" : "글"; };
 const ntIsProp = x => x.k !== "title" && !x.task && x.t !== "area";
 const ntFreeBody = C => !C.f.some(x => x.k === "body");
+/* ⋯ 버튼 바로 아래 작은 메뉴: 삭제만 */
+const delDrop = (act, id, armKey) => `<div class="ntdd" role="menu"><button data-act="${act}" data-id="${esc(id || "")}" role="menuitem">${nic("trash")}${S.armed === armKey ? "한 번 더 누르면 삭제" : "삭제"}</button></div>`;
 function noteSheet(c){
   const n = c.id && S.mine[c.id], C = noteDrawer(S, c.cat), gs = Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.status !== "done");
   /* 켜고 끌 수 있는 건 위쪽 정보 칸(속성)뿐. 아래 글 상자(요약·이유·목표 등)는 항상 보인다 */
@@ -1170,7 +1171,7 @@ function noteSheet(c){
   const hasUrl = C.k === "memo" && DR.some(d => d.k === "ref") && NT_URL_RE.test(D("nf-title") + " " + D("nf-body"));
   const pill = `<button class="ntkind ${c.unsorted ? "uns" : C.k}" data-act="nt-kpick" aria-expanded="${!!c.kpick}">${c.unsorted ? `${nic("inbox")}서랍 고르기` : `${nic(C.ic)}${esc(C.l)}`}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
   /* ⋯ 메뉴 → 수정: 이 자료의 칸(핵심 요약·링크·종류 등)을 빼거나 다시 넣는다 */
-  const menu = c.menu ? `<div class="ntemenu ntmenu" role="menu"><button class="row mitem danger" data-act="${n ? "nt-del" : "nt-discard"}" data-id="${n ? n.id : ""}" role="menuitem"><span class="t"><b>${nic("trash")}삭제</b></span></button></div>` : "";
+  const menu = c.menu ? delDrop(n ? "nt-del" : "nt-discard", n ? n.id : "", n ? "nd" + n.id : "") : "";
   /* ⋯ → 수정: 이 자료에서 쓸 칸을 스위치로 켜고 끈다 */
   /* 아래 글 상자(왜 좋은가요?·핵심 요약·다음 행동·학습 목표…)는 서랍 템플릿: 내용이 없으면 '템플릿' 버튼만 두고, 누르면 나온다.
      빈 상자에서 백스페이스를 누르면 그 상자가 지워진다 */
@@ -1184,14 +1185,14 @@ function noteSheet(c){
   if (bodyOn && (!LP || !LP.sheet || LP.c !== c)){ if (LP && !LP.sheet) bkSave(true); const t0 = D("nf-body"), bb = n && Array.isArray(n.bodyBlocks) ? n.bodyBlocks.map(bkNorm) : null;
     const nz = v => String(v || "").replace(/\s+/g, " ").trim(); LP = {sheet:true, c, id:"nf", blocks:bb && bb.length && nz(bkPlain(bb)) === nz(t0) ? bb : textBlocks(t0)}; }
   if (bodyOn) LP.ph = `${c.unsorted ? "떠오르는 대로 적어요" : C.k === "memo" ? "자유롭게 적어요" : "자유롭게 이어서 적어요"} · '/'로 블록 선택`;
-  return sheetWrap(pill, "", `${menu}${kinds}${tbar}
+  return sheetWrap(pill, "", `${kinds}${tbar}
     ${tF ? `<textarea class="nttitle" id="nf-title" data-grow rows="1" maxlength="200" placeholder="${C.k === "idea" ? "떠오른 아이디어를 한 줄로" : C.k === "memo" ? "제목" : "제목"}">${D("nf-title")}</textarea>` : ""}
     ${props ? `<div class="ntprops">${props}</div>` : ""}
     ${tplHtml}
     ${bodyOn ? `<div class="nfedw"><div class="nted nfed" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}` : ""}
     ${n && C.k === "learn" && Array.isArray(n.blocks) && n.blocks.some(b => bkText(b).trim()) ? `<button class="ntlnote" data-act="ln-open" data-id="${n.id}">${nic("book")}<span><b>학습 노트</b><small>정리한 노트 ${n.blocks.filter(b => bkText(b).trim()).length}줄 · 열기</small></span><svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>` : ""}
     <div class="ntsug" ${hasUrl ? "" : "hidden"}><span>${nic("link")}링크가 있어요</span><button class="ntpc on" data-act="nt-kind" data-v="ref">참고자료로 정리</button></div>
-`, `<button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>`);
+`, `<span class="ntmw"><button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>${menu}</span>`);
 }
 function ntSendSheet(c){
   const daily = /매일|매주|아침마다|저녁마다|날마다|주\s*\d+\s*회|하루\s*\d+|꾸준히|습관/.test(c.name);
@@ -2351,7 +2352,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null; if (LP && LP.
     <button class="btn big full" data-act="submit-tedit" ${S.busy?"disabled":""}>저장</button>
     <button class="btn full sec" style="margin-top:10px;color:var(--warn)" data-act="tdel">${S.armed === "td"+c.id ? "한 번 더 누르면 삭제" : "삭제"}</button>`); }
   if (c.type === "diary"){ const P = S.planner, dt = P.date || today(), d = S.mine["d-"+dt], x0 = pd(dt);
-    return sheetWrap(`<span class="ntkind journal">${nic("journal")}저널</span>`, "", diaryPage(d, P), d ? `<button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>` : ""); }
+    return sheetWrap(`<span class="ntkind journal">${nic("journal")}저널</span>`, "", diaryPage(d, P), d ? `<span class="ntmw"><button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>${c.menu ? delDrop("ldel", "d-" + d.date, "ldd-" + d.date) : ""}</span>` : ""); }
   if (c.type === "pmenu"){ const p = S.feed[c.pid]; if (!p){ closeSheet(); return; } const mine = p.author === S.me, a = p.author, f = isFollowing(S.me, a);
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-p="${p.id}" data-u="${esc(a)}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
     return sheetWrap(mine ? "내 스토리" : esc(nameOf(a)) + "님의 스토리", "", `<div class="sheetlist mlist">${mine
@@ -2662,6 +2663,11 @@ let tapT = null, tapKey = null;
   document.addEventListener("contextmenu", e => { const el = e.target.closest(".reply[data-rid]"); if (!el) return; e.preventDefault(); lpEnd(); rmenu(el.dataset.rid); });
   document.addEventListener("click", e => { if (S._reoJust && Date.now() - S._reoJust < 400){ e.stopPropagation(); e.preventDefault(); S._reoJust = 0; } }, true);
 })();
+/* ⋯ 메뉴(카드·작성 화면)는 바깥을 누르면 닫는다. 닫기만 하고 그 클릭은 넘기지 않는다 */
+document.addEventListener("click", e => { const inside = e.target.closest && e.target.closest(".ntmw"); if (!e.isTrusted) return;
+  if (inside){ if (e.target.closest(".ntdd")){ S.ntMenuOpen = null; if (S.compose && (S.compose.type === "note" || S.compose.type === "diary")) S.compose.menu = false; } return; } /* 삭제를 누르면 메뉴는 닫고 확인 창으로 */
+  if (S.ntMenuOpen && !(e.target.closest && e.target.closest("#overlay"))){ S.ntMenuOpen = null; S.armed = null; e.stopPropagation(); e.preventDefault(); schedule(); return; }
+  const c = S.compose; if (c && c.menu && (c.type === "note" || c.type === "diary")){ c.menu = false; S.armed = null; e.stopPropagation(); e.preventDefault(); if (c.type === "note") preserveSheetDrafts(); renderSheet(); } }, true);
 document.addEventListener("click", e => {
   const dt = e.target.closest("[data-dt]");
   if (dt && !e.target.closest("button")){
@@ -2889,7 +2895,7 @@ document.addEventListener("click", e => {
     case "nt-tog": { preserveSheetDrafts(); const k = b.dataset.f, h0 = c.hideF || []; c.hideF = h0.includes(k) ? h0.filter(x => x !== k) : [...h0, k]; if (!h0.includes(k)){ delete S.drafts["nf-" + k]; if (c.vals) delete c.vals[k]; } renderSheet(); return; }
     case "nt-hide": preserveSheetDrafts(); c.hideF = [...new Set([...(c.hideF || []), b.dataset.f])]; delete S.drafts["nf-" + b.dataset.f]; if (c.vals) delete c.vals[b.dataset.f]; renderSheet(); return;
     case "nt-unhide": preserveSheetDrafts(); c.hideF = (c.hideF || []).filter(k => k !== b.dataset.f); renderSheet(); return;
-    case "nt-menu": { const n = S.mine[id]; if (!n) return; openSheet({type:"ntmenu", id}); return; }
+    case "nt-menu": { e.stopPropagation(); if (!S.mine[id]) return; S.ntMenuOpen = S.ntMenuOpen === id ? null : id; S.armed = null; schedule(); return; }
     case "nt-kpick": preserveSheetDrafts(); c.kpick = !c.kpick; c.menu = false; renderSheet(); return;
     case "nt-kind": { preserveSheetDrafts(); c.cat = b.dataset.v; c.kpick = false; c.unsorted = false; c.blocks = null; const K = noteDrawer(S, c.cat);
       /* 메모에 적은 링크는 참고자료 '링크' 칸으로 옮기고, 주소로 종류(영상·글·SNS)를 정한다 */

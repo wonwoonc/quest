@@ -1867,6 +1867,18 @@ a.row{color:inherit;text-decoration:none}
 .blk.t-toggle .bx{font-weight:600}
 .blk.t-quote .bx{border-left-color:var(--muted);color:var(--sub)}
 .blk.t-code .bx{white-space:pre-wrap}
+/* ⋯ 버튼 아래 삭제 메뉴 */
+.ntmw{position:relative;display:flex;align-items:center;margin-left:auto}
+.nttop .ntmw{margin-left:0}
+.sheet.page h2.pgh .ntmw button.ntmenubtn{margin:0 -4px 0 0}
+.ntdd{position:absolute;top:calc(100% + 4px);right:-4px;z-index:30;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;box-shadow:0 8px 24px rgb(0 0 0 / .14)}
+.ntdd button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;border-radius:8px;padding:10px 12px;font:600 14.5px/1.2 var(--f);letter-spacing:0;color:var(--warn);cursor:pointer;white-space:nowrap;text-align:left}
+.ntdd button:hover{background:var(--fill)}.ntdd .nic{width:16px;height:16px;margin:0}
+.ntcard{overflow:visible}
+.sheet.page h2.pgh .ntdd button{display:flex;margin:0;color:var(--warn);width:100%;height:auto;font:600 14.5px/1.2 var(--f);padding:10px 12px}
+.sheet.page h2.pgh .ntdd button .nic,.sheet.page h2.pgh .ntdd svg{width:16px;height:16px;margin:0}
+.nfed{padding-left:0}.nfed .blk:not(.t-toggle) .bkfold{display:none}.nfed .blk.t-toggle .bkfold{margin-left:-2px}
+.jcard .nttop small.num{margin-left:auto}
 </style>
 <script type="module" src="./src/demo-entry.js"></script>
 </body></html>

@@ -1308,10 +1308,11 @@ test('자료실 저널 서랍: lists own journals only, escaped, opens detail',a
   saved.mine = {...saved.mine, 'd-2026-11-02':{id:'d-2026-11-02',kind:'diary',date:'2026-11-02',at:1,cond:80,emo:'평온',text:'스쿼트 <img src=x> 완료'}, foreign:{id:'foreign',kind:'diary',date:'2026-11-03',owner:'other',text:'다른 사용자 저널'}};
   const h = await profileUI(saved); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); await h.settle();
   const html = h.nodes.get('app').innerHTML;
-  assert.match(html, /data-v="journal"/); assert.match(html, /class="card ntcard jcard" data-act="journal-view" data-id="d-2026-11-02"/);
+  assert.match(html, /data-v="journal"/); assert.match(html, /class="card ntcard jcard" data-act="dedit" data-id="d-2026-11-02"/); assert.doesNotMatch(html, /class="btn sec xs jedit"/); assert.match(html, /data-act="nt-menu" data-id="d-2026-11-02"/);
   assert.match(html, /11월 2일 월요일/); assert.match(html, /컨디션 80% · 평온/); assert.doesNotMatch(html, /<img src=x>|다른 사용자 저널/);
   assert.match(html, /data-k="diary"/);
-  h.click('journal-view',{id:'d-2026-11-02'}); assert.match(h.nodes.get('overlay').innerHTML, /스쿼트/);
+  h.click('dedit',{id:'d-2026-11-02'}); assert.match(h.nodes.get('overlay').innerHTML, /스쿼트/); assert.match(h.nodes.get('overlay').innerHTML, /id="pl-text"/);
+  h.click('sheet-close'); await h.settle(); h.click('nt-menu',{id:'d-2026-11-02'}); assert.match(h.nodes.get('app').innerHTML, /class="ntdd"[\s\S]*data-act="ldel" data-id="d-2026-11-02"/);
 });
 test('저널: 지난 날짜로 쓰기 (보상 없음), 카드에서 수정',async()=>{
   const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); await h.settle();
@@ -1685,7 +1686,7 @@ test('자료 작성: 완료·삭제 버튼 없음, 뒤로 가면 자동 저장(�
   h.click('sheet-close'); await h.settle();
   const n = notes()[0]; assert.ok(n); assert.equal(n.cat,'ref'); assert.equal(n.f.title,'자동 저장 참고자료'); assert.ok(!n.hideF); assert.equal(n.f.summary,'요약');
   const u0 = n.updatedAt; h.click('nt-edit',{id:n.id}); assert.match(ov(),/data-f="media"/); h.click('sheet-close'); await h.settle(); assert.equal(notes()[0].updatedAt,u0,'unchanged note is not rewritten');
-  assert.match(app(),new RegExp(`data-act="nt-menu" data-id="${n.id}"`)); h.click('nt-menu',{id:n.id}); assert.match(ov(),/data-act="nt-edit"[\s\S]*수정[\s\S]*data-act="nt-del"[\s\S]*삭제/);
+  assert.match(app(),new RegExp(`data-act="nt-menu" data-id="${n.id}"`)); h.click('nt-menu',{id:n.id}); { const dd = (app().match(/class="ntdd"[\s\S]*?<\/div>/) || [''])[0]; assert.match(dd,/data-act="nt-del"[\s\S]*삭제/); assert.doesNotMatch(dd,/nt-edit|수정/,'card menu has only delete'); }
   h.click('nt-del',{id:n.id}); assert.match(ov(),/자료를 삭제할까요/); h.click('cfok'); await h.settle(); assert.equal(notes().length,0);
   // 작성 화면 ⋯ 메뉴: 수정·삭제. 기존 자료는 삭제(되살아나지 않음), 새 자료는 저장 없이 나가기
   h.click('nt-new'); h.nodes.set('nf-title',{value:'지울 자료'}); h.click('sheet-close'); await h.settle(); const z = notes()[0]; assert.ok(z);
