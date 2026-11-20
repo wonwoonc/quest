@@ -1104,19 +1104,22 @@ function viewNotes(){
 const NT_URL_RE = /(https?:\/\/|www\.)\S+|\b[\w-]+\.(com|net|org|io|co|kr|me|tv|be|ly)(\/\S*)?/i;
 const ntMediaOf = u => { const h = (() => { try { return new URL(ntUrl(u)).hostname.replace(/^www\.|^m\./, ""); } catch { return ""; } })(); if (!h) return null;
   return /(^|\.)(youtube\.com|youtu\.be|vimeo\.com|tv\.naver\.com|chzzk\.naver\.com|twitch\.tv|tiktok\.com)$/.test(h) ? "영상" : /(^|\.)(instagram\.com|threads\.net|x\.com|twitter\.com|facebook\.com)$/.test(h) ? "SNS" : "글"; };
+const ntIsProp = x => x.k !== "title" && !x.task && x.t !== "area";
 const ntFreeBody = C => !C.f.some(x => x.k === "body");
 function noteSheet(c){
   const n = c.id && S.mine[c.id], C = noteDrawer(S, c.cat), gs = Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.status !== "done");
-  const hid = c.hideF || [], shown = x => !hid.includes(x.k) && (!x.when || Object.entries(x.when).every(([k, vs]) => vs.includes((c.vals || {})[k])));
+  /* 켜고 끌 수 있는 건 위쪽 정보 칸(속성)뿐. 아래 글 상자(요약·이유·목표 등)는 항상 보인다 */
+  const hid = (c.hideF || []).filter(k => C.f.some(x => x.k === k && ntIsProp(x))), whenOk = x => !x.when || Object.entries(x.when).every(([k, vs]) => vs.includes((c.vals || {})[k])), shown = x => (!ntIsProp(x) || !hid.includes(x.k)) && whenOk(x);
   const vals = c.vals || {}, tF = C.f.find(x => x.k === "title");
   const xb = x => true ? "" : `<button class="ntx" data-act="nt-hide" data-f="${x.k}" aria-label="${esc(x.l)} 칸 지우기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button>`;
   const isProp = x => x.k !== "title" && !x.task && x.t !== "area" && !x.bottom;
-  const prop = x => { if (!shown(x)) return ""; const id = "nf-" + x.k, v = vals[x.k];
+  const prop = x => { const off = hid.includes(x.k); if (!whenOk(x) || (off && !c.tedit)) return ""; const id = "nf-" + x.k, v = vals[x.k], tg = c.tedit ? sw("nt-tog", !off, `data-f="${x.k}" aria-label="${esc(x.l)}"`) : "";
+    if (off) return `<span class="ntpl off">${esc(x.l)}</span><div class="ntpv off"><span class="ntoff">꺼짐</span>${tg}</div>`;
     let ctl;
     if (x.t === "choice") ctl = `<div class="ntpch">${x.o.map(o => `<button class="ntpc" data-act="nt-val" data-f="${x.k}" data-v="${o}" aria-pressed="${v === o}">${o}</button>`).join("")}</div>`;
     else if (x.t === "stars") ctl = `<div class="ntrate sm">${[1,2,3,4,5].map(i => `<button data-act="nt-val" data-f="${x.k}" data-v="${i}" aria-label="${i}점" aria-pressed="${(v||0) >= i}">${nic("star")}</button>`).join("")}</div>`;
     else ctl = `<input class="ntpin" type="${x.t === "url" ? "url" : x.t === "date" ? "date" : "text"}" id="${id}" maxlength="${x.t === "url" ? 500 : 200}" placeholder="${esc(x.t === "url" ? "링크 붙여 넣기" : (x.p || "").replace(/^예:\s*/, "") || "적기")}" value="${D(id)}">`;
-    return `<span class="ntpl">${x.t === "url" ? nic("link") : ""}${esc(x.l)}</span><div class="ntpv">${ctl}${xb(x)}</div>`; };
+    return `<span class="ntpl">${x.t === "url" ? nic("link") : ""}${esc(x.l)}</span><div class="ntpv">${ctl}${tg}</div>`; };
   const block = x => { if (!shown(x)) return ""; const id = "nf-" + x.k;
     if (x.task) return `<div class="ntbox task"><span class="ntbl">${esc(x.l)}${xb(x)}</span><div class="nttask"><input type="text" id="${id}" maxlength="200" placeholder="${esc(x.p || "")}" value="${D(id)}"><button class="btn sec xs" data-act="nt-task" data-f="${x.k}">미션 추가</button></div></div>`;
     const box = x.k === "summary";
@@ -1141,7 +1144,7 @@ function noteSheet(c){
   /* ⋯ 메뉴 → 수정: 이 자료의 칸(핵심 요약·링크·종류 등)을 빼거나 다시 넣는다 */
   const menu = c.menu ? `<div class="ntemenu ntmenu" role="menu"><button class="row mitem" data-act="nt-tedit" role="menuitem"><span class="t"><b>${nic("memo")}수정</b></span></button><button class="row mitem danger" data-act="${n ? "nt-del" : "nt-discard"}" data-id="${n ? n.id : ""}" role="menuitem"><span class="t"><b>${nic("trash")}삭제</b></span></button></div>` : "";
   /* ⋯ → 수정: 이 자료에서 쓸 칸을 스위치로 켜고 끈다 */
-  const tbar = c.tedit ? `<div class="nttbar">${C.f.filter(x => x.k !== "title").map(x => `<div class="nttsw"><span>${esc(x.l)}</span>${sw("nt-tog", !hid.includes(x.k), `data-f="${x.k}" aria-label="${esc(x.l)}"`)}</div>`).join("")}<button class="ntpc on nttdone" data-act="nt-tedit">완료</button></div>` : "";
+  const tbar = c.tedit ? `<div class="nttbar2"><button class="ntpc on" data-act="nt-tedit">완료</button></div>` : "";
   return sheetWrap(pill, "", `${menu}${kinds}${tbar}
     ${tF ? `<textarea class="nttitle" id="nf-title" data-grow rows="1" maxlength="200" placeholder="${C.k === "idea" ? "떠오른 아이디어를 한 줄로" : C.k === "memo" ? "제목" : "제목"}">${D("nf-title")}</textarea>` : ""}
     ${props ? `<div class="ntprops">${props}</div>` : ""}
@@ -1160,7 +1163,7 @@ const ntKeys = () => [...new Set(["nf-body", ...noteDrawers(S).flatMap(C => C.f.
 /* collects the open note sheet; resolves to the saved note id or null */
 function saveNote(c, after, quiet){
   const C = noteDrawer(S, c.cat), old = c.id && S.mine[c.id], prev = old && ntN(old).cat === C.k ? {...ntN(old).f} : {}, f = prev;
-  const hid = (c.hideF || []).filter(k => C.f.some(x => x.k === k));
+  const hid = (c.hideF || []).filter(k => C.f.some(x => x.k === k && ntIsProp(x)));
   C.f.forEach(x => { if (hid.includes(x.k)){ delete f[x.k]; return; } if (x.when && !Object.entries(x.when).every(([k, vs]) => vs.includes((c.vals || {})[k]))){ delete f[x.k]; return; } const v = ["choice","stars"].includes(x.t) ? (c.vals || {})[x.k] : pv("nf-" + x.k).trim(); if (v) f[x.k] = x.t === "url" ? ntUrl(v) : v; else delete f[x.k]; });
   if (ntFreeBody(C)){ const v = pv("nf-body").trim(); if (v) f.body = v; else delete f.body; }
   if (C.k === "ref" && f.url && !(c.vals || {}).media){ const m = ntMediaOf(f.url); if (m) f.media = m; }
