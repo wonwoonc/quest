@@ -1796,6 +1796,7 @@ a.row{color:inherit;text-decoration:none}
 .ntpl .nic{width:14px;height:14px;margin:0}
 .lngoal{margin:8px 0 0}.lngoal p{margin:0;font-size:16px;line-height:1.65;padding:2px 0 2px 12px;border-left:3px solid var(--line);white-space:pre-wrap;color:var(--text)}
 .lnpv svg{width:16px;height:16px;flex:none}
+.ntlnote{display:flex;align-items:center;gap:12px;width:100%;margin:14px 0 0;padding:12px 14px;border:0;border-radius:14px;background:var(--violet-soft);color:var(--violet);text-align:left;cursor:pointer}.ntlnote .nic{width:20px;height:20px;margin:0;flex:none}.ntlnote span{flex:1;display:flex;flex-direction:column}.ntlnote b{font-size:15px}.ntlnote small{font-size:12.5px;opacity:.85}
 </style>
 <script>
 (function(){"use strict";
@@ -2299,6 +2300,7 @@ const BASE_DRAWERS = [
     {k:'url', t:'url', l:'링크', p:'https://...'}]},
   {k:'learn', l:'학습', ic:'book', pt:3, area:'growth', hint:'', need:'상태를 완료로 바꾸기', f:[
     {k:'type', t:'choice', l:'종류', o:['강의','책','영상','기타']},
+    {k:'status', t:'choice', l:'상태', o:['예정','학습 중','완료']},
     {k:'title', t:'text', l:'제목', p:'예: 데이터 분석 입문'},
     {k:'author', t:'text', l:'강사·저자', p:'예: 김OO'},
     {k:'url', t:'url', l:'링크', p:'https://...', when:{type:['강의','영상']}},
@@ -3458,7 +3460,7 @@ function viewNotes(){
 const NT_URL_RE = /(https?:\/\/|www\.)\S+|\b[\w-]+\.(com|net|org|io|co|kr|me|tv|be|ly)(\/\S*)?/i;
 const ntMediaOf = u => { const h = (() => { try { return new URL(ntUrl(u)).hostname.replace(/^www\.|^m\./, ""); } catch { return ""; } })(); if (!h) return null;
   return /(^|\.)(youtube\.com|youtu\.be|vimeo\.com|tv\.naver\.com|chzzk\.naver\.com|twitch\.tv|tiktok\.com)$/.test(h) ? "영상" : /(^|\.)(instagram\.com|threads\.net|x\.com|twitter\.com|facebook\.com)$/.test(h) ? "SNS" : "글"; };
-const ntFreeBody = C => C.k !== "learn" && !C.f.some(x => x.k === "body");
+const ntFreeBody = C => !C.f.some(x => x.k === "body");
 function noteSheet(c){
   const n = c.id && S.mine[c.id], C = noteDrawer(S, c.cat), gs = Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.status !== "done");
   const hid = c.hideF || [], shown = x => !hid.includes(x.k) && (!x.when || Object.entries(x.when).every(([k, vs]) => vs.includes((c.vals || {})[k])));
@@ -3492,6 +3494,7 @@ function noteSheet(c){
     ${props ? `<div class="ntprops">${props}</div>` : ""}
     ${C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body").map(block).join("")}
     ${C.f.some(x => x.k === "body") || ntFreeBody(C) ? `<textarea class="ntbody-in" id="nf-body" data-grow rows="${C.k === "memo" ? 8 : 4}" maxlength="10000" placeholder="${c.unsorted ? "떠오르는 대로 적어요. 서랍은 나중에 정해도 돼요." : C.k === "memo" ? "자유롭게 적어요" : "자유롭게 이어서 적어요"}">${D("nf-body")}</textarea>` : ""}
+    ${n && C.k === "learn" && Array.isArray(n.blocks) && n.blocks.some(b => bkText(b).trim()) ? `<button class="ntlnote" data-act="ln-open" data-id="${n.id}">${nic("book")}<span><b>학습 노트</b><small>정리한 노트 ${n.blocks.filter(b => bkText(b).trim()).length}줄 · 열기</small></span><svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>` : ""}
     <div class="ntsug" ${hasUrl ? "" : "hidden"}><span>${nic("link")}링크가 있어요</span><button class="ntpc on" data-act="nt-kind" data-v="ref">참고자료로 정리</button></div>
 `, `<button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>`);
 }
@@ -4405,7 +4408,7 @@ $("#fileIn").addEventListener("change", async e => { const files = [...e.target.
 function openSheet(c){ if (c) delete S.drafts["pp-in"]; S.compose = c; renderSheet(); }
 /* 자료 작성 화면은 완료 버튼 없이 닫을 때(뒤로) 자동 저장한다. 아무것도 안 적었으면 그냥 닫는다 */
 function closeSheet(){ const nc = S.compose; if (nc && nc.type === "note" && !nc.noSave && !nc.saving){ nc.saving = true; preserveSheetDrafts();
-    const ok = saveNote(nc, (key, r, fresh) => { nc.noSave = true; closeSheet(); dumpDone(nc); if (!nc.id && nc.cat === "learn") push({name:"learn", id:key}, "#learn"); else if (r) toast(fresh && r.xp > 0 ? "자료 완성!" : nc.id ? "저장했어요" : "자료실에 담았어요"); }, true);
+    const ok = saveNote(nc, (key, r, fresh) => { nc.noSave = true; closeSheet(); dumpDone(nc); if (r) toast(fresh && r.xp > 0 ? "자료 완성!" : nc.id ? "저장했어요" : "자료실에 담았어요"); }, true);
     if (ok === false){ nc.noSave = true; closeSheet(); } else if (ok === undefined) nc.saving = false; else Promise.resolve(ok).then(() => { if (!nc.noSave) nc.saving = false; }); return; }
   closeSheet0(); }
 function closeSheet0(){ if (S.compose && S.compose.type === "note" && (S.compose.newFiles || []).length){ S.compose.newFiles.forEach(FDB.del); S.compose.newFiles = []; } if (S.compose && S.compose.dumpId){ delete S.drafts["ad-name"]; delete S.drafts["ta-name"]; delete S.drafts["nf-title"]; } if (S.compose && (S.compose.type === "nttask" || S.compose.type === "tqpick" || S.compose.type === "ppick" || S.compose.type === "confirm") && (S.parentSheet || S.compose.type === "confirm")){ S.compose = S.parentSheet; S.parentSheet = null; } else { S.compose = null; S.parentSheet = null; } renderSheet(); }
@@ -5140,10 +5143,11 @@ document.addEventListener("click", e => {
     case "nt-cat": S.ntCat = b.dataset.v; break;
     case "nt-new": { ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => d.k === "memo" && !d.hidden) || DR.find(d => !d.hidden) || DR[0]).k; /* 전체에서 누르면 바로 메모(빈 화면)로 */
       openSheet({type:"note", cat, unsorted:!DR.some(d => d.k === S.ntCat && !d.hidden), vals:{}, area:null, projectId:b.dataset.p && S.projects[b.dataset.p] ? b.dataset.p : null}); setTimeout(() => { const x = $(".sheet input[type=text], .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
-    case "nt-edit": { S.lnMenu = null; const n = S.mine[id]; if (!n) return; if (ntN(n).cat === "learn" && !b.dataset.info){ push({name:"learn", id}, "#learn"); return; } const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
+    case "nt-edit": { S.lnMenu = null; const n = S.mine[id]; if (!n) return; const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
       const vals = {}; Object.entries(f).forEach(([k, v]) => { if (k === "rating" || ["status","media","type"].includes(k)) vals[k] = v; else S.drafts["nf-" + k] = v || ""; });
       openSheet({type:"note", id, cat, unsorted:!!n.unsorted, vals, area:n.area || null, projectId:n.projectId || null, files:[...(n.files || [])], hideF:[...(n.hideF || [])]}); return; }
     case "nt-discard": ask({t:"작성 중인 내용을 지울까요?", d:"저장하지 않고 나가요.", ok:"삭제"}, () => { if (S.compose && S.compose.type === "note"){ S.compose.noSave = true; closeSheet(); } }); return;
+    case "ln-open": { const nid = b.dataset.id; closeSheet(); push({name:"learn", id:nid}, "#learn"); return; }
     case "nt-emenu": preserveSheetDrafts(); c.menu = !c.menu; c.kpick = false; renderSheet(); return;
     case "nt-tedit": preserveSheetDrafts(); c.menu = false; c.tedit = !c.tedit; renderSheet(); return;
     case "nt-hide": preserveSheetDrafts(); c.hideF = [...new Set([...(c.hideF || []), b.dataset.f])]; delete S.drafts["nf-" + b.dataset.f]; if (c.vals) delete c.vals[b.dataset.f]; renderSheet(); return;
@@ -5157,7 +5161,7 @@ document.addEventListener("click", e => {
       renderSheet(); return; }
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
     case "nt-area": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
-    case "submit-note": saveNote(c, (key, r, fresh) => { c.noSave = true; closeSheet(); dumpDone(c); if (!c.id && c.cat === "learn") push({name:"learn", id:key}, "#learn"); if (fresh && r && r.xp > 0) toast(fresh && r && r.xp > 0 ? "자료 완성!" : c.id ? "자료를 저장했어요" : "자료실에 담았어요"); }); return;
+    case "submit-note": saveNote(c, (key, r, fresh) => { c.noSave = true; closeSheet(); dumpDone(c); if (fresh && r && r.xp > 0) toast(fresh && r && r.xp > 0 ? "자료 완성!" : c.id ? "자료를 저장했어요" : "자료실에 담았어요"); }); return;
     case "nt-task": { const name = pv("nf-" + b.dataset.f).trim(); if (!name){ toast("먼저 내용을 적어 주세요"); return; } const pj = c.projectId || null;
       saveNote(c, (key, r, fresh) => { openSheet({type:"ntsend", noteId:key, name, projectId:pj && S.projects[pj] ? pj : null}); if (fresh && r && r.xp > 0){ toast("자료 완성!"); } }); return; }
     case "nt-send": { const v = b.dataset.v, name = c.name, key = c.noteId, pj = c.projectId;

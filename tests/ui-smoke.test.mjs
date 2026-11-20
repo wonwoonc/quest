@@ -393,7 +393,9 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   // learning: detail screen with chapters (Cornell notes per chapter) and wrap-up
   h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/학습 목표/); assert.doesNotMatch(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'강의'}); assert.match(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'책'}); assert.doesNotMatch(ov(),/id="nf-url"/); assert.doesNotMatch(ov(),/XP|코인/);
   h.nodes.set('nf-title',{value:'데이터 분석 입문'}); h.click('submit-note'); await h.settle();
-  const L = notes()[0]; assert.equal(L.cat,'learn'); assert.match(app(),/id="nted"/); assert.doesNotMatch(app(),/목차/); assert.doesNotMatch(app(),/완성 조건/);
+  const L = notes()[0]; assert.equal(L.cat,'learn'); assert.doesNotMatch(app(),/id="nted"/,'learning opens like other drawers');
+  h.click('nt-edit',{id:L.id}); assert.match(ov(),/class="nttitle"/); assert.match(ov(),/data-f="status"/); h.click('sheet-close'); await h.settle();
+  h.click('ln-open',{id:L.id}); assert.match(app(),/id="nted"/); assert.doesNotMatch(app(),/목차/); assert.doesNotMatch(app(),/완성 조건/);
   h.click('ln-st',{v:'학습 중'}); await h.settle(); assert.equal(xp(),x0); assert.equal(h.snapshot().mine[L.id].f.status,'학습 중');
   h.click('ln-st',{v:'완료'}); await h.settle(); assert.equal(xp(),x0+30,'learning completion grants 30 XP');
   h.click('ln-read'); assert.match(app(),/lnnote read/); assert.doesNotMatch(app(),/contenteditable/); h.click('ln-read');

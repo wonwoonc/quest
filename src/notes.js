@@ -26,6 +26,7 @@ export const BASE_DRAWERS = [
     {k:'url', t:'url', l:'링크', p:'https://...'}]},
   {k:'learn', l:'학습', ic:'book', pt:3, area:'growth', hint:'', need:'상태를 완료로 바꾸기', f:[
     {k:'type', t:'choice', l:'종류', o:['강의','책','영상','기타']},
+    {k:'status', t:'choice', l:'상태', o:['예정','학습 중','완료']},
     {k:'title', t:'text', l:'제목', p:'예: 데이터 분석 입문'},
     {k:'author', t:'text', l:'강사·저자', p:'예: 김OO'},
     {k:'url', t:'url', l:'링크', p:'https://...', when:{type:['강의','영상']}},
