@@ -1779,6 +1779,7 @@ a.row{color:inherit;text-decoration:none}
 .nttb-r{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .ntx{opacity:.8;color:var(--warn)}
 .sheet.page h2.pgh button.ntkind.uns{background:var(--fill);color:var(--sub);box-shadow:inset 0 0 0 1.5px var(--line)}
+.ntkpick{grid-template-columns:repeat(2,minmax(0,1fr))}.ntkp{height:48px;min-height:0;margin:0;box-sizing:border-box}.ntkp b{font-weight:700}
 </style>
 <script>
 (function(){"use strict";
@@ -3465,7 +3466,7 @@ function noteSheet(c){
   const fRow = C.k === "ref" ? `<span class="ntpl">파일</span><div class="flist sm">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < F_MAX ? `<button class="ntpc add" data-act="nf-pick">+ 첨부</button>` : ""}</div>` : "";
   const props = C.f.filter(isProp).map(prop).join("") + fRow + qRow + aRow;
   const DR = noteDrawers(S).filter(d => !d.hidden || d.k === c.cat);
-  const kinds = c.kpick ? `<div class="ntkpick" role="group" aria-label="종류">${DR.map(K => `<button class="ntkp ${K.k}" data-act="nt-kind" data-v="${K.k}" aria-pressed="${!c.unsorted && c.cat === K.k}">${nic(K.ic)}<b>${esc(K.l)}</b></button>`).join("")}</div>` : "";
+  const kinds = c.kpick ? `<div class="ntkpick" role="group" aria-label="종류">${DR.map(K => `<button class="ntkp" data-act="nt-kind" data-v="${K.k}" aria-pressed="${!c.unsorted && c.cat === K.k}">${nic(K.ic)}<b>${esc(K.l)}</b></button>`).join("")}</div>` : "";
   const hasUrl = C.k === "memo" && DR.some(d => d.k === "ref") && NT_URL_RE.test(D("nf-title") + " " + D("nf-body"));
   const pill = `<button class="ntkind ${c.unsorted ? "uns" : C.k}" data-act="nt-kpick" aria-expanded="${!!c.kpick}">${c.unsorted ? `${nic("inbox")}서랍 고르기` : `${nic(C.ic)}${esc(C.l)}`}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
   /* ⋯ 메뉴 → 수정: 이 자료의 칸(핵심 요약·링크·종류 등)을 빼거나 다시 넣는다 */
