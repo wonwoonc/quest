@@ -1129,7 +1129,11 @@ function noteSheet(c){
   const chev = up => `<svg class="ntdc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${up ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"}"/></svg>`;
   const qOpen = c.drop === "q", aOpen = c.drop === "a";
   const mains = goalsOf(S.me).filter(g => g.status !== "done" && !isCx(g)).sort(gOrder);
-  const qList = qOpen ? `<div class="ntdrop" role="listbox">${pj ? `<button class="ntdi" data-act="nt-qset" data-v="">연결 안 함</button>` : ""}${mains.map(g => `<button class="ntdi ${c.projectId === g.id ? "on" : ""}" data-act="nt-qset" data-v="${g.id}">${esc(g.title)}<small>메인${c.projectId === g.id ? " ✓" : ""}</small></button>` + subsOf(g.id).filter(x => x.status !== "done" && !isCx(x)).map(x => `<button class="ntdi sub ${c.projectId === x.id ? "on" : ""}" data-act="nt-qset" data-v="${x.id}">${esc(x.title)}<small>스테이지${c.projectId === x.id ? " ✓" : ""}</small></button>`).join("")).join("")}</div>` : "";
+  /* 메인 퀘스트만 먼저. 스테이지가 있는 메인은 누르면 그 아래로 '메인 퀘스트에 연결' + 스테이지가 펼쳐진다 */
+  const qList = qOpen ? `<div class="ntdrop" role="listbox">${pj ? `<button class="ntdi" data-act="nt-qset" data-v="">연결 안 함</button>` : ""}${mains.map(g => { const ss = subsOf(g.id).filter(x => x.status !== "done" && !isCx(x)), mine0 = c.projectId === g.id || ss.some(x => x.id === c.projectId);
+      if (!ss.length) return `<button class="ntdi ${c.projectId === g.id ? "on" : ""}" data-act="nt-qset" data-v="${g.id}">${esc(g.title)}${c.projectId === g.id ? "<small>✓</small>" : ""}</button>`;
+      const ex = c.qexp === g.id;
+      return `<button class="ntdi ${mine0 && !ex ? "on" : ""}" data-act="nt-qexp" data-v="${g.id}" aria-expanded="${ex}">${esc(g.title)}<small>스테이지 ${ss.length}${chev(ex)}</small></button>` + (ex ? `<button class="ntdi sub ${c.projectId === g.id ? "on" : ""}" data-act="nt-qset" data-v="${g.id}">메인 퀘스트에 연결${c.projectId === g.id ? "<small>✓</small>" : ""}</button>` + ss.map(x => `<button class="ntdi sub ${c.projectId === x.id ? "on" : ""}" data-act="nt-qset" data-v="${x.id}">${esc(x.title)}${c.projectId === x.id ? "<small>✓</small>" : ""}</button>`).join("") : ""); }).join("")}</div>` : "";
   const qRow = gs.length || pj ? `<span class="ntpl">${nic("target")}퀘스트</span><div class="ntpq">${pj ? `<button class="ntpc on" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">${esc(goalLabel(pj))}${chev(qOpen)}</button>` : `<button class="ntpc add" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">+ 연결${chev(qOpen)}</button>`}</div>${qList}` : "";
   const aSel = c.area && AREAS.find(a => a[0] === c.area);
   const aList = aOpen ? `<div class="ntdrop" role="listbox">${aSel ? `<button class="ntdi" data-act="nt-aset" data-v="">선택 안 함</button>` : ""}${AREAS.map(([k,,,l]) => `<button class="ntdi ${c.area === k ? "on" : ""}" data-act="nt-aset" data-v="${k}"><span class="apk">${aIcon(k)}${l}</span>${c.area === k ? "<small>✓</small>" : ""}</button>`).join("")}</div>` : "";
@@ -2820,7 +2824,8 @@ document.addEventListener("click", e => {
       const mo = K.f.find(x => x.k === "media"), u = S.drafts["nf-url"]; if (mo && u && !(c.vals || {}).media){ const m = ntMediaOf(u); if (m && mo.o.includes(m)){ c.vals = c.vals || {}; c.vals.media = m; } }
       renderSheet(); return; }
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
-    case "nt-drop": preserveSheetDrafts(); c.drop = c.drop === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
+    case "nt-drop": { preserveSheetDrafts(); c.drop = c.drop === b.dataset.v ? null : b.dataset.v; if (c.drop === "q"){ const cp = c.projectId && S.projects[c.projectId]; c.qexp = cp && cp.parentId ? cp.parentId : null; } renderSheet(); return; }
+    case "nt-qexp": c.qexp = c.qexp === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
     case "nt-qset": preserveSheetDrafts(); c.projectId = b.dataset.v || null; c.drop = null; renderSheet(); return;
     case "nt-aset": preserveSheetDrafts(); c.area = b.dataset.v || null; c.drop = null; renderSheet(); return;
     case "nt-apick": preserveSheetDrafts(); S.parentSheet = c; openSheet({type:"apick"}); return;
