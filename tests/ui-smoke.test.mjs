@@ -1674,7 +1674,7 @@ test('자료 작성: 완료·삭제 버튼 없음, 뒤로 가면 자동 저장(�
   h.click('nt-new'); assert.doesNotMatch(ov(),/data-act="submit-note"|data-act="nt-del"/);
   h.click('sheet-close'); await h.settle(); assert.equal(notes().length,0,'empty note is not saved');
   h.click('nt-new'); h.click('nt-kind',{v:'idea'}); h.nodes.set('nf-title',{value:'자동 저장 아이디어'}); h.nodes.set('nf-why',{value:'이유'});
-  h.click('nt-hide',{f:'next'}); assert.doesNotMatch(ov(),/id="nf-next"/); assert.match(ov(),/data-act="nt-unhide" data-f="next"/);
+  assert.doesNotMatch(ov(),/data-act="nt-hide"/); h.click('nt-emenu'); h.click('nt-tedit'); assert.match(ov(),/칸 수정/); h.click('nt-hide',{f:'next'}); assert.doesNotMatch(ov(),/id="nf-next"/); assert.match(ov(),/data-act="nt-unhide" data-f="next"/);
   h.click('nt-unhide',{f:'next'}); assert.match(ov(),/id="nf-next"/); h.click('nt-hide',{f:'next'});
   h.click('sheet-close'); await h.settle();
   const n = notes()[0]; assert.ok(n); assert.equal(n.cat,'idea'); assert.equal(n.f.title,'자동 저장 아이디어'); assert.deepEqual(n.hideF,['next']);
