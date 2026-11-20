@@ -1694,6 +1694,63 @@ a.row{color:inherit;text-decoration:none}
 .hyhead button{width:34px;height:34px;border:0;border-radius:10px;background:var(--fill);color:var(--ink);display:grid;place-items:center;cursor:pointer}.hyhead button svg{width:17px;height:17px}.hyhead .fwd svg{transform:rotate(180deg)}
 .hyear{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
 .hyear .hmon{margin:0}
+
+/* 자료 작성 화면 개편: 큰 제목 · 속성 줄 · 글 상자 · 자유 본문 */
+.sheet.page h2.pgh .pgright{margin-left:auto;display:flex;align-items:center;gap:4px}
+.sheet.page h2.pgh .pgright button.pgdel{margin:0}
+.sheet.page h2.pgh button.pgsave{margin:0;background:var(--accent);color:#fff;border:0;border-radius:999px;padding:8px 16px;font-weight:700;font-size:14px;cursor:pointer}
+.sheet.page h2.pgh button.pgsave[disabled]{opacity:.5}
+.sheet.page h2.pgh button.ntkind{margin-left:4px;display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:6px 10px 6px 12px;font-size:14px;font-weight:700;background:var(--fill);color:var(--sub);cursor:pointer}
+.ntkind .nic{width:16px;height:16px;margin:0}.ntkind>svg{width:14px;height:14px}
+.ntkind.idea{background:#FDEFE3;color:#C96A1F}.ntkind.ref{background:#E7F0FD;color:#2F68C8}.ntkind.learn{background:var(--violet-soft);color:var(--violet)}
+.ntkpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:2px 0 14px}
+.ntkp{display:flex;align-items:center;gap:8px;border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:11px 12px;color:var(--text);cursor:pointer;text-align:left}
+.ntkp .nic{width:18px;height:18px;margin:0;color:var(--sub)}.ntkp b{font-size:14.5px}
+.ntkp[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.nttitle{width:100%;border:0;background:none;resize:none;font:800 24px/1.3 var(--f);letter-spacing:-.5px;color:var(--text);padding:6px 0;margin:0 0 6px;outline:none;overflow:hidden}
+.nttitle::placeholder{color:var(--muted);opacity:.6}
+.ntprops{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:center;column-gap:8px;row-gap:6px;padding:2px 0 14px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+.ntpl{display:flex;align-items:center;gap:5px;font-size:13.5px;color:var(--muted);min-height:34px}.ntpl .nic{width:14px;height:14px;margin:0}
+.ntpin{width:100%;border:0;background:none;font-size:15px;font-weight:600;color:var(--text);padding:7px 0;outline:none;min-width:0}
+.ntpin::placeholder{color:var(--muted);font-weight:500;opacity:.8}
+.ntpin:focus{box-shadow:inset 0 -2px 0 var(--accent)}
+.ntpch,.ntpq{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:3px 0}
+.ntpc{border:0;background:var(--fill);color:var(--sub);border-radius:8px;padding:5px 10px;font-size:13px;font-weight:600;cursor:pointer}
+.ntpc[aria-pressed="true"],.ntpc.on{background:var(--accent);color:#fff}
+.ntpc.add{background:none;border:1.5px dashed var(--line);color:var(--sub)}
+.ntpq .qx{border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer}
+.ntrate.sm button .nic{width:22px;height:22px}
+.flist.sm{gap:6px;padding:3px 0}
+.ntbl{display:block;font-size:13px;font-weight:700;color:var(--sub);margin-bottom:4px}
+.ntblk{margin:0 0 14px}
+.ntblk textarea,.ntbox textarea{width:100%;border:0;background:none;resize:none;font:16px/1.65 var(--f);color:var(--text);padding:2px 0 2px 12px;border-left:3px solid var(--line);outline:none;overflow:hidden}
+.ntblk textarea:focus{border-left-color:var(--accent)}
+.ntbox{border-radius:14px;padding:12px 14px;margin:0 0 14px;background:var(--fill)}
+.ntbox textarea{border-left:0;padding-left:0}
+.ntbox.sum{background:#E7F0FD;color:#2F68C8}
+.ntbox.task{background:#FDEFE3;color:#C96A1F}
+.ntbox.task .nttask input{background:var(--card);border-radius:10px}
+.ntbody-in{width:100%;border:0;background:none;resize:none;font:16.5px/1.7 var(--f);color:var(--text);padding:0;outline:none;min-height:120px;overflow:hidden}
+.ntbody-in::placeholder,.ntblk textarea::placeholder,.ntbox textarea::placeholder{color:var(--muted);opacity:.75}
+.ntsug{display:flex;align-items:center;gap:10px;margin:10px 0 0;padding:10px 12px;border-radius:12px;background:#E7F0FD;font-size:13.5px;color:#2F68C8;font-weight:600}
+.ntsug .nic{width:15px;height:15px;margin-right:4px;vertical-align:-2px}.ntsug .ntpc{margin-left:auto;background:#2F68C8}
+.ntsug[hidden]{display:none}
+.ntinbox .ch h2{display:flex;align-items:center;gap:6px}.ntinbox .ch h2 .nic{width:17px;height:17px;margin:0}.ntinbox .ch .link{margin-left:8px;font-size:13px}
+:root[data-theme="dark"] .ntkind.idea,:root[data-theme="dark"] .ntbox.task{background:#3A2A1C;color:#F0A867}
+:root[data-theme="dark"] .ntkind.ref,:root[data-theme="dark"] .ntbox.sum,:root[data-theme="dark"] .ntsug{background:#1E2C42;color:#8DB4F2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ntkind.idea,:root:not([data-theme="light"]) .ntbox.task{background:#3A2A1C;color:#F0A867}:root:not([data-theme="light"]) .ntkind.ref,:root:not([data-theme="light"]) .ntbox.sum,:root:not([data-theme="light"]) .ntsug{background:#1E2C42;color:#8DB4F2}}
+.ntbox.sum .ntbl,.ntbox.task .ntbl{color:inherit}
+
+.sheet.page h2.pgh button.ntkind .nic{width:16px;height:16px;margin:0}.sheet.page h2.pgh button.ntkind>svg:last-child{width:14px;height:14px}
+.sheet.page h2.pgh button.ntkind.idea{background:#FDEFE3;color:#C96A1F}.sheet.page h2.pgh button.ntkind.ref{background:#E7F0FD;color:#2F68C8}.sheet.page h2.pgh button.ntkind.learn{background:var(--violet-soft);color:var(--violet)}.sheet.page h2.pgh button.ntkind.memo{color:var(--sub)}
+:root[data-theme="dark"] .sheet.page h2.pgh button.ntkind.idea{background:#3A2A1C;color:#F0A867}:root[data-theme="dark"] .sheet.page h2.pgh button.ntkind.ref{background:#1E2C42;color:#8DB4F2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sheet.page h2.pgh button.ntkind.idea{background:#3A2A1C;color:#F0A867}:root:not([data-theme="light"]) .sheet.page h2.pgh button.ntkind.ref{background:#1E2C42;color:#8DB4F2}}
+.sheet input.ntpin,.sheet textarea.nttitle,.sheet textarea.ntbody-in,.sheet .ntblk textarea,.sheet .ntbox textarea{background:none;border-top:0;border-right:0;border-bottom:0;border-radius:0;resize:none;-webkit-appearance:none;appearance:none}
+.sheet input.ntpin{border-left:0;padding:7px 0;font-size:15px}
+.sheet textarea.nttitle,.sheet textarea.ntbody-in,.sheet .ntbox textarea{border-left:0;padding-left:0;padding-right:0}
+.sheet input.ntpin:focus,.sheet textarea.nttitle:focus,.sheet textarea.ntbody-in:focus,.sheet .ntblk textarea:focus,.sheet .ntbox textarea:focus{background:none}
+.sheet .ntbox.task .nttask input{background:var(--card);border:0}
+.ntkp{min-height:48px}
 </style>
 <script type="module" src="./src/demo-entry.js"></script>
 </body></html>

@@ -372,7 +372,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   for (const k of ['아이디어','참고자료','학습','메모','+ 서랍']) assert.ok(app().includes(k),k);
   const notes = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'note'), xp = () => balances(h.snapshot()).xp;
   const x0 = xp();
-  h.click('nt-new'); h.click('nt-kind',{v:'idea'}); assert.match(ov(),/완성 조건/); assert.doesNotMatch(ov(),/XP|코인/);
+  h.click('nt-new'); assert.match(ov(),/ntkind memo/); h.click('nt-kind',{v:'idea'}); assert.doesNotMatch(ov(),/완성 조건|XP|코인/); assert.match(ov(),/class="nttitle"/);
   h.nodes.set('nf-title',{value:'레이드 퀘스트'}); h.nodes.set('nf-why',{value:'같이 하면 끝까지 간다'}); h.click('submit-note'); await h.settle();
   assert.equal(notes().length,1); assert.equal(xp(),x0,'incomplete note gives nothing');
   const n0 = notes()[0]; h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-next',{value:'매일 아침 서비스 조사'}); h.click('submit-note'); await h.settle();
@@ -388,7 +388,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   // learning: detail screen with chapters (Cornell notes per chapter) and wrap-up
   h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/학습 목표/); assert.doesNotMatch(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'강의'}); assert.match(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'책'}); assert.doesNotMatch(ov(),/id="nf-url"/); assert.doesNotMatch(ov(),/XP|코인/);
   h.nodes.set('nf-title',{value:'데이터 분석 입문'}); h.click('submit-note'); await h.settle();
-  const L = notes()[0]; assert.equal(L.cat,'learn'); assert.match(app(),/id="nted"/); assert.doesNotMatch(app(),/목차/); assert.match(app(),/완성 조건: 상태를 완료로 바꾸기/);
+  const L = notes()[0]; assert.equal(L.cat,'learn'); assert.match(app(),/id="nted"/); assert.doesNotMatch(app(),/목차/); assert.doesNotMatch(app(),/완성 조건/);
   h.click('ln-st',{v:'학습 중'}); await h.settle(); assert.equal(xp(),x0); assert.equal(h.snapshot().mine[L.id].f.status,'학습 중');
   h.click('ln-st',{v:'완료'}); await h.settle(); assert.equal(xp(),x0+30,'learning completion grants 30 XP');
   h.click('ln-read'); assert.match(app(),/lnnote read/); assert.doesNotMatch(app(),/contenteditable/); h.click('ln-read');
