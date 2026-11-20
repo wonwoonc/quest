@@ -145,6 +145,8 @@ export function processEconomy(s,before,at,me='me') {
     if(m.kind==='mission'&&!!m.done!==!!old?.done)activity(s,key('task',id),'task',m,koreaDate(at),at,!!m.done);
     if(m.kind==='diary'&&!old){const d=m.date||koreaDate(at);claim(s,key('journal',d),'journal',{xp:10,coins:5},at,{date:koreaDate(at),daily:true,eligible:d===koreaDate(at)});}
     if(m.kind==='note'&&noteComplete(s,m)&&!noteComplete(before,old)){const r=noteReward(s,m);if(r.xp>0)claim(s,key('note',id),'note',{xp:r.xp,coins:r.coins},at,{daily:true});}
+    // 완성 상태가 풀리면(학습 '완료' → 예정·학습 중 등) 완성 보상을 회수한다. 다시 완성하면 같은 보상이 복원된다.
+    if(m.kind==='note'&&!noteComplete(s,m)&&old&&noteComplete(before,old))reverse(s,key('note',id),at);
     if(m.kind==='note'){const now=new Set((m.sessions||[]).map(x=>x.id));
       for(const x of old?.sessions||[])if(!now.has(x.id))reverse(s,key('study',id,x.id),at);}
     if(m.kind==='mlog'){const n=old?.logs?.length||0;for(const l of (m.logs||[]).slice(n))metric(s,m.projectId,l.v,at);}

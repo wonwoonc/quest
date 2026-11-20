@@ -398,6 +398,8 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   h.click('ln-open',{id:L.id}); assert.match(app(),/id="nted"/); assert.doesNotMatch(app(),/목차/); assert.doesNotMatch(app(),/완성 조건/);
   h.click('ln-st',{v:'학습 중'}); await h.settle(); assert.equal(xp(),x0); assert.equal(h.snapshot().mine[L.id].f.status,'학습 중');
   h.click('ln-st',{v:'완료'}); await h.settle(); assert.equal(xp(),x0+30,'learning completion grants 30 XP');
+  h.click('ln-st',{v:'학습 중'}); await h.settle(); assert.equal(xp(),x0,'un-completing takes the reward back');
+  h.click('ln-st',{v:'완료'}); await h.settle(); assert.equal(xp(),x0+30,'completing again restores it once');
   h.click('ln-read'); assert.match(app(),/lnnote read/); assert.doesNotMatch(app(),/contenteditable/); h.click('ln-read');
   h.route('notes'); assert.match(app(),/lnstb ok">완료/);
   h.click('dr-manage'); h.click('dr-edit',{v:''}); h.nodes.set('dr-l',{value:'운동 기록'}); h.click('dr-icon',{v:'dumbbell'}); h.click('dr-area',{v:'health'}); h.click('dr-save'); await h.settle();

@@ -26,12 +26,12 @@ export const BASE_DRAWERS = [
     {k:'url', t:'url', l:'링크', p:'https://...'}]},
   {k:'learn', l:'학습', ic:'book', pt:3, area:'growth', hint:'', need:'상태를 완료로 바꾸기', f:[
     {k:'type', t:'choice', l:'종류', o:['강의','책','영상','기타']},
-    {k:'status', t:'choice', l:'상태', o:['예정','학습 중','완료']},
     {k:'title', t:'text', l:'제목', p:'예: 데이터 분석 입문'},
     {k:'author', t:'text', l:'강사·저자', p:'예: 김OO'},
     {k:'url', t:'url', l:'링크', p:'https://...', when:{type:['강의','영상']}},
     {k:'goal', t:'area', l:'학습 목표', p:'이걸로 무엇을 할 수 있게 되고 싶나요?'},
-    {k:'rating', t:'stars', l:'별점'}]},
+    {k:'rating', t:'stars', l:'별점'},
+    {k:'status', t:'choice', l:'상태', o:['예정','학습 중','완료'], bottom:true}]},
   {k:'memo', l:'메모', ic:'memo', pt:0, area:null, hint:'어디에도 딱 맞지 않으면 일단 여기에 적어요.', need:'', f:[
     {k:'title', t:'text', l:'제목', p:'선택'},
     {k:'body', t:'area', l:'내용', p:'자유롭게 적어요'}]}

@@ -1110,7 +1110,7 @@ function noteSheet(c){
   const hid = c.hideF || [], shown = x => !hid.includes(x.k) && (!x.when || Object.entries(x.when).every(([k, vs]) => vs.includes((c.vals || {})[k])));
   const vals = c.vals || {}, tF = C.f.find(x => x.k === "title");
   const xb = x => !c.tedit ? "" : `<button class="ntx" data-act="nt-hide" data-f="${x.k}" aria-label="${esc(x.l)} 칸 지우기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button>`;
-  const isProp = x => x.k !== "title" && !x.task && x.t !== "area";
+  const isProp = x => x.k !== "title" && !x.task && x.t !== "area" && !x.bottom;
   const prop = x => { if (!shown(x)) return ""; const id = "nf-" + x.k, v = vals[x.k];
     let ctl;
     if (x.t === "choice") ctl = `<div class="ntpch">${x.o.map(o => `<button class="ntpc" data-act="nt-val" data-f="${x.k}" data-v="${o}" aria-pressed="${v === o}">${o}</button>`).join("")}</div>`;
@@ -1136,8 +1136,9 @@ function noteSheet(c){
   return sheetWrap(pill, "", `${menu}${kinds}${tbar}
     ${tF ? `<textarea class="nttitle" id="nf-title" data-grow rows="1" maxlength="200" placeholder="${C.k === "idea" ? "떠오른 아이디어를 한 줄로" : C.k === "memo" ? "제목" : "제목"}">${D("nf-title")}</textarea>` : ""}
     ${props ? `<div class="ntprops">${props}</div>` : ""}
-    ${C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body").map(block).join("")}
+    ${C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body" && !x.bottom).map(block).join("")}
     ${C.f.some(x => x.k === "body") || ntFreeBody(C) ? `<textarea class="ntbody-in" id="nf-body" data-grow rows="${C.k === "memo" ? 8 : 4}" maxlength="10000" placeholder="${c.unsorted ? "떠오르는 대로 적어요. 서랍은 나중에 정해도 돼요." : C.k === "memo" ? "자유롭게 적어요" : "자유롭게 이어서 적어요"}">${D("nf-body")}</textarea>` : ""}
+    ${C.f.some(x => x.bottom && shown(x)) ? `<div class="ntprops ntbottom">${C.f.filter(x => x.bottom).map(prop).join("")}</div>` : ""}
     ${n && C.k === "learn" && Array.isArray(n.blocks) && n.blocks.some(b => bkText(b).trim()) ? `<button class="ntlnote" data-act="ln-open" data-id="${n.id}">${nic("book")}<span><b>학습 노트</b><small>정리한 노트 ${n.blocks.filter(b => bkText(b).trim()).length}줄 · 열기</small></span><svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>` : ""}
     <div class="ntsug" ${hasUrl ? "" : "hidden"}><span>${nic("link")}링크가 있어요</span><button class="ntpc on" data-act="nt-kind" data-v="ref">참고자료로 정리</button></div>
 `, `<button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>`);
@@ -2052,7 +2053,7 @@ $("#fileIn").addEventListener("change", async e => { const files = [...e.target.
 function openSheet(c){ if (c) delete S.drafts["pp-in"]; S.compose = c; renderSheet(); }
 /* 자료 작성 화면은 완료 버튼 없이 닫을 때(뒤로) 자동 저장한다. 아무것도 안 적었으면 그냥 닫는다 */
 function closeSheet(){ const nc = S.compose; if (nc && nc.type === "note" && !nc.noSave && !nc.saving){ nc.saving = true; preserveSheetDrafts();
-    const ok = saveNote(nc, (key, r, fresh) => { nc.noSave = true; closeSheet(); dumpDone(nc); if (r) toast(fresh && r.xp > 0 ? "자료 완성!" : nc.id ? "저장했어요" : "자료실에 담았어요"); }, true);
+    const ok = saveNote(nc, (key, r, fresh) => { nc.noSave = true; closeSheet(); dumpDone(nc); if (r && fresh && r.xp > 0) toast("자료 완성!"); }, true);
     if (ok === false){ nc.noSave = true; closeSheet(); } else if (ok === undefined) nc.saving = false; else Promise.resolve(ok).then(() => { if (!nc.noSave) nc.saving = false; }); return; }
   closeSheet0(); }
 function closeSheet0(){ if (S.compose && S.compose.type === "note" && (S.compose.newFiles || []).length){ S.compose.newFiles.forEach(FDB.del); S.compose.newFiles = []; } if (S.compose && S.compose.dumpId){ delete S.drafts["ad-name"]; delete S.drafts["ta-name"]; delete S.drafts["nf-title"]; } if (S.compose && (S.compose.type === "nttask" || S.compose.type === "tqpick" || S.compose.type === "ppick" || S.compose.type === "confirm") && (S.parentSheet || S.compose.type === "confirm")){ S.compose = S.parentSheet; S.parentSheet = null; } else { S.compose = null; S.parentSheet = null; } renderSheet(); }
