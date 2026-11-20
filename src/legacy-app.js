@@ -1157,14 +1157,7 @@ function noteSheet(c){
   const qOpen = c.drop === "q", aOpen = c.drop === "a";
   const mains = goalsOf(S.me).filter(g => g.status !== "done" && !isCx(g)).sort(gOrder);
   /* 메인 퀘스트만 먼저. 스테이지가 있는 메인은 누르면 그 아래로 '메인 퀘스트에 연결' + 스테이지가 펼쳐진다 */
-  /* 퀘스트 연결: 깔끔한 팝업. 메인 이름을 누르면 바로 연결, 오른쪽 '스테이지 N'을 누르면 팝업 안에서 스테이지 목록으로 넘어간다 */
-  const ckI = `<svg class="ntqck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
-  const rtI = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>`;
-  const qSub = qOpen && c.qexp && S.projects[c.qexp], qRowI = (id, t, sm) => `<button class="ntqi ${c.projectId === id ? "on" : ""}" data-act="nt-qset" data-v="${id}"><span><b>${esc(t)}</b>${sm ? `<small>${sm}</small>` : ""}</span>${c.projectId === id ? ckI : ""}</button>`;
-  const qBody = !qOpen ? "" : qSub ? `<div class="ntql">${qRowI(qSub.id, "메인 퀘스트 전체", esc(qSub.title))}${subsOf(qSub.id).filter(x => x.status !== "done" && !isCx(x)).map(x => qRowI(x.id, x.title, "스테이지")).join("")}</div>`
-    : `<div class="ntql">${mains.length ? mains.map(g => { const ss = subsOf(g.id).filter(x => x.status !== "done" && !isCx(x)), inS = ss.find(x => x.id === c.projectId);
-        return `<div class="ntqr ${c.projectId === g.id || inS ? "on" : ""}"><button class="ntqi" data-act="nt-qset" data-v="${g.id}"><span><b>${esc(g.title)}</b>${inS ? `<small>${esc(inS.title)} 선택됨</small>` : g.end ? `<small>${dday(g.end)}</small>` : ""}</span>${c.projectId === g.id ? ckI : ""}</button>${ss.length ? `<button class="ntqs" data-act="nt-qexp" data-v="${g.id}">스테이지 ${ss.length}${rtI}</button>` : ""}</div>`; }).join("") : `<p class="empty-row">진행 중인 메인 퀘스트가 없어요.</p>`}</div>${pj ? `<button class="ntqoff" data-act="nt-qset" data-v="">연결 안 함</button>` : ""}`;
-  const qList = qOpen ? `<div class="ntqpop" data-act="nt-qclose"><div class="ntqpop-in" data-act="dpstay" role="dialog" aria-label="퀘스트 연결"><div class="ntqpop-h">${qSub ? `<button class="iconbtn" data-act="nt-qexp" data-v="" aria-label="뒤로">${I.back}</button>` : ""}<b>${qSub ? esc(qSub.title) : "퀘스트 연결"}</b><button class="iconbtn" data-act="nt-qclose" aria-label="닫기">${I.close}</button></div>${qBody}</div></div>` : "";
+  const qList = qOpen ? questPop({title:"퀘스트 연결", cur:c.projectId, sub:c.qexp, set:"nt-qset", subAct:"nt-qexp", close:"nt-qclose"}) : "";
   const qRow = gs.length || pj ? `<span class="ntpl">퀘스트</span><div class="ntpq">${pj ? `<button class="ntpc on" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">${esc(pj.title)}${chev(qOpen)}</button>` : `<button class="ntpc add" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">+ 연결${chev(qOpen)}</button>`}</div>${qList}` : "";
   const aSel = c.area && AREAS.find(a => a[0] === c.area);
   /* 영역: 칩으로 바로 고르기. 고른 칩을 다시 누르면 해제 */
@@ -2184,6 +2177,21 @@ function planSentence(name, time, place, after){
 const chainsTo = (from, target) => { let id = from, n = 0; while (id && n++ < 50){ if (id === target) return true; id = (S.mine[id] || {}).afterId; } return false; };
 const afterLabel = c => c.afterId && S.mine[c.afterId] ? `${S.mine[c.afterId].name} 후` : (c.after || "");
 const planName = c => S.drafts[c.type === "taskadd" ? "ta-name" : c.type === "tedit" ? "te-name" : c.type === "hedit" ? "he-name" : "ad-name"] || "";
+/* 퀘스트 선택 팝업(모든 화면 공통): 메인 이름을 누르면 바로 연결, 오른쪽 '스테이지 N ›'을 누르면 팝업 안에서 스테이지 목록으로 */
+function questPop(o){ const live = x => x.status !== "done" && !isCx(x), mains = goalsOf(S.me).filter(live).sort(gOrder);
+  const orphan = o.onlyMain ? [] : Object.values(S.projects).filter(p => live(p) && p.owner === S.me && p.parentId && !mains.some(g => g.id === p.parentId));
+  const ckI = `<svg class="ntqck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+  const rtI = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>`;
+  const row = (id, t, sm) => `<button class="ntqi ${o.cur === id ? "on" : ""}" data-act="${o.set}" data-v="${id}"><span><b>${esc(t)}</b>${sm ? `<small>${sm}</small>` : ""}</span>${o.cur === id ? ckI : ""}</button>`;
+  const sg = !o.onlyMain && o.sub && S.projects[o.sub];
+  const body = sg ? row(sg.id, "메인 퀘스트 전체", esc(sg.title)) + subsOf(sg.id).filter(live).map(x => row(x.id, x.title, "스테이지" + (x.end ? " · " + dday(x.end) : ""))).join("")
+    : mains.map(g => { const ss = o.onlyMain ? [] : subsOf(g.id).filter(live), inS = ss.find(x => x.id === o.cur);
+        return `<div class="ntqr ${o.cur === g.id || inS ? "on" : ""}"><button class="ntqi" data-act="${o.set}" data-v="${g.id}"><span><b>${esc(g.title)}</b>${inS ? `<small>${esc(inS.title)} 선택됨</small>` : g.end ? `<small>${dday(g.end)}</small>` : ""}</span>${o.cur === g.id ? ckI : ""}</button>${ss.length ? `<button class="ntqs" data-act="${o.subAct}" data-v="${g.id}">스테이지 ${ss.length}${rtI}</button>` : ""}</div>`; }).join("") + orphan.map(x => row(x.id, x.title, "스테이지")).join("");
+  return `<div class="ntqpop" data-act="${o.close}"><div class="ntqpop-in" data-act="dpstay" role="dialog" aria-label="${esc(o.title)}"><div class="ntqpop-h">${sg ? `<button class="iconbtn" data-act="${o.subAct}" data-v="" aria-label="뒤로">${I.back}</button>` : ""}<b>${esc(sg ? sg.title : o.title)}</b><button class="iconbtn" data-act="${o.close}" aria-label="닫기">${I.close}</button></div><div class="ntql">${body || `<p class="empty-row">진행 중인 ${o.onlyMain ? "메인 " : ""}퀘스트가 없어요.</p>`}</div>${o.cur && !sg && !o.noOff ? `<button class="ntqoff" data-act="${o.set}" data-v="">연결 안 함</button>` : ""}</div></div>`; }
+/* 미션·일일·스토리·스테이지 화면에서 띄우는 퀘스트 팝업(c.qp) */
+function sheetQPop(c){ const q = c && c.qp; if (!q) return "";
+  if (q.kind === "pp") return questPop({title:"메인 퀘스트 선택", cur:c.parentId, onlyMain:true, noOff:true, set:"ppset", close:"qpclose"});
+  return questPop({title:q.m === "main" ? "메인 퀘스트 연결" : "퀘스트 연결", cur:q.m === "ref" ? (c.ref || {}).id : c.projectId, onlyMain:q.m === "main", sub:q.sub, set:"tqset", subAct:"tqsub", close:"qpclose"}); }
 const ppWrap = (t, close, body) => `<div class="dppop" data-act="dpstay"><div class="dppop-in" data-act="dpstay" role="dialog" aria-label="${t}"><div class="dppop-h"><b class="dppop-t">${t}</b><button class="iconbtn" data-act="${close}" aria-label="닫기">${I.close}</button></div>${body}</div></div>`;
 function planPop(c){
   const k = c._pp, after = k === "after";
@@ -2236,7 +2244,7 @@ function preserveSheetDrafts() {
   document.querySelectorAll('.sheet input[id], .sheet textarea[id]').forEach(el => { if(!['checkbox','radio','file'].includes(el.type)) S.drafts[el.id]=el.value; });
 }
 let sheetDrawn = null; const sheetTops = new WeakMap();
-function sheetWrap(title, desc, body, right = ""){ const creation=false,sub=title.startsWith('스테이지');/* 같은 팝업을 다시 그릴 때(삭제 버튼 두 번 누르기, 확인창에서 돌아오기 등)는 스크롤 위치를 유지한다 */ const oldSh = $("#overlay .sheet"); if (oldSh && sheetDrawn && typeof sheetDrawn === "object") sheetTops.set(sheetDrawn, oldSh.scrollTop); const keepTop = S.compose && typeof S.compose === "object" ? sheetTops.get(S.compose) || 0 : 0; sheetDrawn = S.compose; const pg = !!(S.compose && (S.compose.type === "note" || S.compose.type === "diary")); /* 자료·저널 추가·수정은 팝업 대신 화면 전체를 쓰는 페이지로 연다 */ $("#overlay").innerHTML = `<div class="scrim${pg ? " pagemode" : ""}" data-act="sheet-bg"><div class="sheet${pg ? " page" : ""}" role="dialog" aria-modal="true">${pg ? `<h2 class="pgh"><button data-act="sheet-close" aria-label="뒤로">${I.back}</button><span>${title}</span>${right}</h2>` : `<h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>`}${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}</div></div>`; initTW();  if (keepTop){ const ns = $("#overlay .sheet"); if (ns) ns.scrollTop = keepTop; } }
+function sheetWrap(title, desc, body, right = ""){ const creation=false,sub=title.startsWith('스테이지');/* 같은 팝업을 다시 그릴 때(삭제 버튼 두 번 누르기, 확인창에서 돌아오기 등)는 스크롤 위치를 유지한다 */ const oldSh = $("#overlay .sheet"); if (oldSh && sheetDrawn && typeof sheetDrawn === "object") sheetTops.set(sheetDrawn, oldSh.scrollTop); const keepTop = S.compose && typeof S.compose === "object" ? sheetTops.get(S.compose) || 0 : 0; sheetDrawn = S.compose; const pg = !!(S.compose && (S.compose.type === "note" || S.compose.type === "diary")); /* 자료·저널 추가·수정은 팝업 대신 화면 전체를 쓰는 페이지로 연다 */ $("#overlay").innerHTML = `<div class="scrim${pg ? " pagemode" : ""}" data-act="sheet-bg"><div class="sheet${pg ? " page" : ""}" role="dialog" aria-modal="true">${pg ? `<h2 class="pgh"><button data-act="sheet-close" aria-label="뒤로">${I.back}</button><span>${title}</span>${right}</h2>` : `<h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>`}${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}${sheetQPop(S.compose)}</div></div>`; initTW();  if (keepTop){ const ns = $("#overlay .sheet"); if (ns) ns.scrollTop = keepTop; } }
 /* 뒤로가기로 팝업 닫기: 팝업이 열리면 기록을 하나 쌓고, 뒤로가기(popstate)가 오면 팝업만 닫는다 */
 let sheetHist = false, popSkip = false;
 const HS = typeof history !== "undefined" && history && history.pushState ? history : null;
@@ -2431,11 +2439,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
     const body = gs.map(g => { const ss = onlyMain ? [] : subsOf(g.id).filter(x => x.status !== "done"); if (!ss.length) return it(g, false);
       return `<button class="row mitem tqmain" data-act="tqsub" data-v="${g.id}"><span class="t"><b>🎯 ${esc(g.title)}</b><small>메인 퀘스트 · 스테이지 ${ss.length}개${g.end ? " · " + dday(g.end) : ""}${ss.some(x => x.id === cur) ? ` · ${esc(S.projects[cur].title)} 선택됨` : ""}</small></span>${cur === g.id || ss.some(x => x.id === cur) ? `<span class="pick">✓</span>` : ""}<svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`; }).join("") + orphan.map(x => it(x, true)).join("");
     return sheetWrap(c.t || "어떤 퀘스트의 미션인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 ${onlyMain ? "메인 " : ""}퀘스트가 없어요.</p>`}</div>${cur ? `<button class="btn sec full" data-act="tqset" data-v="">연결 안 함</button>` : ""}`); }
-  if (c.type === "qpick"){ const gs = goalsOf(S.me).filter(g => g.status !== "done"), orphanSubs = Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId));
-    const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="inref" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${S.inRef === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
-    const body = (gs.length || orphanSubs.length ? gs.map(g => it(g, false) + subsOf(g.id).filter(x => x.status !== "done").map(x => it(x, true)).join("")).join("") + orphanSubs.map(x => it(x, true)).join("") : "")
-;
-    return sheetWrap("어떤 퀘스트의 스토리인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 퀘스트가 없어요. 프로필의 퀘스트 탭에서 만들 수 있어요.</p>`}</div>${S.inRef ? `<button class="btn sec full" data-act="inref" data-v="">연결 안 함</button>` : ""}`); }
+  if (c.type === "qpick"){ $("#overlay").innerHTML = questPop({title:"퀘스트 연결", cur:S.inRef, sub:c.sub, set:"inref", subAct:"qpsub", close:"sheet-close"}); return; }
   if (c.type === "buyconf"){ const r = S.mine[c.id]; if (!r){ closeSheet(); return; } const pr = priceOf(r), g = MY ? MY.gold : 0;
     return sheetWrap("", "", `<div class="reward"><div class="big">🎁</div><h2 style="justify-content:center">'${esc(r.name)}'<br>구매할까요?</h2>
       <div class="bconf"><div><span>보유 코인</span><b class="num">🪙 ${fmt(g)}</b></div><div><span>사용할 코인</span><b class="num minus">− ${fmt(pr)}</b></div><div class="tot"><span>남는 코인</span><b class="num">🪙 ${fmt(g - pr)}</b></div></div>
@@ -2680,12 +2684,14 @@ document.addEventListener("click", e => {
     case "inunphoto": S.inPhotos.splice(+b.dataset.i, 1); break;
     case "inref": S.inRef = b.dataset.v || null; if (S.compose && S.compose.type === "qpick") closeSheet(); break;
     case "qpick": openSheet({type:"qpick"}); return;
-    case "tqpick": { preserveSheetDrafts(); ["ta-name","te-name","te-note","ad-name"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); S.parentSheet = c; openSheet({type:"tqpick", m:b.dataset.m || "", t:b.dataset.t || ""}); return; }
-    case "ppick": { preserveSheetDrafts(); ["ad-name","sp-title","pj-ms","pj-mt","pj-unit"].forEach(k => { const el = document.getElementById(k); if (el) S.drafts[k] = el.value; }); S.parentSheet = c; openSheet({type:"ppick"}); return; }
-    case "ppset": { const par = S.parentSheet; if (par) par.parentId = b.dataset.v; closeSheet(); return; }
-    case "tqset": { const par = S.parentSheet; if (par){ if (c.m === "ref") par.ref = b.dataset.v ? {type:"project", id:b.dataset.v, label:S.projects[b.dataset.v].title} : null; else { par.projectId = b.dataset.v || null; if (par.projectId && (par.type === "taskadd" || par.type === "tedit")){ const au = areaUp(par.projectId); if (au.length) par.area = au.slice(0, 2); } } } closeSheet(); return; }
+    case "qpsub": c.sub = b.dataset.v || null; renderSheet(); return;
+    case "tqpick": preserveSheetDrafts(); c.qp = {kind:"tq", m:b.dataset.m || "", sub:null}; renderSheet(); return;
+    case "ppick": preserveSheetDrafts(); c.qp = {kind:"pp"}; renderSheet(); return;
+    case "ppset": preserveSheetDrafts(); c.parentId = b.dataset.v; c.qp = null; renderSheet(); return;
+    case "qpclose": preserveSheetDrafts(); c.qp = null; renderSheet(); return;
+    case "tqset": { preserveSheetDrafts(); const m = (c.qp || {}).m; if (m === "ref") c.ref = b.dataset.v ? {type:"project", id:b.dataset.v, label:S.projects[b.dataset.v].title} : null; else { c.projectId = b.dataset.v || null; if (c.projectId && (c.type === "taskadd" || c.type === "tedit")){ const au = areaUp(c.projectId); if (au.length) c.area = au.slice(0, 2); } } c.qp = null; renderSheet(); return; }
     case "tqclear": c.projectId = null; renderSheet(); return;
-    case "tqsub": c.sub = b.dataset.v || null; renderSheet(); const sh = $("#overlay .sheet"); if (sh) sh.scrollTop = 0; return;
+    case "tqsub": if (c.qp) c.qp.sub = b.dataset.v || null; renderSheet(); return;
     case "inpost": { const text = ($("#ps-text").value||"").trim(), ph = S.inPhotos || []; let value;
       const vEl = $("#ps-val"); if (vEl && vEl.value.trim()){ value = parseNum(vEl.value); if (value == null){ toast("숫자만 넣어 주세요"); return; } }
       if (!text && !ph.length && value === undefined){ toast("내용을 적어 주세요"); $("#ps-text").focus(); return; }
