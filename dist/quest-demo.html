@@ -1883,6 +1883,8 @@ a.row{color:inherit;text-decoration:none}
 .sheet.page h2.pgh span.ntkind{margin-left:4px;display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:700;background:var(--fill);color:var(--sub)}.sheet.page h2.pgh span.ntkind .nic{width:16px;height:16px;margin:0}
 .sheet.page h2.pgh button.ntkind.fixed{cursor:default;opacity:1;padding:6px 12px}
 .pgtl{display:flex;align-items:flex-start;gap:8px}.pgtl h3{flex:1;min-width:0}.pgtl>.st.dd{flex:none;margin-top:2px;font-size:12px;font-weight:700;color:var(--sub);background:var(--fill);border-radius:8px;padding:3px 8px}
+.ntpickpop{width:min(100%,380px)}.ntpgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:2px 4px 6px}
+.ntpgrid .ntkp{flex-direction:column;justify-content:center;gap:6px;padding:14px 4px;text-align:center;height:auto;min-height:0}.ntpgrid .ntkp b{font-size:13.5px;white-space:nowrap}.ntpgrid .ntkp .nic{width:22px;height:22px}
 </style>
 <script>
 (function(){"use strict";
@@ -3195,7 +3197,7 @@ function subTab(){
   return h;
 }
 const isPlanned = p => !!p && p.status === "planned";
-const stChip = g => isCx(g) ? `<span class="st cx">포기</span>` : isPlanned(g) ? `<span class="st plan">시작 전</span>` : `<span class="st">진행 중</span>`;
+const stChip = g => isCx(g) ? `<span class="st cx">포기</span>` : isPlanned(g) ? `<span class="st plan">예정</span>` : `<span class="st">진행 중</span>`;
 function statusField(c){ const v = c.pstat === "planned" ? "planned" : "active";
   return `<div class="field"><span class="lab">상태</span><div class="chips">${[["active","바로 시작"],["planned","나중에 시작"]].map(([k,l]) => `<button class="chip" data-act="cset" data-f="pstat" data-v="${k}" aria-pressed="${v === k}">${l}</button>`).join("")}</div></div>`; }
 /* ================= stats (life areas) ================= */
@@ -3320,7 +3322,7 @@ function viewToday(){
 function goalRow(p, nested = false){
   const pr = goalProgress(p), pct = pr.total ? pr.done/pr.total*100 : (p.status === "done" ? 100 : 0), sp = isProj(p);
   const subs = sp ? [] : subsOf(p.id), info = [];
-  if (p.status === "done") info.push(sp ? "완료" : "달성 완료"); else if (isPlanned(p)) info.push("시작 전"); else if (pr.total) info.push(`미션 ${pr.done}/${pr.total}`); else info.push("진행 중");
+  if (p.status === "done") info.push(sp ? "완료" : "달성 완료"); else if (isPlanned(p)) info.push("예정"); else if (pr.total) info.push(`미션 ${pr.done}/${pr.total}`); else info.push("진행 중");
   if (subs.length) info.push(`스테이지 ${subs.filter(x => x.status === "done").length}/${subs.length}`);
   if (sp && !nested && S.projects[p.parentId]) info.push("🎯 " + esc(S.projects[p.parentId].title));
   if (p.metric) info.push(`📈 ${esc(p.metric.unit)}`);
@@ -3970,7 +3972,7 @@ function viewTidy(){
     const ord = l => l.sort((a,b) => (!!a.parentId - !!b.parentId) || gOrder(a,b));
     const meta = p => { const par = p.parentId && S.projects[p.parentId], pr = goalProgress(p); return [p.parentId ? `🔗 스테이지${par ? ` · ${esc(par.title)}` : ""}` : "🎯 메인", p.end && p.status !== "done" ? dday(p.end) : "", `미션 ${pr.done}/${pr.total}`].filter(Boolean).join(" · "); };
     const r = p => row(p.id, "goal", p.title, meta(p));
-    h += group("진행 중", ord(ps.filter(p => p.status !== "done" && !isPlanned(p))), r) + group("시작 전", ord(ps.filter(isPlanned)), r) + group("🏆 달성", ord(ps.filter(p => p.status === "done")), r);
+    h += group("진행 중", ord(ps.filter(p => p.status !== "done" && !isPlanned(p))), r) + group("예정", ord(ps.filter(isPlanned)), r) + group("🏆 달성", ord(ps.filter(p => p.status === "done")), r);
     if (!ps.length) h += `<div class="card empty">${q ? "찾는 퀘스트가 없어요." : "아직 메인·스테이지가 없어요."}</div>`;
   } else if (tab === "daily"){
     const qs = mineOf("quest").filter(x => match(x.name)).sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
@@ -3993,7 +3995,7 @@ function viewTidy(){
     if (!ms.length) h += `<div class="card empty">${q ? "찾는 미션이 없어요." : "아직 미션이 없어요."}</div>`;
   }
   if (sel.size){
-    const acts = tab === "goal" ? [["active","▶ 진행 중으로"],["planned","시작 전으로"],["del","삭제"]] : tab === "daily" ? [["arch","보관"],["unarch","보관 해제"],["del","삭제"]] : [["today","오늘로"],["tomorrow","내일로"],["del","삭제"]];
+    const acts = tab === "goal" ? [["active","▶ 진행 중으로"],["planned","예정으로 돌리기"],["del","삭제"]] : tab === "daily" ? [["arch","보관"],["unarch","보관 해제"],["del","삭제"]] : [["today","오늘로"],["tomorrow","내일로"],["del","삭제"]];
     h += `<div class="qmbar" role="toolbar" aria-label="선택한 항목"><span class="num"><b>${sel.size}</b>개 선택</span><span class="qmacts">${acts.map(([k,l]) => `<button class="btn sm ${k === "del" ? "qmdel" : "sec"}" data-act="qm-do" data-v="${k}">${l}</button>`).join("")}<button class="link" data-act="qm-clear">취소</button></span></div>`;
   }
   return h;
@@ -4010,7 +4012,7 @@ function qmDo(v){
     }, () => done(`퀘스트 ${all0(ps)}개를 삭제했어요`)));
     const tgt = ps.filter(p => p.status !== "done" && (v === "planned" ? !isPlanned(p) : isPlanned(p)));
     if (!tgt.length){ done(ps.some(p => p.status === "done") ? "달성한 퀘스트는 상태를 바꿀 수 없어요" : "이미 그 상태예요"); schedule(); return; }
-    return run(async () => { for (const p of tgt){ const doc = {...p, status:v === "planned" ? "planned" : "active", ...(v === "planned" ? {} : {start:t})}; delete doc.id; await api.putProject(p.id, doc); } }, () => done(`${tgt.length}개를 ${v === "planned" ? "시작 전으로" : "진행 중으로"} 바꿨어요`));
+    return run(async () => { for (const p of tgt){ const doc = {...p, status:v === "planned" ? "planned" : "active", ...(v === "planned" ? {} : {start:t})}; delete doc.id; await api.putProject(p.id, doc); } }, () => done(`${tgt.length}개를 ${v === "planned" ? "예정으로" : "진행 중으로"} 바꿨어요`));
   }
   if (Q.tab === "daily"){
     const qs = ids.map(id => S.mine[id]).filter(Boolean);
@@ -4281,7 +4283,7 @@ function viewGoal(){
     ${cvOpen ? `<div class="cvwrap thcv">${coverHtml(p, {badge:false})}<button class="cvtog" data-act="cvfold" data-p="${p.id}" aria-label="표지 접기">${cvUp}</button></div>` : `<button class="cvopen thcv" data-act="cvfold" data-p="${p.id}" aria-label="표지 펴기"><span style="display:inline-flex;transform:rotate(180deg)">${cvUp}</span></button>`}
     <div class="gth"><h2>${esc(p.title)}</h2>${mine ? `<button class="pmenu" data-act="gmenu" data-p="${p.id}" aria-label="${kind} 메뉴">${I.menu}</button>` : ""}</div>
     ${par ? `<button class="parentlink" data-act="project" data-p="${par.id}">🎯 ${esc(par.title)} ${I.chev}</button>` : ""}
-    <div class="tags">${isCx(p) ? `<span class="tag">포기</span>` : p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" && !isCx(p) ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "영역" : "메인 퀘스트 영역"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}</div>
+    <div class="tags">${isCx(p) ? `<span class="tag">포기</span>` : p.status !== "done" ? (isPlanned(p) ? `<span class="tag">예정</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" && !isCx(p) ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "영역" : "메인 퀘스트 영역"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}</div>
     ${pr.total && p.metric ? `<div class="prog"><span class="num">미션 ${pr.done}/${pr.total}</span></div>` : ""}
     ${metricBox(p)}
     ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요${mine ? `<button class="trundo" data-act="pundone" data-p="${p.id}">${sp ? "완료" : "달성"} 취소</button>` : ""}</div>` : ""}
@@ -4907,6 +4909,8 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null; if (LP && LP.
     const body = gs.map(g => { const ss = onlyMain ? [] : subsOf(g.id).filter(x => x.status !== "done"); if (!ss.length) return it(g, false);
       return `<button class="row mitem tqmain" data-act="tqsub" data-v="${g.id}"><span class="t"><b>🎯 ${esc(g.title)}</b><small>메인 퀘스트 · 스테이지 ${ss.length}개${g.end ? " · " + dday(g.end) : ""}${ss.some(x => x.id === cur) ? ` · ${esc(S.projects[cur].title)} 선택됨` : ""}</small></span>${cur === g.id || ss.some(x => x.id === cur) ? `<span class="pick">✓</span>` : ""}<svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`; }).join("") + orphan.map(x => it(x, true)).join("");
     return sheetWrap(c.t || "어떤 퀘스트의 미션인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 ${onlyMain ? "메인 " : ""}퀘스트가 없어요.</p>`}</div>${cur ? `<button class="btn sec full" data-act="tqset" data-v="">연결 안 함</button>` : ""}`); }
+  if (c.type === "ntpick"){ const it = (k, ic, l) => `<button class="ntkp" data-act="nt-kind" data-v="${k}">${nic(ic)}<b>${esc(l)}</b></button>`;
+    $("#overlay").innerHTML = `<div class="ntqpop" data-act="sheet-close"><div class="ntqpop-in ntpickpop" data-act="dpstay" role="dialog" aria-label="서랍 고르기"><div class="ntqpop-h"><b>어떤 서랍에 담을까요?</b><button class="iconbtn" data-act="sheet-close" aria-label="닫기">${I.close}</button></div><div class="ntpgrid">${noteDrawers(S).filter(K => !K.hidden).map(K => it(K.k, K.ic, K.l)).join("")}${it("journal", "journal", "저널")}</div></div></div>`; return; }
   if (c.type === "qpick"){ $("#overlay").innerHTML = questPop({title:"퀘스트 연결", cur:S.inRef, sub:c.sub, set:"inref", subAct:"qpsub", close:"sheet-close"}); return; }
   if (c.type === "buyconf"){ const r = S.mine[c.id]; if (!r){ closeSheet(); return; } const pr = priceOf(r), g = MY ? MY.gold : 0;
     return sheetWrap("", "", `<div class="reward"><div class="big">🎁</div><h2 style="justify-content:center">'${esc(r.name)}'<br>구매할까요?</h2>
@@ -4915,7 +4919,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null; if (LP && LP.
       <div class="btnrow" style="margin-top:4px"><button class="btn sec big" data-act="sheet-close">취소</button><button class="btn big" data-act="buyok" ${S.busy?"disabled":""}>구매하기</button></div></div>`); }
   if (c.type === "gmenu"){ const p = S.projects[c.pid]; if (!p){ closeSheet(); return; } const sp = isProj(p), kind = sp ? "스테이지" : "메인 퀘스트";
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-p="${p.id}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
-    return sheetWrap(kind, "", `<div class="sheetlist mlist">${item("gedit", "수정", sp ? "이름 · 마감일 · 메인 퀘스트" : "이름 · 마감일 · 수치 기록")}${p.status !== "done" ? item("pstat", isPlanned(p) ? "진행 시작하기" : "시작 전으로 바꾸기", isPlanned(p) ? "진행 중으로 바꿔요" : "아직 시작하지 않은 퀘스트로 표시해요") : ""}${p.status !== "done" ? item("compose", "스토리 쓰기", "진행 과정을 커뮤니티에 공유해요") : ""}${item("pdel", S.armed === "px"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", sp ? "연결된 미션도 함께 삭제돼요" : "스테이지와 미션도 함께 삭제돼요", true)}</div>`); }
+    return sheetWrap(kind, "", `<div class="sheetlist mlist">${item("gedit", "수정", sp ? "이름 · 마감일 · 메인 퀘스트" : "이름 · 마감일 · 수치 기록")}${p.status !== "done" ? item("pstat", isPlanned(p) ? "진행 시작하기" : "예정으로 돌리기", isPlanned(p) ? "진행 중으로 바꿔요" : "아직 시작하지 않은 퀘스트로 표시해요") : ""}${p.status !== "done" ? item("compose", "스토리 쓰기", "진행 과정을 커뮤니티에 공유해요") : ""}${item("pdel", S.armed === "px"+p.id ? "한 번 더 누르면 삭제돼요" : "삭제", sp ? "연결된 미션도 함께 삭제돼요" : "스테이지와 미션도 함께 삭제돼요", true)}</div>`); }
   if (c.type === "pdue"){ const p = S.projects[c.pid]; if (!p){ closeSheet(); return; }
     return sheetWrap("기한 연장", esc(p.title), `
       ${datePick(c, "end", "새 기한", false, true)}<button class="btn full" data-act="pext-go">연장하기</button>`); }
@@ -5333,7 +5337,7 @@ document.addEventListener("click", e => {
     case "fv-back": openSheet(c.back); return;
     case "nt-cat": S.ntCat = b.dataset.v; break;
     case "nt-new": { ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => d.k === "memo" && !d.hidden) || DR.find(d => !d.hidden) || DR[0]).k; /* 전체에서 누르면 바로 메모(빈 화면)로 */
-      openSheet({type:"note", cat, unsorted:true, pickFirst:true, kpick:true, vals:{}, area:null, projectId:b.dataset.p && S.projects[b.dataset.p] ? b.dataset.p : null}); return; }
+      openSheet({type:"ntpick", p:b.dataset.p && S.projects[b.dataset.p] ? b.dataset.p : null}); return; } /* 자료 추가: 서랍 고르기 팝업부터 */
     case "nt-edit": { S.lnMenu = null; const n = S.mine[id]; if (!n) return; const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
       const vals = {}; Object.entries(f).forEach(([k, v]) => { if (k === "rating" || ["status","media","type"].includes(k)) vals[k] = v; else S.drafts["nf-" + k] = v || ""; });
       openSheet({type:"note", id, cat, unsorted:!!n.unsorted, vals, area:ntAreas(n.area), projectId:n.projectId || null, files:[...(n.files || [])], hideF:[...(n.hideF || [])]}); return; }
@@ -5353,7 +5357,9 @@ document.addEventListener("click", e => {
         else if (st.blocks) nc._blocks = st.blocks; /* 목록·제목 같은 본문 모양도 그대로 */ nc.noSave = false; nc.cat = v; nc.unsorted = false; nc.kpick = false; nc.menu = false; nc.blocks = null; openSheet(nc); return; }
       if (tx && !ed) S.drafts["nf-body"] = tx; /* 이미 저장한 저널은 그대로 두고 새 자료로 */ openSheet({type:"note", cat:v, unsorted:false, vals:{}, area:null, projectId:null}); return; }
     case "nt-kpick": if (c && (c.pickFirst || (c.type === "note" && c.id && S.mine[c.id] && !c.unsorted))) return; preserveSheetDrafts(); c.kpick = !c.kpick; c.menu = false; renderSheet(); return;
-    case "nt-kind": { preserveSheetDrafts(); if (b.dataset.v === "journal"){ const gv = k => { const el = document.getElementById(k); return el ? el.value : S.drafts[k]; }, tx = [gv("nf-title"), gv("nf-body")].map(x => String(x || "").trim()).filter(Boolean).join("\n"); c.noSave = true; c.kpick = false; c.menu = false; c.pickFirst = false;
+    case "nt-kind": { if (c && c.type === "ntpick"){ const v = b.dataset.v, pj = c.p; ntKeys().forEach(k => delete S.drafts[k]); if (v === "journal"){ openDiaryToday(""); return; }
+        openSheet({type:"note", cat:v, unsorted:false, vals:{}, area:null, projectId:pj}); setTimeout(() => { const x = document.getElementById("nf-title"); x && x.focus && x.focus(); }, 60); return; }
+      preserveSheetDrafts(); if (b.dataset.v === "journal"){ const gv = k => { const el = document.getElementById(k); return el ? el.value : S.drafts[k]; }, tx = [gv("nf-title"), gv("nf-body")].map(x => String(x || "").trim()).filter(Boolean).join("\n"); c.noSave = true; c.kpick = false; c.menu = false; c.pickFirst = false;
       const keep = {}; ntKeys().forEach(k => { const v = gv(k); if (v != null && v !== "") keep[k] = String(v); delete S.drafts[k]; }); /* 적던 자료는 그대로 보관해 두었다가 다른 서랍으로 돌아갈 때 되살린다 */
       const kb = LP && LP.sheet && LP.c === c ? LP.blocks : null; openDiaryToday(tx); if (S.compose && S.compose.type === "diary") S.compose.fromNote = {c, drafts:keep, blocks:kb, entry:String(S.drafts["pl-text"] || "").trim()}; renderSheet(); return; } const wasPick = c.pickFirst; c.pickFirst = false; if (wasPick) setTimeout(() => { const x = document.getElementById("nf-title"); x && x.focus && x.focus(); }, 60); c.cat = b.dataset.v; c.kpick = false; c.unsorted = false; c.blocks = null; const K = noteDrawer(S, c.cat);
       /* 메모에 적은 링크는 참고자료 '링크' 칸으로 옮기고, 주소로 종류(영상·글·SNS)를 정한다 */
@@ -5416,7 +5422,7 @@ document.addEventListener("click", e => {
         openSheet({type:"hedit", id, place:q0.place || "", after:q0.afterId ? "" : (q0.after || ""), afterId:q0.afterId || null, days:((r0.days||q0.days||[])).slice(), hlv:lvKey(q0.lv), time:q0.time||"09:00", rpt:r0.type, rweeks:r0.weeks||2, revery:r0.every||3, rday:r0.day||15, rmonths:r0.months||3, ron:r0.on||2, roff:r0.off||1, ranchor:r0.anchor || activityDate(q0.createdAt) || today()}); return; }
       const m0 = S.mine[id]; if (!m0) return; S.drafts["te-name"] = m0.name; S.drafts["te-note"] = m0.note || ""; openSheet({type:"tedit", id, area:areasOf(m0).length ? areasOf(m0) : (m0.projectId ? areaUp(m0.projectId).slice(0, 2) : []), time:m0.time || "", lv:m0.lv || "normal", due:m0.period ? m0.due : dueOf(m0), period:m0.period || "", projectId:m0.projectId || null}); return; }
     case "pstat": { const p = S.projects[pid]; if (!p || p.status === "done") return; const toPlan = !isPlanned(p), doc = {...p, status:toPlan ? "planned" : "active", ...(toPlan ? {} : {start:today()})}; delete doc.id;
-      run(() => api.putProject(pid, doc), () => { closeSheet(); toast(toPlan ? "시작 전으로 바꿨어요" : "▶ 진행을 시작했어요"); }); return; }
+      run(() => api.putProject(pid, doc), () => { closeSheet(); toast(toPlan ? "예정으로 바꿨어요" : "▶ 진행을 시작했어요"); }); return; }
     case "gedit": { const p = S.projects[pid]; if (!p) return; S.drafts["ge-title"] = p.title;
       const m = p.metric, cu = m && !UNITS.includes(m.unit); if (m){ S.drafts["pj-ms"] = String(m.start); S.drafts["pj-mt"] = String(m.target); if (cu) S.drafts["pj-unit"] = m.unit; } else { ["pj-ms","pj-mt","pj-unit"].forEach(k => delete S.drafts[k]); }
       openSheet({type:"gedit", pid, cover:p.cover || "", end:p.end || "", parentId:p.parentId || null, unit:m ? (cu ? "__c" : m.unit) : null, pstat:p.status === "planned" ? "planned" : "active", area:areasOf(p)}); return; }

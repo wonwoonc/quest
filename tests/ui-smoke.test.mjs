@@ -377,7 +377,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   for (const k of ['아이디어','참고자료','학습','메모','+ 서랍']) assert.ok(app().includes(k),k);
   const notes = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'note'), xp = () => balances(h.snapshot()).xp;
   const x0 = xp();
-  h.click('nt-new'); assert.match(ov(),/ntkind uns/); assert.match(ov(),/서랍 고르기/); h.click('nt-kind',{v:'idea'}); assert.doesNotMatch(ov(),/완성 조건|XP|코인/); assert.match(ov(),/class="nttitle"/);
+  h.click('nt-new'); assert.match(ov(),/ntpickpop/); assert.match(ov(),/서랍 고르기/); h.click('nt-kind',{v:'idea'}); assert.doesNotMatch(ov(),/완성 조건|XP|코인/); assert.match(ov(),/class="nttitle"/);
   h.nodes.set('nf-title',{value:'레이드 퀘스트'}); h.nodes.set('nf-why',{value:'같이 하면 끝까지 간다'}); h.click('submit-note'); await h.settle();
   assert.equal(notes().length,1); assert.equal(xp(),x0,'incomplete note gives nothing');
   const n0 = notes()[0]; h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-next',{value:'매일 아침 서비스 조사'}); h.click('submit-note'); await h.settle();
@@ -1179,7 +1179,7 @@ test('main quest page shows sub quests as cards with progress and next task',asy
   saved.mine.t1={id:'t1',kind:'mission',name:'러닝화 사기',due:'2099-01-01',time:'10:00',projectId:'s1',lv:'normal',done:false,createdAt:1};
   const h=await profileUI(saved);h.click('project',{p:'m1'});const html=h.nodes.get('app').innerHTML;
   assert.match(html,/class="card pgc[^"]*" data-act="project" data-p="s1"[\s\S]*?기초 체력/);
-  assert.match(html,/data-p="s2"[\s\S]*?시작 전/);assert.match(html,/subadd/);assert.doesNotMatch(html,/<em>다음<\/em>/);
+  assert.match(html,/data-p="s2"[\s\S]*?예정/);assert.match(html,/subadd/);assert.doesNotMatch(html,/<em>다음<\/em>/);
 });
 test('nav › 퀘스트: main quests only, chips 전체/진행/예정/달성 filter; stage progress on the card',async()=>{
   const base=await profileUI(),saved=base.snapshot();
@@ -1315,9 +1315,8 @@ test('자료실 저널 서랍: lists own journals only, escaped, opens detail',a
   h.click('sheet-close'); await h.settle(); h.click('nt-menu',{id:'d-2026-11-02'}); assert.match(h.nodes.get('app').innerHTML, /class="ntdd"[\s\S]*data-act="ldel" data-id="d-2026-11-02"/);
 });
 test('자료 추가: 서랍 고르기에서 저널을 고르면 저널 작성 화면으로',async()=>{
-  const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-new'); h.click('nt-kpick');
-  assert.match(h.nodes.get('overlay').innerHTML, /data-act="nt-kind" data-v="journal"/);
-  h.nodes.set('nf-title',{value:'오늘 산책'}); h.click('nt-kind',{v:'journal'}); await h.settle();
+  const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-new'); assert.match(h.nodes.get('overlay').innerHTML, /data-act="nt-kind" data-v="journal"/);
+  h.click('nt-kind',{v:'memo'}); h.nodes.set('nf-title',{value:'오늘 산책'}); h.click('nt-kpick'); h.click('nt-kind',{v:'journal'}); await h.settle();
   const o = h.nodes.get('overlay').innerHTML; assert.match(o, /id="pl-text"/); assert.match(o, /오늘 산책/);
   assert.equal(Object.values(h.snapshot().mine).filter(n => n.kind === 'note').length, 0, 'no stray note saved');
 });
