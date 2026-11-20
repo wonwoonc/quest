@@ -1233,8 +1233,8 @@ function noteSheet(c){
     return `<span class="ntpl">${esc(x.l)}</span><div class="ntpv">${ctl}${tg}</div>`; };
   const block = x => { if (!shown(x)) return ""; const id = "nf-" + x.k;
     if (x.task){ const mk = c.drop === "mk"; /* 실행할 일: 작은 한 줄. '퀘스트로' 누르면 아래로 미션·일일·메인 중 고르는 목록 */
-      return `<div class="ntbox task ntmk"><div class="nttask"><span class="ntbl">${esc(x.l)}${xb(x)}</span><input type="text" id="${id}" maxlength="200" placeholder="${esc(x.p || "")}" value="${D(id)}"><button class="ntmkb" data-act="nt-drop" data-v="mk" aria-expanded="${mk}">퀘스트로${chev(mk)}</button></div>
-        ${mk ? `<div class="ntmkl">${[["task","미션","한 번 하면 끝나는 일"],["daily","일일 퀘스트","꾸준히 반복하는 일"],["big","메인 퀘스트","몇 주 이상 걸리는 큰 목표"]].map(([k, l, d]) => `<button data-act="nt-mk" data-f="${x.k}" data-v="${k}"><b>${l}</b><small>${d}</small></button>`).join("")}</div>` : ""}</div>`; }
+      return `<div class="ntbox task ntmk"><div class="nttask"><span class="ntbl">${esc(x.l)}${xb(x)}</span><input type="text" id="${id}" maxlength="200" placeholder="${esc(x.p || "")}" value="${D(id)}"><button class="ntmkb" data-act="nt-drop" data-v="mk" aria-expanded="${mk}">현실로${chev(!mk)}</button></div>
+        ${mk ? `<div class="ntmkl"><p class="ntmkq">어떤 퀘스트로 만들까요?</p>${[["task","미션","한 번 하면 끝나는 일"],["daily","일일 퀘스트","꾸준히 반복하는 일"],["big","메인 퀘스트","몇 주 이상 걸리는 큰 목표"]].map(([k, l, d]) => `<button data-act="nt-mk" data-f="${x.k}" data-v="${k}"><b>${l}</b><small>${d}</small></button>`).join("")}</div>` : ""}</div>`; }
     const box = x.k === "summary";
     return `<div class="${box ? "ntbox sum" : "ntblk"}"><span class="ntbl">${esc(x.l)}${xb(x)}</span><textarea id="${id}" data-grow rows="${box ? 3 : 2}" maxlength="10000" placeholder="${esc(x.p || "")}">${D(id)}</textarea></div>`; };
   const pj = c.projectId && S.projects[c.projectId];
@@ -1270,7 +1270,7 @@ function noteSheet(c){
   const tplBtn = tpls ? `<button class="nttplbtn" data-act="nt-tplpick" aria-haspopup="dialog">${nic("layout")}<span>${tpl ? `템플릿 · <b>${esc(tpl.l)}</b>` : "템플릿 선택"}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>` : "";
   const tplPop = tpls && c.tplOpen ? `<div class="ntqpop" data-act="nt-tplclose"><div class="ntqpop-in" data-act="dpstay" role="dialog" aria-label="템플릿 선택"><div class="ntqpop-h"><b>${esc(C.l)} 템플릿</b><button class="iconbtn" data-act="nt-tplclose" aria-label="닫기">${I.close}</button></div><div class="ntql">${[{id:"none", l:"템플릿 없이", f:[]}, ...tpls.filter(t => t.f.length)].map(t => `<button class="ntqi ${t.id === tId ? "on" : ""}" data-act="nt-tplset" data-v="${t.id}"><span><b>${esc(t.l)}</b><small>${t.f.length ? esc(t.f.map(x => x.l).join(" · ")) : "빈 내용으로 자유롭게"}</small></span></button>`).join("")}</div></div></div>` : "";
   const vis = BF.filter(x => c.blocks.includes(x.k));
-  const tplHtml = vis.map(block).join("") + (vis.length < BF.length ? `<button class="nttpl" data-act="nt-tpl">${nic(C.ic)}${esc(tpl ? tpl.l : C.l)} 템플릿</button>` : "") + tplPop; /* 하나라도 지우면 되살리는 버튼 */
+  const tplHtml = vis.filter(x => !x.task).map(block).join("") + (vis.length < BF.length ? `<button class="nttpl" data-act="nt-tpl">${nic(C.ic)}${esc(tpl ? tpl.l : C.l)} 템플릿</button>` : "") + tplPop; /* 하나라도 지우면 되살리는 버튼 */
   const tbar = c.tedit ? `<div class="nttbar2"><button class="ntpc on" data-act="nt-tedit">완료</button></div>` : "";
   /* 본문: 학습 노트와 같은 블록 편집기('/' 메뉴, '# ' '- ' '> ' 단축 입력). 저장은 화면을 닫을 때 */
   const bodyOn = C.f.some(x => x.k === "body") || ntFreeBody(C);
@@ -1283,6 +1283,7 @@ function noteSheet(c){
     ${props ? `<div class="ntprops">${props}</div>` : ""}
     ${tplBtn}${tplHtml}
     ${bodyOn ? `<div class="nfedw"><div class="nted nfed" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}` : ""}
+    ${(t => t ? `<div class="ntmkdock">${t}</div>` : "")(vis.filter(x => x.task).map(block).join(""))}
     ${n && C.k === "learn" && Array.isArray(n.blocks) && n.blocks.some(b => bkText(b).trim()) ? `<button class="ntlnote" data-act="ln-open" data-id="${n.id}">${nic("book")}<span><b>학습 노트</b><small>정리한 노트 ${n.blocks.filter(b => bkText(b).trim()).length}줄 · 열기</small></span><svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>` : ""}
     <div class="ntsug" ${hasUrl ? "" : "hidden"}><span>${nic("link")}링크가 있어요</span><button class="ntpc on" data-act="nt-kind" data-v="ref">참고자료로 정리</button></div>
 `, `<span class="ntmw"><button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>${menu}</span>`);

@@ -381,7 +381,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   assert.equal(notes().length,1); assert.equal(xp(),x0,'incomplete note gives nothing');
   const n0 = notes()[0]; h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-next',{value:'매일 아침 서비스 조사'}); h.click('submit-note'); await h.settle();
   assert.equal(xp(),x0,'writing the next action alone gives nothing');
-  h.click('nt-edit',{id:n0.id}); assert.match(ov(),/data-act="nt-drop" data-v="mk"[^>]*>퀘스트로/); h.click('nt-drop',{v:'mk'}); assert.match(ov(),/data-act="nt-mk" data-f="next" data-v="task"><b>미션[\s\S]*data-v="daily"><b>일일 퀘스트[\s\S]*data-v="big"><b>메인 퀘스트/); h.click('nt-mk',{f:'next',v:'task'}); await h.settle();
+  h.click('nt-edit',{id:n0.id}); assert.match(ov(),/data-act="nt-drop" data-v="mk"[^>]*>현실로/); h.click('nt-drop',{v:'mk'}); assert.match(ov(),/data-act="nt-mk" data-f="next" data-v="task"><b>미션[\s\S]*data-v="daily"><b>일일 퀘스트[\s\S]*data-v="big"><b>메인 퀘스트/); h.click('nt-mk',{f:'next',v:'task'}); await h.settle();
   assert.match(ov(),/미션 추가/); assert.equal(xp(),x0,'opening mission add gives nothing');
   h.nodes.set('ta-name',{value:'매일 아침 서비스 조사'}); h.click('dppick',{k:'due',v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   assert.equal(xp(),x0+10,'adding the mission completes the idea (10 XP)'); assert.equal(notes()[0].f.next,'매일 아침 서비스 조사');
@@ -1348,7 +1348,7 @@ test('자료 템플릿: 서랍마다 여러 템플릿, 바꿔도 적은 칸은 �
   h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(), /class="ntaic" style="--n:4"[\s\S]*?data-act="nt-val" data-f="type" data-v="책"/, 'kind is a one-row chip group'); assert.match(ov(), /data-act="nt-val" data-f="status"/, 'learn status stays as chips');
   h.click('nt-val',{f:'type',v:'책'}); assert.match(ov(), /data-f="type" data-v="책" aria-pressed="true"/);
   h.click('nt-new'); h.click('nt-kind',{v:'memo'}); h.click('nt-tplpick'); assert.match(ov(), /data-v="meeting"[\s\S]*?회의록/); h.click('nt-tplset',{v:'meeting'}); assert.match(ov(), /id="nf-agenda"/); assert.match(ov(), /id="nf-decision"/);
-  h.click('nt-new'); h.click('nt-kind',{v:'idea'}); h.click('nt-tplset',{v:'lean'}); assert.match(ov(), /id="nf-next"[\s\S]*퀘스트로/, 'every idea template keeps next action');
+  h.click('nt-new'); h.click('nt-kind',{v:'idea'}); h.click('nt-tplset',{v:'lean'}); assert.match(ov(), /id="nfed"[\s\S]*class="ntmkdock"[\s\S]*id="nf-next"[\s\S]*현실로/, 'every idea template keeps next action');
 });
 test('완성 조건: 아이디어는 템플릿 없이도 다음 행동 칸, 참고자료는 보상 없음',async()=>{
   const h = await profileUI(); h.route('notes'); await h.settle(); const ov = () => h.nodes.get('overlay').innerHTML, xp = () => h.snapshot().economy ? 0 : 0;
@@ -1786,7 +1786,7 @@ test('본문 선택 막대: 글자색·배경색 팔레트',async()=>{
 });
 test('아이디어 실행할 일: 일일·메인 퀘스트로도 만들기',async()=>{
   const h = await profileUI(), ov = () => h.nodes.get('overlay').innerHTML; h.route('notes'); await h.settle(); h.click('nt-new'); h.click('nt-kind',{v:'idea'}); await h.settle();
-  assert.match(ov(), />실행할 일</); h.nodes.set('nf-title',{value:'러닝 앱'}); h.nodes.set('nf-next',{value:'경쟁 앱 3개 써 보기'});
+  assert.match(ov(), />첫 걸음</); h.nodes.set('nf-title',{value:'러닝 앱'}); h.nodes.set('nf-next',{value:'경쟁 앱 3개 써 보기'});
   h.click('nt-drop',{v:'mk'}); h.click('nt-mk',{f:'next',v:'big'}); await h.settle(); assert.match(ov(), /메인 퀘스트 생성/); assert.match(ov(), /경쟁 앱 3개 써 보기/);
   const n = Object.values(h.snapshot().mine).find(m => m.kind === 'note'); assert.ok(n && !n.sent, 'saved, not yet complete');
   h.click('sheet-close'); await h.settle(); h.click('nt-edit',{id:n.id}); h.click('nt-drop',{v:'mk'}); h.click('nt-mk',{f:'next',v:'daily'}); await h.settle(); assert.match(ov(), /일일 퀘스트 생성/);
