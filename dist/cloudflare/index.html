@@ -1894,6 +1894,7 @@ a.row{color:inherit;text-decoration:none}
 .nttplbtn{display:inline-flex;align-items:center;gap:6px;border:1.5px dashed var(--line);background:none;border-radius:10px;padding:7px 10px;margin:2px 0 12px;font:600 13.5px/1.2 var(--f);letter-spacing:0;color:var(--sub);cursor:pointer}.nttplbtn .nic{width:16px;height:16px;margin:0}.nttplbtn>svg:last-child{width:14px;height:14px}.nttplbtn b{color:var(--accent)}
 /* 작성 화면(페이지 모드)은 스크롤 막대를 숨긴다(스크롤은 그대로) */
 .scrim.pagemode,.sheet.page,.sheet.page textarea{scrollbar-width:none;-ms-overflow-style:none}.scrim.pagemode::-webkit-scrollbar,.sheet.page::-webkit-scrollbar,.sheet.page textarea::-webkit-scrollbar{display:none;width:0;height:0}
+.ntdone{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--accent-soft);padding:0}.ntdone .nic{width:13px;height:13px;margin:0;vertical-align:0}
 </style>
 <script>
 (function(){"use strict";
@@ -3735,7 +3736,7 @@ function ntCard(n){
   else if (cat === "memo") mid = h3(f.title || String(f.body || "").split("\n")[0].slice(0, 40)); /* 카드에는 본문을 보여 주지 않는다(제목이 없을 때만 첫 줄을 제목으로) */
   else mid = h3(f.title) + sub(f.status && esc(f.status), f.date && fmtD(f.date), stars(f.rating)) + runL;
   const done = noteComplete(S, n), A = AREAS.find(a => a[0] === ntArea(n)[0]);
-  return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic(C.ic)}${esc(C.l)}</span>${done ? `<span class="ntdone">${nic("check")}완성${A ? ` · ${A[3]}` : ""}</span>` : ""}<small class="num">${d.getMonth()+1}.${d.getDate()}</small><span class="ntmw"><button class="ntmore" data-act="nt-menu" data-id="${n.id}" aria-label="자료 메뉴" aria-expanded="${S.ntMenuOpen === n.id}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>${S.ntMenuOpen === n.id ? delDrop("nt-del", n.id, "nd" + n.id) : ""}</span></div>${mid}
+  return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic(C.ic)}${esc(C.l)}</span>${done ? `<span class="ntdone" title="완성" aria-label="완성">${nic("check")}</span>` : ""}<small class="num">${d.getMonth()+1}.${d.getDate()}</small><span class="ntmw"><button class="ntmore" data-act="nt-menu" data-id="${n.id}" aria-label="자료 메뉴" aria-expanded="${S.ntMenuOpen === n.id}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>${S.ntMenuOpen === n.id ? delDrop("nt-del", n.id, "nd" + n.id) : ""}</span></div>${mid}
     ${(f.url) || pj ? `<div class="ntmeta">${f.url ? (safeUrl(f.url) ? `<a class="ntlink" href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener noreferrer">${nic("link")}${esc(ntHost(safeUrl(f.url)))}</a>` : `<span>${nic("link")}${esc(f.url)}</span>`) : ""}${pj ? `<span>${nic("target")}${esc(pj.title)}</span>` : ""}</div>` : ""}</article>`;
 }
 /* 분류: 브레인 덤프에서 왔거나 서랍을 정하지 않고 저장한 자료. 누르면 열어서 서랍을 고른다 */
