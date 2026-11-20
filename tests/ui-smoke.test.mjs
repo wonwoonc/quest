@@ -305,7 +305,7 @@ for (const kind of ['once','sub','big','daily']) {
     assert.ok(html.includes(titles[kind]));
     if (kind === 'once') {
       assert.match(html,/data-act="tqpick"/);
-      h.click('tqpick'); assert.match(h.nodes.get('overlay').innerHTML,/class="qsheet"[\s\S]*data-act="tqset" data-v="main"[\s\S]*메인 전체[\s\S]*data-act="tqset" data-v="sub"/,'bottom sheet: stages are chips inside the main quest card');
+      h.click('tqpick'); assert.match(h.nodes.get('overlay').innerHTML,/class="qsheet"[\s\S]*data-act="tqset" data-v="main"[\s\S]*data-act="tqset" data-v="sub"/,'bottom sheet: stages are chips inside the main quest card');
       h.click('tqset',{v:'sub'}); assert.match(h.nodes.get('overlay').innerHTML,/스테이지 연결 대상/);
     } else if (kind === 'sub') {
       assert.match(html,/data-act="ppick"/);
@@ -1467,7 +1467,7 @@ test('write page (+) is the same story box as the profile (퀘스트 button list
   const h=await profileUI(saved);h.route('write');let html=h.nodes.get('app').innerHTML;
   assert.match(h.nodes.get('topbar').innerHTML,/data-act="back"[\s\S]*<h1>스토리 쓰기/);
   assert.match(html,/class="card scomp page"[\s\S]*id="ps-text" data-grow rows="4"[\s\S]*data-act="qpick">[\s\S]*퀘스트<\/button>[\s\S]*data-act="inphoto"[\s\S]*data-act="inpost"/);
-  h.click('qpick');assert.match(h.nodes.get('overlay').innerHTML,/마라톤 완주[\s\S]*메인 전체[\s\S]*10km 달리기/);
+  h.click('qpick');assert.match(h.nodes.get('overlay').innerHTML,/마라톤 완주[\s\S]*10km 달리기/);
   h.click('inref',{v:'s1'});await h.settle();assert.match(h.nodes.get('app').innerHTML,/id="ps-val"/,'metric stage asks today\'s number');
   h.nodes.set('ps-text',{value:'오늘 6km!'});h.nodes.set('ps-val',{value:'6'});h.click('inpost');await h.settle();
   const posts=Object.values(h.snapshot().feed).filter(p=>p.author==='me');assert.equal(posts.length,1);

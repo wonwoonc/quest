@@ -1900,7 +1900,7 @@ a.row{color:inherit;text-decoration:none}
 .jtoday[data-act]{cursor:pointer}
 /* 퀘스트 연결 시트 */
 .qsheet-bg{position:fixed;inset:0;z-index:200;background:rgb(0 0 0 / .35);display:flex;align-items:flex-end;justify-content:center}
-.qsheet{background:var(--card);width:min(100%,560px);max-height:78vh;border-radius:20px 20px 0 0;padding:8px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;box-shadow:0 -8px 30px rgb(0 0 0 / .18);animation:qsup .2s ease-out}
+.qsheet{background:var(--card);width:min(100%,440px);max-height:78vh;border-radius:20px 20px 0 0;padding:8px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;box-shadow:0 -8px 30px rgb(0 0 0 / .18);animation:qsup .2s ease-out}
 @keyframes qsup{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
 .qsgrab{width:36px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 8px;flex:none}
 .qshd{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px}.qshd b{font-size:17px;font-weight:800}.qshd .iconbtn{color:var(--muted)}.qshd .iconbtn svg{width:20px;height:20px}
@@ -1909,7 +1909,7 @@ a.row{color:inherit;text-decoration:none}
 .qsc{border:1.5px solid var(--line);border-radius:14px;padding:11px 12px}.qsc[hidden]{display:none}
 .qsc.on{border-color:var(--accent);background:var(--accent-soft)}
 .qsh{display:flex;align-items:baseline;justify-content:space-between;gap:10px;width:100%;border:0;background:none;padding:0;text-align:left;cursor:pointer;color:var(--text)}
-.qsh b{font-size:15px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qsh small{flex:none;font-size:12px;font-weight:700;color:var(--muted)}
+.qsh b{display:flex;align-items:center;gap:6px;font-size:17px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qsh small{flex:none;font-size:12px;font-weight:700;color:var(--muted)}
 .qsbar{height:5px;border-radius:3px;background:var(--fill);margin:8px 0 0;overflow:hidden}.qsc.on .qsbar{background:#fff}.qsbar i{display:block;height:100%;background:var(--accent);border-radius:3px}
 .qss{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .qsp{border:0;border-radius:999px;padding:6px 11px;font:600 13px/1.2 var(--f);letter-spacing:0;background:var(--fill);color:var(--sub);cursor:pointer}.qsc.on .qsp{background:#fff}
@@ -1928,6 +1928,7 @@ a.row{color:inherit;text-decoration:none}
 .ntexp{margin:-4px 0 12px;font-size:13px;color:var(--muted)}
 .ntexseg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}.ntexseg button{border:0;border-radius:10px;padding:10px 0;font:600 13.5px/1.2 var(--f);letter-spacing:0;background:var(--fill);color:var(--sub);cursor:pointer}.ntexseg button[aria-selected="true"]{background:var(--accent);color:#fff}
 .qsheet .ntexin{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;margin-bottom:12px;background:var(--card);color:var(--text)}
+.qsck{width:17px;height:17px;color:var(--accent);flex:none}.qsh[aria-pressed="true"] b{color:var(--accent)}
 </style>
 <script>
 (function(){"use strict";
@@ -4828,8 +4829,8 @@ function questPop(o){ const live = x => x.status !== "done" && !isCx(x), mains =
   const orphan = o.onlyMain ? [] : Object.values(S.projects).filter(p => live(p) && p.owner === S.me && p.parentId && !mains.some(g => g.id === p.parentId));
   const pctOf = g => { const pr = goalProgress(g); return Math.round(pr.total ? pr.done / pr.total * 100 : 0); };
   const card = g => { const ss = o.onlyMain ? [] : subsOf(g.id).filter(live), inS = ss.some(x => x.id === o.cur), on = o.cur === g.id || inS;
-    return `<div class="qsc ${on ? "on" : ""}" data-qt="${esc((g.title || "") + " " + ss.map(x => x.title).join(" "))}"><button class="qsh" data-act="${o.set}" data-v="${g.id}"><b>${esc(g.title)}</b>${g.end ? `<small>${dday(g.end)}</small>` : ""}</button><div class="qsbar"><i style="width:${pctOf(g)}%"></i></div>
-      ${ss.length ? `<div class="qss"><button class="qsp ${o.cur === g.id ? "on" : ""}" data-act="${o.set}" data-v="${g.id}">메인 전체</button>${ss.map(x => `<button class="qsp ${o.cur === x.id ? "on" : ""}" data-act="${o.set}" data-v="${x.id}">${esc(x.title)}</button>`).join("")}</div>` : ""}</div>`; };
+    return `<div class="qsc ${on ? "on" : ""}" data-qt="${esc((g.title || "") + " " + ss.map(x => x.title).join(" "))}"><button class="qsh" data-act="${o.set}" data-v="${g.id}" aria-pressed="${o.cur === g.id}"><b>${o.cur === g.id ? `<svg class="qsck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>` : ""}${esc(g.title)}</b>${g.end ? `<small>${dday(g.end)}</small>` : ""}</button><div class="qsbar"><i style="width:${pctOf(g)}%"></i></div>
+      ${ss.length ? `<div class="qss">${ss.map(x => `<button class="qsp ${o.cur === x.id ? "on" : ""}" data-act="${o.set}" data-v="${x.id}">${esc(x.title)}</button>`).join("")}</div>` : ""}</div>`; };
   const list = mains.map(card).join("") + orphan.map(x => `<div class="qsc ${o.cur === x.id ? "on" : ""}" data-qt="${esc(x.title)}"><button class="qsh" data-act="${o.set}" data-v="${x.id}"><b>${esc(x.title)}</b><small>스테이지</small></button></div>`).join("");
   const many = mains.length + orphan.length > 4;
   return `<div class="qsheet-bg" data-act="${o.close}"><div class="qsheet" data-act="dpstay" role="dialog" aria-label="${esc(o.title)}"><div class="qsgrab" aria-hidden="true"></div><div class="qshd"><b>${esc(o.title)}</b><button class="iconbtn" data-act="${o.close}" aria-label="닫기">${I.close}</button></div>
