@@ -3743,7 +3743,7 @@ function bdSortSheet(c){
 function bdSend(id, v){ const d = S.mine[id]; if (!d || !canAct()) return;
       if (v === "task"){ S.drafts["ta-name"] = d.text; openSheet({type:"taskadd", lv:"normal", due:today(), time:"", period:"", projectId:null, dumpId:id}); return; }
       /* 자료로 분류하면 메모로 바로 담아 자료실 '정리 전'에 둔다(종류는 나중에 정함) */
-      if (v === "note"){ const now = Date.now(); run(async () => { await api.putMine("nt" + uid8(), {kind:"note", cat:"memo", f:{body:d.text}, files:[], area:null, projectId:null, createdAt:now, updatedAt:now}); await api.delMine(id); }, () => { closeSheet(); toast("자료실 '정리 전'으로 옮겼어요"); }); return; }
+      if (v === "note"){ const now = Date.now(); run(async () => { await api.putMine("nt" + uid8(), {kind:"note", cat:"memo", f:{title:d.text}, files:[], area:null, projectId:null, createdAt:now, updatedAt:now}); await api.delMine(id); }, () => { closeSheet(); toast("자료실 '정리 전'으로 옮겼어요"); }); return; }
       S.drafts["ad-name"] = d.text;
       if (v === "daily") return openSheet({type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:null, parentId:null, unit:null, area:[], dumpId:id});
       return openSheet({type:"add", kind:v, more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:"", period:"", projectId:null, parentId:null, unit:null, dumpId:id}); }
