@@ -3771,7 +3771,7 @@ function noteBlocks(n){ if (Array.isArray(n.blocks)) return n.blocks; const out 
   return out.length ? out : BK_TPL(); }
 const bkText = b => String(b.h || "").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 const CALLOUT = {g:["핵심","check"], r:["주의","alert"], y:["팁","idea"], b:["정보","info"]};
-const BK_SELBAR = id => `<div class="bksel" id="${id}" hidden><button data-act="fmt" data-v="b" aria-label="굵게"><b>B</b></button><button data-act="fmt" data-v="i" aria-label="기울임"><i>I</i></button><button data-act="fmt" data-v="u" aria-label="밑줄"><u>U</u></button><i class="sep"></i><button data-act="fmt" data-v="hl-y" aria-label="노랑 형광펜"><span class="hlc hl-y"></span></button><button data-act="fmt" data-v="hl-g" aria-label="초록 형광펜"><span class="hlc hl-g"></span></button><button data-act="fmt" data-v="hl-p" aria-label="분홍 형광펜"><span class="hlc hl-p"></span></button><i class="sep"></i><button data-act="fmt" data-v="code" aria-label="코드">&lt;/&gt;</button><button data-act="fmt" data-v="clear" aria-label="서식 지우기">${nic("eraser")}</button></div>`;
+const BK_SELBAR = id => `<div class="bksel" id="${id}" hidden><button data-act="fmt" data-v="b" aria-label="굵게"><b>B</b></button><button data-act="fmt" data-v="i" aria-label="기울임"><i>I</i></button><button data-act="fmt" data-v="u" aria-label="밑줄"><u>U</u></button><i class="sep"></i><button data-act="fmt" data-v="hl-y" aria-label="노랑 형광펜"><span class="hlc hl-y"></span></button><button data-act="fmt" data-v="hl-g" aria-label="초록 형광펜"><span class="hlc hl-g"></span></button><button data-act="fmt" data-v="hl-p" aria-label="분홍 형광펜"><span class="hlc hl-p"></span></button><i class="sep"></i><button data-act="fmt" data-v="clear" aria-label="서식 지우기">${nic("eraser")}</button></div>`;
 function viewLearn(){
   const n = S.mine[S.view.id]; if (!n || !hasProfile()) return viewNotes();
   const {f} = ntN(n), pj = n.projectId && S.projects[n.projectId], A = AREAS.find(a => a[0] === ntArea(n)[0]), done = noteComplete(S, n), D0 = noteDrawer(S, "learn");
@@ -3855,15 +3855,22 @@ function bkPick(t){ const mm = S.bkMenu; if (!mm) return; const el = bxOf(mm.id)
   bkSetType(mm.id, t); }
 /* selection toolbar: bold / italic / underline / highlight / code / clear */
 function selBar(){ const bar = $(BKID().sel); if (!bar || bkRO()) { if (bar) bar.hidden = true; return; } const sel = getSelection();
-  const bx = sel.rangeCount && !sel.isCollapsed && sel.anchorNode && sel.anchorNode.parentElement && sel.anchorNode.parentElement.closest(BKID().ed + " .bx");
+  const an = sel.rangeCount && !sel.isCollapsed ? sel.anchorNode : null, ae = an && (an.nodeType === 1 ? an : an.parentElement), bx = ae && ae.closest && ae.closest(BKID().ed + " .bx"); /* 단어 더블클릭처럼 시작점이 요소인 경우도 */
   if (!bx || !bx.contains(sel.focusNode)){ bar.hidden = true; return; } const r = sel.getRangeAt(0).getBoundingClientRect(); bar.hidden = false;
   const w = bar.offsetWidth, x = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)), top = r.top - bar.offsetHeight - 8;
   bar.style.left = x + "px"; bar.style.top = (top < 60 ? r.bottom + 8 : top) + "px"; }
 document.addEventListener("selectionchange", () => { clearTimeout(selBar.t); selBar.t = setTimeout(selBar, 60); });
 function bkFmt(v){ const sel = getSelection(); if (!sel.rangeCount || sel.isCollapsed) return; bkHist(); const r = sel.getRangeAt(0), bx = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer.closest(".bx") : r.commonAncestorContainer.parentElement.closest(".bx"); if (!bx) return;
   if (v === "b" || v === "i" || v === "u") document.execCommand({b:"bold", i:"italic", u:"underline"}[v]);
-  else { const frag = r.extractContents(); if (v === "clear"){ r.insertNode(document.createTextNode(frag.textContent)); }
-    else { const tmp = document.createElement("div"); tmp.appendChild(frag); tmp.querySelectorAll("mark,code").forEach(m => m.replaceWith(...m.childNodes)); const el = document.createElement(v === "code" ? "code" : "mark"); if (v !== "code") el.className = v; el.append(...tmp.childNodes); r.insertNode(el); sel.removeAllRanges(); const nr = document.createRange(); nr.selectNodeContents(el); sel.addRange(nr); } }
+  else { /* 위치(글자 수)로 선택을 기억했다가 다시 고른다: 감싸거나 풀어도 선택이 유지된다 */
+    const txOff = (n, o) => { const q = document.createRange(); q.setStart(bx, 0); q.setEnd(n, o); return q.toString().length; }, a = txOff(r.startContainer, r.startOffset), z = txOff(r.endContainer, r.endOffset);
+    const reSel = () => { const w = document.createTreeWalker(bx, NodeFilter.SHOW_TEXT); let n, pos = 0, sN = null, sO = 0; while ((n = w.nextNode())){ const L = n.data.length; if (!sN && a <= pos + L){ sN = n; sO = a - pos; } if (sN && z <= pos + L){ const q = document.createRange(); q.setStart(sN, sO); q.setEnd(n, z - pos); sel.removeAllRanges(); sel.addRange(q); return q; } pos += L; } return null; };
+    const ancs = test => { const out = []; [r.startContainer, r.endContainer].forEach(n0 => { let el = n0.nodeType === 1 ? n0 : n0.parentElement; while (el && el !== bx){ if (test(el) && !out.includes(el)) out.push(el); el = el.parentElement; } }); return out; };
+    const unwrap = els => els.forEach(m => m.replaceWith(...m.childNodes));
+    if (v === "clear"){ unwrap(ancs(el => /^(B|STRONG|I|EM|U|MARK|CODE|S|SPAN)$/.test(el.tagName))); bx.normalize(); const q = reSel(); if (q){ const t = q.toString(); q.deleteContents(); q.insertNode(document.createTextNode(t)); bx.normalize(); reSel(); } }
+    else { const same = ancs(el => el.tagName === "MARK" && el.classList.contains(v)); /* 같은 형광펜을 다시 누르면 지운다 */
+      if (same.length){ unwrap(same); bx.normalize(); reSel(); }
+      else { unwrap(ancs(el => el.tagName === "MARK")); bx.normalize(); const q = reSel(); if (q){ const frag = q.extractContents(), tmp = document.createElement("div"); tmp.appendChild(frag); tmp.querySelectorAll("mark").forEach(m => m.replaceWith(...m.childNodes)); const el = document.createElement("mark"); el.className = v; el.append(...tmp.childNodes); q.insertNode(el); bx.normalize(); reSel(); } } } }
   bkSave(); selBar(); }
 document.addEventListener("focusout", e => { if (e.target.closest && e.target.closest(BKID().ed)){ setTimeout(() => { const a = document.activeElement; if (!(a && a.closest && a.closest(BKID().ed))){ bkMenuClose(); bkSave(true); if (S.lpPending){ S.lpPending = false; schedule(); } } }, 0); } });
 document.addEventListener("pointerdown", e => { if (e.target.closest && e.target.closest("#bkmenu, #bksel, #nfbkmenu, #nfbksel")) e.preventDefault(); });
