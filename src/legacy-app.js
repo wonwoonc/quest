@@ -1066,7 +1066,7 @@ function qNotes(p, subs, sp){
   if (!ns.length && !open) return "";
   const row = n => { const {cat, f} = ntN(n), C = noteDrawer(S, cat), t = f.title || (f.url && ntHost(f.url)) || (n.files && n.files[0] && n.files[0].name) || (v => v.length > 40 ? v.slice(0, 40) + "…" : v)(String(f.body || f.summary || f.why || "")) || "제목 없음";
     const st = n.projectId !== p.id && S.projects[n.projectId] ? S.projects[n.projectId].title : "", done = noteComplete(S, n);
-    return `<button class="ntrow" data-act="nt-edit" data-id="${n.id}"><span class="ntri">${nic(C.ic)}</span><span class="t"><b>${esc(t)}</b><small>${esc(C.l)}${st ? ` · ${esc(st)}` : ""}${done ? ` · 완성` : ""}</small></span>${f.url && safeUrl(f.url) ? `<span class="ntrh">${esc(ntHost(safeUrl(f.url)))}</span>` : ""}<span class="chev2 r">${I.chev}</span></button>`; };
+    return `<button class="ntrow" data-act="nt-edit" data-id="${n.id}"><span class="ntri">${nic(C.ic)}</span><span class="t"><b>${esc(t)}</b><small>${esc(C.l)}${st ? ` · ${esc(st)}` : ""}${done ? ` · 완성` : ""}</small></span>${f.url && safeUrl(f.url) ? `<span class="ntrh">${esc(ntHost(safeUrl(f.url)))}</span>` : ""}<svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`; };
   return `<section class="card tight qlist qnotes"><div class="ch"><h2>자료</h2><span class="side num">${ns.length}</span></div>${ns.map(row).join("")}${ns.length ? "" : `<p class="empty-row">이 퀘스트에 참고할 자료나 배운 내용을 모아 두세요.</p>`}
     ${open ? `<button class="morebtn add" data-act="nt-new" data-p="${p.id}">+ 자료 추가</button>` : ""}</section>`;
 }
