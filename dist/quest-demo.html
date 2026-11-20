@@ -1858,6 +1858,15 @@ a.row{color:inherit;text-decoration:none}
 .ntqck{width:18px;height:18px;color:var(--accent);flex:none}
 .ntqs{flex:none;display:flex;align-items:center;gap:2px;border:0;background:none;border-radius:12px;padding:0 8px 0 10px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}.ntqs svg{width:14px;height:14px}
 .ntqoff{margin-top:8px;border:0;border-top:1px solid var(--line);background:none;padding:12px 0 4px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer}
+/* 자료 작성 본문 블록 편집기 */
+.nfedw{position:relative;margin:2px 0 8px}
+.nfed{min-height:140px;padding-bottom:40px;cursor:text}
+.nfed .blk .bx:empty::before{content:none}
+.nfed .blk .bx:focus:empty::before,.nfed .blk:only-child .bx:empty::before{content:attr(data-ph);opacity:.55}
+.blk.t-toggle .bkfold{margin-left:0;opacity:.8;color:var(--sub)}
+.blk.t-toggle .bx{font-weight:600}
+.blk.t-quote .bx{border-left-color:var(--muted);color:var(--sub)}
+.blk.t-code .bx{white-space:pre-wrap}
 </style>
 <script>
 (function(){"use strict";
@@ -3019,7 +3028,7 @@ function renderReplyBar(){
   if (changed){ const t = $("#rb-text"); if (t){ t.value = typed; rbFit(t); } }
 }
 function rbFit(t){ t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 120) + "px"; const b = $(".rbsend"); if (b) b.disabled = !t.value.trim() || S.busy; }
-document.addEventListener("input", e => { if (e.target && (e.target.id === "nf-body" || e.target.id === "nf-title")){ const sg = $("#overlay .ntsug"), kd = $("#overlay .ntkind"); if (sg && kd && kd.classList.contains("memo")) sg.hidden = !NT_URL_RE.test((($("#nf-title")||{}).value || "") + " " + (($("#nf-body")||{}).value || "")); } if (e.target && e.target.id === "rb-text"){ S.drafts["rb-text"] = e.target.value; rbFit(e.target); } if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-grow")) growFit(e.target); });
+document.addEventListener("input", e => { if (e.target && (e.target.id === "nf-body" || e.target.id === "nf-title" || (e.target.closest && e.target.closest("#nfed")))){ const sg = $("#overlay .ntsug"), kd = $("#overlay .ntkind"), ed = $("#nfed"); if (sg && kd && kd.classList.contains("memo")) sg.hidden = !NT_URL_RE.test((($("#nf-title")||{}).value || "") + " " + (ed ? ed.textContent : (($("#nf-body")||{}).value || ""))); } if (e.target && e.target.id === "rb-text"){ S.drafts["rb-text"] = e.target.value; rbFit(e.target); } if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-grow")) growFit(e.target); });
 /* 글이 늘어나면(엔터 포함) 입력창도 같이 길어진다. 너무 길면 그 안에서 스크롤 */
 function growFit(t){ t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 480) + "px"; }
 
@@ -3600,11 +3609,16 @@ function noteSheet(c){
   const vis = BF.filter(x => c.blocks.includes(x.k));
   const tplHtml = vis.map(block).join("") + (vis.length < BF.length ? `<button class="nttpl" data-act="nt-tpl">${nic(C.ic)}${esc(C.l)} 템플릿</button>` : ""); /* 하나라도 지우면 되살리는 버튼 */
   const tbar = c.tedit ? `<div class="nttbar2"><button class="ntpc on" data-act="nt-tedit">완료</button></div>` : "";
+  /* 본문: 학습 노트와 같은 블록 편집기('/' 메뉴, '# ' '- ' '> ' 단축 입력). 저장은 화면을 닫을 때 */
+  const bodyOn = C.f.some(x => x.k === "body") || ntFreeBody(C);
+  if (bodyOn && (!LP || !LP.sheet || LP.c !== c)){ if (LP && !LP.sheet) bkSave(true); const t0 = D("nf-body"), bb = n && Array.isArray(n.bodyBlocks) ? n.bodyBlocks.map(bkNorm) : null;
+    const nz = v => String(v || "").replace(/\s+/g, " ").trim(); LP = {sheet:true, c, id:"nf", blocks:bb && bb.length && nz(bkPlain(bb)) === nz(t0) ? bb : textBlocks(t0)}; }
+  if (bodyOn) LP.ph = `${c.unsorted ? "떠오르는 대로 적어요" : C.k === "memo" ? "자유롭게 적어요" : "자유롭게 이어서 적어요"} · '/'로 블록 선택`;
   return sheetWrap(pill, "", `${menu}${kinds}${tbar}
     ${tF ? `<textarea class="nttitle" id="nf-title" data-grow rows="1" maxlength="200" placeholder="${C.k === "idea" ? "떠오른 아이디어를 한 줄로" : C.k === "memo" ? "제목" : "제목"}">${D("nf-title")}</textarea>` : ""}
     ${props ? `<div class="ntprops">${props}</div>` : ""}
     ${tplHtml}
-    ${C.f.some(x => x.k === "body") || ntFreeBody(C) ? `<textarea class="ntbody-in" id="nf-body" data-grow rows="${C.k === "memo" ? 8 : 4}" maxlength="10000" placeholder="${c.unsorted ? "떠오르는 대로 적어요. 서랍은 나중에 정해도 돼요." : C.k === "memo" ? "자유롭게 적어요" : "자유롭게 이어서 적어요"}">${D("nf-body")}</textarea>` : ""}
+    ${bodyOn ? `<div class="nfedw"><div class="nted nfed" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}` : ""}
     ${n && C.k === "learn" && Array.isArray(n.blocks) && n.blocks.some(b => bkText(b).trim()) ? `<button class="ntlnote" data-act="ln-open" data-id="${n.id}">${nic("book")}<span><b>학습 노트</b><small>정리한 노트 ${n.blocks.filter(b => bkText(b).trim()).length}줄 · 열기</small></span><svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>` : ""}
     <div class="ntsug" ${hasUrl ? "" : "hidden"}><span>${nic("link")}링크가 있어요</span><button class="ntpc on" data-act="nt-kind" data-v="ref">참고자료로 정리</button></div>
 `, `<button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>`);
@@ -3617,6 +3631,7 @@ function ntSendSheet(c){
 const ntKeys = () => [...new Set(["nf-body", ...noteDrawers(S).flatMap(C => C.f.filter(x => !["choice","stars"].includes(x.t)).map(x => "nf-" + x.k))])];
 /* collects the open note sheet; resolves to the saved note id or null */
 function saveNote(c, after, quiet){
+  const live = LP && LP.sheet && LP.c === c && $("#nfed"); if (live){ bkSync(); S.drafts["nf-body"] = bkPlain(LP.blocks); }
   const C = noteDrawer(S, c.cat), old = c.id && S.mine[c.id], prev = old && ntN(old).cat === C.k ? {...ntN(old).f} : {}, f = prev;
   const hid = []; /* 칸 끄기 기능은 없앴다: 예전에 꺼 둔 칸도 다시 모두 보인다 */
   C.f.forEach(x => { if (hid.includes(x.k)){ delete f[x.k]; return; } if (x.when && !Object.entries(x.when).every(([k, vs]) => vs.includes((c.vals || {})[k]))){ delete f[x.k]; return; } const v = ["choice","stars"].includes(x.t) ? (c.vals || {})[x.k] : pv("nf-" + x.k).trim(); if (v) f[x.k] = x.t === "url" ? ntUrl(v) : v; else delete f[x.k]; });
@@ -3625,9 +3640,11 @@ function saveNote(c, after, quiet){
   const files = C.k === "ref" ? (c.files || []) : (old && old.files) || [];
   if (!Object.keys(f).some(k => !["media","status","rating","date","type"].includes(k)) && !files.length){ if (quiet) return false; toast(C.k === "learn" ? "제목을 적어 주세요" : "내용을 하나 이상 적어 주세요"); return; }
   const key = old ? c.id : "nt"+uid8(), now = Date.now(), was = old && noteComplete(S, old);
+  /* 본문 블록(제목·목록·토글 등). 글자만 있는 본문이면 블록은 따로 두지 않는다 */
+  const bb = live ? (f.body && LP.blocks.some(b => b.t !== "p" || b.ind || /</.test(b.h || "")) ? bkStore(LP.blocks) : undefined) : old && old.bodyBlocks;
   /* 바뀐 게 없으면 저장하지 않는다(뒤로 가기 자동 저장 때 순서가 바뀌지 않게) */
-  if (old && ntN(old).cat === C.k && JSON.stringify(ntN(old).f) === JSON.stringify(f) && JSON.stringify(old.files || []) === JSON.stringify(files) && JSON.stringify(ntAreas(old.area)) === JSON.stringify(ntAreas(c.area)) && (old.projectId || null) === (c.projectId && S.projects[c.projectId] ? c.projectId : null) && JSON.stringify(old.hideF || []) === JSON.stringify(hid) && !!old.unsorted === !!c.unsorted){ after(key, null, false); return true; }
-  return run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, unsorted:c.unsorted ? true : undefined, needSend:(old && old.needSend) || (C.k === "idea" && !was) ? true : undefined, f, files, hideF:hid.length ? hid : undefined, area:ntAreas(c.area).length ? ntAreas(c.area) : null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); (c.rmFiles || []).forEach(FDB.del); c.newFiles = []; c.rmFiles = []; after(key, r, !was && noteComplete(S, S.mine[key])); });
+  if (old && ntN(old).cat === C.k && JSON.stringify(ntN(old).f) === JSON.stringify(f) && JSON.stringify(old.files || []) === JSON.stringify(files) && JSON.stringify(ntAreas(old.area)) === JSON.stringify(ntAreas(c.area)) && (old.projectId || null) === (c.projectId && S.projects[c.projectId] ? c.projectId : null) && JSON.stringify(old.hideF || []) === JSON.stringify(hid) && !!old.unsorted === !!c.unsorted && JSON.stringify(old.bodyBlocks || null) === JSON.stringify(bb || null)){ after(key, null, false); return true; }
+  return run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, unsorted:c.unsorted ? true : undefined, needSend:(old && old.needSend) || (C.k === "idea" && !was) ? true : undefined, f, bodyBlocks:bb, files, hideF:hid.length ? hid : undefined, area:ntAreas(c.area).length ? ntAreas(c.area) : null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); (c.rmFiles || []).forEach(FDB.del); c.newFiles = []; c.rmFiles = []; after(key, r, !was && noteComplete(S, S.mine[key])); });
 }
 /* drawer manager + editor */
 function drawerSheet(c){
@@ -3657,6 +3674,7 @@ function noteBlocks(n){ if (Array.isArray(n.blocks)) return n.blocks; const out 
   return out.length ? out : BK_TPL(); }
 const bkText = b => String(b.h || "").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 const CALLOUT = {g:["핵심","check"], r:["주의","alert"], y:["팁","idea"], b:["정보","info"]};
+const BK_SELBAR = id => `<div class="bksel" id="${id}" hidden><button data-act="fmt" data-v="b" aria-label="굵게"><b>B</b></button><button data-act="fmt" data-v="i" aria-label="기울임"><i>I</i></button><button data-act="fmt" data-v="u" aria-label="밑줄"><u>U</u></button><i class="sep"></i><button data-act="fmt" data-v="hl-y" aria-label="노랑 형광펜"><span class="hlc hl-y"></span></button><button data-act="fmt" data-v="hl-g" aria-label="초록 형광펜"><span class="hlc hl-g"></span></button><button data-act="fmt" data-v="hl-p" aria-label="분홍 형광펜"><span class="hlc hl-p"></span></button><i class="sep"></i><button data-act="fmt" data-v="code" aria-label="코드">&lt;/&gt;</button><button data-act="fmt" data-v="clear" aria-label="서식 지우기">${nic("eraser")}</button></div>`;
 function viewLearn(){
   const n = S.mine[S.view.id]; if (!n || !hasProfile()) return viewNotes();
   const {f} = ntN(n), pj = n.projectId && S.projects[n.projectId], A = AREAS.find(a => a[0] === ntArea(n)[0]), done = noteComplete(S, n), D0 = noteDrawer(S, "learn");
@@ -3676,13 +3694,18 @@ function viewLearn(){
   h += `<section class="card lnnote ${rd ? "read fs-" + fs : ""}"><div class="ch"><h2>학습 노트</h2>${rd ? `<div class="lnfs" role="group" aria-label="글자 크기">${[["s","작게"],["m","보통"],["l","크게"]].map(([k, l]) => `<button data-act="ln-fs" data-v="${k}" aria-pressed="${fs === k}" aria-label="${l}" class="fs-${k}">가</button>`).join("")}</div>` : ""}<button class="btn sec xs lnmode" data-act="ln-read">${rd ? "편집" : "읽기 모드"}</button></div>
     <div class="lnbody"><div class="lnmain"><div class="nted ${rd ? "ro" : ""}" id="nted" ${rd ? "" : `data-act="ln-tail"`}>${bkHtml(LP.blocks, rd)}</div>
     ${rd ? "" : `<div class="bkmenu" id="bkmenu" hidden></div>`}</div></div></section>
-    <div class="bksel" id="bksel" hidden><button data-act="fmt" data-v="b" aria-label="굵게"><b>B</b></button><button data-act="fmt" data-v="i" aria-label="기울임"><i>I</i></button><button data-act="fmt" data-v="u" aria-label="밑줄"><u>U</u></button><i class="sep"></i><button data-act="fmt" data-v="hl-y" aria-label="노랑 형광펜"><span class="hlc hl-y"></span></button><button data-act="fmt" data-v="hl-g" aria-label="초록 형광펜"><span class="hlc hl-g"></span></button><button data-act="fmt" data-v="hl-p" aria-label="분홍 형광펜"><span class="hlc hl-p"></span></button><i class="sep"></i><button data-act="fmt" data-v="code" aria-label="코드">&lt;/&gt;</button><button data-act="fmt" data-v="clear" aria-label="서식 지우기">${nic("eraser")}</button></div>`;
+    ${BK_SELBAR("bksel")}`;
   return h;
 }
 /* ---------- 블록 에디터 ---------- */
-const BK_TYPES = [["p","텍스트","T"],["h1","제목 1","H1"],["h2","제목 2","H2"],["h3","제목 3","H3"],["ul","글머리 목록","•"],["ol","번호 목록","1."],["todo","체크박스","☐"],["callout-g","핵심 상자","!"],["callout-r","주의 상자","!"],["callout-y","팁 상자","!"],["callout-b","정보 상자","!"],["divider","구분선","—"]];
-const BK_MD = [[/^###\s$/, "h3"], [/^##\s$/, "h2"], [/^#\s$/, "h1"], [/^[-*]\s$/, "ul"], [/^1[.)]\s$/, "ol"], [/^\[\s?\]\s$/, "todo"], [/^!\s$/, "callout-g"]];
-let LP = null; /* working copy of the open learning note: {id, blocks} */
+const BK_TYPES = [["p","텍스트","T"],["h1","제목 1","H1"],["h2","제목 2","H2"],["h3","제목 3","H3"],["ul","글머리 목록","•"],["ol","번호 목록","1."],["todo","체크박스","☐"],["toggle","토글","▸"],["quote","인용","│"],["code","코드","</>"],["callout-g","핵심 상자","!"],["callout-r","주의 상자","!"],["callout-y","팁 상자","!"],["callout-b","정보 상자","!"],["divider","구분선","—"]];
+const BK_MD = [[/^###\s$/, "h3"], [/^##\s$/, "h2"], [/^#\s$/, "h1"], [/^[-*]\s$/, "ul"], [/^1[.)]\s$/, "ol"], [/^\[\s?\]\s$/, "todo"], [/^>\s$/, "toggle"], [/^["“”]\s$/, "quote"], [/^!\s$/, "callout-g"]];
+let LP = null; /* working copy of the open block editor: 학습 노트 {id, blocks} 또는 자료 작성 본문 {sheet:true, c, blocks} */
+const BKID = () => LP && LP.sheet ? {ed:"#nfed", menu:"#nfbkmenu", sel:"#nfbksel"} : {ed:"#nted", menu:"#bkmenu", sel:"#bksel"};
+const bkRO = () => !LP || (!LP.sheet && !!S.lnRead);
+const bkPlain = bl => bl.filter(b => b.t !== "divider").map(bkText).join("\n").replace(/\n{3,}/g, "\n\n").replace(/\s+$/, "");
+const textBlocks = t => { const ls = String(t || "").replace(/\r/g, "").split("\n"); return (ls.length ? ls : [""]).map(l => ({id:uid8() + Math.random().toString(36).slice(2, 5), t:"p", h:esc(l)})); };
+const bkStore = bl => bl.map(({id, t, h, ind, ck, c, fold}) => ({id, t, h, ...(ind ? {ind} : {}), ...(ck ? {ck} : {}), ...(c ? {c} : {}), ...(fold ? {fold} : {})}));
 function bkSan(html){ const t = document.createElement("template"); t.innerHTML = String(html || "");
   const ok = {B:"b", STRONG:"b", I:"i", EM:"i", U:"u", S:"s", STRIKE:"s", CODE:"code", A:"a", BR:"br", MARK:"mark"};
   const walk = node => [...node.childNodes].map(x => { if (x.nodeType === 3) return esc(x.nodeValue); if (x.nodeType !== 1) return ""; const tg = ok[x.tagName], inner = walk(x);
@@ -3691,44 +3714,44 @@ function bkSan(html){ const t = document.createElement("template"); t.innerHTML 
     if (tg === "a"){ const href = x.getAttribute("href") || ""; return /^https?:\/\//i.test(href) ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${inner}</a>` : inner; } return `<${tg}>${inner}</${tg}>`; }).join("");
   return walk(t.content).replace(/^<br>/, ""); }
 /* Stored blocks are re-checked when a page opens: type/colour from fixed lists, id attribute-safe, body through the same allowlist as typing. */
-const BK_OK = new Set(["p","h1","h2","h3","ul","ol","todo","callout","code","quote","divider"]);
+const BK_OK = new Set(["p","h1","h2","h3","ul","ol","todo","toggle","callout","code","quote","divider"]);
 function bkNorm(b){ const o = {...b, id:/^[\w.~:-]{1,64}$/.test(b.id || "") ? b.id : uid8(), t:BK_OK.has(b.t) ? b.t : "p", h:/</.test(b.h || "") ? bkSan(b.h) : String(b.h || "")}; if (!Object.hasOwn(CALLOUT, o.c || "g")) delete o.c; return o; }
-function bkHtml(blocks, ro){ let ol = {}, hide = 0;
-  return blocks.map(b => { const lv = /^h[123]$/.test(b.t) ? +b.t[1] : 0; if (lv && hide && lv <= hide) hide = 0; const hidden = !!hide && !(lv && lv <= hide); if (lv && b.fold && !hide) hide = lv;
-    const ind = Math.max(0, Math.min(3, b.ind || 0)); if (b.t !== "ol") ol = Object.fromEntries(Object.entries(ol).filter(([k]) => +k < ind)); else { ol[ind] = (ol[ind] || 0) + 1; Object.keys(ol).forEach(k => { if (+k > ind) delete ol[k]; }); }
+function bkHtml(blocks, ro, ph0){ let ol = {}, hide = 0, tg = -1;
+  return blocks.map(b => { const lv = /^h[123]$/.test(b.t) ? +b.t[1] : 0, ind = Math.max(0, Math.min(3, b.ind || 0)); if (lv && hide && lv <= hide) hide = 0; if (tg >= 0 && ind <= tg) tg = -1;
+    const hidden = (!!hide && !(lv && lv <= hide)) || tg >= 0; if (lv && b.fold && !hide) hide = lv; if (b.t === "toggle" && b.fold && tg < 0 && !hidden) tg = ind; /* 접힌 토글 아래 더 들여 쓴 줄은 숨긴다 */ if (b.t !== "ol") ol = Object.fromEntries(Object.entries(ol).filter(([k]) => +k < ind)); else { ol[ind] = (ol[ind] || 0) + 1; Object.keys(ol).forEach(k => { if (+k > ind) delete ol[k]; }); }
     const cls = `blk t-${b.t}${b.t === "callout" ? " c-" + (b.c || "g") : ""}${b.ck ? " ck" : ""}${hidden ? " fhide" : ""}`, ce = ro ? "" : `contenteditable="true"`;
     if (b.t === "divider") return `<div class="${cls}" data-b="${b.id}" style="--ind:${ind}"><hr>${ro ? "" : `<span class="bx" ${ce} data-b="${b.id}"></span>`}</div>`;
-    const pre = lv ? `<button class="bkfold" data-act="bk-fold" data-v="${b.id}" aria-expanded="${!b.fold}" aria-label="${b.fold ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>`
+    const pre = lv || b.t === "toggle" ? `<button class="bkfold" data-act="bk-fold" data-v="${b.id}" aria-expanded="${!b.fold}" aria-label="${b.fold ? "펼치기" : "접기"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>`
       : b.t === "ul" ? `<span class="bkp">•</span>` : b.t === "ol" ? `<span class="bkp num">${ol[ind]}.</span>` : b.t === "todo" ? `<button class="bkp bkchk" data-act="bk-chk" data-v="${b.id}" aria-pressed="${!!b.ck}" aria-label="체크">${b.ck ? nic("check") : ""}</button>`
       : b.t === "callout" ? `<button class="bkp bkcc" data-act="bk-cc" data-v="${b.id}" title="${CALLOUT[b.c || "g"][0]} · 눌러서 색 바꾸기" aria-label="상자 색 바꾸기">${nic(CALLOUT[b.c || "g"][1])}</button>` : "";
-    const ph = b.t === "p" ? "'/'로 블록 선택 · '# ' '- ' '[] ' 단축 입력 · 글자를 드래그하면 강조" : (BK_TYPES.find(x => x[0] === b.t || x[0] === b.t + "-g") || ["", ""])[1];
+    const ph = b.t === "p" ? ph0 || "'/'로 블록 선택 · '# ' '- ' '> ' 단축 입력 · 글자를 드래그하면 강조" : (BK_TYPES.find(x => x[0] === b.t || x[0] === b.t + "-g") || ["", ""])[1];
     return `<div class="${cls}" data-b="${b.id}" id="bk-${b.id}" style="--ind:${ind}">${pre}<div class="bx" ${ce} data-b="${b.id}" data-ph="${esc(ph)}" spellcheck="false">${b.h || ""}</div></div>`; }).join(""); }
 function caretOff(el){ const sel = getSelection(); if (!sel.rangeCount) return 0; const r = sel.getRangeAt(0); if (!el.contains(r.startContainer)) return 0; const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(r.startContainer, r.startOffset); return pre.toString().length; }
 function setCaret(el, off){ if (!el) return; el.focus(); const sel = getSelection(), r = document.createRange(); let left = off == null ? Infinity : off, node = null, pos = 0;
   const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); while (tw.nextNode()){ const t = tw.currentNode; if (left <= t.length){ node = t; pos = left; break; } left -= t.length; }
   if (node) r.setStart(node, pos); else { r.selectNodeContents(el); r.collapse(false); } r.collapse(true); sel.removeAllRanges(); sel.addRange(r); }
-const bxOf = id => document.querySelector(`#nted .bx[data-b="${id}"]`);
+const bxOf = id => document.querySelector(`${BKID().ed} .bx[data-b="${id}"]`);
 const bkIdx = id => LP.blocks.findIndex(b => b.id === id);
-function bkSync(){ if (!LP) return; document.querySelectorAll("#nted .bx").forEach(el => { const b = LP.blocks[bkIdx(el.dataset.b)]; if (b && b.t !== "divider") b.h = bkSan(el.innerHTML); }); }
+function bkSync(){ if (!LP) return; document.querySelectorAll(BKID().ed + " .bx").forEach(el => { const b = LP.blocks[bkIdx(el.dataset.b)]; if (b && b.t !== "divider") b.h = bkSan(el.innerHTML); }); }
 let bkT = 0;
-function bkSave(now){ clearTimeout(bkT); const go0 = () => { if (!LP) return; bkSync(); const n = S.mine[LP.id]; if (!n) return;   api.putMine(LP.id, {...n, blocks:LP.blocks.map(({id, t, h, ind, ck, c, fold}) => ({id, t, h, ...(ind ? {ind} : {}), ...(ck ? {ck} : {}), ...(c ? {c} : {}), ...(fold ? {fold} : {})})), updatedAt:Date.now()}).catch(e => toast(esc(e.message || "저장하지 못했어요"))); };
+function bkSave(now){ clearTimeout(bkT); if (LP && LP.sheet){ bkSync(); return; } /* 자료 작성 본문은 화면을 닫을 때 한꺼번에 저장 */ const go0 = () => { if (!LP) return; bkSync(); const n = S.mine[LP.id]; if (!n) return;   api.putMine(LP.id, {...n, blocks:bkStore(LP.blocks), updatedAt:Date.now()}).catch(e => toast(esc(e.message || "저장하지 못했어요"))); };
   if (now) go0(); else bkT = setTimeout(go0, 500); }
-function bkRedraw(focusId, off){ const ed = $("#nted"); if (!ed) return; ed.innerHTML = bkHtml(LP.blocks, !!S.lnRead); if (focusId) setCaret(bxOf(focusId), off); }
+function bkRedraw(focusId, off){ const ed = $(BKID().ed); if (!ed) return; ed.innerHTML = bkHtml(LP.blocks, bkRO(), LP.ph); if (focusId) setCaret(bxOf(focusId), off); }
 function bkSetType(id, t){ bkSync(); const b = LP.blocks[bkIdx(id)]; if (!b) return; const off = caretOff(bxOf(id) || document.body);
   if (t === "divider"){ b.t = "divider"; b.h = ""; const nb = {id:uid8(), t:"p", h:""}; LP.blocks.splice(bkIdx(id) + 1, 0, nb); bkRedraw(nb.id, 0); }
-  else { if (t.startsWith("callout")){ b.t = "callout"; b.c = t.split("-")[1] || "g"; } else { b.t = t; delete b.c; } if (b.t !== "todo") delete b.ck; if (!/^h/.test(b.t)) delete b.fold; bkRedraw(id, off); } bkSave(); }
-function bkMenu(id, q){ const m = $("#bkmenu"), el = bxOf(id); if (!m || !el) return; const list = [...BK_TYPES, ...BK_ACTS].filter(([k, l]) => !q || l.includes(q) || k.startsWith(q.toLowerCase())); if (!list.length){ m.hidden = true; return; }
+  else { if (t.startsWith("callout")){ b.t = "callout"; b.c = t.split("-")[1] || "g"; } else { b.t = t; delete b.c; } if (b.t !== "todo") delete b.ck; if (!/^h/.test(b.t) && b.t !== "toggle") delete b.fold; bkRedraw(id, off); } bkSave(); }
+function bkMenu(id, q){ const m = $(BKID().menu), el = bxOf(id); if (!m || !el) return; const list = [...BK_TYPES, ...BK_ACTS].filter(([k, l]) => !q || l.includes(q) || k.startsWith(q.toLowerCase())); if (!list.length){ m.hidden = true; return; }
   S.bkMenu = {id, sel:0, list:list.map(x => x[0])}; m.innerHTML = `<p class="bkmh">블록 선택</p>` + list.map(([k, l, g], i) => `<button data-act="bk-pick" data-v="${k}" class="${i ? "" : "on"}"><span class="${k.startsWith("callout") ? "cc c-" + k.split("-")[1] : ""}">${k.startsWith("callout") ? nic(CALLOUT[k.split("-")[1]][1]) : esc(g)}</span>${l}${BK_KEYS[k] ? `<kbd>${esc(BK_KEYS[k])}</kbd>` : ""}</button>`).join("");
-  const r = el.getBoundingClientRect(), pr = $("#nted").getBoundingClientRect(); m.style.top = (r.bottom - pr.top + 4) + "px"; m.hidden = false; }
+  const r = el.getBoundingClientRect(), pr = $(BKID().ed).getBoundingClientRect(); m.style.top = (r.bottom - pr.top + 4) + "px"; m.hidden = false; }
 const BK_ACTS = [["indent","들여쓰기","⇥"],["outdent","내어쓰기","⇤"]];
-const BK_KEYS = {indent:"Tab", outdent:"Shift+Tab", h1:"#", h2:"##", h3:"###", ul:"-", ol:"1.", todo:"[]", "callout-g":"!", divider:"---"};
-const bkMenuClose = () => { const m = $("#bkmenu"); if (m) m.hidden = true; S.bkMenu = null; };
+const BK_KEYS = {indent:"Tab", outdent:"Shift+Tab", h1:"#", h2:"##", h3:"###", ul:"-", ol:"1.", todo:"[]", toggle:">", quote:"\"", code:"```", "callout-g":"!", divider:"---"};
+const bkMenuClose = () => { const m = $(BKID().menu); if (m) m.hidden = true; S.bkMenu = null; };
 function bkPick(t){ const mm = S.bkMenu; if (!mm) return; const el = bxOf(mm.id); if (el) el.innerHTML = ""; bkMenuClose();
   if (t === "indent" || t === "outdent"){ bkSync(); const b = LP.blocks[bkIdx(mm.id)]; if (!b) return; b.ind = Math.max(0, Math.min(3, (b.ind || 0) + (t === "indent" ? 1 : -1))); bkRedraw(mm.id, 0); bkSave(); return; }
   bkSetType(mm.id, t); }
 /* selection toolbar: bold / italic / underline / highlight / code / clear */
-function selBar(){ const bar = $("#bksel"); if (!bar || S.lnRead) { if (bar) bar.hidden = true; return; } const sel = getSelection();
-  const bx = sel.rangeCount && !sel.isCollapsed && sel.anchorNode && sel.anchorNode.parentElement && sel.anchorNode.parentElement.closest("#nted .bx");
+function selBar(){ const bar = $(BKID().sel); if (!bar || bkRO()) { if (bar) bar.hidden = true; return; } const sel = getSelection();
+  const bx = sel.rangeCount && !sel.isCollapsed && sel.anchorNode && sel.anchorNode.parentElement && sel.anchorNode.parentElement.closest(BKID().ed + " .bx");
   if (!bx || !bx.contains(sel.focusNode)){ bar.hidden = true; return; } const r = sel.getRangeAt(0).getBoundingClientRect(); bar.hidden = false;
   const w = bar.offsetWidth, x = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)), top = r.top - bar.offsetHeight - 8;
   bar.style.left = x + "px"; bar.style.top = (top < 60 ? r.bottom + 8 : top) + "px"; }
@@ -3738,46 +3761,49 @@ function bkFmt(v){ const sel = getSelection(); if (!sel.rangeCount || sel.isColl
   else { const frag = r.extractContents(); if (v === "clear"){ r.insertNode(document.createTextNode(frag.textContent)); }
     else { const tmp = document.createElement("div"); tmp.appendChild(frag); tmp.querySelectorAll("mark,code").forEach(m => m.replaceWith(...m.childNodes)); const el = document.createElement(v === "code" ? "code" : "mark"); if (v !== "code") el.className = v; el.append(...tmp.childNodes); r.insertNode(el); sel.removeAllRanges(); const nr = document.createRange(); nr.selectNodeContents(el); sel.addRange(nr); } }
   bkSave(); selBar(); }
-document.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("#nted")){ setTimeout(() => { const a = document.activeElement; if (!(a && a.closest && a.closest("#nted"))){ bkMenuClose(); bkSave(true); if (S.lpPending){ S.lpPending = false; schedule(); } } }, 0); } });
-document.addEventListener("pointerdown", e => { if (e.target.closest && e.target.closest("#bkmenu, #bksel")) e.preventDefault(); });
-document.addEventListener("input", e => { const bx = e.target.closest && e.target.closest("#nted .bx"); if (!bx || !LP) return; const id = bx.dataset.b, b = LP.blocks[bkIdx(id)]; if (!b) return;
+document.addEventListener("focusout", e => { if (e.target.closest && e.target.closest(BKID().ed)){ setTimeout(() => { const a = document.activeElement; if (!(a && a.closest && a.closest(BKID().ed))){ bkMenuClose(); bkSave(true); if (S.lpPending){ S.lpPending = false; schedule(); } } }, 0); } });
+document.addEventListener("pointerdown", e => { if (e.target.closest && e.target.closest("#bkmenu, #bksel, #nfbkmenu, #nfbksel")) e.preventDefault(); });
+document.addEventListener("input", e => { const bx = e.target.closest && e.target.closest(BKID().ed + " .bx"); if (!bx || !LP) return; const id = bx.dataset.b, b = LP.blocks[bkIdx(id)]; if (!b) return;
   const tx = bx.textContent.replace(/ /g, " ");
   if (b.t !== "code"){ for (const [re, t] of BK_MD) if (re.test(tx) && (b.t === "p" || t === "todo")){ bx.innerHTML = ""; bkSetType(id, t); return; }
-    if (tx === "---"){ bx.innerHTML = ""; bkSetType(id, "divider"); return; } }
+    if (tx === "---"){ bx.innerHTML = ""; bkSetType(id, "divider"); return; }
+    if (tx === "```" && b.t === "p"){ bx.innerHTML = ""; bkSetType(id, "code"); return; } }
   if (tx.startsWith("/") && !tx.includes(" ") && tx.length <= 8) bkMenu(id, tx.slice(1)); else bkMenuClose();
   bkSave(); });
-document.addEventListener("paste", e => { const bx = e.target.closest && e.target.closest("#nted .bx"); if (!bx || !LP) return; e.preventDefault(); const t = (e.clipboardData || window.clipboardData)?.getData("text") || "";
+document.addEventListener("paste", e => { const bx = e.target.closest && e.target.closest(BKID().ed + " .bx"); if (!bx || !LP) return; e.preventDefault(); const t = (e.clipboardData || window.clipboardData)?.getData("text") || "";
   const lines = t.replace(/\r/g, "").split("\n"); if (lines.length < 2){ document.execCommand("insertText", false, t); return; }
   bkSync(); const id = bx.dataset.b, i = bkIdx(id), parse = l => { const m = l.match(/^(\s*)(#{1,3}\s|[-*]\s|\d+[.)]\s|\[\s?\]\s|\[x\]\s|>\s)?(.*)$/i), pre = (m[2] || "").trim(), ind = Math.min(3, Math.floor(m[1].length / 2));
     const t2 = !pre ? "p" : pre[0] === "#" ? "h" + pre.length : /[-*]/.test(pre) ? "ul" : /^\d/.test(pre) ? "ol" : pre[0] === ">" ? "p" : "todo"; return {id:uid8() + Math.random().toString(36).slice(2,5), t:t2, h:esc(m[3]), ind, ...(/\[x\]/i.test(pre) ? {ck:true} : {})}; };
   const nb = lines.filter((l, k) => l.trim() || k < lines.length - 1).map(parse); const cur = LP.blocks[i];
   if (cur && !bkText(cur).trim() && cur.t === "p"){ LP.blocks.splice(i, 1, ...nb); } else LP.blocks.splice(i + 1, 0, ...nb);
   bkRedraw(nb[nb.length - 1].id); bkSave(); }, true);
-document.addEventListener("keydown", e => { const t = e.target, c = S.compose; /* 본문 맨 앞에서 백스페이스: 바로 위 템플릿 칸이 비었으면 지우고, 내용이 있으면 그 칸 끝으로 이동 */
-  if (!t || t.id !== "nf-body" || !c || c.type !== "note" || e.key !== "Backspace" || e.isComposing || t.selectionStart !== 0 || t.selectionEnd !== 0) return;
+/* 본문 맨 앞에서 백스페이스: 바로 위 템플릿 칸이 비었으면 지우고, 내용이 있으면 그 칸 끝으로 이동 */
+function ntBodyBack(){ const c = S.compose; if (!c || c.type !== "note") return;
   const fs = [...document.querySelectorAll("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input")].filter(x => /^nf-/.test(x.id)); const last = fs[fs.length - 1]; if (!last) return;
-  e.preventDefault(); if (last.value !== ""){ last.focus(); try { last.setSelectionRange(last.value.length, last.value.length); } catch (_) {} return; }
+  if (last.value !== ""){ last.focus(); try { last.setSelectionRange(last.value.length, last.value.length); } catch (_) {} return; }
   preserveSheetDrafts(); const k = last.id.slice(3); delete S.drafts[last.id]; c.blocks = (c.blocks || []).filter(x => x !== k); renderSheet();
-  setTimeout(() => { const b = document.getElementById("nf-body"); if (b){ b.focus(); try { b.setSelectionRange(0, 0); } catch (_) {} } }, 30); });
+  setTimeout(() => { if (LP && LP.sheet && LP.blocks[0]) setCaret(bxOf(LP.blocks[0].id), 0); }, 30); }
 document.addEventListener("keydown", e => { const t = e.target, box = t && t.closest && t.closest("#overlay .ntblk, #overlay .ntbox"); const c = S.compose;
   if (!box || !c || c.type !== "note" || e.key !== "Backspace" || e.isComposing || t.value !== "" || !/^nf-/.test(t.id || "")) return;
   e.preventDefault(); preserveSheetDrafts(); const k = t.id.slice(3); delete S.drafts[t.id]; c.blocks = (c.blocks || []).filter(x => x !== k); renderSheet();
-  setTimeout(() => { const all = [...document.querySelectorAll("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input, #nf-body")]; const f = all[0]; if (f){ f.focus(); try { f.setSelectionRange(f.value.length, f.value.length); } catch (_) {} } }, 30); });
-document.addEventListener("keydown", e => { const bx = e.target.closest && e.target.closest("#nted .bx"); if (!bx || !LP || e.isComposing || e.keyCode === 229) return;
+  setTimeout(() => { const all = [...document.querySelectorAll("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input")]; const f = all[0]; if (f){ f.focus(); try { f.setSelectionRange(f.value.length, f.value.length); } catch (_) {} } else if (LP && LP.sheet && LP.blocks[0]) setCaret(bxOf(LP.blocks[0].id), 0); }, 30); });
+document.addEventListener("keydown", e => { const bx = e.target.closest && e.target.closest(BKID().ed + " .bx"); if (!bx || !LP || e.isComposing || e.keyCode === 229) return;
   const id = bx.dataset.b, i = bkIdx(id), b = LP.blocks[i]; if (!b) return; const mm = S.bkMenu;
-  if (mm && mm.id === id){ const m = $("#bkmenu"); if (e.key === "ArrowDown" || e.key === "ArrowUp"){ e.preventDefault(); mm.sel = (mm.sel + (e.key === "ArrowDown" ? 1 : -1) + mm.list.length) % mm.list.length; [...m.querySelectorAll("button")].forEach((x, k) => x.classList.toggle("on", k === mm.sel)); return; }
+  if (mm && mm.id === id){ const m = $(BKID().menu); if (e.key === "ArrowDown" || e.key === "ArrowUp"){ e.preventDefault(); mm.sel = (mm.sel + (e.key === "ArrowDown" ? 1 : -1) + mm.list.length) % mm.list.length; [...m.querySelectorAll("button")].forEach((x, k) => x.classList.toggle("on", k === mm.sel)); return; }
     if (e.key === "Enter"){ e.preventDefault(); bkPick(mm.list[mm.sel]); return; } if (e.key === "Escape"){ e.preventDefault(); bkMenuClose(); return; } }
   if ((e.ctrlKey || e.metaKey) && /^[biu]$/i.test(e.key)){ e.preventDefault(); bkFmt(e.key.toLowerCase()); return; }
   const off = caretOff(bx), len = bx.textContent.length, collapsed = getSelection().isCollapsed;
   if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); if (b.t === "code"){ document.execCommand("insertLineBreak"); return; } bkSync();
-    if (!bkText(b).trim() && ["ul","ol","todo","quote","callout"].includes(b.t)){ if (b.ind){ b.ind--; } else { b.t = "p"; delete b.c; } bkRedraw(id, 0); bkSave(); return; }
+    if (!bkText(b).trim() && (["ul","ol","todo","quote","callout","toggle"].includes(b.t) || (b.t === "p" && b.ind))){ /* 빈 줄에서 Enter: 들여쓰기 한 칸 빼기(토글 밖으로) */ if (b.ind){ b.ind--; } else { b.t = "p"; delete b.c; } bkRedraw(id, 0); bkSave(); return; }
     const sel = getSelection(), r = sel.getRangeAt(0), tail = document.createRange(); tail.setStart(r.endContainer, r.endOffset); tail.setEnd(bx, bx.childNodes.length);
     const box = document.createElement("div"); box.appendChild(tail.extractContents()); b.h = bkSan(bx.innerHTML);
     const nb = {id:uid8(), t:["ul","ol","todo"].includes(b.t) ? b.t : "p", h:bkSan(box.innerHTML), ...(b.ind && ["ul","ol","todo","p"].includes(b.t) ? {ind:b.ind} : {})};
+    if (b.t === "toggle"){ nb.ind = Math.min(3, (b.ind || 0) + 1); } /* 토글에서 Enter: 안쪽(한 칸 들여) 줄로 */
     if (b.fold){ b.fold = false; } LP.blocks.splice(i + 1, 0, nb); bkRedraw(nb.id, 0); bkSave(); return; }
   if (e.key === "Backspace" && collapsed && off === 0){ bkSync();
     if (b.ind){ e.preventDefault(); b.ind--; bkRedraw(id, 0); bkSave(); return; }
     if (b.t !== "p"){ e.preventDefault(); b.t = "p"; delete b.ck; delete b.c; delete b.fold; bkRedraw(id, 0); bkSave(); return; }
+    if (i === 0 && LP.sheet){ e.preventDefault(); ntBodyBack(); return; }
     if (i > 0){ e.preventDefault(); const pv0 = LP.blocks[i - 1]; if (pv0.t === "divider"){ LP.blocks.splice(i - 1, 1); bkRedraw(id, 0); bkSave(); return; }
       const at = bkText(pv0).length; pv0.h = (pv0.h || "") + (b.h || ""); LP.blocks.splice(i, 1); bkRedraw(pv0.id, at); bkSave(); return; } }
   if (e.key === "Tab"){ e.preventDefault(); bkSync(); b.ind = Math.max(0, Math.min(3, (b.ind || 0) + (e.shiftKey ? -1 : 1))); bkRedraw(id, off); bkSave(); return; }
@@ -4534,7 +4560,7 @@ function closeSheet(){ const nc = S.compose; if (nc && nc.type === "diary" && !n
     const ok = saveNote(nc, (key, r, fresh) => { nc.noSave = true; closeSheet(); dumpDone(nc); if (r && fresh && r.xp > 0) toast("자료 완성!"); }, true);
     if (ok === false){ nc.noSave = true; closeSheet(); } else if (ok === undefined) nc.saving = false; else Promise.resolve(ok).then(() => { if (!nc.noSave) nc.saving = false; }); return; }
   closeSheet0(); }
-function closeSheet0(){ if (S.compose && S.compose.type === "note" && (S.compose.newFiles || []).length){ S.compose.newFiles.forEach(FDB.del); S.compose.newFiles = []; } if (S.compose && S.compose.dumpId){ delete S.drafts["ad-name"]; delete S.drafts["ta-name"]; delete S.drafts["nf-title"]; } if (S.compose && (S.compose.type === "nttask" || S.compose.type === "tqpick" || S.compose.type === "ppick" || S.compose.type === "apick" || S.compose.type === "confirm") && (S.parentSheet || S.compose.type === "confirm")){ S.compose = S.parentSheet; S.parentSheet = null; } else { S.compose = null; S.parentSheet = null; } renderSheet(); }
+function closeSheet0(){ if (LP && LP.sheet){ bkMenuClose(); const sb = $("#nfbksel"); if (sb) sb.hidden = true; LP = null; } if (S.compose && S.compose.type === "note" && (S.compose.newFiles || []).length){ S.compose.newFiles.forEach(FDB.del); S.compose.newFiles = []; } if (S.compose && S.compose.dumpId){ delete S.drafts["ad-name"]; delete S.drafts["ta-name"]; delete S.drafts["nf-title"]; } if (S.compose && (S.compose.type === "nttask" || S.compose.type === "tqpick" || S.compose.type === "ppick" || S.compose.type === "apick" || S.compose.type === "confirm") && (S.parentSheet || S.compose.type === "confirm")){ S.compose = S.parentSheet; S.parentSheet = null; } else { S.compose = null; S.parentSheet = null; } renderSheet(); }
 const D = k => esc(S.drafts[k]||"");
 function difficultySelector(c,kind,field='lv') {
   const levels=kind==='quest'?HLV:TLV, selected=lvKey(c[field]||(kind==='quest'?'easy':'normal'));
@@ -4662,6 +4688,7 @@ function chainSort(qs){ const ids = new Set(qs.map(q => q.id)), out = [], seen =
   const walk = q => { if (seen.has(q.id)) return; seen.add(q.id); out.push(q); kids(q.id).forEach(walk); };
   qs.filter(q => !q.afterId || !ids.has(q.afterId)).forEach(walk); qs.forEach(walk); return out; }
 function preserveSheetDrafts() {
+  if (LP && LP.sheet && $("#nfed")){ bkSync(); S.drafts["nf-body"] = bkPlain(LP.blocks); }
   document.querySelectorAll('.sheet input[id], .sheet textarea[id]').forEach(el => { if(!['checkbox','radio','file'].includes(el.type)) S.drafts[el.id]=el.value; });
 }
 let sheetDrawn = null; const sheetTops = new WeakMap();
@@ -4683,7 +4710,7 @@ if (HS) window.addEventListener("popstate", e => {
   if (location.hash === "#goal" && S.vstack && S.vstack.length) S.view = S.vstack.pop(); else if (q && q.name === name && JSON.stringify(q) !== JSON.stringify(S.view)) S.view = {...q}; else return;
   try { sessionStorage.setItem("qv" + location.hash, JSON.stringify(S.view)); } catch(err){} schedule(); scrollTo(0,0);
 });
-function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
+function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null; if (LP && LP.sheet && $("#nfed")) bkSync();
   const c = S.compose; if (!c){ $("#overlay").innerHTML = ""; return; }
   if (c.type === 'day') return calendarDaySheet(c.date);
   if (c.type === 'journal-detail'){
@@ -5270,9 +5297,9 @@ document.addEventListener("click", e => {
     case "ln-read": if (LP) bkSave(true); S.lnRead = !S.lnRead; break;
     case "ln-fs": S.lnFs = b.dataset.v; LS.set("lnFs", b.dataset.v); break;
     case "bk-fold": { if (!LP) return; bkSync(); const bl = LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.fold = !bl.fold; bkRedraw(); bkSave(); return; }
-    case "bk-cc": { if (!LP || S.lnRead) return; bkSync(); const bl = LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; const ks = Object.keys(CALLOUT); bl.c = ks[(ks.indexOf(bl.c || "g") + 1) % ks.length]; bkRedraw(); bkSave(); return; }
+    case "bk-cc": { if (bkRO()) return; bkSync(); const bl = LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; const ks = Object.keys(CALLOUT); bl.c = ks[(ks.indexOf(bl.c || "g") + 1) % ks.length]; bkRedraw(); bkSave(); return; }
     case "fmt": bkFmt(b.dataset.v); return;
-    case "ln-tail": { if (!LP || S.lnRead || e.target.closest(".blk")) return; bkSync(); const last = LP.blocks[LP.blocks.length - 1]; if (last && last.t === "p" && !bkText(last).trim()){ setCaret(bxOf(last.id)); return; } const nb = {id:uid8(), t:"p", h:""}; LP.blocks.push(nb); bkRedraw(nb.id, 0); bkSave(); return; }
+    case "ln-tail": { if (bkRO() || e.target.closest(".blk")) return; bkSync(); const last = LP.blocks[LP.blocks.length - 1]; if (last && last.t === "p" && !bkText(last).trim()){ setCaret(bxOf(last.id)); return; } const nb = {id:uid8(), t:"p", h:""}; LP.blocks.push(nb); bkRedraw(nb.id, 0); bkSave(); return; }
     case "bk-chk": { if (!LP) return; bkSync(); const bl = LP && LP.blocks[bkIdx(b.dataset.v)]; if (!bl) return; bl.ck = !bl.ck; bkRedraw(); bkSave(); return; }
     case "bk-pick": bkPick(b.dataset.v); return;
     case "nt-file": e.stopPropagation(); openFile(b.dataset.v); return;
@@ -5296,7 +5323,7 @@ document.addEventListener("click", e => {
     case "nt-kpick": preserveSheetDrafts(); c.kpick = !c.kpick; c.menu = false; renderSheet(); return;
     case "nt-kind": { preserveSheetDrafts(); c.cat = b.dataset.v; c.kpick = false; c.unsorted = false; c.blocks = null; const K = noteDrawer(S, c.cat);
       /* 메모에 적은 링크는 참고자료 '링크' 칸으로 옮기고, 주소로 종류(영상·글·SNS)를 정한다 */
-      if (K.f.some(x => x.k === "url") && !(S.drafts["nf-url"] || "").trim()){ const m = ((S.drafts["nf-body"] || "") + " " + (S.drafts["nf-title"] || "")).match(NT_URL_RE); if (m){ S.drafts["nf-url"] = m[0]; S.drafts["nf-body"] = (S.drafts["nf-body"] || "").replace(m[0], "").replace(/^\s*\n/, "").trim(); } }
+      if (K.f.some(x => x.k === "url") && !(S.drafts["nf-url"] || "").trim()){ const m = ((S.drafts["nf-body"] || "") + " " + (S.drafts["nf-title"] || "")).match(NT_URL_RE); if (m){ S.drafts["nf-url"] = m[0]; S.drafts["nf-body"] = (S.drafts["nf-body"] || "").replace(m[0], "").replace(/^\s*\n/, "").trim(); if (LP && LP.sheet){ const bb = LP.blocks.filter(b => !bkText(b).includes(m[0]) || bkText(b).replace(m[0], "").trim()); bb.forEach(b => { if (bkText(b).includes(m[0])) b.h = esc(bkText(b).replace(m[0], "").trim()); }); LP.blocks = bb.length ? bb : textBlocks(""); } } }
       const mo = K.f.find(x => x.k === "media"), u = S.drafts["nf-url"]; if (mo && u && !(c.vals || {}).media){ const m = ntMediaOf(u); if (m && mo.o.includes(m)){ c.vals = c.vals || {}; c.vals.media = m; } }
       renderSheet(); return; }
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
