@@ -365,7 +365,7 @@ test('brain dump: lives on the plus page (not qmanage), pour lines in, list + so
   // 자료로 분류하면 시트 없이 메모로 담겨 자료실 '정리 전'에 보인다
   const odd0 = dumps()[0]; h.click('bd-send',{id:odd0.id,v:'note'}); await h.settle(); assert.equal(dumps().length,0);
   const memo = Object.values(h.snapshot().mine).find(m => m.kind === 'note' && m.cat === 'memo' && m.f?.title === '이상한 생각' && !m.f?.body); assert.ok(memo);
-  h.route('notes'); assert.match(h.nodes.get('app').innerHTML,/정리 전[\s\S]*이상한 생각/);
+  h.route('notes'); assert.match(h.nodes.get('app').innerHTML,/분류<\/h2>[\s\S]*이상한 생각/); assert.ok(memo.unsorted);
   h.route('write'); h.click('wrmode',{v:'dump'}); h.nodes.set('bd-in',{value:'이상한 생각'}); h.click('bd-add'); await h.settle();
   // 모든 삭제는 확인 팝업: 누르면 팝업만 뜨고, 팝업에서 삭제를 눌러야 지워진다
   const odd = dumps()[0]; h.click('bd-del',{id:odd.id}); assert.equal(dumps().length,1); assert.match(h.nodes.get('overlay').innerHTML,/이 생각을 삭제할까요\?/); h.click('cfok'); await h.settle();
@@ -377,7 +377,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   for (const k of ['아이디어','참고자료','학습','메모','+ 서랍']) assert.ok(app().includes(k),k);
   const notes = () => Object.values(h.snapshot().mine).filter(m => m.kind === 'note'), xp = () => balances(h.snapshot()).xp;
   const x0 = xp();
-  h.click('nt-new'); assert.match(ov(),/ntkind memo/); h.click('nt-kind',{v:'idea'}); assert.doesNotMatch(ov(),/완성 조건|XP|코인/); assert.match(ov(),/class="nttitle"/);
+  h.click('nt-new'); assert.match(ov(),/ntkind uns/); assert.match(ov(),/서랍 고르기/); h.click('nt-kind',{v:'idea'}); assert.doesNotMatch(ov(),/완성 조건|XP|코인/); assert.match(ov(),/class="nttitle"/);
   h.nodes.set('nf-title',{value:'레이드 퀘스트'}); h.nodes.set('nf-why',{value:'같이 하면 끝까지 간다'}); h.click('submit-note'); await h.settle();
   assert.equal(notes().length,1); assert.equal(xp(),x0,'incomplete note gives nothing');
   const n0 = notes()[0]; h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-next',{value:'매일 아침 서비스 조사'}); h.click('submit-note'); await h.settle();

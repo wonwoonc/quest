@@ -1080,22 +1080,22 @@ function ntCard(n){
   return `<article class="card ntcard" data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic(C.ic)}${esc(C.l)}</span>${done ? `<span class="ntdone">${nic("check")}완성${A ? ` · ${A[3]}` : ""}</span>` : ""}<small class="num">${d.getMonth()+1}.${d.getDate()}</small><button class="ntmore" data-act="nt-menu" data-id="${n.id}" aria-label="자료 메뉴"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button></div>${mid}
     ${(f.url) || pj ? `<div class="ntmeta">${f.url ? (safeUrl(f.url) ? `<a class="ntlink" href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener noreferrer">${nic("link")}${esc(ntHost(safeUrl(f.url)))}</a>` : `<span>${nic("link")}${esc(f.url)}</span>`) : ""}${pj ? `<span>${nic("target")}${esc(pj.title)}</span>` : ""}</div>` : ""}</article>`;
 }
-/* 정리 전: 종류를 정하지 않고 메모로 담아 둔 것(최근 3개). 누르면 바로 열어서 종류를 고를 수 있다 */
-function ntInbox(all){ const ms = all.filter(n => ntN(n).cat === "memo"); if (!ms.length) return "";
+/* 분류: 브레인 덤프에서 왔거나 서랍을 정하지 않고 저장한 자료. 누르면 열어서 서랍을 고른다 */
+function ntInbox(all){ const ms = all.filter(n => n.unsorted); if (!ms.length) return "";
   const row = n => { const {f} = ntN(n), t = f.title || String(f.body || "").split("\n")[0].slice(0, 40) || "메모", d = new Date(n.updatedAt || n.createdAt || Date.now());
-    return `<button class="ntrow" data-act="nt-edit" data-id="${n.id}"><span class="ntri">${nic("memo")}</span><span class="t"><b>${esc(t)}</b><small>${d.getMonth()+1}.${d.getDate()}${NT_URL_RE.test(ntText(n)) ? " · 링크 있음" : ""}</small></span><svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`; };
-  return `<section class="card tight qlist ntinbox"><div class="ch"><h2>${nic("inbox")}정리 전</h2><span class="side num">${ms.length}</span>${ms.length > 3 ? `<button class="link" data-act="nt-cat" data-v="memo">모두 보기</button>` : ""}</div>${ms.slice(0, 3).map(row).join("")}</section>`; }
+    return `<button class="ntrow" data-act="nt-edit" data-id="${n.id}"><span class="ntri">${nic("inbox")}</span><span class="t"><b>${esc(t)}</b><small>${d.getMonth()+1}.${d.getDate()}${NT_URL_RE.test(ntText(n)) ? " · 링크 있음" : ""}</small></span><svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`; };
+  return `<section class="card tight qlist ntinbox"><div class="ch"><h2>${nic("inbox")}분류</h2><span class="side num">${ms.length}</span></div>${ms.map(row).join("")}</section>`; }
 function viewNotes(){
   if (!hasProfile()) return viewToday();
   const DR = noteDrawers(S), all = mineOf("note").sort((a,b) => (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0)), cat = S.ntCat === "journal" || DR.some(d => d.k === S.ntCat) ? S.ntCat : "all", q = (S.ntQ || "").trim().toLowerCase();
   const jAll = mineOf("diary").filter(d => d.date && isOwnPrivateEntry(d, S.me)).sort((a,b) => b.date.localeCompare(a.date)), jList = q ? jAll.filter(d => ((d.text || "") + " " + (d.emo || "")).toLowerCase().includes(q)) : jAll;
-  const inCat = all.filter(n => cat === "all" || ntN(n).cat === cat);
+  const inCat = all.filter(n => cat === "all" || (ntN(n).cat === cat && !n.unsorted));
   const list = q ? inCat.filter(n => (ntText(n) + " " + (n.projectId && S.projects[n.projectId] ? S.projects[n.projectId].title : "")).toLowerCase().includes(q)) : inCat;
-  const grid = cat === "all" && !q ? list.filter(n => ntN(n).cat !== "memo") : list; /* 전체 보기에서 메모는 위 '정리 전'에 */
+  const grid = cat === "all" && !q ? list.filter(n => !n.unsorted) : list; /* 전체 보기에서 분류 안 된 자료는 위 '분류'에 */
   const chip = (k, l, n) => `<button class="chip" data-act="nt-cat" data-v="${k}" aria-pressed="${cat === k}">${l}${n ? ` <span class="num">${n}</span>` : ""}</button>`;
   const jBtn = `<button class="btn" data-act="sheet" data-k="diary">+ 저널 추가</button>`;
   return `<div class="nttools"><input type="search" id="nt-q" placeholder="${cat === "journal" ? "저널 검색" : "자료 검색"}" value="${esc(S.ntQ || "")}" aria-label="자료 검색">${cat === "journal" ? jBtn : `<button class="btn" data-act="nt-new">+ 자료 추가</button>`}</div>
-    <div class="chips ntcats" role="group" aria-label="서랍" data-swipe>${chip("all", "전체", all.length)}${DR.filter(d => !d.hidden || d.k === cat).map(d => chip(d.k, `${nic(d.ic)}${esc(d.l)}`, all.filter(n => ntN(n).cat === d.k).length)).join("")}${chip("journal", `${nic("journal")}저널`, jAll.length)}<button class="chip ntmng" data-act="dr-manage">+ 서랍</button></div>
+    <div class="chips ntcats" role="group" aria-label="서랍" data-swipe>${chip("all", "전체", all.length)}${DR.filter(d => !d.hidden || d.k === cat).map(d => chip(d.k, `${nic(d.ic)}${esc(d.l)}`, all.filter(n => ntN(n).cat === d.k && !n.unsorted).length)).join("")}${chip("journal", `${nic("journal")}저널`, jAll.length)}<button class="chip ntmng" data-act="dr-manage">+ 서랍</button></div>
     ${cat === "journal" ? (jList.length ? `<div class="ntgrid">${jList.map(jCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 저널이 없어요" : "저널 서랍이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 저널 추가」로 오늘 하루를 남겨 보세요."}</section>`) : ""}
     ${cat === "all" && !q ? ntInbox(all) : ""}
     ${cat === "journal" ? "" : grid.length ? `<div class="ntgrid">${grid.map(ntCard).join("")}</div>` : cat === "all" && !q && list.length ? "" : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : cat !== "all" ? `${esc(noteDrawer(S, cat).l)} 서랍이 비어 있어요` : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 자료 추가」로 첫 자료를 담아 보세요."}</section>`}`;
@@ -1127,9 +1127,9 @@ function noteSheet(c){
   const fRow = C.k === "ref" ? `<span class="ntpl">파일</span><div class="flist sm">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < F_MAX ? `<button class="ntpc add" data-act="nf-pick">+ 첨부</button>` : ""}</div>` : "";
   const props = C.f.filter(isProp).map(prop).join("") + fRow + qRow + aRow;
   const DR = noteDrawers(S).filter(d => !d.hidden || d.k === c.cat);
-  const kinds = c.kpick ? `<div class="ntkpick" role="group" aria-label="종류">${DR.map(K => `<button class="ntkp ${K.k}" data-act="nt-kind" data-v="${K.k}" aria-pressed="${c.cat === K.k}">${nic(K.ic)}<b>${esc(K.l)}</b></button>`).join("")}</div>` : "";
+  const kinds = c.kpick ? `<div class="ntkpick" role="group" aria-label="종류">${DR.map(K => `<button class="ntkp ${K.k}" data-act="nt-kind" data-v="${K.k}" aria-pressed="${!c.unsorted && c.cat === K.k}">${nic(K.ic)}<b>${esc(K.l)}</b></button>`).join("")}</div>` : "";
   const hasUrl = C.k === "memo" && DR.some(d => d.k === "ref") && NT_URL_RE.test(D("nf-title") + " " + D("nf-body"));
-  const pill = `<button class="ntkind ${C.k}" data-act="nt-kpick" aria-expanded="${!!c.kpick}">${nic(C.ic)}${esc(C.l)}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
+  const pill = `<button class="ntkind ${c.unsorted ? "uns" : C.k}" data-act="nt-kpick" aria-expanded="${!!c.kpick}">${c.unsorted ? `${nic("inbox")}서랍 고르기` : `${nic(C.ic)}${esc(C.l)}`}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
   /* ⋯ 메뉴 → 수정: 이 자료의 칸(핵심 요약·링크·종류 등)을 빼거나 다시 넣는다 */
   const menu = c.menu ? `<div class="ntemenu" role="menu"><button class="row mitem" data-act="nt-tedit" role="menuitem"><span class="t"><b>${nic("memo")}수정</b><small>핵심 요약·링크·종류 같은 칸을 빼거나 다시 넣어요</small></span></button></div>` : "";
   const tbar = c.tedit ? `<div class="nttbar"><div class="nttb-h"><b>칸 수정</b><span>× 로 빼고, 아래에서 다시 넣어요</span><button class="ntpc on" data-act="nt-tedit">끝내기</button></div>${hid.length ? `<div class="nttb-r">${hid.map(k => { const x = C.f.find(y => y.k === k); return x ? `<button class="ntpc add" data-act="nt-unhide" data-f="${k}">+ ${esc(x.l)}</button>` : ""; }).join("")}</div>` : ""}</div>` : "";
@@ -1137,7 +1137,7 @@ function noteSheet(c){
     ${tF ? `<textarea class="nttitle" id="nf-title" data-grow rows="1" maxlength="200" placeholder="${C.k === "idea" ? "떠오른 아이디어를 한 줄로" : C.k === "memo" ? "제목" : "제목"}">${D("nf-title")}</textarea>` : ""}
     ${props ? `<div class="ntprops">${props}</div>` : ""}
     ${C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body").map(block).join("")}
-    ${C.f.some(x => x.k === "body") || ntFreeBody(C) ? `<textarea class="ntbody-in" id="nf-body" data-grow rows="${C.k === "memo" ? 8 : 4}" maxlength="10000" placeholder="${C.k === "memo" ? "떠오르는 대로 적어요. 종류는 나중에 정해도 돼요." : "자유롭게 이어서 적어요"}">${D("nf-body")}</textarea>` : ""}
+    ${C.f.some(x => x.k === "body") || ntFreeBody(C) ? `<textarea class="ntbody-in" id="nf-body" data-grow rows="${C.k === "memo" ? 8 : 4}" maxlength="10000" placeholder="${c.unsorted ? "떠오르는 대로 적어요. 서랍은 나중에 정해도 돼요." : C.k === "memo" ? "자유롭게 적어요" : "자유롭게 이어서 적어요"}">${D("nf-body")}</textarea>` : ""}
     <div class="ntsug" ${hasUrl ? "" : "hidden"}><span>${nic("link")}링크가 있어요</span><button class="ntpc on" data-act="nt-kind" data-v="ref">참고자료로 정리</button></div>
 `, `<button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>`);
 }
@@ -1158,8 +1158,8 @@ function saveNote(c, after, quiet){
   if (!Object.keys(f).some(k => !["media","status","rating","date","type"].includes(k)) && !files.length){ if (quiet) return false; toast(C.k === "learn" ? "제목을 적어 주세요" : "내용을 하나 이상 적어 주세요"); return; }
   const key = old ? c.id : "nt"+uid8(), now = Date.now(), was = old && noteComplete(S, old);
   /* 바뀐 게 없으면 저장하지 않는다(뒤로 가기 자동 저장 때 순서가 바뀌지 않게) */
-  if (old && ntN(old).cat === C.k && JSON.stringify(ntN(old).f) === JSON.stringify(f) && JSON.stringify(old.files || []) === JSON.stringify(files) && (old.area || null) === (c.area || null) && (old.projectId || null) === (c.projectId && S.projects[c.projectId] ? c.projectId : null) && JSON.stringify(old.hideF || []) === JSON.stringify(hid)){ after(key, null, false); return true; }
-  return run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, f, files, hideF:hid.length ? hid : undefined, area:c.area || null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); (c.rmFiles || []).forEach(FDB.del); c.newFiles = []; c.rmFiles = []; after(key, r, !was && noteComplete(S, S.mine[key])); });
+  if (old && ntN(old).cat === C.k && JSON.stringify(ntN(old).f) === JSON.stringify(f) && JSON.stringify(old.files || []) === JSON.stringify(files) && (old.area || null) === (c.area || null) && (old.projectId || null) === (c.projectId && S.projects[c.projectId] ? c.projectId : null) && JSON.stringify(old.hideF || []) === JSON.stringify(hid) && !!old.unsorted === !!c.unsorted){ after(key, null, false); return true; }
+  return run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, unsorted:c.unsorted ? true : undefined, f, files, hideF:hid.length ? hid : undefined, area:c.area || null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); (c.rmFiles || []).forEach(FDB.del); c.newFiles = []; c.rmFiles = []; after(key, r, !was && noteComplete(S, S.mine[key])); });
 }
 /* drawer manager + editor */
 function drawerSheet(c){
@@ -1418,7 +1418,7 @@ function bdSortSheet(c){
 function bdSend(id, v){ const d = S.mine[id]; if (!d || !canAct()) return;
       if (v === "task"){ S.drafts["ta-name"] = d.text; openSheet({type:"taskadd", lv:"normal", due:today(), time:"", period:"", projectId:null, dumpId:id}); return; }
       /* 자료로 분류하면 메모로 바로 담아 자료실 '정리 전'에 둔다(종류는 나중에 정함) */
-      if (v === "note"){ const now = Date.now(); run(async () => { await api.putMine("nt" + uid8(), {kind:"note", cat:"memo", f:{title:d.text}, files:[], area:null, projectId:null, createdAt:now, updatedAt:now}); await api.delMine(id); }, () => { closeSheet(); toast("자료실 '정리 전'으로 옮겼어요"); }); return; }
+      if (v === "note"){ const now = Date.now(); run(async () => { await api.putMine("nt" + uid8(), {kind:"note", cat:"memo", unsorted:true, f:{title:d.text}, files:[], area:null, projectId:null, createdAt:now, updatedAt:now}); await api.delMine(id); }, () => { closeSheet(); toast("자료실 '분류'로 옮겼어요"); }); return; }
       S.drafts["ad-name"] = d.text;
       if (v === "daily") return openSheet({type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:null, parentId:null, unit:null, area:[], dumpId:id});
       return openSheet({type:"add", kind:v, more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:"", period:"", projectId:null, parentId:null, unit:null, dumpId:id}); }
@@ -2779,17 +2779,17 @@ document.addEventListener("click", e => {
     case "fv-back": openSheet(c.back); return;
     case "nt-cat": S.ntCat = b.dataset.v; break;
     case "nt-new": { ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => d.k === "memo" && !d.hidden) || DR.find(d => !d.hidden) || DR[0]).k; /* 전체에서 누르면 바로 메모(빈 화면)로 */
-      openSheet({type:"note", cat, vals:{}, area:null, projectId:b.dataset.p && S.projects[b.dataset.p] ? b.dataset.p : null}); setTimeout(() => { const x = $(".sheet input[type=text], .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
+      openSheet({type:"note", cat, unsorted:!DR.some(d => d.k === S.ntCat && !d.hidden), vals:{}, area:null, projectId:b.dataset.p && S.projects[b.dataset.p] ? b.dataset.p : null}); setTimeout(() => { const x = $(".sheet input[type=text], .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
     case "nt-edit": { const n = S.mine[id]; if (!n) return; if (ntN(n).cat === "learn" && !b.dataset.info){ push({name:"learn", id}, "#learn"); return; } const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
       const vals = {}; Object.entries(f).forEach(([k, v]) => { if (k === "rating" || ["status","media","type"].includes(k)) vals[k] = v; else S.drafts["nf-" + k] = v || ""; });
-      openSheet({type:"note", id, cat, vals, area:n.area || null, projectId:n.projectId || null, files:[...(n.files || [])], hideF:[...(n.hideF || [])]}); return; }
+      openSheet({type:"note", id, cat, unsorted:!!n.unsorted, vals, area:n.area || null, projectId:n.projectId || null, files:[...(n.files || [])], hideF:[...(n.hideF || [])]}); return; }
     case "nt-emenu": preserveSheetDrafts(); c.menu = !c.menu; c.kpick = false; renderSheet(); return;
     case "nt-tedit": preserveSheetDrafts(); c.menu = false; c.tedit = !c.tedit; renderSheet(); return;
     case "nt-hide": preserveSheetDrafts(); c.hideF = [...new Set([...(c.hideF || []), b.dataset.f])]; delete S.drafts["nf-" + b.dataset.f]; if (c.vals) delete c.vals[b.dataset.f]; renderSheet(); return;
     case "nt-unhide": preserveSheetDrafts(); c.hideF = (c.hideF || []).filter(k => k !== b.dataset.f); renderSheet(); return;
     case "nt-menu": { const n = S.mine[id]; if (!n) return; openSheet({type:"ntmenu", id}); return; }
     case "nt-kpick": preserveSheetDrafts(); c.kpick = !c.kpick; c.menu = false; renderSheet(); return;
-    case "nt-kind": { preserveSheetDrafts(); c.cat = b.dataset.v; c.kpick = false; const K = noteDrawer(S, c.cat);
+    case "nt-kind": { preserveSheetDrafts(); c.cat = b.dataset.v; c.kpick = false; c.unsorted = false; const K = noteDrawer(S, c.cat);
       /* 메모에 적은 링크는 참고자료 '링크' 칸으로 옮기고, 주소로 종류(영상·글·SNS)를 정한다 */
       if (K.f.some(x => x.k === "url") && !(S.drafts["nf-url"] || "").trim()){ const m = ((S.drafts["nf-body"] || "") + " " + (S.drafts["nf-title"] || "")).match(NT_URL_RE); if (m){ S.drafts["nf-url"] = m[0]; S.drafts["nf-body"] = (S.drafts["nf-body"] || "").replace(m[0], "").replace(/^\s*\n/, "").trim(); } }
       const mo = K.f.find(x => x.k === "media"), u = S.drafts["nf-url"]; if (mo && u && !(c.vals || {}).media){ const m = ntMediaOf(u); if (m && mo.o.includes(m)){ c.vals = c.vals || {}; c.vals.media = m; } }
