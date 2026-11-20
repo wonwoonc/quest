@@ -1192,8 +1192,8 @@ function noteSheet(c){
   /* 아래 글 상자(왜 좋은가요?·핵심 요약·다음 행동·학습 목표…)는 서랍 템플릿: 내용이 없으면 '템플릿' 버튼만 두고, 누르면 나온다.
      빈 상자에서 백스페이스를 누르면 그 상자가 지워진다 */
   /* 서랍 템플릿: 고른 템플릿의 칸 + 다른 템플릿에서 이미 적어 둔 칸(템플릿을 바꿔도 남는다) */
-  const tpls = noteTpls(C), tId = c.tpl || (n && n.tpl) || "none", tpl = tpls && tId !== "none" ? noteTpl(C, tId) : null, tF0 = tpl ? tpl.f.filter(x => x.k !== "next") : []; /* 새 자료는 빈 내용으로 시작, 템플릿은 골랐을 때만. 아이디어의 '다음 행동'은 늘 보인다(완성 조건) */
-  const BF = [...C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body" && !x.bottom), ...tF0, ...noteTplFields(C).filter(x => x.k !== "next" && !tF0.some(y => y.k === x.k) && String(S.drafts["nf-" + x.k] || "").trim())].filter(whenOk); /* 아이디어의 '다음 행동'은 아래 '실행하기'로 */
+  const tpls = noteTpls(C), tId = c.tpl || (n && n.tpl) || "none", tpl = tpls && tId !== "none" ? noteTpl(C, tId) : null, tF0 = tpl ? tpl.f : (C.k === "idea" ? noteTplFields(C).filter(x => x.k === "next") : []); /* 새 자료는 빈 내용으로 시작, 템플릿은 골랐을 때만. 아이디어의 '다음 행동'은 늘 보인다(완성 조건) */
+  const BF = [...C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body" && !x.bottom), ...tF0, ...noteTplFields(C).filter(x => !tF0.some(y => y.k === x.k) && String(S.drafts["nf-" + x.k] || "").trim())].filter(whenOk);
   c._bf = BF.map(x => x.k);
   if (!c.blocks){ const filled = BF.filter(x => (D("nf-" + x.k) || "").trim()).map(x => x.k); c.blocks = n && !c.tplTouched && (filled.length || D("nf-body").trim()) ? filled : BF.map(x => x.k); } /* 템플릿은 기본으로 보인다 */
   const tplBtn = tpls ? `<button class="nttplbtn" data-act="nt-tplpick" aria-haspopup="dialog">${nic("layout")}<span>${tpl ? `템플릿 · <b>${esc(tpl.l)}</b>` : "템플릿 선택"}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>` : "";
@@ -1213,7 +1213,6 @@ function noteSheet(c){
     ${tplBtn}${tplHtml}
     ${bodyOn ? `<div class="nfedw"><div class="nted nfed" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}` : ""}
     ${n && C.k === "learn" && Array.isArray(n.blocks) && n.blocks.some(b => bkText(b).trim()) ? `<button class="ntlnote" data-act="ln-open" data-id="${n.id}">${nic("book")}<span><b>학습 노트</b><small>정리한 노트 ${n.blocks.filter(b => bkText(b).trim()).length}줄 · 열기</small></span><svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>` : ""}
-    ${C.k === "idea" ? ntExecHtml(n) : ""}
     <div class="ntsug" ${hasUrl ? "" : "hidden"}><span>${nic("link")}링크가 있어요</span><button class="ntpc on" data-act="nt-kind" data-v="ref">참고자료로 정리</button></div>
 `, `<span class="ntmw"><button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>${menu}</span>`);
 }
@@ -2288,7 +2287,7 @@ const afterLabel = c => c.afterId && S.mine[c.afterId] ? `${S.mine[c.afterId].na
 const planName = c => S.drafts[c.type === "taskadd" ? "ta-name" : c.type === "tedit" ? "te-name" : c.type === "hedit" ? "he-name" : "ad-name"] || "";
 /* 퀘스트 선택 팝업(모든 화면 공통): 메인 이름을 누르면 바로 연결, 오른쪽 '스테이지 N ›'을 누르면 팝업 안에서 스테이지 목록으로 */
 /* 퀘스트 연결(모든 화면 공통): 아래에서 올라오는 시트. 메인 퀘스트는 진행 막대·D-day 카드, 스테이지는 카드 안 칩으로 바로 고른다 */
-function questPop(o){ const live = x => x.status !== "done" && !isCx(x), mains = goalsOf(S.me).filter(live).sort(gOrder);
+function questPop(o){ const live = x => x.status !== "done" && !isCx(x) && !isPlanned(x), /* 진행 중인 것만 */ mains = goalsOf(S.me).filter(live).sort(gOrder);
   const orphan = o.onlyMain ? [] : Object.values(S.projects).filter(p => live(p) && p.owner === S.me && p.parentId && !mains.some(g => g.id === p.parentId));
   const pctOf = g => { const pr = goalProgress(g); return Math.round(pr.total ? pr.done / pr.total * 100 : 0); };
   const card = g => { const ss = o.onlyMain ? [] : subsOf(g.id).filter(live), inS = ss.some(x => x.id === o.cur), on = o.cur === g.id || inS;

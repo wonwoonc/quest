@@ -115,7 +115,7 @@ export function noteComplete(s, n) {
   const {cat, f} = noteNorm(s, n), d = noteDrawer(s, cat);
   if (!d || !d.pt) return false;
   /* 아이디어는 '다음 행동'을 미션으로 추가했을 때 완성(sent). needSend 표시가 없는 예전 아이디어는 예전 기준(다음 행동을 적으면 완성)을 그대로 둔다 */
-  if (cat === 'idea') return n.needSend ? !!n.sent : has(f.next); /* 새 아이디어: 실행하기(미션·일일·메인 퀘스트 만들기)를 마치면 완성 */
+  if (cat === 'idea') return has(f.next) && (!n.needSend || !!n.sent);
   /* 참고자료는 보상이 없다(pt 0). 예전에 받은 보상은 그대로 둔다 */
   if (cat === 'learn') return f.status === '완료';
   return d.f.length > 0 && d.f.every(x => has(f[x.k]));

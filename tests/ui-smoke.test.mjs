@@ -381,9 +381,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   assert.equal(notes().length,1); assert.equal(xp(),x0,'incomplete note gives nothing');
   const n0 = notes()[0]; h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-next',{value:'매일 아침 서비스 조사'}); h.click('submit-note'); await h.settle();
   assert.equal(xp(),x0,'writing the next action alone gives nothing');
-  h.click('nt-edit',{id:n0.id}); assert.match(ov(),/data-act="nt-exec"[^>]*>[\s\S]*?이 아이디어 실행하기/); assert.doesNotMatch(ov(),/id="nf-next"/,'next action is not a box any more');
-  h.click('nt-exec'); await h.settle(); assert.match(ov(),/어떻게 실행할까요[\s\S]*data-act="nx-k" data-v="daily"[\s\S]*data-act="nx-k" data-v="main"/); assert.match(ov(),/매일 아침 서비스 조사/,'prefilled from the saved next action');
-  h.nodes.set('nx-name',{value:'매일 아침 서비스 조사'}); h.click('nx-go'); await h.settle();
+  h.click('nt-edit',{id:n0.id}); assert.match(ov(),/data-act="nt-task" data-f="next">미션 추가/); h.click('nt-task',{f:'next'}); await h.settle();
   assert.match(ov(),/미션 추가/); assert.equal(xp(),x0,'opening mission add gives nothing');
   h.nodes.set('ta-name',{value:'매일 아침 서비스 조사'}); h.click('dppick',{k:'due',v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   assert.equal(xp(),x0+10,'adding the mission completes the idea (10 XP)'); assert.equal(notes()[0].f.next,'매일 아침 서비스 조사');
@@ -1350,15 +1348,12 @@ test('자료 템플릿: 서랍마다 여러 템플릿, 바꿔도 적은 칸은 �
   h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(), /data-act="nt-chpick" data-f="type"[^>]*>선택/); assert.match(ov(), /data-act="nt-val" data-f="status"/, 'learn status stays as chips');
   h.click('nt-chpick',{f:'type'}); assert.match(ov(), /data-act="nt-chset" data-f="type" data-v="책"/); h.click('nt-chset',{f:'type',v:'책'}); assert.doesNotMatch(ov(), /ntqpop/); assert.match(ov(), /data-act="nt-chpick" data-f="type"[^>]*>책/);
   h.click('nt-new'); h.click('nt-kind',{v:'memo'}); h.click('nt-tplpick'); assert.match(ov(), /data-v="meeting"[\s\S]*?회의록/); h.click('nt-tplset',{v:'meeting'}); assert.match(ov(), /id="nf-agenda"/); assert.match(ov(), /id="nf-decision"/);
-  h.click('nt-new'); h.click('nt-kind',{v:'idea'}); h.click('nt-tplset',{v:'lean'}); assert.match(ov(), /id="nf-unfair"/); assert.match(ov(), /data-act="nt-exec"/, 'ideas are executed from the bottom button');
+  h.click('nt-new'); h.click('nt-kind',{v:'idea'}); h.click('nt-tplset',{v:'lean'}); assert.match(ov(), /id="nf-next"[\s\S]*미션 추가|미션 추가[\s\S]*id="nf-next"/, 'every idea template keeps next action');
 });
-test('완성 조건: 아이디어는 템플릿 없이도 실행하기 버튼, 참고자료는 보상 없음',async()=>{
+test('완성 조건: 아이디어는 템플릿 없이도 다음 행동 칸, 참고자료는 보상 없음',async()=>{
   const h = await profileUI(); h.route('notes'); await h.settle(); const ov = () => h.nodes.get('overlay').innerHTML, xp = () => h.snapshot().economy ? 0 : 0;
-  h.click('nt-new'); h.click('nt-kind',{v:'idea'}); assert.doesNotMatch(ov(), /id="nf-next"/); assert.match(ov(), /data-act="nt-exec"/); assert.doesNotMatch(ov(), /id="nf-why"/);
-  h.nodes.set('nf-title',{value:'레이드 퀘스트'}); h.click('nt-exec'); await h.settle(); h.click('nx-k',{v:'main'}); assert.match(ov(), /data-v="main" aria-selected="true"/);
-  h.nodes.set('nx-name',{value:'레이드 퀘스트 출시'}); h.click('nx-go'); await h.settle(); h.nodes.set('ad-name',{value:'레이드 퀘스트 출시'}); h.click('dppick',{k:'end',v:'2099-12-31'}); h.click('submit-add'); await h.settle();
-  const idea = Object.values(h.snapshot().mine).find(m => m.kind === 'note' && m.cat === 'idea'); assert.ok(idea && idea.sent, 'making a main quest completes the idea');
-  assert.ok(Object.values(h.snapshot().projects).some(p => p.noteId === idea.id && p.title === '레이드 퀘스트 출시'));
+  h.click('nt-new'); h.click('nt-kind',{v:'idea'}); assert.match(ov(), /id="nf-next"/); assert.match(ov(), /data-act="nt-task"/); assert.doesNotMatch(ov(), /id="nf-why"/);
+  h.click('sheet-close'); await h.settle();
   h.click('nt-new'); h.click('nt-kind',{v:'ref'}); assert.doesNotMatch(ov(), /data-f="area"/, 'ref has no area (no reward)');
   h.click('nt-tplpick'); h.click('nt-tplset',{v:'basic'}); h.nodes.set('nf-title',{value:'글'}); h.nodes.set('nf-summary',{value:'요약'}); h.nodes.set('nf-why',{value:'이유'}); h.click('sheet-close'); await h.settle();
   const n = Object.values(h.snapshot().mine).find(m => m.kind === 'note' && m.cat === 'ref'); assert.ok(n);
