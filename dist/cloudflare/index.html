@@ -1839,7 +1839,7 @@ a.row{color:inherit;text-decoration:none}
 .jtitle .ntdc{width:18px;height:18px;color:var(--muted);flex:none}
 .jdcal{margin:0 0 12px}
 .jpast{font-size:13px;color:var(--muted);margin:-2px 0 10px}
-.ntpv.jcond{display:flex;align-items:center;gap:10px;min-height:34px}.jcond input[type=range]{flex:1;min-width:0;margin:0}.jcond b{min-width:42px;text-align:right;font-size:14px;font-weight:700}
+.ntpv.jcond{display:flex;align-items:center;gap:10px;min-height:34px}.jcond input[type=range]{flex:0 1 200px;width:200px;min-width:0;margin:0}.jcond b{min-width:42px;text-align:left;font-size:14px;font-weight:700}
 .ntprops .ntpl.jtop{align-self:start;padding-top:3px}
 .sheet textarea#pl-text.ntbody-in{resize:none;margin:0;min-height:200px;line-height:1.7}
 .jemoin{display:inline-flex;gap:5px;align-items:center}.sheet .jemoin input{width:92px;padding:6px 10px;font-size:13px;border-radius:8px;min-height:0}
@@ -1879,6 +1879,9 @@ a.row{color:inherit;text-decoration:none}
 .sheet.page h2.pgh .ntdd button .nic,.sheet.page h2.pgh .ntdd svg{width:16px;height:16px;margin:0}
 .nfed{padding-left:0}.nfed .blk:not(.t-toggle) .bkfold{display:none}.nfed .blk.t-toggle .bkfold{margin-left:-2px}
 .jcard .nttop small.num{margin-left:auto}
+.ntpickq{font-size:20px;font-weight:800;margin:10px 0 14px;letter-spacing:-.01em}
+.sheet.page h2.pgh span.ntkind{margin-left:4px;display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:700;background:var(--fill);color:var(--sub)}.sheet.page h2.pgh span.ntkind .nic{width:16px;height:16px;margin:0}
+.sheet.page h2.pgh button.ntkind.fixed{cursor:default;opacity:1;padding:6px 12px}
 </style>
 <script>
 (function(){"use strict";
@@ -3739,7 +3742,7 @@ function noteSheet(c){
   const DR = noteDrawers(S).filter(d => !d.hidden || d.k === c.cat);
   const kinds = c.kpick ? `<div class="ntkpick" role="group" aria-label="종류">${DR.map(K => `<button class="ntkp" data-act="nt-kind" data-v="${K.k}" aria-pressed="${!c.unsorted && c.cat === K.k}">${nic(K.ic)}<b>${esc(K.l)}</b></button>`).join("")}${n ? "" : `<button class="ntkp" data-act="nt-kind" data-v="journal" aria-pressed="false">${nic("journal")}<b>저널</b></button>`}</div>` : ""; /* 새 자료에서는 저널도 고를 수 있다 */
   const hasUrl = C.k === "memo" && DR.some(d => d.k === "ref") && NT_URL_RE.test(D("nf-title") + " " + D("nf-body"));
-  const pill = `<button class="ntkind ${c.unsorted ? "uns" : C.k}" data-act="nt-kpick" aria-expanded="${!!c.kpick}">${c.unsorted ? `${nic("inbox")}서랍 고르기` : `${nic(C.ic)}${esc(C.l)}`}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
+  const pill = n && !c.unsorted ? `<button class="ntkind ${C.k} fixed" disabled>${nic(C.ic)}${esc(C.l)}</button>` : `<button class="ntkind ${c.unsorted ? "uns" : C.k}" data-act="nt-kpick" aria-expanded="${!!c.kpick}">${c.unsorted ? `${nic("inbox")}서랍 고르기` : `${nic(C.ic)}${esc(C.l)}`}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
   /* ⋯ 메뉴 → 수정: 이 자료의 칸(핵심 요약·링크·종류 등)을 빼거나 다시 넣는다 */
   const menu = c.menu ? delDrop(n ? "nt-del" : "nt-discard", n ? n.id : "", n ? "nd" + n.id : "") : "";
   /* ⋯ → 수정: 이 자료에서 쓸 칸을 스위치로 켜고 끈다 */
@@ -3755,6 +3758,7 @@ function noteSheet(c){
   if (bodyOn && (!LP || !LP.sheet || LP.c !== c)){ if (LP && !LP.sheet) bkSave(true); const t0 = D("nf-body"), bb = n && Array.isArray(n.bodyBlocks) ? n.bodyBlocks.map(bkNorm) : null;
     const nz = v => String(v || "").replace(/\s+/g, " ").trim(); LP = {sheet:true, c, id:"nf", blocks:c._blocks || (bb && bb.length && nz(bkPlain(bb)) === nz(t0) ? bb : textBlocks(t0))}; delete c._blocks; }
   if (bodyOn) LP.ph = `${c.unsorted ? "떠오르는 대로 적어요" : C.k === "memo" ? "자유롭게 적어요" : "자유롭게 이어서 적어요"} · '/'로 블록 선택`;
+  if (c.pickFirst) return sheetWrap(pill, "", `<p class="ntpickq">어떤 서랍에 담을까요?</p>${kinds}`, ""); /* 자료 추가: 서랍부터 고른다 */
   return sheetWrap(pill, "", `${kinds}${tbar}
     ${tF ? `<textarea class="nttitle" id="nf-title" data-grow rows="1" maxlength="200" placeholder="${C.k === "idea" ? "떠오른 아이디어를 한 줄로" : C.k === "memo" ? "제목" : "제목"}">${D("nf-title")}</textarea>` : ""}
     ${props ? `<div class="ntprops">${props}</div>` : ""}
@@ -4022,7 +4026,7 @@ function viewDaily(){
   <div class="subhead"><h2>보관 <span class="num">${ar.length}</span></h2></div><section class="card tight qlist plarch">${ar.map(q => { const st = streakOf(q); return `<div class="row"><span class="t tap" data-act="hedit" data-id="${q.id}" role="button" tabindex="0"><b>${esc(q.name)}</b><small>${[repeatLabel(q), `총 ${st.total}회`].join(" · ")}</small></span><button class="btn sec xs" data-act="unarch" data-id="${q.id}">보관 해제</button></div>`; }).join("") || `<p class="empty-row">보관한 일일 퀘스트가 없어요. 잠시 쉬고 싶은 일일 퀘스트는 수정 창에서 보관할 수 있어요.</p>`}</section>`;
 }
 const plCard = g => pgCard(g).replace(/<div class="pgsubs">[\s\S]*?<\/div>\s*<\/section>$/, "</section>");
-/* 퀘스트 메뉴: 메인 퀘스트만. 칩 전체/진행/대기/달성. 카드에 스테이지 표시 없음(스테이지는 상세 화면에서). 일일 퀘스트는 대시보드 일일 칩의 '관리'에서. */
+/* 퀘스트 메뉴: 메인 퀘스트만. 칩 전체/진행/예정/달성. 카드에 스테이지 표시 없음(스테이지는 상세 화면에서). 일일 퀘스트는 대시보드 일일 칩의 '관리'에서. */
 /* 퀘스트 메뉴(모바일만): 카드 표지를 접고 펼 수 있다. 접은 목록은 이 기기에 저장. */
 function cvFoldQ(g, html){ if (WEB.matches) return html; const cv = coverHtml(g, {badge:false}); if (!cv || !html.includes(cv)) return html;
   const up = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`;
@@ -4034,10 +4038,10 @@ function viewPlan(){
   const tab = Q.ptab, T = t => tab === "all" || tab === t;
   /* 모바일은 위아래 한 줄씩, PC는 여러 줄 격자(.plgrid). 전체 칩의 달성은 최근 3개 + '달성 전체 보기'. */
   const sec = (t, list, extra = "", empty = "", more = "", btn = "", reo = false) => `<div class="subhead${btn ? " dqhead" : ""}"><h2>${t} <span class="num">${list.length}</span></h2>${btn}</div>${list.length || extra ? `<div class="plgrid qmgrid">${(more ? list.slice(0, 3) : list).map(g => ovLay(g, cvFoldQ(g, reo && S.canWrite ? plCard(g).replace('<section class="card pgc', `<section data-reo="${g.id}" class="card pgc`) : plCard(g)))).join("")}${extra}</div>${more}` : `<p class="empty-row plempty">${empty}</p>`}`;
-  let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태" data-swipe>${[["all","전체",all.length],["active","진행",act.length],["later","대기",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
+  let h = `<div class="seg pltabs" role="group" aria-label="메인 퀘스트 상태" data-swipe>${[["all","전체",all.length],["active","진행",act.length],["later","예정",later.length],["done","달성",done.length]].map(([k,l,n]) => `<button data-act="pl-tab" data-v="${k}" aria-pressed="${tab===k}">${l} <span class="num">${n}</span></button>`).join("")}</div>`;
   const mkBtn = `<button class="btn soft sm" data-act="sheet" data-k="add" data-v="big">+ 생성</button>`;
   if (T("active")) h += sec("진행 중", act, "", "이루고 싶은 목표를 퀘스트로 만들어 보세요.", "", mkBtn, true);
-  if (T("later") && (later.length || tab === "later")) h += sec("대기 중", later, "", "아직 시작하지 않은 메인 퀘스트가 여기에 모여요.", "", tab === "all" ? "" : mkBtn, true);
+  if (T("later") && (later.length || tab === "later")) h += sec("예정", later, "", "아직 시작하지 않은 메인 퀘스트가 여기에 모여요.", "", tab === "all" ? "" : mkBtn, true);
   const cx = cxGoalsOf(S.me);
   if (T("done") && (done.length || tab === "done")) h += sec("달성", done, "", "달성한 메인 퀘스트가 여기에 모여요.", tab === "all" && done.length > 3 ? `<button class="btn sec full qmmore" data-act="pl-tab" data-v="done">달성 전체 보기 <span class="num">${done.length}</span></button>` : "", mkBtn);
   if (tab === "done" && cx.length) h += sec("포기", cx);
@@ -4922,7 +4926,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null; if (LP && LP.
     <button class="btn big full" data-act="submit-tedit" ${S.busy?"disabled":""}>저장</button>
     <button class="btn full sec" style="margin-top:10px;color:var(--warn)" data-act="tdel">${S.armed === "td"+c.id ? "한 번 더 누르면 삭제" : "삭제"}</button>`); }
   if (c.type === "diary"){ const P = S.planner, dt = P.date || today(), d = S.mine["d-"+dt], x0 = pd(dt);
-    return sheetWrap(`<button class="ntkind journal" data-act="nt-kpick" aria-expanded="${!!c.kpick}">${nic("journal")}저널<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`, "", (c.kpick ? `<div class="ntkpick" role="group" aria-label="종류">${noteDrawers(S).filter(K => !K.hidden).map(K => `<button class="ntkp" data-act="dj-kind" data-v="${K.k}" aria-pressed="false">${nic(K.ic)}<b>${esc(K.l)}</b></button>`).join("")}<button class="ntkp" data-act="dj-kind" data-v="journal" aria-pressed="true">${nic("journal")}<b>저널</b></button></div>` : "") + diaryPage(d, P), d ? `<span class="ntmw"><button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>${c.menu ? delDrop("ldel", "d-" + d.date, "ldd-" + d.date) : ""}</span>` : ""); }
+    return sheetWrap(d && !c.fromNote ? `<span class="ntkind journal">${nic("journal")}저널</span>` : `<button class="ntkind journal" data-act="nt-kpick" aria-expanded="${!!c.kpick}">${nic("journal")}저널<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`, "", (c.kpick && (!d || c.fromNote) ? `<div class="ntkpick" role="group" aria-label="종류">${noteDrawers(S).filter(K => !K.hidden).map(K => `<button class="ntkp" data-act="dj-kind" data-v="${K.k}" aria-pressed="false">${nic(K.ic)}<b>${esc(K.l)}</b></button>`).join("")}<button class="ntkp" data-act="dj-kind" data-v="journal" aria-pressed="true">${nic("journal")}<b>저널</b></button></div>` : "") + diaryPage(d, P), d ? `<span class="ntmw"><button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>${c.menu ? delDrop("ldel", "d-" + d.date, "ldd-" + d.date) : ""}</span>` : ""); }
   if (c.type === "pmenu"){ const p = S.feed[c.pid]; if (!p){ closeSheet(); return; } const mine = p.author === S.me, a = p.author, f = isFollowing(S.me, a);
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-p="${p.id}" data-u="${esc(a)}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
     return sheetWrap(mine ? "내 스토리" : esc(nameOf(a)) + "님의 스토리", "", `<div class="sheetlist mlist">${mine
@@ -5453,8 +5457,8 @@ document.addEventListener("click", e => {
     case "nf-pick": { const inp = document.createElement("input"); inp.type = "file"; inp.multiple = true; inp.accept = F_ACCEPT; inp.onchange = () => addFiles(c, inp.files); inp.click(); return; }
     case "fv-back": openSheet(c.back); return;
     case "nt-cat": S.ntCat = b.dataset.v; break;
-    case "nt-new": { if (S.ntCat === "journal"){ if (!S.canWrite) return; openDiaryToday(""); return; } ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => d.k === "memo" && !d.hidden) || DR.find(d => !d.hidden) || DR[0]).k; /* 전체에서 누르면 바로 메모(빈 화면)로 */
-      openSheet({type:"note", cat, unsorted:!DR.some(d => d.k === S.ntCat && !d.hidden), vals:{}, area:null, projectId:b.dataset.p && S.projects[b.dataset.p] ? b.dataset.p : null}); setTimeout(() => { const x = $(".sheet input[type=text], .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
+    case "nt-new": { ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => d.k === "memo" && !d.hidden) || DR.find(d => !d.hidden) || DR[0]).k; /* 전체에서 누르면 바로 메모(빈 화면)로 */
+      openSheet({type:"note", cat, unsorted:true, pickFirst:true, kpick:true, vals:{}, area:null, projectId:b.dataset.p && S.projects[b.dataset.p] ? b.dataset.p : null}); return; }
     case "nt-edit": { S.lnMenu = null; const n = S.mine[id]; if (!n) return; const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
       const vals = {}; Object.entries(f).forEach(([k, v]) => { if (k === "rating" || ["status","media","type"].includes(k)) vals[k] = v; else S.drafts["nf-" + k] = v || ""; });
       openSheet({type:"note", id, cat, unsorted:!!n.unsorted, vals, area:ntAreas(n.area), projectId:n.projectId || null, files:[...(n.files || [])], hideF:[...(n.hideF || [])]}); return; }
@@ -5473,10 +5477,10 @@ document.addEventListener("click", e => {
         const nc = st.c; if (!ed && tx !== st.entry){ const t = String(st.drafts["nf-title"] || "").trim(); S.drafts["nf-body"] = t && tx.startsWith(t) ? tx.slice(t.length).trim() : tx; }
         else if (st.blocks) nc._blocks = st.blocks; /* 목록·제목 같은 본문 모양도 그대로 */ nc.noSave = false; nc.cat = v; nc.unsorted = false; nc.kpick = false; nc.menu = false; nc.blocks = null; openSheet(nc); return; }
       if (tx && !ed) S.drafts["nf-body"] = tx; /* 이미 저장한 저널은 그대로 두고 새 자료로 */ openSheet({type:"note", cat:v, unsorted:false, vals:{}, area:null, projectId:null}); return; }
-    case "nt-kpick": preserveSheetDrafts(); c.kpick = !c.kpick; c.menu = false; renderSheet(); return;
-    case "nt-kind": { preserveSheetDrafts(); if (b.dataset.v === "journal"){ const gv = k => { const el = document.getElementById(k); return el ? el.value : S.drafts[k]; }, tx = [gv("nf-title"), gv("nf-body")].map(x => String(x || "").trim()).filter(Boolean).join("\n"); c.noSave = true; c.kpick = false; c.menu = false;
+    case "nt-kpick": if (c && (c.pickFirst || (c.type === "note" && c.id && S.mine[c.id] && !c.unsorted))) return; preserveSheetDrafts(); c.kpick = !c.kpick; c.menu = false; renderSheet(); return;
+    case "nt-kind": { preserveSheetDrafts(); if (b.dataset.v === "journal"){ const gv = k => { const el = document.getElementById(k); return el ? el.value : S.drafts[k]; }, tx = [gv("nf-title"), gv("nf-body")].map(x => String(x || "").trim()).filter(Boolean).join("\n"); c.noSave = true; c.kpick = false; c.menu = false; c.pickFirst = false;
       const keep = {}; ntKeys().forEach(k => { const v = gv(k); if (v != null && v !== "") keep[k] = String(v); delete S.drafts[k]; }); /* 적던 자료는 그대로 보관해 두었다가 다른 서랍으로 돌아갈 때 되살린다 */
-      const kb = LP && LP.sheet && LP.c === c ? LP.blocks : null; openDiaryToday(tx); if (S.compose && S.compose.type === "diary") S.compose.fromNote = {c, drafts:keep, blocks:kb, entry:String(S.drafts["pl-text"] || "").trim()}; return; } c.cat = b.dataset.v; c.kpick = false; c.unsorted = false; c.blocks = null; const K = noteDrawer(S, c.cat);
+      const kb = LP && LP.sheet && LP.c === c ? LP.blocks : null; openDiaryToday(tx); if (S.compose && S.compose.type === "diary") S.compose.fromNote = {c, drafts:keep, blocks:kb, entry:String(S.drafts["pl-text"] || "").trim()}; renderSheet(); return; } const wasPick = c.pickFirst; c.pickFirst = false; if (wasPick) setTimeout(() => { const x = document.getElementById("nf-title"); x && x.focus && x.focus(); }, 60); c.cat = b.dataset.v; c.kpick = false; c.unsorted = false; c.blocks = null; const K = noteDrawer(S, c.cat);
       /* 메모에 적은 링크는 참고자료 '링크' 칸으로 옮기고, 주소로 종류(영상·글·SNS)를 정한다 */
       if (K.f.some(x => x.k === "url") && !(S.drafts["nf-url"] || "").trim()){ const m = ((S.drafts["nf-body"] || "") + " " + (S.drafts["nf-title"] || "")).match(NT_URL_RE); if (m){ S.drafts["nf-url"] = m[0]; S.drafts["nf-body"] = (S.drafts["nf-body"] || "").replace(m[0], "").replace(/^\s*\n/, "").trim(); if (LP && LP.sheet){ const bb = LP.blocks.filter(b => !bkText(b).includes(m[0]) || bkText(b).replace(m[0], "").trim()); bb.forEach(b => { if (bkText(b).includes(m[0])) b.h = esc(bkText(b).replace(m[0], "").trim()); }); LP.blocks = bb.length ? bb : textBlocks(""); } } }
       const mo = K.f.find(x => x.k === "media"), u = S.drafts["nf-url"]; if (mo && u && !(c.vals || {}).media){ const m = ntMediaOf(u); if (m && mo.o.includes(m)){ c.vals = c.vals || {}; c.vals.media = m; } }

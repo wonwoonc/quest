@@ -1181,13 +1181,13 @@ test('main quest page shows sub quests as cards with progress and next task',asy
   assert.match(html,/class="card pgc[^"]*" data-act="project" data-p="s1"[\s\S]*?기초 체력/);
   assert.match(html,/data-p="s2"[\s\S]*?시작 전/);assert.match(html,/subadd/);assert.doesNotMatch(html,/<em>다음<\/em>/);
 });
-test('nav › 퀘스트: main quests only, chips 전체/진행/대기/달성 filter; stage progress on the card',async()=>{
+test('nav › 퀘스트: main quests only, chips 전체/진행/예정/달성 filter; stage progress on the card',async()=>{
   const base=await profileUI(),saved=base.snapshot();
   saved.projects={m1:{id:'m1',owner:'me',title:'메인 A',end:'2099-12-31',status:'active'},s1:{id:'s1',owner:'me',parentId:'m1',title:'스테이지 B',end:'2099-12-31',status:'active'},m2:{id:'m2',owner:'me',title:'대기 메인',end:'2099-12-31',status:'planned'},m3:{id:'m3',owner:'me',title:'달성 메인',status:'done',doneAt:5}};
   saved.mine.qa={id:'qa',kind:'quest',name:'일일 C',repeat:{type:'daily'},days:[0,1,2,3,4,5,6],lv:'easy',active:true,done:{},createdAt:1};
   const h=await profileUI(saved);h.route('qmanage');let html=h.nodes.get('app').innerHTML;
-  assert.match(html,/data-v="all" aria-pressed="true">전체 <span class="num">3[\s\S]*data-v="active"[^>]*>진행 <span class="num">1[\s\S]*data-v="later"[^>]*>대기 <span class="num">1[\s\S]*data-v="done"[^>]*>달성 <span class="num">1/);
-  assert.match(html,/진행 중 <span class="num">1<\/span><\/h2><button[^>]*data-v="big">\+ 생성[\s\S]*메인 A[\s\S]*대기 중 <span class="num">1[\s\S]*대기 메인[\s\S]*달성 <span class="num">1[\s\S]*달성 메인/);
+  assert.match(html,/data-v="all" aria-pressed="true">전체 <span class="num">3[\s\S]*data-v="active"[^>]*>진행 <span class="num">1[\s\S]*data-v="later"[^>]*>예정 <span class="num">1[\s\S]*data-v="done"[^>]*>달성 <span class="num">1/);
+  assert.match(html,/진행 중 <span class="num">1<\/span><\/h2><button[^>]*data-v="big">\+ 생성[\s\S]*메인 A[\s\S]*예정 <span class="num">1[\s\S]*대기 메인[\s\S]*달성 <span class="num">1[\s\S]*달성 메인/);
   assert.doesNotMatch(html,/일일 C|data-v="sub"|data-v="daily"|class="pgsubs"/); assert.match(html, /<span>🔗 스테이지 0\/1<\/span><\/div>/); assert.doesNotMatch(html, /✅ 미션/);
   h.click('pl-tab',{v:'later'});html=h.nodes.get('app').innerHTML;assert.match(html,/대기 메인/);assert.doesNotMatch(html,/메인 A|달성 메인/);
   h.click('pl-tab',{v:'done'});html=h.nodes.get('app').innerHTML;assert.match(html,/달성 메인/);assert.doesNotMatch(html,/메인 A|대기 메인/);
@@ -1322,7 +1322,7 @@ test('자료 추가: 서랍 고르기에서 저널을 고르면 저널 작성 �
   assert.equal(Object.values(h.snapshot().mine).filter(n => n.kind === 'note').length, 0, 'no stray note saved');
 });
 test('저널 작성 화면에서 다른 서랍으로 바꾸기',async()=>{
-  const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); h.click('nt-new');
+  const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); h.click('nt-new'); assert.match(h.nodes.get('overlay').innerHTML, /어떤 서랍에 담을까요/); h.click('nt-kind',{v:'journal'});
   h.click('nt-kpick'); assert.match(h.nodes.get('overlay').innerHTML, /data-act="dj-kind" data-v="idea"/);
   h.nodes.set('pl-text',{value:'게임 아이디어'}); h.click('dj-kind',{v:'idea'}); await h.settle();
   const o = h.nodes.get('overlay').innerHTML; assert.match(o, /id="nfed"|id="nf-body"/); assert.match(o, /게임 아이디어/);
@@ -1341,7 +1341,7 @@ test('자료 추가 → 저널 → 다른 서랍: 적던 내용 그대로 (오�
 test('저널: 지난 날짜로 쓰기 (보상 없음), 카드에서 수정',async()=>{
   const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); await h.settle();
   assert.doesNotMatch(h.nodes.get('app').innerHTML, />\+ 저널 추가</);
-  h.click('nt-new'); const o = h.nodes.get('overlay').innerHTML;
+  h.click('nt-new'); h.click('nt-kind',{v:'journal'}); const o = h.nodes.get('overlay').innerHTML;
   assert.match(o, /data-act="jdpick"[^>]*>.*오늘/); assert.doesNotMatch(o, /어제|깜빡한 날/);
   h.click('jdpick'); const cal = h.nodes.get('overlay').innerHTML; assert.match(cal, /data-act="dppick" data-k="jd"/); assert.doesNotMatch(o+cal, /type="date"/);
   const t0 = cal.match(/class="sel tdy" data-act="dppick" data-k="jd" data-v="([\d-]+)"/)[1], d0 = new Date(t0+'T00:00:00'); d0.setDate(d0.getDate()-1);
@@ -1713,8 +1713,8 @@ test('자료 작성: 완료·삭제 버튼 없음, 뒤로 가면 자동 저장(�
   assert.match(app(),new RegExp(`data-act="nt-menu" data-id="${n.id}"`)); h.click('nt-menu',{id:n.id}); { const dd = (app().match(/class="ntdd"[\s\S]*?<\/div>/) || [''])[0]; assert.match(dd,/data-act="nt-del"[\s\S]*삭제/); assert.doesNotMatch(dd,/nt-edit|수정/,'card menu has only delete'); }
   h.click('nt-del',{id:n.id}); assert.match(ov(),/자료를 삭제할까요/); h.click('cfok'); await h.settle(); assert.equal(notes().length,0);
   // 작성 화면 ⋯ 메뉴: 수정·삭제. 기존 자료는 삭제(되살아나지 않음), 새 자료는 저장 없이 나가기
-  h.click('nt-new'); h.nodes.set('nf-title',{value:'지울 자료'}); h.click('sheet-close'); await h.settle(); const z = notes()[0]; assert.ok(z);
-  h.click('nt-edit',{id:z.id}); h.click('nt-emenu'); assert.match(ov(),/data-act="nt-del"[\s\S]*삭제/); assert.doesNotMatch(ov(),/nt-tedit/);
+  h.click('nt-new'); h.click('nt-kind',{v:'memo'}); h.nodes.set('nf-title',{value:'지울 자료'}); h.click('sheet-close'); await h.settle(); const z = notes()[0]; assert.ok(z);
+  h.click('nt-edit',{id:z.id}); assert.match(ov(),/class="ntkind memo fixed" disabled/); h.click('nt-kpick'); assert.doesNotMatch(ov(),/class="ntkpick"/); h.click('nt-emenu'); assert.match(ov(),/data-act="nt-del"[\s\S]*삭제/); assert.doesNotMatch(ov(),/nt-tedit/);
   h.click('nt-del',{id:z.id}); h.click('cfok'); await h.settle(); assert.equal(notes().length,0); assert.equal(h.nodes.get('overlay').innerHTML.includes('nttitle'),false);
-  h.click('nt-new'); h.nodes.set('nf-title',{value:'버릴 글'}); h.click('nt-emenu'); assert.match(ov(),/data-act="nt-discard"/); h.click('nt-discard'); assert.match(ov(),/작성 중인 내용을 지울까요/); h.click('cfok'); await h.settle(); assert.equal(notes().length,0);
+  h.click('nt-new'); h.click('nt-kind',{v:'memo'}); h.nodes.set('nf-title',{value:'버릴 글'}); h.click('nt-emenu'); assert.match(ov(),/data-act="nt-discard"/); h.click('nt-discard'); assert.match(ov(),/작성 중인 내용을 지울까요/); h.click('cfok'); await h.settle(); assert.equal(notes().length,0);
 });
