@@ -1328,6 +1328,16 @@ test('저널 작성 화면에서 다른 서랍으로 바꾸기',async()=>{
   const o = h.nodes.get('overlay').innerHTML; assert.match(o, /id="nfed"|id="nf-body"/); assert.match(o, /게임 아이디어/);
   assert.equal(Object.keys(h.snapshot().mine).filter(k => k.startsWith('d-')).length, 0, 'journal not saved');
 });
+test('자료 추가 → 저널 → 다른 서랍: 적던 내용 그대로 (오늘 저널이 이미 있어도)',async()=>{
+  const base = await profileUI(), saved = base.snapshot(), t = new Date(); const td = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  saved.mine = {...saved.mine, ['d-'+td]:{id:'d-'+td, kind:'diary', date:td, at:1, cond:60, emo:'평온', text:'이미 쓴 저널'}};
+  const h = await profileUI(saved); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'all'}); h.click('nt-new'); h.click('nt-kpick'); h.click('nt-kind',{v:'idea'});
+  h.nodes.set('nf-title',{value:'보스 레이드'}); h.nodes.set('nf-why',{value:'친구랑 같이'}); h.click('nt-kpick'); h.click('nt-kind',{v:'journal'}); await h.settle();
+  let o = h.nodes.get('overlay').innerHTML; assert.match(o, /이미 쓴 저널/); assert.match(o, /data-act="nt-kpick"/, 'picker available even for saved journal');
+  h.nodes.delete && h.nodes.delete('nf-title'); h.nodes.delete && h.nodes.delete('nf-why');
+  h.click('nt-kpick'); h.click('dj-kind',{v:'idea'}); await h.settle(); o = h.nodes.get('overlay').innerHTML;
+  assert.match(o, /보스 레이드/); assert.match(o, /친구랑 같이/); assert.equal(h.snapshot().mine['d-'+td].text, '이미 쓴 저널');
+});
 test('저널: 지난 날짜로 쓰기 (보상 없음), 카드에서 수정',async()=>{
   const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); await h.settle();
   assert.doesNotMatch(h.nodes.get('app').innerHTML, />\+ 저널 추가</);
