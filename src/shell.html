@@ -2039,6 +2039,18 @@ a.row{color:inherit;text-decoration:none}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bx .tc-r{color:#FF8A84}:root:not([data-theme="light"]) .bx .tc-o{color:#FFB066}:root:not([data-theme="light"]) .bx .tc-g{color:#4CD18F}:root:not([data-theme="light"]) .bx .tc-b{color:#7DB8FF}:root:not([data-theme="light"]) .bx .tc-v{color:#C2A6FF}:root:not([data-theme="light"]) .bx .tc-m{color:#9AA49F}}
 :root[data-theme="dark"] .bx .tc-r{color:#FF8A84}:root[data-theme="dark"] .bx .tc-o{color:#FFB066}:root[data-theme="dark"] .bx .tc-g{color:#4CD18F}:root[data-theme="dark"] .bx .tc-b{color:#7DB8FF}:root[data-theme="dark"] .bx .tc-v{color:#C2A6FF}:root[data-theme="dark"] .bx .tc-m{color:#9AA49F}
 .bx mark .tc-r,.bx mark .tc-o,.bx mark .tc-g,.bx mark .tc-b,.bx mark .tc-v,.bx mark .tc-m{filter:brightness(.8)}
+/* 아이디어 '실행할 일': 작은 한 줄 + 퀘스트로 만들기 목록 */
+.ntbox.task.ntmk{padding:6px 6px 6px 12px;margin-bottom:12px;border-radius:12px}
+.ntmk .nttask{gap:8px}
+.ntmk .nttask .ntbl{flex:none;margin:0;font-size:12.5px;font-weight:700;white-space:nowrap}
+.sheet .ntmk .nttask input,.ntmk .nttask input{padding:7px 10px;font-size:14px;border-radius:8px;color:var(--ink)}
+.ntmkb{flex:none;display:inline-flex;align-items:center;gap:2px;border:0;background:#C96A1F;color:#fff;font:inherit;font-size:13px;font-weight:700;padding:7px 8px 7px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.ntmkb .ntdc{width:14px;height:14px}
+.ntmkl{display:flex;flex-direction:column;gap:2px;margin:6px 0 0;background:var(--card);border-radius:10px;padding:4px}
+.ntmkl button{display:flex;align-items:baseline;gap:8px;border:0;background:none;font:inherit;text-align:left;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--ink)}
+.ntmkl button:hover{background:var(--fill)}
+.ntmkl b{font-size:14px;font-weight:600}.ntmkl small{font-size:12px;color:var(--muted)}
+:root[data-theme="dark"] .ntmkb{background:#B35F1C}
 </style>
 <!--APP_ENTRY-->
 </body></html>

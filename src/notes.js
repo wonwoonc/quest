@@ -14,7 +14,7 @@ export const NOTE_POOL = [
   {k:'status', t:'choice', l:'상태', o:['예정','진행 중','완료']}
 ];
 export const BASE_DRAWERS = [
-  {k:'idea', l:'아이디어', ic:'idea', pt:1, area:null, hint:'떠오른 순간 한 줄로 붙잡고, 다음 행동까지 적으면 완성이에요.', need:'다음 행동', f:[
+  {k:'idea', l:'아이디어', ic:'idea', pt:1, area:null, hint:'떠오른 순간 한 줄로 붙잡고, 실행할 일을 퀘스트로 만들면 완성이에요.', need:'실행할 일', f:[
     {k:'title', t:'text', l:'한 줄 아이디어', p:'예: 친구와 함께 깨는 레이드 퀘스트'}]},
   {k:'ref', l:'참고자료', ic:'link', pt:0, area:null, hint:'나중에 볼 글·영상·파일을 모아 둬요.', need:'', f:[
     {k:'media', t:'choice', l:'종류', o:['글','영상','SNS','파일','기타']},
@@ -35,7 +35,7 @@ export const BASE_DRAWERS = [
  * 같은 서랍 안에서 같은 키는 같은 뜻이라, 템플릿을 바꿔도 적어 둔 칸은 그대로 남는다.
  * 완성 조건 칸은 모든 템플릿에 들어 있다: 아이디어 next(미션 추가), 참고자료 summary + why. */
 const A = (k, l, p) => ({k, t:'area', l, p}), T = (k, l, p) => ({k, t:'text', l, p});
-const NEXT = {k:'next', t:'text', l:'다음 행동', p:'예: 비슷한 서비스 3개 찾아보기', task:true};
+const NEXT = {k:'next', t:'text', l:'실행할 일', p:'예: 비슷한 서비스 3개 찾아보기', task:true};
 const SUM = (l = '핵심 요약', p = '3줄 이내로 적어요') => A('summary', l, p), WHY_REF = A('why', '저장한 이유', '예: 다음 달 발표 자료에 인용');
 export const NOTE_TPLS = {
   idea:[

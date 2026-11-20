@@ -1101,7 +1101,7 @@ function ntCard(n){
   const {cat, f} = ntN(n), C = noteDrawer(S, cat), pj = n.projectId && S.projects[n.projectId], d = new Date(n.updatedAt || n.createdAt || Date.now());
   const h3 = v => v ? `<h3>${esc(v)}</h3>` : "", p = v => v ? `<p class="ntbody">${esc(v)}</p>` : "", sub = (...xs) => { const l = xs.filter(Boolean); return l.length ? `<p class="ntsub">${l.join(" · ")}</p>` : ""; };
   const ts = ntTasks(n), tdone = ts.length && ts.every(m => m.done), dq = mineOf("quest").find(q => q.noteId === n.id && q.active !== false);
-  const run0 = dq ? `<span class="ntrun ok">일일 진행 중 · 연속 ${streakOf(dq).cur}${streakUnit(dq)}</span>` : ts.length ? `<span class="ntrun ${tdone ? "ok" : ""}">${tdone ? nic("check") + "실행함" : "미션 진행 중"}</span>` : "";
+  const rl = ntRunL(n), run0 = dq ? `<span class="ntrun ok">일일 진행 중 · 연속 ${streakOf(dq).cur}${streakUnit(dq)}</span>` : rl ? `<span class="ntrun ${rl === "실행함" ? "ok" : ""}">${rl === "실행함" ? nic("check") + rl : rl}</span>` : "";
   const runL = run0 ? `<p class="ntnext">${run0}</p>` : ""; /* 카드에는 템플릿·본문 내용을 보여 주지 않는다(제목과 정보만) */
   let mid = "";
   if (cat === "idea") mid = h3(f.title) + runL;
@@ -1138,8 +1138,8 @@ const ntVIc = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 function ntViewSeg(cat){ const cur = ntViewOf(cat);
   return `<span class="ntvw"><button class="ntvbtn" data-act="nt-vmenu" aria-label="보기: ${ntVL(cat, cur)}" aria-expanded="${!!S.ntVOpen}" title="보기">${ntVIc(cur)}</button>${S.ntVOpen ? `<div class="ntvdd" role="menu">${ntVSet(cat).map(k => `<button role="menuitemradio" data-act="nt-view" data-v="${k}" aria-checked="${cur === k}">${ntVIc(k)}<span><b>${ntVL(cat, k)}</b>${(NT_VDESC[cat] || {})[k] ? `<small>${NT_VDESC[cat][k]}</small>` : ""}</span></button>`).join("")}</div>` : ""}</span>`; }
 function ntTitle(n){ const {f} = ntN(n); return f.title || (f.url && ntHost(f.url)) || (n.files && n.files[0] && n.files[0].name) || String(f.body || "").split("\n")[0].slice(0, 40) || "제목 없음"; }
-function ntRunL(n){ const ts = ntTasks(n), dq = mineOf("quest").find(q => q.noteId === n.id && q.active !== false);
-  return dq ? "일일 진행 중" : ts.length ? (ts.every(m => m.done) ? "실행함" : "미션 진행 중") : ""; }
+function ntRunL(n){ const ts = ntTasks(n), dq = mineOf("quest").find(q => q.noteId === n.id && q.active !== false), pg = Object.values(S.projects).filter(p => p.noteId === n.id && p.owner === S.me && !isCx(p));
+  return dq ? "일일 진행 중" : pg.some(p => p.status !== "done") ? "메인 진행 중" : ts.length && !ts.every(m => m.done) ? "미션 진행 중" : pg.length || ts.length ? "실행함" : ""; }
 const ntAt = n => n.updatedAt || n.createdAt || 0, ntMD = t => { const d = new Date(t || Date.now()); return `${d.getMonth()+1}.${d.getDate()}`; };
 function ntListRows(ns){
   return `<section class="card tight ntlist">${ns.map(n => { const C = noteDrawer(S, ntN(n).cat), done = noteComplete(S, n);
@@ -1163,7 +1163,7 @@ function ntBoard(ns, cat){
   const cols = cat === "learn" ? [...(ns.some(n => !LN_ST.includes(ntN(n).f.status)) ? [["", "상태 없음"]] : []), ...LN_ST.map(x => [x, x])] : [["떠올림","떠올림"],["실행 중","실행 중"],["실행함","실행함"]];
   const colOf = n => cat === "learn" ? (LN_ST.includes(ntN(n).f.status) ? ntN(n).f.status : "") : (r => r === "실행함" ? "실행함" : r ? "실행 중" : "떠올림")(ntRunL(n));
   const sub = n => { const {f} = ntN(n); if (cat === "learn") return [f.type, f.author, stars(f.rating)].filter(Boolean).map(x => x === stars(f.rating) ? x : esc(x)).join(" · ");
-    const ts = ntTasks(n), r = ntRunL(n); return r === "일일 진행 중" ? r : ts.length ? `미션 ${ts.filter(m => m.done).length}/${ts.length}` : "다음 행동 없음"; };
+    const ts = ntTasks(n), r = ntRunL(n); return r === "일일 진행 중" ? r : ts.length ? `미션 ${ts.filter(m => m.done).length}/${ts.length}` : "실행 전"; };
   return `<div class="ntboard" data-swipe ${cat === "learn" && S.canWrite ? 'data-kmove="learn"' : ""}>${cols.map(([k, l]) => { const xs = ns.filter(n => colOf(n) === k);
     return `<section class="kcol" data-st="${esc(k)}"><h4>${esc(l)} <span class="num">${xs.length}</span></h4>${xs.map(n => `<button class="kbc" data-act="nt-edit" data-id="${n.id}"><b>${esc(ntTitle(n))}</b>${(v => v ? `<small>${v}</small>` : "")(sub(n))}</button>`).join("") || `<p class="kemp">비어 있어요</p>`}</section>`; }).join("")}</div>
     ${cat === "learn" && S.canWrite ? `<p class="kbhint">카드를 길게 눌러 다른 칸으로 옮기면 상태가 바뀌어요.</p>` : ""}`; }
@@ -1232,7 +1232,9 @@ function noteSheet(c){
     else ctl = `<input class="ntpin" type="${x.t === "url" ? "url" : x.t === "date" ? "date" : "text"}" id="${id}" maxlength="${x.t === "url" ? 500 : 200}" placeholder="${esc(x.t === "url" ? "링크 붙여 넣기" : (x.p || "").replace(/^예:\s*/, "") || "적기")}" value="${D(id)}">`;
     return `<span class="ntpl">${esc(x.l)}</span><div class="ntpv">${ctl}${tg}</div>`; };
   const block = x => { if (!shown(x)) return ""; const id = "nf-" + x.k;
-    if (x.task) return `<div class="ntbox task"><span class="ntbl">${esc(x.l)}${xb(x)}</span><div class="nttask"><input type="text" id="${id}" maxlength="200" placeholder="${esc(x.p || "")}" value="${D(id)}"><button class="btn sec xs" data-act="nt-task" data-f="${x.k}">미션 추가</button></div></div>`;
+    if (x.task){ const mk = c.drop === "mk"; /* 실행할 일: 작은 한 줄. '퀘스트로' 누르면 아래로 미션·일일·메인 중 고르는 목록 */
+      return `<div class="ntbox task ntmk"><div class="nttask"><span class="ntbl">${esc(x.l)}${xb(x)}</span><input type="text" id="${id}" maxlength="200" placeholder="${esc(x.p || "")}" value="${D(id)}"><button class="ntmkb" data-act="nt-drop" data-v="mk" aria-expanded="${mk}">퀘스트로${chev(mk)}</button></div>
+        ${mk ? `<div class="ntmkl">${[["task","미션","한 번 하면 끝나는 일"],["daily","일일 퀘스트","꾸준히 반복하는 일"],["big","메인 퀘스트","몇 주 이상 걸리는 큰 목표"]].map(([k, l, d]) => `<button data-act="nt-mk" data-f="${x.k}" data-v="${k}"><b>${l}</b><small>${d}</small></button>`).join("")}</div>` : ""}</div>`; }
     const box = x.k === "summary";
     return `<div class="${box ? "ntbox sum" : "ntblk"}"><span class="ntbl">${esc(x.l)}${xb(x)}</span><textarea id="${id}" data-grow rows="${box ? 3 : 2}" maxlength="10000" placeholder="${esc(x.p || "")}">${D(id)}</textarea></div>`; };
   const pj = c.projectId && S.projects[c.projectId];
@@ -3142,6 +3144,13 @@ document.addEventListener("click", e => {
       if (c.ek === "task"){ S.drafts["ta-name"] = name; openSheet({type:"taskadd", lv:"normal", due:today(), time:"", period:"", projectId:pj, area:pj ? areaUp(pj).slice(0, 2) : [], noteId:key}); return; }
       S.drafts["ad-name"] = name; if (c.ek === "daily"){ openSheet({type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:pj && !(S.projects[pj] || {}).parentId ? pj : null, parentId:null, unit:null, area:[], noteId:key}); return; }
       openSheet({type:"add", kind:"big", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:"", period:"", projectId:null, parentId:null, unit:null, area:ntAreas((nt || {}).area), noteId:key}); return; }
+    case "nt-mk": { const name = pv("nf-" + b.dataset.f).trim(); if (!name){ toast("먼저 실행할 일을 적어 주세요"); return; } const pj = c.projectId || null, v = b.dataset.v; c.drop = null;
+      /* 자료를 먼저 저장하고(보상 없음) 고른 퀘스트 만들기 화면으로. 퀘스트를 실제로 만들면 그때 아이디어가 완성된다 */
+      saveNote(c, key => { c.noSave = true; const p0 = pj && S.projects[pj] ? pj : null, nt = S.mine[key];
+        if (v === "task"){ S.drafts["ta-name"] = name; openSheet({type:"taskadd", lv:"normal", due:today(), time:"", period:"", projectId:p0, area:p0 ? areaUp(p0).slice(0, 2) : [], noteId:key}); return; }
+        S.drafts["ad-name"] = name;
+        if (v === "daily"){ openSheet({type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:p0 && !(S.projects[p0] || {}).parentId ? p0 : null, parentId:null, unit:null, area:[], noteId:key}); return; }
+        openSheet({type:"add", kind:"big", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], due:"", period:"", projectId:null, parentId:null, unit:null, area:ntAreas((nt || {}).area), noteId:key}); }); return; }
     case "nt-task": { const name = pv("nf-" + b.dataset.f).trim(); if (!name){ toast("먼저 내용을 적어 주세요"); return; } const pj = c.projectId || null;
       /* 자료를 먼저 저장하고(보상 없음) 바로 미션 추가 화면으로. 미션을 실제로 추가하면 그때 아이디어가 완성된다 */
       saveNote(c, key => { c.noSave = true; const p0 = pj && S.projects[pj] ? pj : null; S.drafts["ta-name"] = name; openSheet({type:"taskadd", lv:"normal", due:today(), time:"", period:"", projectId:p0, area:p0 ? areaUp(p0).slice(0, 2) : [], noteId:key}); }); return; }
