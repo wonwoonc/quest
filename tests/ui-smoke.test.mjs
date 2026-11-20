@@ -362,6 +362,11 @@ test('brain dump: lives on the plus page (not qmanage), pour lines in, list + so
   h.nodes.set('ta-name',{value:'세탁소 들르기'}); h.click('dppick',{k:'due',v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
   assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.name === '세탁소 들르기'));
   assert.deepEqual(dumps().map(d => d.text),['이상한 생각']);
+  // 자료로 분류하면 시트 없이 메모로 담겨 자료실 '정리 전'에 보인다
+  const odd0 = dumps()[0]; h.click('bd-send',{id:odd0.id,v:'note'}); await h.settle(); assert.equal(dumps().length,0);
+  const memo = Object.values(h.snapshot().mine).find(m => m.kind === 'note' && m.cat === 'memo' && m.f?.body === '이상한 생각'); assert.ok(memo);
+  h.route('notes'); assert.match(h.nodes.get('app').innerHTML,/정리 전[\s\S]*이상한 생각/);
+  h.route('write'); h.click('wrmode',{v:'dump'}); h.nodes.set('bd-in',{value:'이상한 생각'}); h.click('bd-add'); await h.settle();
   // 모든 삭제는 확인 팝업: 누르면 팝업만 뜨고, 팝업에서 삭제를 눌러야 지워진다
   const odd = dumps()[0]; h.click('bd-del',{id:odd.id}); assert.equal(dumps().length,1); assert.match(h.nodes.get('overlay').innerHTML,/이 생각을 삭제할까요\?/); h.click('cfok'); await h.settle();
   assert.equal(dumps().length,0);
