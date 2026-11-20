@@ -392,7 +392,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   h.click('nt-edit',{id:n0.id}); h.click('nt-del',{id:n0.id}); assert.match(h.nodes.get('overlay').innerHTML,/자료를 삭제할까요\?/); assert.equal(notes().length,1); h.click('cfok'); await h.settle();
   assert.equal(notes().length,0); assert.equal(xp(),x0,'deleting reverses the reward');
   // learning: detail screen with chapters (Cornell notes per chapter) and wrap-up
-  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/학습 목표/); assert.doesNotMatch(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'강의'}); assert.match(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'책'}); assert.doesNotMatch(ov(),/id="nf-url"/); assert.doesNotMatch(ov(),/XP|코인/);
+  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.doesNotMatch(ov(),/학습 목표/); assert.match(ov(),/data-act="nt-tpl"[^>]*>[\s\S]*?학습 템플릿/); h.click('nt-tpl'); assert.match(ov(),/학습 목표/); assert.doesNotMatch(ov(),/class="nttpl" data-act="nt-tpl" >/); assert.doesNotMatch(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'강의'}); assert.match(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'책'}); assert.doesNotMatch(ov(),/id="nf-url"/); assert.doesNotMatch(ov(),/XP|코인/);
   h.nodes.set('nf-title',{value:'데이터 분석 입문'}); h.click('submit-note'); await h.settle();
   const L = notes()[0]; assert.equal(L.cat,'learn'); assert.doesNotMatch(app(),/id="nted"/,'learning opens like other drawers');
   h.click('nt-edit',{id:L.id}); assert.match(ov(),/class="nttitle"/); assert.match(ov(),/data-f="status"/); h.click('sheet-close'); await h.settle();
