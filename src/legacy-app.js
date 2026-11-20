@@ -1131,7 +1131,7 @@ function noteSheet(c){
   const hasUrl = C.k === "memo" && DR.some(d => d.k === "ref") && NT_URL_RE.test(D("nf-title") + " " + D("nf-body"));
   const pill = `<button class="ntkind ${c.unsorted ? "uns" : C.k}" data-act="nt-kpick" aria-expanded="${!!c.kpick}">${c.unsorted ? `${nic("inbox")}서랍 고르기` : `${nic(C.ic)}${esc(C.l)}`}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
   /* ⋯ 메뉴 → 수정: 이 자료의 칸(핵심 요약·링크·종류 등)을 빼거나 다시 넣는다 */
-  const menu = c.menu ? `<div class="ntemenu" role="menu"><button class="row mitem" data-act="nt-tedit" role="menuitem"><span class="t"><b>${nic("memo")}수정</b><small>핵심 요약·링크·종류 같은 칸을 빼거나 다시 넣어요</small></span></button></div>` : "";
+  const menu = c.menu ? `<div class="ntemenu ntmenu" role="menu"><button class="row mitem" data-act="nt-tedit" role="menuitem"><span class="t"><b>${nic("memo")}수정</b></span></button><button class="row mitem danger" data-act="${n ? "nt-del" : "nt-discard"}" data-id="${n ? n.id : ""}" role="menuitem"><span class="t"><b>${nic("trash")}삭제</b></span></button></div>` : "";
   const tbar = c.tedit ? `<div class="nttbar"><div class="nttb-h"><b>칸 수정</b><span>× 로 빼고, 아래에서 다시 넣어요</span><button class="ntpc on" data-act="nt-tedit">끝내기</button></div>${hid.length ? `<div class="nttb-r">${hid.map(k => { const x = C.f.find(y => y.k === k); return x ? `<button class="ntpc add" data-act="nt-unhide" data-f="${k}">+ ${esc(x.l)}</button>` : ""; }).join("")}</div>` : ""}</div>` : "";
   return sheetWrap(pill, "", `${menu}${kinds}${tbar}
     ${tF ? `<textarea class="nttitle" id="nf-title" data-grow rows="1" maxlength="200" placeholder="${C.k === "idea" ? "떠오른 아이디어를 한 줄로" : C.k === "memo" ? "제목" : "제목"}">${D("nf-title")}</textarea>` : ""}
@@ -2783,6 +2783,7 @@ document.addEventListener("click", e => {
     case "nt-edit": { const n = S.mine[id]; if (!n) return; if (ntN(n).cat === "learn" && !b.dataset.info){ push({name:"learn", id}, "#learn"); return; } const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
       const vals = {}; Object.entries(f).forEach(([k, v]) => { if (k === "rating" || ["status","media","type"].includes(k)) vals[k] = v; else S.drafts["nf-" + k] = v || ""; });
       openSheet({type:"note", id, cat, unsorted:!!n.unsorted, vals, area:n.area || null, projectId:n.projectId || null, files:[...(n.files || [])], hideF:[...(n.hideF || [])]}); return; }
+    case "nt-discard": ask({t:"작성 중인 내용을 지울까요?", d:"저장하지 않고 나가요.", ok:"삭제"}, () => { if (S.compose && S.compose.type === "note"){ S.compose.noSave = true; closeSheet(); } }); return;
     case "nt-emenu": preserveSheetDrafts(); c.menu = !c.menu; c.kpick = false; renderSheet(); return;
     case "nt-tedit": preserveSheetDrafts(); c.menu = false; c.tedit = !c.tedit; renderSheet(); return;
     case "nt-hide": preserveSheetDrafts(); c.hideF = [...new Set([...(c.hideF || []), b.dataset.f])]; delete S.drafts["nf-" + b.dataset.f]; if (c.vals) delete c.vals[b.dataset.f]; renderSheet(); return;
@@ -2822,7 +2823,7 @@ document.addEventListener("click", e => {
       run(async () => { for (const n of moved){ const {f} = ntN(n); await api.putMine(n.id, {...n, cat:"memo", f:{title:f.title || "", body:Object.entries(f).filter(([x]) => x !== "title").map(([, v]) => String(v)).join("\n")}}); }
         await api.putMine("drawers", {kind:"drawers", list:(cfg.list || []).filter(x => x.k !== k), hidden:cfg.hidden || []}); },
         () => { if (S.ntCat === k) S.ntCat = "all"; openSheet({type:"drawers"}); toast(moved.length ? `서랍을 삭제하고 자료 ${moved.length}개를 메모로 옮겼어요` : "서랍을 삭제했어요"); }); return; }
-    case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; { const fs0 = (S.mine[id] && S.mine[id].files) || []; run(() => api.delMine(id), () => { fs0.forEach(x => FDB.del(x.id)); closeSheet(); toast("자료를 삭제했어요"); if (S.view && S.view.name === "learn" && S.view.id === id){ S.view = {name:"notes"}; LP = null; history.replaceState(history.state, "", "#notes"); schedule(); scrollTo(0, 0); } }); } return;
+    case "nt-del": if (S.armed !== "nd"+id){ arm("nd"+id); renderSheet(); return; } S.armed = null; { const fs0 = (S.mine[id] && S.mine[id].files) || []; run(() => api.delMine(id), () => { fs0.forEach(x => FDB.del(x.id)); if (S.compose && S.compose.type === "note") S.compose.noSave = true; closeSheet(); toast("자료를 삭제했어요"); if (S.view && S.view.name === "learn" && S.view.id === id){ S.view = {name:"notes"}; LP = null; history.replaceState(history.state, "", "#notes"); schedule(); scrollTo(0, 0); } }); } return;
     case "bd-area": LS.set("bdOff", b.dataset.v === "off"); break;
     case "bd-del": if (S.armed !== "bd"+id){ arm("bd"+id); if (c && c.type === "bdsort") renderSheet(); break; } S.armed = null; run(() => api.delMine(id), () => { if (S.compose && S.compose.type === "bdsort") closeSheet(); toast("삭제했어요"); }); return;
     case "bd-send": bdSend(id, b.dataset.v); return;
