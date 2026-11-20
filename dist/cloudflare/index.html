@@ -1891,6 +1891,7 @@ a.row{color:inherit;text-decoration:none}
 .nttab[aria-selected="true"]{background:var(--accent);color:#fff}
 .gth h2,.pgc .pgtl h3{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gth h2{font-size:20px}
+.nttplbtn{display:inline-flex;align-items:center;gap:6px;border:1.5px dashed var(--line);background:none;border-radius:10px;padding:7px 10px;margin:2px 0 12px;font:600 13.5px/1.2 var(--f);letter-spacing:0;color:var(--sub);cursor:pointer}.nttplbtn .nic{width:16px;height:16px;margin:0}.nttplbtn>svg:last-child{width:14px;height:14px}.nttplbtn b{color:var(--accent)}
 </style>
 <script>
 (function(){"use strict";
@@ -3657,7 +3658,7 @@ function viewCal(){
 
 /* ================= 자료실 (nav › 자료실): references, ideas, reading notes, study notes ================= */
 /* line icons for 자료실 (no emoji) */
-const NIP = {
+const NIP = {layout:'<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M3.5 9h17M9 9v11.5"/>', 
   idea:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3Z"/>',
   link:'<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
   book:'<path d="M2.5 4.5h6a3.5 3.5 0 0 1 3.5 3.5v12.5a2.5 2.5 0 0 0-2.5-2.5h-7Z"/><path d="M21.5 4.5h-6A3.5 3.5 0 0 0 12 8v12.5a2.5 2.5 0 0 1 2.5-2.5h7Z"/>',
@@ -3807,13 +3808,14 @@ function noteSheet(c){
   /* 아래 글 상자(왜 좋은가요?·핵심 요약·다음 행동·학습 목표…)는 서랍 템플릿: 내용이 없으면 '템플릿' 버튼만 두고, 누르면 나온다.
      빈 상자에서 백스페이스를 누르면 그 상자가 지워진다 */
   /* 서랍 템플릿: 고른 템플릿의 칸 + 다른 템플릿에서 이미 적어 둔 칸(템플릿을 바꿔도 남는다) */
-  const tpls = noteTpls(C), tpl = noteTpl(C, c.tpl || (n && n.tpl)), tF0 = tpl ? tpl.f : [];
+  const tpls = noteTpls(C), tId = c.tpl || (n && n.tpl) || "none", tpl = tpls && tId !== "none" ? noteTpl(C, tId) : null, tF0 = tpl ? tpl.f : []; /* 새 자료는 빈 내용으로 시작, 템플릿은 골랐을 때만 */
   const BF = [...C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body" && !x.bottom), ...tF0, ...noteTplFields(C).filter(x => !tF0.some(y => y.k === x.k) && String(S.drafts["nf-" + x.k] || "").trim())].filter(whenOk);
   c._bf = BF.map(x => x.k);
   if (!c.blocks){ const filled = BF.filter(x => (D("nf-" + x.k) || "").trim()).map(x => x.k); c.blocks = n && !c.tplTouched && (filled.length || D("nf-body").trim()) ? filled : BF.map(x => x.k); } /* 템플릿은 기본으로 보인다 */
-  const tabs = tpls && tpls.length > 1 ? `<div class="nttabs" role="tablist" aria-label="템플릿" data-swipe>${tpls.map(t => `<button class="nttab" role="tab" data-act="nt-tplset" data-v="${t.id}" aria-selected="${t.id === tpl.id}">${esc(t.l)}</button>`).join("")}</div>` : "";
+  const tplBtn = tpls ? `<button class="nttplbtn" data-act="nt-tplpick" aria-haspopup="dialog">${nic("layout")}<span>${tpl ? `템플릿 · <b>${esc(tpl.l)}</b>` : "템플릿 선택"}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>` : "";
+  const tplPop = tpls && c.tplOpen ? `<div class="ntqpop" data-act="nt-tplclose"><div class="ntqpop-in" data-act="dpstay" role="dialog" aria-label="템플릿 선택"><div class="ntqpop-h"><b>${esc(C.l)} 템플릿</b><button class="iconbtn" data-act="nt-tplclose" aria-label="닫기">${I.close}</button></div><div class="ntql">${[{id:"none", l:"템플릿 없이", f:[]}, ...tpls.filter(t => t.f.length)].map(t => `<button class="ntqi ${t.id === tId ? "on" : ""}" data-act="nt-tplset" data-v="${t.id}"><span><b>${esc(t.l)}</b><small>${t.f.length ? esc(t.f.map(x => x.l).join(" · ")) : "빈 내용으로 자유롭게"}</small></span></button>`).join("")}</div></div></div>` : "";
   const vis = BF.filter(x => c.blocks.includes(x.k));
-  const tplHtml = vis.map(block).join("") + (vis.length < BF.length ? `<button class="nttpl" data-act="nt-tpl">${nic(C.ic)}${esc(tpl ? tpl.l : C.l)} 템플릿</button>` : ""); /* 하나라도 지우면 되살리는 버튼 */
+  const tplHtml = vis.map(block).join("") + (vis.length < BF.length ? `<button class="nttpl" data-act="nt-tpl">${nic(C.ic)}${esc(tpl ? tpl.l : C.l)} 템플릿</button>` : "") + tplPop; /* 하나라도 지우면 되살리는 버튼 */
   const tbar = c.tedit ? `<div class="nttbar2"><button class="ntpc on" data-act="nt-tedit">완료</button></div>` : "";
   /* 본문: 학습 노트와 같은 블록 편집기('/' 메뉴, '# ' '- ' '> ' 단축 입력). 저장은 화면을 닫을 때 */
   const bodyOn = C.f.some(x => x.k === "body") || ntFreeBody(C);
@@ -3821,10 +3823,10 @@ function noteSheet(c){
     const nz = v => String(v || "").replace(/\s+/g, " ").trim(); LP = {sheet:true, c, id:"nf", blocks:c._blocks || (bb && bb.length && nz(bkPlain(bb)) === nz(t0) ? bb : textBlocks(t0))}; delete c._blocks; }
   if (bodyOn) LP.ph = `${c.unsorted ? "떠오르는 대로 적어요" : C.k === "memo" ? "자유롭게 적어요" : "자유롭게 이어서 적어요"} · '/'로 블록 선택`;
   if (c.pickFirst) return sheetWrap(pill, "", `<p class="ntpickq">어떤 서랍에 담을까요?</p>${kinds}`, ""); /* 자료 추가: 서랍부터 고른다 */
-  return sheetWrap(pill, "", `${kinds}${tbar}${tabs}
+  return sheetWrap(pill, "", `${kinds}${tbar}
     ${tF ? `<textarea class="nttitle" id="nf-title" data-grow rows="1" maxlength="200" placeholder="${C.k === "idea" ? "떠오른 아이디어를 한 줄로" : C.k === "memo" ? "제목" : "제목"}">${D("nf-title")}</textarea>` : ""}
     ${props ? `<div class="ntprops">${props}</div>` : ""}
-    ${tplHtml}
+    ${tplBtn}${tplHtml}
     ${bodyOn ? `<div class="nfedw"><div class="nted nfed" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}` : ""}
     ${n && C.k === "learn" && Array.isArray(n.blocks) && n.blocks.some(b => bkText(b).trim()) ? `<button class="ntlnote" data-act="ln-open" data-id="${n.id}">${nic("book")}<span><b>학습 노트</b><small>정리한 노트 ${n.blocks.filter(b => bkText(b).trim()).length}줄 · 열기</small></span><svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>` : ""}
     <div class="ntsug" ${hasUrl ? "" : "hidden"}><span>${nic("link")}링크가 있어요</span><button class="ntpc on" data-act="nt-kind" data-v="ref">참고자료로 정리</button></div>
@@ -3851,7 +3853,7 @@ function saveNote(c, after, quiet){
   const bb = live ? (f.body && LP.blocks.some(b => b.t !== "p" || b.ind || /</.test(b.h || "")) ? bkStore(LP.blocks) : undefined) : old && old.bodyBlocks;
   /* 바뀐 게 없으면 저장하지 않는다(뒤로 가기 자동 저장 때 순서가 바뀌지 않게) */
   if (old && ntN(old).cat === C.k && JSON.stringify(ntN(old).f) === JSON.stringify(f) && JSON.stringify(old.files || []) === JSON.stringify(files) && JSON.stringify(ntAreas(old.area)) === JSON.stringify(ntAreas(c.area)) && (old.projectId || null) === (c.projectId && S.projects[c.projectId] ? c.projectId : null) && JSON.stringify(old.hideF || []) === JSON.stringify(hid) && !!old.unsorted === !!c.unsorted && JSON.stringify(old.bodyBlocks || null) === JSON.stringify(bb || null) && (!c.tpl || c.tpl === old.tpl)){ after(key, null, false); return true; }
-  return run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, unsorted:c.unsorted ? true : undefined, needSend:(old && old.needSend) || (C.k === "idea" && !was) ? true : undefined, f, bodyBlocks:bb, tpl:noteTpls(C) ? (c.tpl || (old && old.tpl) || undefined) : undefined, files, hideF:hid.length ? hid : undefined, area:ntAreas(c.area).length ? ntAreas(c.area) : null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); (c.rmFiles || []).forEach(FDB.del); c.newFiles = []; c.rmFiles = []; after(key, r, !was && noteComplete(S, S.mine[key])); });
+  return run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, unsorted:c.unsorted ? true : undefined, needSend:(old && old.needSend) || (C.k === "idea" && !was) ? true : undefined, f, bodyBlocks:bb, tpl:noteTpls(C) ? ((c.tpl || (old && old.tpl)) && (c.tpl || old.tpl) !== "none" ? (c.tpl || old.tpl) : undefined) : undefined, files, hideF:hid.length ? hid : undefined, area:ntAreas(c.area).length ? ntAreas(c.area) : null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); (c.rmFiles || []).forEach(FDB.del); c.newFiles = []; c.rmFiles = []; after(key, r, !was && noteComplete(S, S.mine[key])); });
 }
 /* drawer manager + editor */
 function drawerSheet(c){
@@ -5552,7 +5554,9 @@ document.addEventListener("click", e => {
       const mo = K.f.find(x => x.k === "media"), u = S.drafts["nf-url"]; if (mo && u && !(c.vals || {}).media){ const m = ntMediaOf(u); if (m && mo.o.includes(m)){ c.vals = c.vals || {}; c.vals.media = m; } }
       renderSheet(); return; }
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
-    case "nt-tplset": { preserveSheetDrafts(); ntKeys().forEach(k => { const el = document.getElementById(k); if (el && typeof el.value === "string") S.drafts[k] = el.value; }); c.tpl = b.dataset.v; c.tplTouched = true; c.blocks = null; renderSheet(); const sel = $("#overlay .nttab[aria-selected=true]"); if (sel && sel.scrollIntoView) sel.scrollIntoView({block:"nearest", inline:"center"}); return; } /* 템플릿 바꾸기: 적어 둔 칸은 남는다 */
+    case "nt-tplset": { preserveSheetDrafts(); ntKeys().forEach(k => { const el = document.getElementById(k); if (el && typeof el.value === "string") S.drafts[k] = el.value; }); c.tpl = b.dataset.v; c.tplTouched = true; c.tplOpen = false; c.blocks = null; renderSheet(); setTimeout(() => { const t = $("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input"); t && t.focus && t.focus(); }, 40); return; }
+    case "nt-tplpick": preserveSheetDrafts(); c.tplOpen = true; renderSheet(); return;
+    case "nt-tplclose": preserveSheetDrafts(); c.tplOpen = false; renderSheet(); return; /* 템플릿 바꾸기: 적어 둔 칸은 남는다 */
     case "nt-tpl": { preserveSheetDrafts(); c.blocks = (c._bf || []).slice(); renderSheet(); setTimeout(() => { const t = $("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input"); t && t.focus(); }, 30); return; }
     case "nt-drop": { preserveSheetDrafts(); c.drop = c.drop === b.dataset.v ? null : b.dataset.v; if (c.drop === "q") c.qexp = null; renderSheet(); return; }
     case "nt-qexp": c.qexp = b.dataset.v || null; renderSheet(); return;

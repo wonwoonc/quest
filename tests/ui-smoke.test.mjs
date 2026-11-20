@@ -392,7 +392,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   h.click('nt-edit',{id:n0.id}); h.click('nt-del',{id:n0.id}); assert.match(h.nodes.get('overlay').innerHTML,/자료를 삭제할까요\?/); assert.equal(notes().length,1); h.click('cfok'); await h.settle();
   assert.equal(notes().length,0); assert.equal(xp(),x0,'deleting reverses the reward');
   // learning: detail screen with chapters (Cornell notes per chapter) and wrap-up
-  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/학습 목표/); assert.doesNotMatch(ov(),/data-act="nt-tpl"/); assert.doesNotMatch(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'강의'}); assert.match(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'책'}); assert.doesNotMatch(ov(),/id="nf-url"/); assert.doesNotMatch(ov(),/XP|코인/);
+  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.doesNotMatch(ov(),/id="nf-goal"/,'starts empty'); assert.match(ov(),/data-act="nt-tplpick"[^>]*>[\s\S]*?템플릿 선택/); h.click('nt-tplpick'); assert.match(ov(),/코넬 노트/); h.click('nt-tplset',{v:'basic'}); assert.match(ov(),/학습 목표/); assert.doesNotMatch(ov(),/data-act="nt-tpl"/); assert.doesNotMatch(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'강의'}); assert.match(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'책'}); assert.doesNotMatch(ov(),/id="nf-url"/); assert.doesNotMatch(ov(),/XP|코인/);
   h.click('nt-aset',{v:'health'}); h.click('nt-aset',{v:'career'}); h.click('nt-aset',{v:'money'}); assert.equal((ov().match(/data-act="nt-aset"[^>]*aria-pressed="true"/g)||[]).length,2,'up to two areas');
   h.nodes.set('nf-title',{value:'데이터 분석 입문'}); h.click('submit-note'); await h.settle();
   const L = notes()[0]; assert.deepEqual(L.area,['health','career']); assert.equal(L.cat,'learn'); assert.doesNotMatch(app(),/id="nted"/,'learning opens like other drawers');
@@ -1340,13 +1340,13 @@ test('자료 추가 → 저널 → 다른 서랍: 적던 내용 그대로 (오�
 test('자료 템플릿: 서랍마다 여러 템플릿, 바꿔도 적은 칸은 남고 저장된다',async()=>{
   const h = await profileUI(); h.route('notes'); await h.settle(); const ov = () => h.nodes.get('overlay').innerHTML;
   h.click('nt-new'); h.click('nt-kind',{v:'ref'});
-  assert.match(ov(), /data-act="nt-tplset" data-v="basic" aria-selected="true"/); assert.match(ov(), /data-v="article"[^>]*>아티클·리포트/); assert.match(ov(), /data-v="research"/);
+  assert.doesNotMatch(ov(), /id="nf-summary"/, 'blank start'); h.click('nt-tplpick'); assert.match(ov(), /data-v="article"[\s\S]*?아티클·리포트/); assert.match(ov(), /data-v="research"/); h.click('nt-tplset',{v:'basic'}); assert.doesNotMatch(ov(), /ntqpop/);
   h.nodes.set('nf-title',{value:'리포트'}); h.nodes.set('nf-summary',{value:'요약입니다'}); h.click('nt-tplset',{v:'article'});
   assert.match(ov(), /id="nf-evidence"/); assert.match(ov(), /id="nf-quote"/); assert.match(ov(), /요약입니다/);
   h.nodes.set('nf-evidence',{value:'출처 3곳'}); h.click('nt-tplset',{v:'video'}); assert.match(ov(), /id="nf-timeline"/); assert.match(ov(), /출처 3곳/, 'filled field from another template stays');
   h.click('sheet-close'); await h.settle();
   const n = Object.values(h.snapshot().mine).find(m => m.kind === 'note'); assert.equal(n.tpl, 'video'); assert.equal(n.f.evidence, '출처 3곳'); assert.equal(n.f.summary, '요약입니다');
-  h.click('nt-new'); h.click('nt-kind',{v:'memo'}); assert.match(ov(), /data-v="meeting"[^>]*>회의록/); h.click('nt-tplset',{v:'meeting'}); assert.match(ov(), /id="nf-agenda"/); assert.match(ov(), /id="nf-decision"/);
+  h.click('nt-new'); h.click('nt-kind',{v:'memo'}); h.click('nt-tplpick'); assert.match(ov(), /data-v="meeting"[\s\S]*?회의록/); h.click('nt-tplset',{v:'meeting'}); assert.match(ov(), /id="nf-agenda"/); assert.match(ov(), /id="nf-decision"/);
   h.click('nt-new'); h.click('nt-kind',{v:'idea'}); h.click('nt-tplset',{v:'lean'}); assert.match(ov(), /id="nf-next"[\s\S]*미션 추가|미션 추가[\s\S]*id="nf-next"/, 'every idea template keeps next action');
 });
 test('저널: 지난 날짜로 쓰기 (보상 없음), 카드에서 수정',async()=>{
