@@ -1780,6 +1780,22 @@ a.row{color:inherit;text-decoration:none}
 .ntx{opacity:.8;color:var(--warn)}
 .sheet.page h2.pgh button.ntkind.uns{background:var(--fill);color:var(--sub);box-shadow:inset 0 0 0 1.5px var(--line)}
 .ntkpick{grid-template-columns:repeat(2,minmax(0,1fr))}.ntkp{height:48px;min-height:0;margin:0;box-sizing:border-box}.ntkp b{font-weight:700}
+
+/* 학습 화면 머리: 자료 작성 화면과 같은 모양 */
+.card.lnhead2{padding:16px 20px 18px}
+.lntop2{display:flex;align-items:center;gap:8px}
+.lntop2 .ntkind{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:700}
+.lntop2 .ntkind .nic{width:16px;height:16px;margin:0}
+.lntop2 .ntmenubtn{margin-left:auto;border:0;background:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--sub);cursor:pointer}
+.lntop2 .ntmenubtn svg{width:20px;height:20px}.lntop2 .ntmenubtn:hover{background:var(--fill)}
+.lnhead2 .ntemenu{margin:10px 0 0}
+.lntitle2{font:800 24px/1.3 var(--f);letter-spacing:-.5px;margin:14px 0 10px;color:var(--text);display:block}
+.lnhead2 .ntprops{margin-bottom:6px;border-bottom:0;padding-bottom:4px}
+.lnpv{font-size:15px;font-weight:600;color:var(--text);padding:7px 0;min-width:0;display:flex;align-items:center;gap:5px}
+.lnpv .nic{width:15px;height:15px;margin:0}
+.ntpl .nic{width:14px;height:14px;margin:0}
+.lngoal{margin:8px 0 0}.lngoal p{margin:0;font-size:16px;line-height:1.65;padding:2px 0 2px 12px;border-left:3px solid var(--line);white-space:pre-wrap;color:var(--text)}
+.lnpv svg{width:16px;height:16px;flex:none}
 </style>
 <script>
 (function(){"use strict";
@@ -3658,14 +3674,19 @@ function viewLearn(){
   const n = S.mine[S.view.id]; if (!n || !hasProfile()) return viewNotes();
   const {f} = ntN(n), pj = n.projectId && S.projects[n.projectId], A = AREAS.find(a => a[0] === ntArea(n)[0]), done = noteComplete(S, n), D0 = noteDrawer(S, "learn");
   if (!LP || LP.id !== n.id) LP = {id:n.id, blocks:noteBlocks(n).map(bkNorm)};
-  const rows = [["강사·저자", f.author && esc(f.author)], ["별점", f.rating && stars(f.rating)], ["영역", A && `${aIcon(A[0])}${A[3]}`], ["퀘스트", pj && `${nic("target")}${esc(pj.title)}`], ["링크", f.url && (safeUrl(f.url) ? `<a class="ntlink" href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener noreferrer">${esc(ntHost(safeUrl(f.url)))}</a>` : esc(f.url))], ["학습 목표", f.goal && esc(f.goal), "goal"]].filter(r => r[1]);
+  /* 머리 부분은 자료 작성 화면과 같은 모양: 종류 알약 · ⋯ 메뉴 · 큰 제목 · 속성 줄 · 학습 목표 글 상자 */
   const st = f.status || "예정", rd = !!S.lnRead, fs = S.lnFs || LS.get("lnFs", "m");
-  let h = `<section class="card lnhead"><div class="lntop"><span class="ntcat">${nic("book")}${esc(f.type || "학습")}</span>${done ? `<span class="ntdone">${nic("check")}완성</span>` : ""}<button class="link lnedit" data-act="nt-edit" data-id="${n.id}" data-info="1">정보 수정</button><button class="pgdel" data-act="nt-del" data-id="${n.id}">삭제</button></div>
-    <h2 class="lntitle">${esc(f.title || "제목 없음")}</h2>
-    ${rows.length ? `<dl class="lninfo">${rows.map(([l, v, c]) => `<dt>${l}</dt><dd class="${c || ""}">${v}</dd>`).join("")}</dl>` : ""}
-    <div class="lnstatus"><span>상태</span><div class="seg">${LN_STATUS.map(x => `<button data-act="ln-st" data-v="${x}" aria-pressed="${st === x}">${x}</button>`).join("")}</div></div>
+  const prop = (l, v) => v ? `<span class="ntpl">${l}</span><div class="lnpv">${v}</div>` : "";
+  const props = `<span class="ntpl">상태</span><div class="ntpch">${LN_STATUS.map(x => `<button class="ntpc" data-act="ln-st" data-v="${x}" aria-pressed="${st === x}">${x}</button>`).join("")}</div>`
+    + prop("강사·저자", f.author && esc(f.author)) + prop("별점", f.rating && stars(f.rating)) + prop(`${nic("target")}퀘스트`, pj && esc(pj.title)) + prop("영역", A && `${aIcon(A[0])}${A[3]}`)
+    + prop(`${nic("link")}링크`, f.url && (safeUrl(f.url) ? `<a class="ntlink" href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener noreferrer">${esc(ntHost(safeUrl(f.url)))}</a>` : esc(f.url)));
+  const menu = S.lnMenu === n.id ? `<div class="ntemenu ntmenu" role="menu"><button class="row mitem" data-act="nt-edit" data-id="${n.id}" data-info="1" role="menuitem"><span class="t"><b>${nic("memo")}수정</b></span></button><button class="row mitem danger" data-act="nt-del" data-id="${n.id}" role="menuitem"><span class="t"><b>${nic("trash")}삭제</b></span></button></div>` : "";
+  let h = `<section class="card lnhead2"><div class="lntop2"><span class="ntkind learn">${nic("book")}학습${f.type ? ` · ${esc(f.type)}` : ""}</span>${done ? `<span class="ntdone">${nic("check")}완성</span>` : ""}<button class="ntmenubtn" data-act="ln-menu" data-id="${n.id}" aria-label="메뉴" aria-expanded="${S.lnMenu === n.id}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button></div>
+    ${menu}<h2 class="lntitle2">${esc(f.title || "제목 없음")}</h2>
+    <div class="ntprops">${props}</div>
+    ${f.goal ? `<div class="ntblk lngoal"><span class="ntbl">학습 목표</span><p>${esc(f.goal)}</p></div>` : ""}
 </section>`;
-  h += `<section class="card lnnote ${rd ? "read fs-" + fs : ""}"><div class="ch"><h2>${nic("memo")}학습 노트</h2>${rd ? `<div class="lnfs" role="group" aria-label="글자 크기">${[["s","작게"],["m","보통"],["l","크게"]].map(([k, l]) => `<button data-act="ln-fs" data-v="${k}" aria-pressed="${fs === k}" aria-label="${l}" class="fs-${k}">가</button>`).join("")}</div>` : ""}<button class="btn sec xs lnmode" data-act="ln-read">${rd ? "편집" : "읽기 모드"}</button></div>
+  h += `<section class="card lnnote ${rd ? "read fs-" + fs : ""}"><div class="ch"><h2>학습 노트</h2>${rd ? `<div class="lnfs" role="group" aria-label="글자 크기">${[["s","작게"],["m","보통"],["l","크게"]].map(([k, l]) => `<button data-act="ln-fs" data-v="${k}" aria-pressed="${fs === k}" aria-label="${l}" class="fs-${k}">가</button>`).join("")}</div>` : ""}<button class="btn sec xs lnmode" data-act="ln-read">${rd ? "편집" : "읽기 모드"}</button></div>
     <div class="lnbody"><div class="lnmain"><div class="nted ${rd ? "ro" : ""}" id="nted" ${rd ? "" : `data-act="ln-tail"`}>${bkHtml(LP.blocks, rd)}</div>
     ${rd ? "" : `<div class="bkmenu" id="bkmenu" hidden></div>`}</div></div></section>
     <div class="bksel" id="bksel" hidden><button data-act="fmt" data-v="b" aria-label="굵게"><b>B</b></button><button data-act="fmt" data-v="i" aria-label="기울임"><i>I</i></button><button data-act="fmt" data-v="u" aria-label="밑줄"><u>U</u></button><i class="sep"></i><button data-act="fmt" data-v="hl-y" aria-label="노랑 형광펜"><span class="hlc hl-y"></span></button><button data-act="fmt" data-v="hl-g" aria-label="초록 형광펜"><span class="hlc hl-g"></span></button><button data-act="fmt" data-v="hl-p" aria-label="분홍 형광펜"><span class="hlc hl-p"></span></button><i class="sep"></i><button data-act="fmt" data-v="code" aria-label="코드">&lt;/&gt;</button><button data-act="fmt" data-v="clear" aria-label="서식 지우기">${nic("eraser")}</button></div>`;
@@ -5228,6 +5249,7 @@ document.addEventListener("click", e => {
     case "bd-sort": openSheet({type:"bdsort", id}); return;
     case "bd-rm": if (!S.mine[id]) return; if (S.armed !== "bx"+id){ arm("bx"+id); toast("한 번 더 누르면 삭제돼요"); break; } S.armed = null; run(() => api.delMine(id), () => toast("삭제했어요")); return;
     case "bd-step": (S.bdStep || (S.bdStep = {}))[id] = +b.dataset.v; if (c && c.type === "bdsort"){ renderSheet(); return; } break;
+    case "ln-menu": S.lnMenu = S.lnMenu === id ? null : id; render(); return;
     case "ln-st": { if (LP) bkSave(true); const n = S.mine[S.view.id]; if (!n) return; const {f} = ntN(n), was = noteComplete(S, n);
       run(() => api.putMine(n.id, {...S.mine[n.id], cat:"learn", f:{...f, status:b.dataset.v}, updatedAt:Date.now()}), r => { if (!was && noteComplete(S, S.mine[n.id]) && r && r.xp > 0){ toast("학습 완성!"); } }); return; }
     case "ln-read": if (LP) bkSave(true); S.lnRead = !S.lnRead; break;
@@ -5245,7 +5267,7 @@ document.addEventListener("click", e => {
     case "nt-cat": S.ntCat = b.dataset.v; break;
     case "nt-new": { ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => d.k === "memo" && !d.hidden) || DR.find(d => !d.hidden) || DR[0]).k; /* 전체에서 누르면 바로 메모(빈 화면)로 */
       openSheet({type:"note", cat, unsorted:!DR.some(d => d.k === S.ntCat && !d.hidden), vals:{}, area:null, projectId:b.dataset.p && S.projects[b.dataset.p] ? b.dataset.p : null}); setTimeout(() => { const x = $(".sheet input[type=text], .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
-    case "nt-edit": { const n = S.mine[id]; if (!n) return; if (ntN(n).cat === "learn" && !b.dataset.info){ push({name:"learn", id}, "#learn"); return; } const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
+    case "nt-edit": { S.lnMenu = null; const n = S.mine[id]; if (!n) return; if (ntN(n).cat === "learn" && !b.dataset.info){ push({name:"learn", id}, "#learn"); return; } const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
       const vals = {}; Object.entries(f).forEach(([k, v]) => { if (k === "rating" || ["status","media","type"].includes(k)) vals[k] = v; else S.drafts["nf-" + k] = v || ""; });
       openSheet({type:"note", id, cat, unsorted:!!n.unsorted, vals, area:n.area || null, projectId:n.projectId || null, files:[...(n.files || [])], hideF:[...(n.hideF || [])]}); return; }
     case "nt-discard": ask({t:"작성 중인 내용을 지울까요?", d:"저장하지 않고 나가요.", ok:"삭제"}, () => { if (S.compose && S.compose.type === "note"){ S.compose.noSave = true; closeSheet(); } }); return;
