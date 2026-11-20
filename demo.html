@@ -1930,6 +1930,18 @@ a.row{color:inherit;text-decoration:none}
 .ntexseg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}.ntexseg button{border:0;border-radius:10px;padding:10px 0;font:600 13.5px/1.2 var(--f);letter-spacing:0;background:var(--fill);color:var(--sub);cursor:pointer}.ntexseg button[aria-selected="true"]{background:var(--accent);color:#fff}
 .qsheet .ntexin{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;margin-bottom:12px;background:var(--card);color:var(--text)}
 .qsck{width:17px;height:17px;color:var(--accent);flex:none}.qsh[aria-pressed="true"] b{color:var(--accent)}
+/* 퀘스트 연결 시트: 메인과 스테이지 구분 */
+.qsc{padding:0;overflow:hidden}
+.qsh{display:flex;align-items:center;gap:8px;padding:13px 14px}.qsh b{flex:1;font-size:17px}.qsh .qsck{width:18px;height:18px}
+.qsh.sel{background:var(--accent-soft)}.qsh.sel b{color:var(--accent)}
+.qsk{flex:none;font-size:11px;font-weight:800;border-radius:6px;padding:3px 6px;background:var(--accent);color:#fff;letter-spacing:0}
+.qsk.st{background:var(--fill);color:var(--sub)}
+.qsst{border-top:1px solid var(--line);padding:4px 0}
+.qsr{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;padding:10px 14px 10px 30px;text-align:left;cursor:pointer;color:var(--text);position:relative}
+.qsr::before{content:"";position:absolute;left:16px;top:0;bottom:50%;width:8px;border-left:1.5px solid var(--line);border-bottom:1.5px solid var(--line);border-bottom-left-radius:4px}
+.qsrt{flex:1;min-width:0;font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qsr small{flex:none;font-size:12px;font-weight:700;color:var(--muted)}
+.qsr.sel{background:var(--accent-soft)}.qsr.sel .qsrt{color:var(--accent);font-weight:800}.qsr .qsck{width:16px;height:16px}
+.qsc.on{background:var(--card)}
 </style>
 <script type="module" src="./src/demo-entry.js"></script>
 </body></html>
