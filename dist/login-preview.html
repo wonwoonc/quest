@@ -1882,6 +1882,7 @@ a.row{color:inherit;text-decoration:none}
 .ntpickq{font-size:20px;font-weight:800;margin:10px 0 14px;letter-spacing:-.01em}
 .sheet.page h2.pgh span.ntkind{margin-left:4px;display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:700;background:var(--fill);color:var(--sub)}.sheet.page h2.pgh span.ntkind .nic{width:16px;height:16px;margin:0}
 .sheet.page h2.pgh button.ntkind.fixed{cursor:default;opacity:1;padding:6px 12px}
+.pgtl{display:flex;align-items:flex-start;gap:8px}.pgtl h3{flex:1;min-width:0}.pgtl>.st.dd{flex:none;margin-top:2px;font-size:12px;font-weight:700;color:var(--sub);background:var(--fill);border-radius:8px;padding:3px 8px}
 </style>
 <script>
 (function(){"use strict";
@@ -4333,8 +4334,8 @@ function pgCard(g){
   if (m) meta.push(`✅ 미션 ${pr.done}/${pr.total}`); // 수치가 없으면 막대가 미션 진행도라 중복 표시 안 함
   return `<section class="card pgc ${done ? "done" : ""}" data-act="project" data-p="${g.id}" role="button" tabindex="0">
     ${coverHtml(g, {badge:false})}
-    <h3>${esc(g.title)}${g.parentId && S.projects[g.parentId] ? `<span class="parlab">🎯 ${esc(S.projects[g.parentId].title)}</span>` : ""}</h3>
-    <div class="pgtop">${done ? `<span class="st done">🏆 ${g.doneAt ? `${new Date(g.doneAt).getMonth()+1}/${new Date(g.doneAt).getDate()} 달성` : "달성"}</span>` : `${stChip(g)}${g.end && !isCx(g) ? `<span class="st dd">${dday(g.end)}</span>` : ""}`}</div>
+    <div class="pgtl"><h3>${esc(g.title)}${g.parentId && S.projects[g.parentId] ? `<span class="parlab">🎯 ${esc(S.projects[g.parentId].title)}</span>` : ""}</h3>${!done && g.end && !isCx(g) ? `<span class="st dd">${dday(g.end)}</span>` : ""}</div>
+    ${done ? `<div class="pgtop"><span class="st done">🏆 ${g.doneAt ? `${new Date(g.doneAt).getMonth()+1}/${new Date(g.doneAt).getDate()} 달성` : "달성"}</span></div>` : isCx(g) || isPlanned(g) ? `<div class="pgtop">${stChip(g)}</div>` : ""}
     ${metricBox(g)}
     ${meta.length ? `<div class="pgmeta">${meta.map(x => `<span>${x}</span>`).join("")}</div>` : ""}
     ${subs.length ? `<div class="pgsubs">${subs.map(x => { const p2 = goalProgress(x); return `<button class="pgsub ${x.status === "done" ? "ok" : ""}" data-act="project" data-p="${x.id}"><span>${x.status === "done" ? "✓" : "🔗"}</span>${esc(x.title)}${p2.total && x.status !== "done" ? ` <em class="num">${p2.done}/${p2.total}</em>` : ""}</button>`; }).join("")}</div>` : ""}
