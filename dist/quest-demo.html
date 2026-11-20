@@ -1754,6 +1754,9 @@ a.row{color:inherit;text-decoration:none}
 
 .trophyline .trundo{margin-left:auto;border:0;background:none;color:var(--sub);font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:2px 0;flex:none}
 .cfbox p{white-space:pre-line}
+.sheet h2 .tqbk{display:inline-flex;align-items:center;margin:0 4px 0 -6px;color:var(--text);vertical-align:middle}.sheet h2 .tqbk svg{width:22px;height:22px}
+.sheet h2:has(.tqbk)>span{display:flex;align-items:center;min-width:0}
+.mitem.tqwhole{background:var(--accent-soft);border-radius:14px}
 </style>
 <script>
 (function(){"use strict";
@@ -4648,12 +4651,14 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null;
       <button class="btn ${cur ? "sec" : "soft"} full" data-act="gmset" data-v="">전체 보기</button>`); }
   if (c.type === "tqpick"){ const par = S.parentSheet || {}, cur = c.m === "ref" ? (par.ref || {}).id : par.projectId, onlyMain = c.m === "main";
     const gs = goalsOf(S.me).filter(g => g.status !== "done").sort(gOrder), orphan = onlyMain ? [] : Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId));
-    if (c.exp === undefined){ const cp = cur && S.projects[cur]; c.exp = cp && cp.parentId ? cp.parentId : null; }
     const ck = id => cur === id ? `<span class="pick">✓</span>` : "";
-    const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="tqset" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${ck(p.id)}</button>`;
-    const body = gs.map(g => { const ss = onlyMain ? [] : subsOf(g.id).filter(x => x.status !== "done"); if (!ss.length) return it(g, false); const open = c.exp === g.id;
-      return `<button class="row mitem tqmain" data-act="tqexp" data-v="${g.id}" aria-expanded="${open}"><span class="t"><b>🎯 ${esc(g.title)}</b><small>메인 퀘스트 · 스테이지 ${ss.length}개${g.end ? " · " + dday(g.end) : ""}</small></span>${cur === g.id || ss.some(x => x.id === cur) ? `<span class="pick">✓</span>` : ""}<span class="chev2 ${open ? "open" : ""}">${I.chev}</span></button>`
-        + (open ? `<button class="row mitem nested" data-act="tqset" data-v="${g.id}"><span class="t"><b>🎯 메인 퀘스트에 바로 연결</b></span>${ck(g.id)}</button>` + ss.map(x => it(x, true)).join("") : ""); }).join("") + orphan.map(x => it(x, true)).join("");
+    const it = (p, nested) => `<button class="row mitem" data-act="tqset" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${ck(p.id)}</button>`;
+    /* 스테이지가 있는 메인 퀘스트를 누르면 두 번째 팝업(같은 자리)에서 '메인 퀘스트에 연결' 또는 스테이지를 고른다 */
+    const sg = c.sub && S.projects[c.sub];
+    if (sg){ const ss = subsOf(sg.id).filter(x => x.status !== "done");
+      return sheetWrap(`<button class="tqbk" data-act="tqsub" data-v="" aria-label="퀘스트 목록으로">${I.back}</button>${esc(sg.title)}`, "", `<div class="sheetlist mlist"><button class="row mitem tqwhole" data-act="tqset" data-v="${sg.id}"><span class="t"><b>🎯 메인 퀘스트에 연결</b><small>특정 스테이지 없이</small></span>${ck(sg.id)}</button>${ss.map(x => it(x, true)).join("")}</div>`); }
+    const body = gs.map(g => { const ss = onlyMain ? [] : subsOf(g.id).filter(x => x.status !== "done"); if (!ss.length) return it(g, false);
+      return `<button class="row mitem tqmain" data-act="tqsub" data-v="${g.id}"><span class="t"><b>🎯 ${esc(g.title)}</b><small>메인 퀘스트 · 스테이지 ${ss.length}개${g.end ? " · " + dday(g.end) : ""}${ss.some(x => x.id === cur) ? ` · ${esc(S.projects[cur].title)} 선택됨` : ""}</small></span>${cur === g.id || ss.some(x => x.id === cur) ? `<span class="pick">✓</span>` : ""}<svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`; }).join("") + orphan.map(x => it(x, true)).join("");
     return sheetWrap(c.t || "어떤 퀘스트의 미션인가요?", "", `<div class="sheetlist mlist">${body || `<p class="empty-row">진행 중인 ${onlyMain ? "메인 " : ""}퀘스트가 없어요.</p>`}</div>${cur ? `<button class="btn sec full" data-act="tqset" data-v="">연결 안 함</button>` : ""}`); }
   if (c.type === "qpick"){ const gs = goalsOf(S.me).filter(g => g.status !== "done"), orphanSubs = Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.parentId && p.status !== "done" && !gs.some(g => g.id === p.parentId));
     const it = (p, nested) => `<button class="row mitem ${nested ? "nested" : ""}" data-act="inref" data-v="${p.id}"><span class="t"><b>${nested ? "🔗" : "🎯"} ${esc(p.title)}</b><small>${nested ? "스테이지" : "메인 퀘스트"}${p.end ? " · " + dday(p.end) : ""}</small></span>${S.inRef === p.id ? `<span class="pick">✓</span>` : ""}</button>`;
@@ -4909,7 +4914,7 @@ document.addEventListener("click", e => {
     case "ppset": { const par = S.parentSheet; if (par) par.parentId = b.dataset.v; closeSheet(); return; }
     case "tqset": { const par = S.parentSheet; if (par){ if (c.m === "ref") par.ref = b.dataset.v ? {type:"project", id:b.dataset.v, label:S.projects[b.dataset.v].title} : null; else { par.projectId = b.dataset.v || null; if (par.projectId && (par.type === "taskadd" || par.type === "tedit")){ const au = areaUp(par.projectId); if (au.length) par.area = au.slice(0, 2); } } } closeSheet(); return; }
     case "tqclear": c.projectId = null; renderSheet(); return;
-    case "tqexp": c.exp = c.exp === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
+    case "tqsub": c.sub = b.dataset.v || null; renderSheet(); const sh = $("#overlay .sheet"); if (sh) sh.scrollTop = 0; return;
     case "inpost": { const text = ($("#ps-text").value||"").trim(), ph = S.inPhotos || []; let value;
       const vEl = $("#ps-val"); if (vEl && vEl.value.trim()){ value = parseNum(vEl.value); if (value == null){ toast("숫자만 넣어 주세요"); return; } }
       if (!text && !ph.length && value === undefined){ toast("내용을 적어 주세요"); $("#ps-text").focus(); return; }

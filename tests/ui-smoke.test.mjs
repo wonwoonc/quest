@@ -305,8 +305,8 @@ for (const kind of ['once','sub','big','daily']) {
     assert.ok(html.includes(titles[kind]));
     if (kind === 'once') {
       assert.match(html,/data-act="tqpick"/);
-      h.click('tqpick'); assert.match(h.nodes.get('overlay').innerHTML,/data-act="tqexp" data-v="main"/); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/data-act="tqset" data-v="sub"/,'stages stay hidden until the main quest is tapped');
-      h.click('tqexp',{v:'main'}); assert.match(h.nodes.get('overlay').innerHTML,/data-act="tqset" data-v="main"[\s\S]*data-act="tqset" data-v="sub"/);
+      h.click('tqpick'); assert.match(h.nodes.get('overlay').innerHTML,/data-act="tqsub" data-v="main"/); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/data-act="tqset" data-v="sub"/,'stages stay hidden until the main quest is tapped');
+      h.click('tqsub',{v:'main'}); assert.match(h.nodes.get('overlay').innerHTML,/data-act="tqsub" data-v=""[\s\S]*data-act="tqset" data-v="main"[\s\S]*data-act="tqset" data-v="sub"/); h.click('tqsub',{v:''}); assert.match(h.nodes.get('overlay').innerHTML,/data-act="tqsub" data-v="main"/); h.click('tqsub',{v:'main'});
       h.click('tqset',{v:'sub'}); assert.match(h.nodes.get('overlay').innerHTML,/스테이지 연결 대상/);
     } else if (kind === 'sub') {
       assert.match(html,/data-act="ppick"/);
@@ -322,7 +322,7 @@ for (const projectId of [null,'main','sub']) {
     noKindSwitch(h.nodes.get('overlay').innerHTML);
     assert.match(h.nodes.get('overlay').innerHTML,/data-act="tqpick"/);
     h.nodes.set('ta-name',{value:'선택기로 연결한 미션'});
-    h.click('tqpick'); h.click('tqexp',{v:'main'}); h.click('tqset',{v:'sub'});
+    h.click('tqpick'); h.click('tqsub',{v:'main'}); h.click('tqset',{v:'sub'});
     assert.match(h.nodes.get('overlay').innerHTML,/스테이지 연결 대상/);
     h.click('dppick',{k:'due',v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
     const task = Object.values(h.snapshot().mine).find(m => m.name === '선택기로 연결한 미션');
@@ -1613,7 +1613,7 @@ test('quest pickers are popups (no chip rows): story link, note link, stage pare
   saved.projects={g1:{id:'g1',owner:'me',title:'유튜브 기획',status:'active',createdAt:1},g2:{id:'g2',owner:'me',title:'마라톤',status:'active',createdAt:2},st:{id:'st',owner:'me',parentId:'g1',title:'대본 쓰기',status:'active',createdAt:3}};
   const h=await profileUI(saved); const ov=()=>h.nodes.get('overlay').innerHTML;
   h.route('write'); h.click('compose'); 
-  assert.match(ov()+h.nodes.get('app').innerHTML,/data-act="tqpick" data-m="ref"/); { assert.doesNotMatch(ov(),/data-act="cref" data-v="g1"/); h.click('tqpick',{m:'ref',t:'어떤 퀘스트의 스토리인가요?'}); h.click('tqexp',{v:'g1'}); assert.match(ov(),/어떤 퀘스트의 스토리인가요\?[\s\S]*?data-act="tqset" data-v="g1"[\s\S]*?data-v="st"/); h.click('tqset',{v:'st'}); assert.match(ov(),/data-act="tqpick" data-m="ref"[^>]*>[^<]*대본 쓰기/); }
+  assert.match(ov()+h.nodes.get('app').innerHTML,/data-act="tqpick" data-m="ref"/); { assert.doesNotMatch(ov(),/data-act="cref" data-v="g1"/); h.click('tqpick',{m:'ref',t:'어떤 퀘스트의 스토리인가요?'}); h.click('tqsub',{v:'g1'}); assert.match(ov(),/data-act="tqset" data-v="g1"[\s\S]*?data-v="st"/); h.click('tqset',{v:'st'}); assert.match(ov(),/data-act="tqpick" data-m="ref"[^>]*>[^<]*대본 쓰기/); }
   h.click('sheet-close');
   h.click('project',{p:'st'}); h.click('gedit',{p:'st'}); assert.match(ov(),/data-act="ppick">🎯 유튜브 기획/); assert.doesNotMatch(ov(),/data-f="parentId"/);
 });
@@ -1634,7 +1634,7 @@ test('daily quests link to a main quest: main-only picker, checkable on the main
   H.click('gmall'); assert.match(app(),/class="gmchip cur" data-act="gmpick"/);
   assert.match(app(),/data-act="sheet" data-k="add" data-v="daily" data-p="main"/);
   H.click('sheet',{k:'add',v:'daily',p:'main'}); assert.match(ov(),/연결할 메인 퀘스트[\s\S]*?🎯 메인 연결 대상/);
-  H.click('tqpick',{m:'main',t:'어떤 메인 퀘스트를 위한 습관인가요?'}); assert.match(ov(),/data-act="tqset" data-v="main"/); assert.doesNotMatch(ov(),/data-act="tqexp"|data-v="sub"/);
+  H.click('tqpick',{m:'main',t:'어떤 메인 퀘스트를 위한 습관인가요?'}); assert.match(ov(),/data-act="tqset" data-v="main"/); assert.doesNotMatch(ov(),/data-act="tqsub"|data-v="sub"/);
   H.click('sheet-close'); H.click('sheet-close');
   H.click('pcancel',{p:'main'}); assert.match(ov(),/연결된 일일 퀘스트 1개도 보관하기/);
 });
@@ -1652,7 +1652,7 @@ test('missions inherit the linked main/stage area and the mission edit sheet has
   const H = await profileUI(snap), ov = () => H.nodes.get('overlay').innerHTML;
   H.click('taskadd',{p:'main'}); assert.match(ov(),/data-act="aset" data-v="health" aria-pressed="true"/);
   H.click('sheet-close');
-  H.click('taskadd'); assert.doesNotMatch(ov(),/data-v="health" aria-pressed="true"/); H.click('tqpick'); H.click('tqexp',{v:'main'}); H.click('tqset',{v:'sub'}); assert.match(ov(),/data-act="aset" data-v="health" aria-pressed="true"/,'stage inherits main area');
+  H.click('taskadd'); assert.doesNotMatch(ov(),/data-v="health" aria-pressed="true"/); H.click('tqpick'); H.click('tqsub',{v:'main'}); H.click('tqset',{v:'sub'}); assert.match(ov(),/data-act="aset" data-v="health" aria-pressed="true"/,'stage inherits main area');
   H.click('sheet-close');
   H.click('tedit',{id:'tm'}); assert.match(ov(),/영역[\s\S]*data-act="aset" data-v="health" aria-pressed="true"/);
 });
