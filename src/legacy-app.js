@@ -1065,7 +1065,9 @@ const ntN = n => noteNorm(S, n);
 const ntText = n => [...Object.values(ntN(n).f), ...(n.blocks || []).map(bkText), ...(n.ch || []).flatMap(c => [c.t, ...(Array.isArray(c.blocks) ? c.blocks.map(bkText) : [c.sum, c.key, c.think, c.q])]), ...(n.files || []).map(x => x.name)].filter(Boolean).join(" ");
 const stars = r => r ? `<span class="ntstars" role="img" aria-label="별점 ${r}점">${nic("star").repeat(r)}<i>${nic("star").repeat(5 - r)}</i></span>` : "";
 const clip = (v, n = 140) => esc(String(v || "").length > n ? String(v).slice(0, n) + "…" : String(v || ""));
-const ntArea = n => { if (!n) return []; if (n.area && AREA_KEYS.includes(n.area)) return [n.area]; const up = n.projectId ? areaUp(n.projectId) : []; if (up.length) return up; const d = noteDrawer(S, ntN(n).cat); return d && d.area ? [d.area] : []; };
+/* 자료·서랍 영역: 예전 값(문자열 하나)도 읽고, 최대 2개 */
+const ntAreas = a => (Array.isArray(a) ? a : a ? [a] : []).filter(k => AREA_KEYS.includes(k)).slice(0, 2);
+const ntArea = n => { if (!n) return []; if (ntAreas(n.area).length) return ntAreas(n.area); const up = n.projectId ? areaUp(n.projectId) : []; if (up.length) return up; const d = noteDrawer(S, ntN(n).cat); return d ? ntAreas(d.area) : []; };
 const ntTasks = n => mineOf("mission").filter(m => m.noteId === n.id);
 function ntRewardLine(d, area){
   if (!d.pt) return "";
@@ -1166,7 +1168,7 @@ function noteSheet(c){
   const qRow = gs.length || pj ? `<span class="ntpl">퀘스트</span><div class="ntpq">${pj ? `<button class="ntpc on" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">${esc(pj.title)}${chev(qOpen)}</button>` : `<button class="ntpc add" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">+ 연결${chev(qOpen)}</button>`}</div>${qList}` : "";
   const aSel = c.area && AREAS.find(a => a[0] === c.area);
   /* 영역: 칩으로 바로 고르기. 고른 칩을 다시 누르면 해제 */
-  const aRow = C.pt ? `<span class="ntpl jtop">영역</span><div class="ntpch">${AREAS.map(([k,,,l]) => `<button class="ntpc" data-act="nt-aset" data-v="${k}" aria-pressed="${c.area === k}">${l}</button>`).join("")}</div>` : "";
+  const aRow = C.pt ? `<span class="ntpl jtop">영역</span><div class="ntpch">${AREAS.map(([k,,,l]) => `<button class="ntpc" data-act="nt-aset" data-v="${k}" aria-pressed="${ntAreas(c.area).includes(k)}">${l}</button>`).join("")}</div>` : "";
   const fRow = C.k === "ref" ? `<span class="ntpl">파일</span><div class="flist sm">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < F_MAX ? `<button class="ntpc add" data-act="nf-pick">+ 첨부</button>` : ""}</div>` : "";
   const bot = C.f.filter(x => x.bottom).map(prop).join("");
   const props = C.f.filter(isProp).map(prop).join("") + fRow + qRow + aRow + bot; /* 학습 상태는 영역 아래 */
@@ -1210,8 +1212,8 @@ function saveNote(c, after, quiet){
   if (!Object.keys(f).some(k => !["media","status","rating","date","type"].includes(k)) && !files.length){ if (quiet) return false; toast(C.k === "learn" ? "제목을 적어 주세요" : "내용을 하나 이상 적어 주세요"); return; }
   const key = old ? c.id : "nt"+uid8(), now = Date.now(), was = old && noteComplete(S, old);
   /* 바뀐 게 없으면 저장하지 않는다(뒤로 가기 자동 저장 때 순서가 바뀌지 않게) */
-  if (old && ntN(old).cat === C.k && JSON.stringify(ntN(old).f) === JSON.stringify(f) && JSON.stringify(old.files || []) === JSON.stringify(files) && (old.area || null) === (c.area || null) && (old.projectId || null) === (c.projectId && S.projects[c.projectId] ? c.projectId : null) && JSON.stringify(old.hideF || []) === JSON.stringify(hid) && !!old.unsorted === !!c.unsorted){ after(key, null, false); return true; }
-  return run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, unsorted:c.unsorted ? true : undefined, needSend:(old && old.needSend) || (C.k === "idea" && !was) ? true : undefined, f, files, hideF:hid.length ? hid : undefined, area:c.area || null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); (c.rmFiles || []).forEach(FDB.del); c.newFiles = []; c.rmFiles = []; after(key, r, !was && noteComplete(S, S.mine[key])); });
+  if (old && ntN(old).cat === C.k && JSON.stringify(ntN(old).f) === JSON.stringify(f) && JSON.stringify(old.files || []) === JSON.stringify(files) && JSON.stringify(ntAreas(old.area)) === JSON.stringify(ntAreas(c.area)) && (old.projectId || null) === (c.projectId && S.projects[c.projectId] ? c.projectId : null) && JSON.stringify(old.hideF || []) === JSON.stringify(hid) && !!old.unsorted === !!c.unsorted){ after(key, null, false); return true; }
+  return run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, unsorted:c.unsorted ? true : undefined, needSend:(old && old.needSend) || (C.k === "idea" && !was) ? true : undefined, f, files, hideF:hid.length ? hid : undefined, area:ntAreas(c.area).length ? ntAreas(c.area) : null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); (c.rmFiles || []).forEach(FDB.del); c.newFiles = []; c.rmFiles = []; after(key, r, !was && noteComplete(S, S.mine[key])); });
 }
 /* drawer manager + editor */
 function drawerSheet(c){
@@ -1221,8 +1223,8 @@ function drawerSheet(c){
       <div class="field"><input type="text" id="dr-l" maxlength="12" placeholder="서랍 이름 · 예: 운동 기록" value="${D("dr-l")}" aria-label="서랍 이름"></div>
       <div class="field"><span class="lab">아이콘</span><div class="dricons">${DR_ICONS.map(k => `<button data-act="dr-icon" data-v="${k}" aria-pressed="${(c.ic || "folder") === k}" aria-label="${k}">${nic(k)}</button>`).join("")}</div></div>
       <div class="field"><span class="lab">입력 칸 <span class="hint">누른 순서대로 보여요</span></span><div class="chips">${NOTE_POOL.map(x => { const i = sel.indexOf(x.k); return `<button class="chip" data-act="dr-field" data-v="${x.k}" aria-pressed="${i >= 0}">${i >= 0 ? `<b class="num">${i+1}</b> ` : ""}${x.l}</button>`; }).join("")}</div></div>
-      <div class="field"><span class="lab">기본 영역 <span class="hint">선택</span></span><div class="chips">${AREAS.map(([k,,,l]) => `<button class="chip achip" data-act="dr-area" data-v="${k}" aria-pressed="${c.area === k}">${aIcon(k)}${l}</button>`).join("")}</div></div>
-      <p class="ntreward">모든 칸을 채우면 완성${c.area ? (() => { const A = AREAS.find(a => a[0] === c.area); return ` · ${A[3]} 영역(${A[1]}) +1`; })() : ""}</p>
+      <div class="field"><span class="lab">기본 영역 <span class="hint">선택</span></span><div class="chips">${AREAS.map(([k,,,l]) => `<button class="chip achip" data-act="dr-area" data-v="${k}" aria-pressed="${ntAreas(c.area).includes(k)}">${aIcon(k)}${l}</button>`).join("")}</div></div>
+      <p class="ntreward">모든 칸을 채우면 완성${ntAreas(c.area).length ? ` · ${ntAreas(c.area).map(k => { const A = AREAS.find(a => a[0] === k); return `${A[3]} 영역(${A[1]})`; }).join("·")} +1` : ""}</p>
       <button class="btn big full" data-act="dr-save">저장</button>
       ${c.edit ? `<button class="link danger ntdel" data-act="dr-del">${S.armed === "dd"+c.edit ? "한 번 더 누르면 삭제돼요 · 자료는 메모로 옮겨져요" : "서랍 삭제"}</button>` : ""}`); }
   const row = d => `<div class="row drrow"><span class="t"><b>${nic(d.ic)}${esc(d.l)}</b><small>${d.custom ? "직접 만든 서랍 · " : ""}${d.f.map(x => x.l).join(" · ") || "칸 없음"}</small></span>${d.custom ? `<button class="btn sec xs" data-act="dr-edit" data-v="${d.k}">수정</button>` : `<button class="btn sec xs" data-act="dr-hide" data-v="${d.k}">${d.hidden ? "보이기" : "숨기기"}</button>`}</div>`;
@@ -2855,7 +2857,7 @@ document.addEventListener("click", e => {
       openSheet({type:"note", cat, unsorted:!DR.some(d => d.k === S.ntCat && !d.hidden), vals:{}, area:null, projectId:b.dataset.p && S.projects[b.dataset.p] ? b.dataset.p : null}); setTimeout(() => { const x = $(".sheet input[type=text], .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
     case "nt-edit": { S.lnMenu = null; const n = S.mine[id]; if (!n) return; const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
       const vals = {}; Object.entries(f).forEach(([k, v]) => { if (k === "rating" || ["status","media","type"].includes(k)) vals[k] = v; else S.drafts["nf-" + k] = v || ""; });
-      openSheet({type:"note", id, cat, unsorted:!!n.unsorted, vals, area:n.area || null, projectId:n.projectId || null, files:[...(n.files || [])], hideF:[...(n.hideF || [])]}); return; }
+      openSheet({type:"note", id, cat, unsorted:!!n.unsorted, vals, area:ntAreas(n.area), projectId:n.projectId || null, files:[...(n.files || [])], hideF:[...(n.hideF || [])]}); return; }
     case "nt-discard": ask({t:"작성 중인 내용을 지울까요?", d:"저장하지 않고 나가요.", ok:"삭제"}, () => { if (S.compose && S.compose.type === "note"){ S.compose.noSave = true; closeSheet(); } }); return;
     case "ln-open": { const nid = b.dataset.id; closeSheet(); push({name:"learn", id:nid}, "#learn"); return; }
     case "nt-emenu": preserveSheetDrafts(); c.menu = !c.menu; c.kpick = false; renderSheet(); return;
@@ -2876,7 +2878,7 @@ document.addEventListener("click", e => {
     case "nt-qexp": c.qexp = b.dataset.v || null; renderSheet(); return;
     case "nt-qclose": c.drop = null; c.qexp = null; renderSheet(); return;
     case "nt-qset": preserveSheetDrafts(); c.projectId = b.dataset.v || null; c.drop = null; c.qexp = null; renderSheet(); return;
-    case "nt-aset": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : (b.dataset.v || null); c.drop = null; renderSheet(); return;
+    case "nt-aset": { preserveSheetDrafts(); const a = ntAreas(c.area), v = b.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else if (v){ if (a.length >= 2){ toast("영역은 2개까지 고를 수 있어요"); return; } a.push(v); } c.area = a; c.drop = null; renderSheet(); return; }
     case "nt-apick": preserveSheetDrafts(); S.parentSheet = c; openSheet({type:"apick"}); return;
     case "apick-set": { const par = S.parentSheet; if (par) par.area = b.dataset.v || null; closeSheet(); return; }
     case "nt-area": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
@@ -2889,17 +2891,17 @@ document.addEventListener("click", e => {
       S.drafts["ad-name"] = name; openSheet({type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:null, parentId:null, unit:null, area:[], noteId:key}); return; }
     case "dr-manage": openSheet({type:"drawers"}); return;
     case "dr-edit": { const v = b.dataset.v, d = v && (S.mine.drawers?.list || []).find(x => x.k === v); S.drafts["dr-l"] = d ? d.l : "";
-      const nc = {type:"drawers", edit:v || "", ic:d ? d.ic || "folder" : "folder", fields:d ? [...(d.fields || [])] : ["title","body"], area:d ? d.area || null : null}; openSheet(nc); return; }
+      const nc = {type:"drawers", edit:v || "", ic:d ? d.ic || "folder" : "folder", fields:d ? [...(d.fields || [])] : ["title","body"], area:d ? ntAreas(d.area) : []}; openSheet(nc); return; }
     case "dr-field": { preserveSheetDrafts(); const v = b.dataset.v; c.fields = c.fields.includes(v) ? c.fields.filter(x => x !== v) : [...c.fields, v]; renderSheet(); return; }
     case "dr-icon": preserveSheetDrafts(); c.ic = b.dataset.v; renderSheet(); return;
-    case "dr-area": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
+    case "dr-area": { preserveSheetDrafts(); const a = ntAreas(c.area), v = b.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else { if (a.length >= 2){ toast("영역은 2개까지 고를 수 있어요"); return; } a.push(v); } c.area = a; renderSheet(); return; }
     case "dr-hide": { const cfg = S.mine.drawers || {}, h = cfg.hidden || [], v = b.dataset.v; const nh = h.includes(v) ? h.filter(x => x !== v) : [...h, v];
       if (nh.length >= 4 && !(cfg.list || []).length){ toast("서랍을 하나는 남겨 주세요"); return; }
       run(() => api.putMine("drawers", {kind:"drawers", list:cfg.list || [], hidden:nh}), () => renderSheet()); return; }
     case "dr-save": { const l = pv("dr-l").trim(); if (!l){ toast("서랍 이름을 적어 주세요"); return; } if (!c.fields.length){ toast("입력 칸을 하나 이상 골라 주세요"); return; }
       const cfg = S.mine.drawers || {}, list = [...(cfg.list || [])], DR = noteDrawers(S);
       if (DR.some(d => d.l === l && d.k !== c.edit)){ toast("같은 이름의 서랍이 있어요"); return; }
-      const rec = {k:c.edit || "d" + uid8(), l, ic:DR_ICONS.includes(c.ic) ? c.ic : "folder", fields:c.fields, area:c.area || null}, i = list.findIndex(x => x.k === rec.k);
+      const rec = {k:c.edit || "d" + uid8(), l, ic:DR_ICONS.includes(c.ic) ? c.ic : "folder", fields:c.fields, area:ntAreas(c.area).length ? ntAreas(c.area) : null}, i = list.findIndex(x => x.k === rec.k);
       if (i >= 0) list[i] = rec; else list.push(rec);
       run(() => api.putMine("drawers", {kind:"drawers", list, hidden:cfg.hidden || []}), () => { delete S.drafts["dr-l"]; S.ntCat = rec.k; openSheet({type:"drawers"}); toast(c.edit ? "서랍을 수정했어요" : `${l} 서랍을 만들었어요`); }); return; }
     case "dr-del": { const k = c.edit; if (S.armed !== "dd"+k){ arm("dd"+k); renderSheet(); return; } S.armed = null; const cfg = S.mine.drawers || {};
