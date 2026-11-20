@@ -1321,11 +1321,12 @@ test('저널: 지난 날짜로 쓰기 (보상 없음), 카드에서 수정',asyn
   const t0 = cal.match(/class="sel tdy" data-act="dppick" data-k="jd" data-v="([\d-]+)"/)[1], d0 = new Date(t0+'T00:00:00'); d0.setDate(d0.getDate()-1);
   const y = d0.getFullYear()+'-'+String(d0.getMonth()+1).padStart(2,'0')+'-'+String(d0.getDate()).padStart(2,'0');
   h.click('dppick',{k:'jd',v:y}); assert.doesNotMatch(h.nodes.get('overlay').innerHTML, /data-k="jd"/); assert.match(h.nodes.get('overlay').innerHTML, /보상 없이 기록만/); assert.match(h.nodes.get('overlay').innerHTML, new RegExp((d0.getMonth()+1)+'월 '+d0.getDate()+'일'));
-  h.click('pemo',{v:'평온'}); h.nodes.set('pl-text',{value:'어제 쓴 저널'}); h.nodes.set('pl-cond',{value:'60'}); h.click('psave'); await h.settle();
+  h.click('pemo',{v:'평온'}); h.nodes.set('pl-text',{value:'어제 쓴 저널'}); h.nodes.set('pl-cond',{value:'60'}); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/data-act="psave"/); h.click('sheet-close'); await h.settle();
   const d = h.snapshot().mine['d-'+y]; assert.ok(d); assert.equal(d.text,'어제 쓴 저널'); assert.equal(d.date,y);
   h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); await h.settle();
   assert.match(h.nodes.get('app').innerHTML, new RegExp('data-act="dedit" data-id="d-'+y+'"'));
-  h.click('dedit',{id:'d-'+y}); assert.match(h.nodes.get('overlay').innerHTML, /어제 쓴 저널/); assert.match(h.nodes.get('overlay').innerHTML, /data-act="psave"[^>]*>수정/);
+  h.click('dedit',{id:'d-'+y}); assert.match(h.nodes.get('overlay').innerHTML, /어제 쓴 저널/); assert.match(h.nodes.get('overlay').innerHTML, /data-act="nt-emenu"/);
+  h.click('sheet-close'); await h.settle(); assert.equal(h.snapshot().mine['d-'+y].text,'어제 쓴 저널'); /* 안 바꾸고 닫으면 그대로 */
 });
 test('first-game checklist (main and trial) tracks the six ebook steps and can be closed',async()=>{
   const T={trial:true},h=await profileUI(undefined,'',T);h.route('qmanage');let app=h.nodes.get('app').innerHTML;
