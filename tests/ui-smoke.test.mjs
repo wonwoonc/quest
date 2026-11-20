@@ -1739,3 +1739,35 @@ test('자료 작성: 완료·삭제 버튼 없음, 뒤로 가면 자동 저장(�
   h.click('nt-del',{id:z.id}); h.click('cfok'); await h.settle(); assert.equal(notes().length,0); assert.equal(h.nodes.get('overlay').innerHTML.includes('nttitle'),false);
   h.click('nt-new'); h.click('nt-kind',{v:'memo'}); h.nodes.set('nf-title',{value:'버릴 글'}); h.click('nt-emenu'); assert.match(ov(),/data-act="nt-discard"/); h.click('nt-discard'); assert.match(ov(),/작성 중인 내용을 지울까요/); h.click('cfok'); await h.settle(); assert.equal(notes().length,0);
 });
+test('자료실 보기: 카드·리스트·표 전환(서랍마다 기억), 표 정렬, 저널 월 보기',async()=>{
+  const base = await profileUI(), saved = base.snapshot();
+  saved.mine = {...saved.mine,
+    n1:{id:'n1',kind:'note',owner:'me',cat:'learn',f:{title:'가 강의',type:'강의',rating:3,status:'완료'},createdAt:1,updatedAt:1},
+    n2:{id:'n2',kind:'note',owner:'me',cat:'learn',f:{title:'나 책',type:'책',rating:5,status:'진행 중'},createdAt:2,updatedAt:2},
+    'd-2026-11-02':{id:'d-2026-11-02',kind:'diary',date:'2026-11-02',at:1,cond:85,emo:'평온',text:'좋은 날'},
+    'd-2026-11-03':{id:'d-2026-11-03',kind:'diary',date:'2026-11-03',at:1,cond:30,emo:'평온',text:'피곤'}};
+  const h = await profileUI(saved); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'learn'}); await h.settle();
+  let html = h.nodes.get('app').innerHTML; assert.match(html, /class="ntvseg"/); assert.match(html, /class="card ntcard"/);
+  h.click('nt-view',{v:'list'}); await h.settle(); html = h.nodes.get('app').innerHTML; assert.match(html, /class="ntlrow" data-act="nt-edit" data-id="n2"/); assert.doesNotMatch(html, /class="card ntcard"/);
+  h.click('nt-view',{v:'table'}); await h.settle(); html = h.nodes.get('app').innerHTML;
+  assert.match(html, /<table class="nttbl">/); assert.match(html, />종류</); assert.match(html, />별점</); assert.match(html, />상태</);
+  h.click('nt-sort',{v:'rating'}); await h.settle(); html = h.nodes.get('app').innerHTML; assert.ok(html.indexOf('가 강의') < html.indexOf('나 책'), 'ascending by rating');
+  h.click('nt-sort',{v:'rating'}); await h.settle(); html = h.nodes.get('app').innerHTML; assert.ok(html.indexOf('나 책') < html.indexOf('가 강의'), 'descending by rating');
+  h.click('nt-cat',{v:'all'}); await h.settle(); assert.match(h.nodes.get('app').innerHTML, /class="card ntcard"/, 'other drawer keeps its own view');
+  h.click('nt-cat',{v:'learn'}); await h.settle(); assert.match(h.nodes.get('app').innerHTML, /<table class="nttbl">/, 'remembered');
+  h.click('nt-cat',{v:'journal'}); await h.settle(); assert.match(h.nodes.get('app').innerHTML, /data-act="nt-view" data-v="month"/); assert.doesNotMatch(h.nodes.get('app').innerHTML, /data-act="nt-view" data-v="table"/);
+  h.click('nt-view',{v:'month'}); h.click('j-mon',{v:'-1'}); await h.settle();
+  const t = new Date(), cur = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}`;
+  for (let i = 0; i < 40 && !h.nodes.get('app').innerHTML.includes('2026년 11월'); i++){ h.click('j-mon',{v: cur > '2026-11' ? '-1' : '1'}); await h.settle(); }
+  html = h.nodes.get('app').innerHTML; assert.match(html, /2026년 11월/);
+  assert.match(html, /class="jmc lv3[^"]*" data-act="j-day" data-v="2026-11-02"/); assert.match(html, /class="jmc lv1[^"]*" data-act="j-day" data-v="2026-11-03"/);
+  assert.match(html, /기록한 날<\/small><b class="num">2일/); assert.match(html, /평균 컨디션<\/small><b class="num">58%/); assert.match(html, /자주 느낀 감정<\/small><b>평온/);
+  h.click('j-day',{v:'2026-11-02'}); assert.match(h.nodes.get('overlay').innerHTML, /좋은 날/);
+});
+test('자료는 메인 퀘스트에만 연결',async()=>{
+  const base = await profileUI(), saved = base.snapshot();
+  saved.projects = {...saved.projects, mq:{id:'mq',owner:'me',title:'메인 큐',status:'active'}, sq:{id:'sq',owner:'me',parentId:'mq',title:'스테이지 큐',status:'active'}};
+  const h = await profileUI(saved); h.route('notes'); await h.settle(); h.click('nt-new'); h.click('nt-kind',{v:'memo'}); await h.settle();
+  h.click('nt-drop',{v:'q'}); await h.settle(); const o = h.nodes.get('overlay').innerHTML;
+  assert.match(o, /메인 퀘스트 연결/); assert.match(o, /data-act="nt-qset" data-v="mq"/); assert.doesNotMatch(o, /data-v="sq"/);
+});

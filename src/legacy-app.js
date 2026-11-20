@@ -1089,7 +1089,7 @@ function jCard(d){
 function qNotes(p, subs, sp){
   const ids = new Set([p.id, ...(sp ? [] : subs.map(x => x.id))]);
   const ns = mineOf("note").filter(n => n.projectId && ids.has(n.projectId)).sort((a,b) => (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0));
-  const open = p.status !== "done" && !isCx(p);
+  const open = !sp && !p.parentId && p.status !== "done" && !isCx(p); /* 자료는 메인 퀘스트에만 연결한다(스테이지 화면에는 예전에 연결한 자료만 보여 준다) */
   if (!ns.length && !open) return "";
   const row = n => { const {cat, f} = ntN(n), C = noteDrawer(S, cat), t = f.title || (f.url && ntHost(f.url)) || (n.files && n.files[0] && n.files[0].name) || (v => v.length > 40 ? v.slice(0, 40) + "…" : v)(String(f.body || f.summary || f.why || "")) || "제목 없음";
     const st = n.projectId !== p.id && S.projects[n.projectId] ? S.projects[n.projectId].title : "", done = noteComplete(S, n);
@@ -1119,6 +1119,52 @@ function ntInbox(all){ const ms = all.filter(n => n.unsorted); if (!ms.length) r
   const row = n => { const {f} = ntN(n), t = f.title || String(f.body || "").split("\n")[0].slice(0, 40) || "메모", d = new Date(n.updatedAt || n.createdAt || Date.now());
     return `<button class="ntrow" data-act="nt-edit" data-id="${n.id}"><span class="ntri">${nic("inbox")}</span><span class="t"><b>${esc(t)}</b><small>${d.getMonth()+1}.${d.getDate()}${NT_URL_RE.test(ntText(n)) ? " · 링크 있음" : ""}</small></span><svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`; };
   return `<section class="card tight qlist ntinbox"><div class="ch"><h2>${nic("inbox")}분류</h2><span class="side num">${ms.length}</span></div>${ms.map(row).join("")}</section>`; }
+/* 자료실 보기: 서랍마다 카드·리스트·표(저널은 목록·월)를 고르고 기억한다 */
+S.ntView = (v => v && typeof v === "object" && !Array.isArray(v) ? v : {})((() => { try { return LS.get("ntView", {}); } catch { return {}; } })());
+S.ntSort = null; S.jMonth = null;
+const NT_VIEWS = {card:["카드", '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>'],
+  list:["리스트", '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>'],
+  table:["표", '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M10 9.5v10"/>'],
+  month:["월", '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>']};
+const ntViewOf = cat => { const v = S.ntView[cat], ok = cat === "journal" ? ["card","month"] : ["card","list","table"]; return ok.includes(v) ? v : "card"; };
+function ntViewSeg(cat){ const cur = ntViewOf(cat), ks = cat === "journal" ? ["card","month"] : ["card","list","table"];
+  return `<div class="ntvseg" role="group" aria-label="보기">${ks.map(k => `<button data-act="nt-view" data-v="${k}" aria-pressed="${cur === k}" aria-label="${k === "card" && cat === "journal" ? "목록" : NT_VIEWS[k][0]} 보기" title="${k === "card" && cat === "journal" ? "목록" : NT_VIEWS[k][0]}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NT_VIEWS[k][1]}</svg></button>`).join("")}</div>`; }
+function ntTitle(n){ const {f} = ntN(n); return f.title || (f.url && ntHost(f.url)) || (n.files && n.files[0] && n.files[0].name) || String(f.body || "").split("\n")[0].slice(0, 40) || "제목 없음"; }
+function ntRunL(n){ const ts = ntTasks(n), dq = mineOf("quest").find(q => q.noteId === n.id && q.active !== false);
+  return dq ? "일일 진행 중" : ts.length ? (ts.every(m => m.done) ? "실행함" : "미션 진행 중") : ""; }
+const ntAt = n => n.updatedAt || n.createdAt || 0, ntMD = t => { const d = new Date(t || Date.now()); return `${d.getMonth()+1}.${d.getDate()}`; };
+function ntListRows(ns){
+  return `<section class="card tight ntlist">${ns.map(n => { const C = noteDrawer(S, ntN(n).cat), done = noteComplete(S, n);
+    return `<button class="ntlrow" data-act="nt-edit" data-id="${n.id}"><span class="ntri">${nic(n.unsorted ? "inbox" : C.ic)}</span><b class="t">${esc(ntTitle(n))}</b>${done ? `<span class="ntdone" aria-label="완성">${nic("check")}</span>` : ""}<small class="num">${ntMD(ntAt(n))}</small></button>`; }).join("")}</section>`; }
+function ntTable(ns, cat){
+  const pjT = n => n.projectId && S.projects[n.projectId] ? S.projects[n.projectId].title : "";
+  const T = {k:"title", l:"제목", v:n => ntTitle(n), h:n => `<b>${esc(ntTitle(n))}</b>${noteComplete(S, n) ? `<span class="ntdone" aria-label="완성">${nic("check")}</span>` : ""}`},
+    D = {k:"date", l:"날짜", v:n => ntAt(n), h:n => `<span class="num">${ntMD(ntAt(n))}</span>`, w:1};
+  const cols = cat === "all" ? [{k:"dr", l:"서랍", v:n => noteDrawer(S, ntN(n).cat).l, h:n => { const C = noteDrawer(S, ntN(n).cat); return `<span class="ntcat">${nic(C.ic)}${esc(C.l)}</span>`; }, w:1}, T, D]
+    : cat === "learn" ? [T, {k:"type", l:"종류", v:n => ntN(n).f.type || ""}, {k:"rating", l:"별점", v:n => +ntN(n).f.rating || 0, h:n => stars(ntN(n).f.rating) || "", w:1}, {k:"status", l:"상태", v:n => ntN(n).f.status || "", h:n => { const s = ntN(n).f.status; return s ? `<b class="lnstb ${s === "완료" ? "ok" : ""}">${esc(s)}</b>` : ""; }, w:1}]
+    : cat === "ref" ? [T, {k:"media", l:"종류", v:n => ntN(n).f.media || ""}, {k:"url", l:"링크", v:n => ntN(n).f.url ? ntHost(ntN(n).f.url) : "", h:n => { const u = safeUrl(ntN(n).f.url || ""); return u ? `<a class="ntlink" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(ntHost(u))}</a>` : ""; }}]
+    : cat === "idea" ? [T, {k:"run", l:"실행 상태", v:ntRunL}, {k:"pj", l:"연결 퀘스트", v:pjT}]
+    : [T, D];
+  const so = S.ntSort && S.ntSort.cat === cat && cols.find(c => c.k === S.ntSort.k), dir = S.ntSort ? S.ntSort.dir : 1;
+  const rows = so ? [...ns].sort((a,b) => { const x = so.v(a), y = so.v(b); return (typeof x === "number" ? x - y : String(x).localeCompare(String(y), "ko")) * dir; }) : ns;
+  const arrow = c => so === c ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${dir > 0 ? '<path d="M7 14l5-5 5 5"/>' : '<path d="M7 10l5 5 5-5"/>'}</svg>` : "";
+  return `<div class="card tight nttblw"><table class="nttbl"><thead><tr>${cols.map(c => `<th class="${c.w ? "w" : ""}" aria-sort="${so === c ? (dir > 0 ? "ascending" : "descending") : "none"}"><button data-act="nt-sort" data-v="${c.k}">${c.l}${arrow(c)}</button></th>`).join("")}</tr></thead>
+    <tbody>${rows.map(n => `<tr data-act="nt-edit" data-id="${n.id}" role="button" tabindex="0">${cols.map(c => `<td class="${c.k === "title" ? "tt" : c.w ? "w" : ""}">${c.h ? c.h(n) : esc(String(c.v(n) || ""))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; }
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+function jMonthView(jAll){
+  const t0 = today(), ym = S.jMonth || t0.slice(0, 7), [Y, M] = ym.split("-").map(Number), first = new Date(Y, M-1, 1), days = new Date(Y, M, 0).getDate(), lead = first.getDay();
+  const by = Object.fromEntries(jAll.filter(d => d.date.startsWith(ym)).map(d => [d.date, d])), cur = ym === t0.slice(0, 7);
+  const lv = c => c == null ? 2 : c < 40 ? 1 : c < 70 ? 2 : 3;
+  let cells = ""; for (let i = 0; i < lead; i++) cells += `<span class="jmc pad"></span>`;
+  for (let i = 1; i <= days; i++){ const dt = `${ym}-${String(i).padStart(2,"0")}`, d = by[dt], fut = dt > t0;
+    cells += `<button class="jmc${d ? " lv" + lv(d.cond) : ""}${dt === t0 ? " today" : ""}" data-act="j-day" data-v="${dt}" ${fut ? "disabled" : ""} aria-label="${M}월 ${i}일${d ? ` 저널 · 컨디션 ${esc(d.cond ?? "-")}%` : fut ? "" : " 저널 쓰기"}"><span class="num">${i}</span></button>`; }
+  const ds = Object.values(by), cs = ds.map(d => d.cond).filter(c => typeof c === "number"), avg = cs.length ? Math.round(cs.reduce((a,b) => a+b, 0) / cs.length) : null;
+  const ec = {}; ds.forEach(d => { if (d.emo) ec[d.emo] = (ec[d.emo] || 0) + 1; }); const top = Object.entries(ec).sort((a,b) => b[1] - a[1])[0];
+  const chev = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+  return `<section class="card jmonth"><div class="jmh"><button class="jmnav" data-act="j-mon" data-v="-1" aria-label="이전 달">${chev("M15 6l-6 6 6 6")}</button><h2 class="num">${Y}년 ${M}월</h2><button class="jmnav" data-act="j-mon" data-v="1" aria-label="다음 달" ${cur ? "disabled" : ""}>${chev("M9 6l6 6-6 6")}</button></div>
+    <div class="jmg">${WD.map(w => `<span class="jmw">${w}</span>`).join("")}${cells}</div>
+    <div class="jmleg"><span>컨디션</span><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><span>높음</span></div>
+    <div class="jmsum"><div><small>기록한 날</small><b class="num">${ds.length}일</b></div><div><small>평균 컨디션</small><b class="num">${avg == null ? "-" : avg + "%"}</b></div><div><small>자주 느낀 감정</small><b>${top ? esc(top[0]) : "-"}</b></div></div></section>`; }
 function viewNotes(){
   if (!hasProfile()) return viewToday();
   const DR = noteDrawers(S), all = mineOf("note").sort((a,b) => (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0)), cat = S.ntCat === "journal" || DR.some(d => d.k === S.ntCat) ? S.ntCat : "all", q = (S.ntQ || "").trim().toLowerCase();
@@ -1127,11 +1173,11 @@ function viewNotes(){
   const list = q ? inCat.filter(n => (ntText(n) + " " + (n.projectId && S.projects[n.projectId] ? S.projects[n.projectId].title : "")).toLowerCase().includes(q)) : inCat;
   const grid = cat === "all" && !q ? list.filter(n => !n.unsorted) : list; /* 전체 보기에서 분류 안 된 자료는 위 '분류'에 */
   const chip = (k, l, n) => `<button class="chip" data-act="nt-cat" data-v="${k}" aria-pressed="${cat === k}">${l}${n ? ` <span class="num">${n}</span>` : ""}</button>`;
-  return `<div class="nttools"><input type="search" id="nt-q" placeholder="${cat === "journal" ? "저널 검색" : "자료 검색"}" value="${esc(S.ntQ || "")}" aria-label="자료 검색"><button class="btn" data-act="nt-new">+ 자료 추가</button></div>
+  return `<div class="nttools"><input type="search" id="nt-q" placeholder="${cat === "journal" ? "저널 검색" : "자료 검색"}" value="${esc(S.ntQ || "")}" aria-label="자료 검색">${ntViewSeg(cat)}<button class="btn" data-act="nt-new">+ 자료 추가</button></div>
     <div class="chips ntcats" role="group" aria-label="서랍" data-swipe>${chip("all", "전체", all.length)}${DR.filter(d => !d.hidden || d.k === cat).map(d => chip(d.k, `${nic(d.ic)}${esc(d.l)}`, all.filter(n => ntN(n).cat === d.k && !n.unsorted).length)).join("")}${chip("journal", `${nic("journal")}저널`, jAll.length)}<button class="chip ntmng" data-act="dr-manage">+ 서랍</button></div>
-    ${cat === "journal" ? (jList.length ? `<div class="ntgrid">${jList.map(jCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 저널이 없어요" : "저널 서랍이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 저널 추가」로 오늘 하루를 남겨 보세요."}</section>`) : ""}
+    ${cat === "journal" ? (ntViewOf("journal") === "month" ? jMonthView(jAll) : jList.length ? `<div class="ntgrid">${jList.map(jCard).join("")}</div>` : `<section class="card empty"><strong>${q ? "찾는 저널이 없어요" : "저널 서랍이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 저널 추가」로 오늘 하루를 남겨 보세요."}</section>`) : ""}
     ${cat === "all" && !q ? ntInbox(all) : ""}
-    ${cat === "journal" ? "" : grid.length ? `<div class="ntgrid">${grid.map(ntCard).join("")}</div>` : cat === "all" && !q && list.length ? "" : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : cat !== "all" ? `${esc(noteDrawer(S, cat).l)} 서랍이 비어 있어요` : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 자료 추가」로 첫 자료를 담아 보세요."}</section>`}`;
+    ${cat === "journal" ? "" : grid.length ? (v => v === "list" ? ntListRows(grid) : v === "table" ? ntTable(grid, cat) : `<div class="ntgrid">${grid.map(ntCard).join("")}</div>`)(ntViewOf(cat)) : cat === "all" && !q && list.length ? "" : `<section class="card empty"><strong>${q ? "찾는 자료가 없어요" : cat !== "all" ? `${esc(noteDrawer(S, cat).l)} 서랍이 비어 있어요` : "자료실이 비어 있어요"}</strong>${q ? "다른 단어로 찾아보세요." : "「+ 자료 추가」로 첫 자료를 담아 보세요."}</section>`}`;
 }
 /* 자료 작성 화면: 큰 제목 → 서랍별 속성 몇 줄 → 글 상자(요약·이유 등) → 자유 본문. 종류는 위 알약에서 언제든 바꾼다 */
 const NT_URL_RE = /(https?:\/\/|www\.)\S+|\b[\w-]+\.(com|net|org|io|co|kr|me|tv|be|ly)(\/\S*)?/i;
@@ -1172,7 +1218,7 @@ function noteSheet(c){
   const qOpen = c.drop === "q", aOpen = c.drop === "a";
   const mains = goalsOf(S.me).filter(g => g.status !== "done" && !isCx(g)).sort(gOrder);
   /* 메인 퀘스트만 먼저. 스테이지가 있는 메인은 누르면 그 아래로 '메인 퀘스트에 연결' + 스테이지가 펼쳐진다 */
-  const qList = qOpen ? questPop({title:"퀘스트 연결", cur:c.projectId, sub:c.qexp, set:"nt-qset", subAct:"nt-qexp", close:"nt-qclose"}) : "";
+  const qList = qOpen ? questPop({title:"메인 퀘스트 연결", cur:c.projectId, onlyMain:true, sub:c.qexp, set:"nt-qset", subAct:"nt-qexp", close:"nt-qclose"}) : "";
   const qRow = gs.length || pj ? `<span class="ntpl">퀘스트</span><div class="ntpq">${pj ? `<button class="ntpc on" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">${esc(pj.title)}${chev(qOpen)}</button>` : `<button class="ntpc add" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">+ 연결${chev(qOpen)}</button>`}</div>${qList}` : "";
   const aSel = c.area && AREAS.find(a => a[0] === c.area);
   /* 영역: 칩으로 바로 고르기. 고른 칩을 다시 누르면 해제 */
@@ -2981,8 +3027,15 @@ document.addEventListener("click", e => {
     case "nf-pick": { const inp = document.createElement("input"); inp.type = "file"; inp.multiple = true; inp.accept = F_ACCEPT; inp.onchange = () => addFiles(c, inp.files); inp.click(); return; }
     case "fv-back": openSheet(c.back); return;
     case "nt-cat": S.ntCat = b.dataset.v; break;
+    case "nt-view": { const c = S.ntCat === "journal" || noteDrawers(S).some(d => d.k === S.ntCat) ? S.ntCat : "all"; S.ntView = {...S.ntView, [c]:b.dataset.v}; try { LS.set("ntView", S.ntView); } catch {} break; }
+    case "nt-sort": { const c = S.ntCat || "all", k = b.dataset.v, o = S.ntSort; S.ntSort = o && o.cat === c && o.k === k ? (o.dir > 0 ? {cat:c, k, dir:-1} : null) : {cat:c, k, dir:1}; break; }
+    case "j-mon": { const [Y, M] = (S.jMonth || today().slice(0, 7)).split("-").map(Number), d = new Date(Y, M - 1 + (+b.dataset.v), 1), ym = ymd(d).slice(0, 7); if (ym > today().slice(0, 7)) return; S.jMonth = ym; break; }
+    case "j-day": { const dt = b.dataset.v; if (!dt || dt > today()) return; const d = S.mine["d-"+dt];
+      if (d){ S.planner = {cond:d.cond ?? 70, emo:d.emo || null, share:!!diaryPost(d.id), date:dt, edit:true}; S.drafts["pl-text"] = d.text || ""; }
+      else { S.planner = {cond:70, emo:null, share:false, date:dt, edit:false}; S.drafts["pl-text"] = ""; }
+      openSheet({type:"diary"}); return; }
     case "nt-new": { ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => d.k === "memo" && !d.hidden) || DR.find(d => !d.hidden) || DR[0]).k; /* 전체에서 누르면 바로 메모(빈 화면)로 */
-      openSheet({type:"ntpick", p:b.dataset.p && S.projects[b.dataset.p] ? b.dataset.p : null}); return; } /* 자료 추가: 서랍 고르기 팝업부터 */
+      { const pp = b.dataset.p && S.projects[b.dataset.p]; openSheet({type:"ntpick", p:pp ? (pp.parentId && S.projects[pp.parentId] ? pp.parentId : pp.id) : null}); } return; } /* 자료 추가: 서랍 고르기 팝업부터 */
     case "nt-edit": { S.lnMenu = null; const n = S.mine[id]; if (!n) return; const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
       const vals = {}; Object.entries(f).forEach(([k, v]) => { if (k === "rating" || ["status","media","type"].includes(k)) vals[k] = v; else S.drafts["nf-" + k] = v || ""; });
       openSheet({type:"note", id, cat, unsorted:!!n.unsorted, vals, area:ntAreas(n.area), projectId:n.projectId || null, files:[...(n.files || [])], hideF:[...(n.hideF || [])]}); return; }
