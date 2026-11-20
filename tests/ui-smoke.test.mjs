@@ -1321,6 +1321,13 @@ test('자료 추가: 서랍 고르기에서 저널을 고르면 저널 작성 �
   const o = h.nodes.get('overlay').innerHTML; assert.match(o, /id="pl-text"/); assert.match(o, /오늘 산책/);
   assert.equal(Object.values(h.snapshot().mine).filter(n => n.kind === 'note').length, 0, 'no stray note saved');
 });
+test('저널 작성 화면에서 다른 서랍으로 바꾸기',async()=>{
+  const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); h.click('nt-new');
+  h.click('nt-kpick'); assert.match(h.nodes.get('overlay').innerHTML, /data-act="dj-kind" data-v="idea"/);
+  h.nodes.set('pl-text',{value:'게임 아이디어'}); h.click('dj-kind',{v:'idea'}); await h.settle();
+  const o = h.nodes.get('overlay').innerHTML; assert.match(o, /id="nfed"|id="nf-body"/); assert.match(o, /게임 아이디어/);
+  assert.equal(Object.keys(h.snapshot().mine).filter(k => k.startsWith('d-')).length, 0, 'journal not saved');
+});
 test('저널: 지난 날짜로 쓰기 (보상 없음), 카드에서 수정',async()=>{
   const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); await h.settle();
   assert.doesNotMatch(h.nodes.get('app').innerHTML, />\+ 저널 추가</);
