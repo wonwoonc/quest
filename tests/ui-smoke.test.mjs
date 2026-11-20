@@ -1791,9 +1791,9 @@ test('아이디어 실행할 일: 일일·메인 퀘스트로도 만들기',asyn
   const n = Object.values(h.snapshot().mine).find(m => m.kind === 'note'); assert.ok(n && !n.sent, 'saved, not yet complete');
   h.click('sheet-close'); await h.settle(); h.click('nt-edit',{id:n.id}); h.click('nt-drop',{v:'mk'}); h.click('nt-mk',{f:'next',v:'daily'}); await h.settle(); assert.match(ov(), /일일 퀘스트 생성/);
 });
-test('저널 감정: 선택 버튼을 누르면 펼쳐지고, 고르면 버튼에 표시',async()=>{
+test('저널 감정: 선택 버튼을 누르면 그 자리에서 옆으로 펼쳐지고, 고르면 버튼에 표시',async()=>{
   const h = await profileUI(), ov = () => h.nodes.get('overlay').innerHTML; h.route('notes'); await h.settle(); h.click('nt-new'); h.click('nt-kind',{v:'journal'}); await h.settle();
-  assert.match(ov(), /data-act="jemo" aria-expanded="false">\+ 선택/); assert.doesNotMatch(ov(), /data-act="pemo"/);
-  h.click('jemo'); assert.match(ov(), /class="ntpch jemol"[\s\S]*data-act="pemo" data-v="평온"/);
-  h.click('pemo',{v:'평온'}); assert.match(ov(), /class="ntpc on" data-act="jemo" aria-expanded="false">평온/); assert.doesNotMatch(ov(), /jemol/);
+  assert.match(ov(), /<button class="ntpc " data-act="jemo" aria-expanded="false">선택<\/button>/); assert.doesNotMatch(ov(), /data-act="pemo"/);
+  h.click('jemo'); assert.match(ov(), /class="ntpch jemo"><button class="ntpc" data-act="pemo" data-v="기쁨"/); assert.doesNotMatch(ov(), /data-act="jemo"/);
+  h.click('pemo',{v:'평온'}); assert.match(ov(), /<button class="ntpc on" data-act="jemo" aria-expanded="false">평온<\/button>/); assert.doesNotMatch(ov(), /data-act="pemo"/);
 });
