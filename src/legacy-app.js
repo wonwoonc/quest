@@ -1,5 +1,5 @@
 import {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, levelStart, koreaDate, economySummary, migrateEconomy} from './economy.js';
-import {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete, noteTpls, noteTpl, noteTplFields} from './notes.js';
+import {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete, noteTpls, noteTpl, noteTplFields, userTpls} from './notes.js';
 import {LEGAL_META, TERMS, PRIVACY} from './legal.js';
 import {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} from './day-activities.js';
 export function startLegacyApp({runtime, storage, seed = null, account = null, community = null}) {
@@ -1213,6 +1213,14 @@ const delDrop = (act, id, armKey) => `<div class="ntdd" role="menu"><button data
 /* 오늘 저널 열기(이미 쓴 날이면 수정). text가 있고 저널이 비었으면 이어 붙인다 */
 function openDiaryToday(text){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:d ? !!diaryPost(d.id) : false, date:today(), edit:!!d};
   const t0 = d ? d.text || "" : S.drafts["pl-text"] || ""; S.drafts["pl-text"] = text && !t0.trim() ? text : t0; if (LP && LP.sheet) LP = null; openSheet({type:"diary"}); }
+/* 템플릿 편집 화면: 이름 + 본문 블록. 자료를 쓸 때 템플릿 선택에서 불러온다 */
+function tplEdSheet(c){ const C = noteDrawer(S, c.dk);
+  if (!LP || LP.c !== c) LP = {sheet:true, c, id:"tp", blocks:(c.blocks0 || []).length ? c.blocks0.map(x => ({...bkNorm(x)})) : textBlocks("")};
+  LP.ph = "템플릿에 넣을 틀을 적어요 · '/'로 블록 선택";
+  return sheetWrap(`${nic(C.ic)}${esc(C.l)} 템플릿`, "", `<textarea class="nttitle" id="tp-l" data-grow rows="1" maxlength="30" placeholder="템플릿 이름">${D("tp-l")}</textarea>
+    <div class="nfedw"><div class="nted nfed" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}
+    <p class="tphint">제목·목록·체크리스트·토글처럼 자주 쓰는 틀을 만들어 두면, 자료를 쓸 때 템플릿 선택에서 바로 불러와요.</p>
+    ${c.id ? `<button class="link danger ntdel" data-act="tp-del">${S.armed === "tp" + c.id ? "한 번 더 누르면 삭제돼요" : "템플릿 삭제"}</button>` : ""}`, `<span class="pgright"><button class="pgsave" data-act="tp-save">저장</button></span>`); }
 function noteSheet(c){
   const n = c.id && S.mine[c.id], C = noteDrawer(S, c.cat), gs = Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.status !== "done");
   /* 켜고 끌 수 있는 건 위쪽 정보 칸(속성)뿐. 아래 글 상자(요약·이유·목표 등)는 항상 보인다 */
@@ -1267,8 +1275,10 @@ function noteSheet(c){
   const BF = [...C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body" && !x.bottom), ...tF0, ...noteTplFields(C).filter(x => !tF0.some(y => y.k === x.k) && String(S.drafts["nf-" + x.k] || "").trim())].filter(whenOk);
   c._bf = BF.map(x => x.k);
   if (!c.blocks){ const filled = BF.filter(x => (D("nf-" + x.k) || "").trim()).map(x => x.k); c.blocks = n && !c.tplTouched && (filled.length || D("nf-body").trim()) ? filled : BF.map(x => x.k); } /* 템플릿은 기본으로 보인다 */
-  const tplBtn = tpls ? `<button class="nttplbtn" data-act="nt-tplpick" aria-haspopup="dialog">${nic("layout")}<span>${tpl ? `템플릿 · <b>${esc(tpl.l)}</b>` : "템플릿 선택"}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>` : "";
-  const tplPop = tpls && c.tplOpen ? `<div class="ntqpop" data-act="nt-tplclose"><div class="ntqpop-in" data-act="dpstay" role="dialog" aria-label="템플릿 선택"><div class="ntqpop-h"><b>${esc(C.l)} 템플릿</b><button class="iconbtn" data-act="nt-tplclose" aria-label="닫기">${I.close}</button></div><div class="ntql">${[{id:"none", l:"템플릿 없이", f:[]}, ...tpls.filter(t => t.f.length)].map(t => `<button class="ntqi ${t.id === tId ? "on" : ""}" data-act="nt-tplset" data-v="${t.id}"><span><b>${esc(t.l)}</b><small>${t.f.length ? esc(t.f.map(x => x.l).join(" · ")) : "빈 내용으로 자유롭게"}</small></span></button>`).join("")}</div></div></div>` : "";
+  const uts = userTpls(S, C.k), tplOK = !!tpls || C.f.some(x => x.k === "body") || ntFreeBody(C);
+  const tplBtn = tplOK ? `<button class="nttplbtn" data-act="nt-tplpick" aria-haspopup="dialog">${nic("layout")}<span>${tpl ? `템플릿 · <b>${esc(tpl.l)}</b>` : "템플릿 선택"}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>` : "";
+  const utRow = t => `<div class="ntqi ntqu"><button class="ntqum" data-act="nt-tplset" data-v="${esc(t.id)}"><span><b>${esc(t.l)}</b><small>${esc(t.blocks.map(bkText).filter(x => x.trim()).slice(0, 3).join(" · ") || "빈 템플릿")}</small></span></button><button class="iconbtn ntqued" data-act="nt-tpledit" data-v="${esc(t.id)}" aria-label="${esc(t.l)} 템플릿 수정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button></div>`;
+  const tplPop = tplOK && c.tplOpen ? `<div class="ntqpop" data-act="nt-tplclose"><div class="ntqpop-in" data-act="dpstay" role="dialog" aria-label="템플릿 선택"><div class="ntqpop-h"><b>${esc(C.l)} 템플릿</b><button class="iconbtn" data-act="nt-tplclose" aria-label="닫기">${I.close}</button></div><div class="ntql"><button class="ntqnew" data-act="nt-tplnew">+ 새 템플릿 만들기</button>${(R => R({id:"none", l:"템플릿 없이", f:[]}) + (uts.length ? `<p class="ntqsec">내 템플릿</p>${uts.map(utRow).join("")}` : "") + ((tpls || []).some(t => t.f.length && !t.hidden) ? `<p class="ntqsec">추천 템플릿</p>${(tpls || []).filter(t => t.f.length && !t.hidden).map(R).join("")}` : ""))(t => `<button class="ntqi ${t.id === tId ? "on" : ""}" data-act="nt-tplset" data-v="${t.id}"><span><b>${esc(t.l)}</b><small>${t.f.length ? esc(t.f.map(x => x.l).join(" · ")) : "빈 내용으로 자유롭게"}</small></span></button>`)}</div></div></div>` : "";
   const vis = BF.filter(x => c.blocks.includes(x.k));
   const tplHtml = vis.filter(x => !x.task).map(block).join("") + (vis.length < BF.length ? `<button class="nttpl" data-act="nt-tpl">${nic(C.ic)}${esc(tpl ? tpl.l : C.l)} 템플릿</button>` : "") + tplPop; /* 하나라도 지우면 되살리는 버튼 */
   const tbar = c.tedit ? `<div class="nttbar2"><button class="ntpc on" data-act="nt-tedit">완료</button></div>` : "";
@@ -2293,7 +2303,7 @@ $("#fileIn").addEventListener("change", async e => { const files = [...e.target.
 /* ================= sheets ================= */
 function openSheet(c){ if (c) delete S.drafts["pp-in"]; S.compose = c; renderSheet(); }
 /* 자료 작성 화면은 완료 버튼 없이 닫을 때(뒤로) 자동 저장한다. 아무것도 안 적었으면 그냥 닫는다 */
-function closeSheet(){ const nc = S.compose; if (nc && nc.type === "diary" && !nc.noSave && !nc.saving){ nc.saving = true; const ok = saveDiary(true, () => { nc.noSave = true; closeSheet(); });
+function closeSheet(){ const nc = S.compose; if (nc && nc.type === "tpled"){ delete S.drafts["tp-l"]; const back = nc.back; closeSheet0(); if (back){ back.tplOpen = true; openSheet(back); } return; } if (nc && nc.type === "diary" && !nc.noSave && !nc.saving){ nc.saving = true; const ok = saveDiary(true, () => { nc.noSave = true; closeSheet(); });
     if (!ok){ nc.noSave = true; closeSheet(); } else Promise.resolve(ok).then(() => { if (!nc.noSave) nc.saving = false; }); return; }
   if (nc && nc.type === "note" && !nc.noSave && !nc.saving){ nc.saving = true; preserveSheetDrafts();
     const ok = saveNote(nc, (key, r, fresh) => { nc.noSave = true; closeSheet(); dumpDone(nc); if (r && fresh && r.xp > 0) toast("자료 완성!"); }, true);
@@ -2434,7 +2444,7 @@ function preserveSheetDrafts() {
   document.querySelectorAll('.sheet input[id], .sheet textarea[id]').forEach(el => { if(!['checkbox','radio','file'].includes(el.type)) S.drafts[el.id]=el.value; });
 }
 let sheetDrawn = null; const sheetTops = new WeakMap();
-function sheetWrap(title, desc, body, right = ""){ const creation=false,sub=title.startsWith('스테이지');/* 같은 팝업을 다시 그릴 때(삭제 버튼 두 번 누르기, 확인창에서 돌아오기 등)는 스크롤 위치를 유지한다 */ const oldSh = $("#overlay .sheet"); if (oldSh && sheetDrawn && typeof sheetDrawn === "object") sheetTops.set(sheetDrawn, oldSh.scrollTop); const keepTop = S.compose && typeof S.compose === "object" ? sheetTops.get(S.compose) || 0 : 0; sheetDrawn = S.compose; const pg = !!(S.compose && (S.compose.type === "note" || S.compose.type === "diary")); /* 자료·저널 추가·수정은 팝업 대신 화면 전체를 쓰는 페이지로 연다 */ $("#overlay").innerHTML = `<div class="scrim${pg ? " pagemode" : ""}" data-act="sheet-bg"><div class="sheet${pg ? " page" : ""}" role="dialog" aria-modal="true">${pg ? `<h2 class="pgh"><button data-act="sheet-close" aria-label="뒤로">${I.back}</button><span>${title}</span>${right}</h2>` : `<h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>`}${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}${sheetQPop(S.compose)}</div></div>`; initTW();  if (keepTop){ const ns = $("#overlay .sheet"); if (ns) ns.scrollTop = keepTop; } }
+function sheetWrap(title, desc, body, right = ""){ const creation=false,sub=title.startsWith('스테이지');/* 같은 팝업을 다시 그릴 때(삭제 버튼 두 번 누르기, 확인창에서 돌아오기 등)는 스크롤 위치를 유지한다 */ const oldSh = $("#overlay .sheet"); if (oldSh && sheetDrawn && typeof sheetDrawn === "object") sheetTops.set(sheetDrawn, oldSh.scrollTop); const keepTop = S.compose && typeof S.compose === "object" ? sheetTops.get(S.compose) || 0 : 0; sheetDrawn = S.compose; const pg = !!(S.compose && (S.compose.type === "note" || S.compose.type === "diary" || S.compose.type === "tpled")); /* 자료·저널 추가·수정은 팝업 대신 화면 전체를 쓰는 페이지로 연다 */ $("#overlay").innerHTML = `<div class="scrim${pg ? " pagemode" : ""}" data-act="sheet-bg"><div class="sheet${pg ? " page" : ""}" role="dialog" aria-modal="true">${pg ? `<h2 class="pgh"><button data-act="sheet-close" aria-label="뒤로">${I.back}</button><span>${title}</span>${right}</h2>` : `<h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>`}${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}${sheetQPop(S.compose)}</div></div>`; initTW();  if (keepTop){ const ns = $("#overlay .sheet"); if (ns) ns.scrollTop = keepTop; } }
 /* 뒤로가기로 팝업 닫기: 팝업이 열리면 기록을 하나 쌓고, 뒤로가기(popstate)가 오면 팝업만 닫는다 */
 let sheetHist = false, popSkip = false;
 const HS = typeof history !== "undefined" && history && history.pushState ? history : null;
@@ -2558,6 +2568,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null; if (LP && LP.
     return sheetWrap(`${n} · ${l}`, "", `<div class="aihead"><span class="aiic">${aIcon(k)}</span><p class="aidesc">${AREA_DESC[k]}</p></div>
       <p class="sect3">${l} 영역 퀘스트</p><section class="card tight">${rows || `<p class="empty-row">아직 ${l} 영역을 붙인 퀘스트가 없어요.</p>`}</section>`); }
   if (c.type === "note") return noteSheet(c);
+  if (c.type === "tpled") return tplEdSheet(c);
   if (c.type === "apick"){ const cur = (S.parentSheet || {}).area;
     return sheetWrap("영역", "", `<div class="sheetlist mlist">${AREAS.map(([k,,,l]) => `<button class="row mitem" data-act="apick-set" data-v="${k}"><span class="t"><b class="apk">${aIcon(k)}${l}</b></span>${cur === k ? `<span class="pick">✓</span>` : ""}</button>`).join("")}</div>${cur ? `<button class="btn sec full" data-act="apick-set" data-v="">선택 안 함</button>` : ""}`); }
   if (c.type === "ntmenu"){ const n = S.mine[c.id]; if (!n) return sheetWrap("자료", "", `<p class="empty-row">삭제된 자료예요.</p>`); const {f} = ntN(n), t = f.title || String(f.body || "").split("\n")[0].slice(0, 40) || "자료", learn = ntN(n).cat === "learn";
@@ -3124,7 +3135,19 @@ document.addEventListener("click", e => {
     case "nt-chclose": preserveSheetDrafts(); c.chOpen = null; renderSheet(); return;
     case "nt-chset": { preserveSheetDrafts(); c.vals = c.vals || {}; c.vals[b.dataset.f] = b.dataset.v || null; c.chOpen = null; renderSheet(); return; }
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
-    case "nt-tplset": { preserveSheetDrafts(); ntKeys().forEach(k => { const el = document.getElementById(k); if (el && typeof el.value === "string") S.drafts[k] = el.value; }); c.tpl = b.dataset.v; c.tplTouched = true; c.tplOpen = false; c.blocks = null; renderSheet(); setTimeout(() => { const t = $("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input"); t && t.focus && t.focus(); }, 40); return; }
+    case "nt-tplnew": case "nt-tpledit": { preserveSheetDrafts(); if (LP && LP.c === c){ bkSync(); c._blocks = LP.blocks; } c.tplOpen = false; const ut = a === "nt-tpledit" ? userTpls(S, c.cat).find(t => t.id === b.dataset.v) : null;
+      S.drafts["tp-l"] = ut ? ut.l : ""; LP = null; openSheet({type:"tpled", dk:c.cat, id:ut ? ut.id : null, blocks0:ut ? ut.blocks : null, back:c}); return; }
+    case "tp-save": { if (!LP || LP.c !== c) return; bkSync(); const l = pv("tp-l").trim(); if (!l){ toast("템플릿 이름을 적어 주세요"); const x = $("#tp-l"); x && x.focus(); return; }
+      const bl = bkStore(LP.blocks); while (bl.length && bl[bl.length - 1].t === "p" && !bkText(bl[bl.length - 1]).trim()) bl.pop(); if (!bl.length){ toast("템플릿 내용을 적어 주세요"); return; }
+      const list = ((S.mine.ntpls || {}).list || []).filter(t => t.id !== c.id), rec = {id:c.id || "u" + uid8(), k:c.dk, l, blocks:bl}, i = ((S.mine.ntpls || {}).list || []).findIndex(t => t.id === c.id);
+      if (i >= 0) list.splice(i, 0, rec); else list.push(rec);
+      run(() => api.putMine("ntpls", {kind:"ntpls", list}), () => { delete S.drafts["tp-l"]; toast(c.id ? "템플릿을 수정했어요" : "템플릿을 만들었어요"); const back = c.back; closeSheet0(); if (back){ back.tplOpen = true; openSheet(back); } }); return; }
+    case "tp-del": { if (S.armed !== "tp" + c.id){ arm("tp" + c.id); renderSheet(); return; } S.armed = null; const list = ((S.mine.ntpls || {}).list || []).filter(t => t.id !== c.id);
+      run(() => api.putMine("ntpls", {kind:"ntpls", list}), () => { delete S.drafts["tp-l"]; toast("템플릿을 삭제했어요"); const back = c.back; closeSheet0(); if (back){ back.tplOpen = true; openSheet(back); } }); return; }
+    case "nt-tplset": { const ut = userTpls(S, c.cat).find(t => t.id === b.dataset.v);
+      if (ut){ /* 내 템플릿: 본문 블록을 불러온다. 본문이 비어 있으면 바꾸고, 적어 둔 게 있으면 아래에 붙인다 */ preserveSheetDrafts(); if (LP && LP.c === c){ bkHist(); const nb = ut.blocks.map(x => ({...bkNorm(x), id:uid8() + Math.random().toString(36).slice(2, 5)})); LP.blocks = bkPlain(LP.blocks).trim() ? [...LP.blocks, ...nb] : nb; S.drafts["nf-body"] = bkPlain(LP.blocks); }
+        c.tplOpen = false; renderSheet(); return; }
+      preserveSheetDrafts(); ntKeys().forEach(k => { const el = document.getElementById(k); if (el && typeof el.value === "string") S.drafts[k] = el.value; }); c.tpl = b.dataset.v; c.tplTouched = true; c.tplOpen = false; c.blocks = null; renderSheet(); setTimeout(() => { const t = $("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input"); t && t.focus && t.focus(); }, 40); return; }
     case "nt-tplpick": preserveSheetDrafts(); c.tplOpen = true; renderSheet(); return;
     case "nt-tplclose": preserveSheetDrafts(); c.tplOpen = false; renderSheet(); return; /* 템플릿 바꾸기: 적어 둔 칸은 남는다 */
     case "nt-tpl": { preserveSheetDrafts(); c.blocks = (c._bf || []).slice(); renderSheet(); setTimeout(() => { const t = $("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input"); t && t.focus(); }, 30); return; }

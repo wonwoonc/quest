@@ -1797,3 +1797,13 @@ test('저널 감정: 선택 버튼을 누르면 그 자리에서 옆으로 펼�
   h.click('jemo'); assert.match(ov(), /class="ntpch jemo"><button class="ntpc" data-act="pemo" data-v="기쁨"/); assert.doesNotMatch(ov(), /data-act="jemo"/);
   h.click('pemo',{v:'평온'}); assert.match(ov(), /<button class="ntpc on" data-act="jemo" aria-expanded="false">평온<\/button>/); assert.doesNotMatch(ov(), /data-act="pemo"/);
 });
+test('템플릿: 이름이 기본인 템플릿은 목록에서 빠지고, 내 템플릿·새로 만들기가 보인다',async()=>{
+  const base = await profileUI(), saved = base.snapshot();
+  saved.mine = {...saved.mine, ntpls:{id:'ntpls',kind:'ntpls',list:[{id:'u1',k:'idea',l:'주간 회고 <b>',blocks:[{id:'a',t:'h2',h:'잘한 점'},{id:'b',t:'ul',h:''}]},{id:'u2',k:'ref',l:'다른 서랍',blocks:[{id:'c',t:'p',h:'x'}]}]}};
+  const h = await profileUI(saved), ov = () => h.nodes.get('overlay').innerHTML; h.route('notes'); await h.settle();
+  for (const k of ['idea','ref','learn','memo']){ h.click('nt-new'); h.click('nt-kind',{v:k}); h.click('nt-tplpick'); assert.doesNotMatch(ov(), /data-v="basic"/, k + ': 기본 hidden'); assert.match(ov(), /data-act="nt-tplnew"/); h.click('nt-tplclose'); h.click('sheet-close'); await h.settle(); }
+  h.click('nt-new'); h.click('nt-kind',{v:'idea'}); h.click('nt-tplpick'); const o = ov();
+  assert.match(o, /내 템플릿[\s\S]*data-act="nt-tplset" data-v="u1"><span><b>주간 회고 &lt;b&gt;<\/b><small>잘한 점/); assert.doesNotMatch(o, /다른 서랍/); assert.match(o, /data-act="nt-tpledit" data-v="u1"/);
+  h.click('nt-tplnew'); assert.match(ov(), /id="tp-l"/); assert.match(ov(), /data-act="tp-save"/); assert.doesNotMatch(ov(), /data-act="tp-del"/);
+  h.click('sheet-close'); assert.match(ov(), /data-act="nt-tplnew"/, 'back to the picker');
+});

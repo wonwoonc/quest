@@ -2057,6 +2057,15 @@ a.row{color:inherit;text-decoration:none}
 .ntmkdock .ntmkl{position:absolute;left:0;right:0;bottom:calc(100% + 6px);margin:0;box-shadow:0 10px 30px rgba(0,0,0,.16);z-index:6}
 .ntmkq{margin:4px 10px 2px;font-size:12px;color:var(--muted);font-weight:600}
 .nfedw.short{margin-bottom:0}.nfedw.short .nfed{min-height:0;padding-bottom:28px}
+/* 템플릿 선택: 내 템플릿 + 새로 만들기 */
+.ntqsec{margin:10px 6px 4px;font-size:12px;font-weight:700;color:var(--muted)}
+.ntqi.ntqu{display:flex;align-items:center;gap:4px;padding:0}
+.ntqum{flex:1;min-width:0;border:0;background:none;font:inherit;text-align:left;color:inherit;padding:10px 12px;cursor:pointer}
+.ntqum small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ntqued{flex:none;color:var(--muted)}.ntqued svg{width:18px;height:18px}
+.ntqnew{width:100%;margin:0 0 4px;border:1px dashed var(--line);background:none;border-radius:12px;padding:11px;font:inherit;font-size:14px;font-weight:600;color:var(--accent);cursor:pointer}
+.tphint{font-size:12.5px;color:var(--muted);margin:4px 0 12px}
+.pgh span .nic{width:18px;height:18px;margin-right:6px;vertical-align:-3px}
 </style>
 <script>
 (function(){"use strict";
@@ -2575,7 +2584,7 @@ const NEXT = {k:'next', t:'text', l:'첫 걸음', p:'예: 비슷한 서비스 3�
 const SUM = (l = '핵심 요약', p = '3줄 이내로 적어요') => A('summary', l, p), WHY_REF = A('why', '저장한 이유', '예: 다음 달 발표 자료에 인용');
 const NOTE_TPLS = {
   idea:[
-    {id:'basic', l:'기본', f:[A('why', '왜 좋은가요?', '어떤 문제를 풀거나 어떤 기회를 만드나요?'), NEXT]},
+    {id:'basic', l:'기본', hidden:true, f:[A('why', '왜 좋은가요?', '어떤 문제를 풀거나 어떤 기회를 만드나요?'), NEXT]},
     {id:'problem', l:'문제 해결', f:[A('problem', '해결할 문제', '지금 무엇이 불편하거나 비효율적인가요?'), A('who', '누구의 문제인가', '이 문제를 가장 크게 겪는 사람은?'), A('solution', '해결 방법', '어떻게 풀 수 있을까요?'), A('diff', '기존 방법과 다른 점', '지금은 어떻게 해결하고, 무엇이 더 나은가요?'), NEXT]},
     {id:'lean', l:'린 캔버스', f:[A('problem', '문제', '가장 중요한 문제 1~3개와 지금 쓰는 대안'), A('who', '고객군', '처음 쓸 사람(얼리어답터)은 누구인가요?'), A('value', '고유 가치 제안 (UVP)', '왜 다르고 왜 써야 하는지 한 문장으로'), A('solution', '해결책', '문제마다 핵심 기능 하나씩'), A('channel', '채널', '고객을 어디서 만나나요?'), A('revenue', '수익원', '누가 무엇에 얼마를 내나요?'), A('cost', '비용 구조', '꼭 드는 돈과 시간'), A('metric', '핵심 지표', '잘되고 있는지 보는 숫자'), A('unfair', '경쟁 우위', '남이 쉽게 따라 하거나 살 수 없는 것'), NEXT]},
     {id:'project', l:'프로젝트 기획', f:[A('background', '문제와 배경', '누가 어떤 문제를 겪나요? 근거는?'), A('goal', '목표', '끝났을 때 달라져 있을 것(측정 가능하게)'), A('nongoal', '하지 않을 것', '이번 범위에서 일부러 뺄 것'), A('features', '핵심 요구사항', '반드시 들어가야 하는 것'), A('metric', '성공 지표', '대표 지표 하나 + 함께 볼 지표'), A('risk', '위험과 의존성', '막힐 수 있는 것과 대비책'), A('question', '열린 질문', '아직 정하지 못한 것'), NEXT]},
@@ -2584,7 +2593,7 @@ const NOTE_TPLS = {
     {id:'experiment', l:'실험 설계', f:[A('hypothesis', '가설', '우리는 ○○을 하면'), A('outcome', '기대 결과', '○○이 일어날 것이라고 믿는다'), A('metric', '성공 판단 기준', '이 숫자가 보이면 맞았다고 본다'), A('method', '실험 방법과 기간', '무엇을 얼마 동안 어떻게 해 보나요?'), A('result', '결과와 배운 점', '실험이 끝나면 적어요'), NEXT]},
     {id:'scamper', l:'SCAMPER 발상', f:[A('base', '바탕이 되는 것', '바꿔 볼 제품·서비스·습관'), A('s', 'S · 대체하기', '재료·사람·방법을 바꾸면?'), A('c', 'C · 결합하기', '다른 것과 합치면?'), A('a', 'A · 조정·응용하기', '다른 분야의 방법을 맞춰 쓰면?'), A('m', 'M · 수정·확대·축소', '크게·작게·다르게 하면?'), A('p', 'P · 다른 용도로', '다른 곳이나 다른 사람에게 쓰면?'), A('e', 'E · 제거하기', '빼거나 줄이면?'), A('r', 'R · 뒤집기·재배열', '순서나 역할을 바꾸면?'), NEXT]}],
   ref:[
-    {id:'basic', l:'기본', f:[SUM(), WHY_REF]},
+    {id:'basic', l:'기본', hidden:true, f:[SUM(), WHY_REF]},
     {id:'article', l:'아티클·리포트', f:[SUM(), A('evidence', '근거와 데이터', '주장을 받치는 숫자·사례·출처'), A('quote', '인상 깊은 문장', '그대로 옮겨 적어요'), A('think', '내 생각', '동의하나요? 무엇이 빠졌나요?'), WHY_REF]},
     {id:'video', l:'영상·강연', f:[SUM(), A('timeline', '시간대별 메모', '예: 03:20 핵심 주장 / 12:45 사례'), A('learned', '배운 점', '새로 알게 된 것'), WHY_REF]},
     {id:'research', l:'논문·연구', f:[SUM('한 줄 요약', '무엇을 밝혔는지'), A('question', '연구 질문과 배경', '무엇을 왜 알고 싶었나요?'), A('method', '연구 방법', '대상·기간·도구·방법'), A('findings', '결과', '숫자와 함께, 해석 없이'), A('discussion', '해석과 시사점', '결과가 뜻하는 것'), A('limits', '한계', '어디까지 믿을 수 있나요?'), WHY_REF]},
@@ -2593,7 +2602,7 @@ const NOTE_TPLS = {
     {id:'news', l:'뉴스·이슈', f:[SUM(), A('facts', '사실 정리', '누가 · 언제 · 무엇을 · 왜'), A('impact', '의미와 영향', '나와 내 일에 어떤 영향이 있나요?'), WHY_REF]},
     {id:'tool', l:'도구·서비스', f:[SUM('무엇을 하는 도구인가요?', '한두 줄로'), A('usecase', '쓸 곳', '어떤 일에 쓰면 좋을까요?'), A('price', '가격·조건', '무료 범위, 요금'), A('alt', '비슷한 도구', '비교해 볼 것'), WHY_REF]}],
   learn:[
-    {id:'basic', l:'기본', f:[A('goal', '학습 목표', '이걸로 무엇을 할 수 있게 되고 싶나요?')]},
+    {id:'basic', l:'기본', hidden:true, f:[A('goal', '학습 목표', '이걸로 무엇을 할 수 있게 되고 싶나요?')]},
     {id:'lecture', l:'강의 노트', f:[A('goal', '학습 목표', '이 강의가 끝나면 할 수 있어야 하는 것'), A('concepts', '핵심 개념', '새로 나온 용어와 뜻'), A('example', '예제와 실습', '직접 해 본 것'), A('question', '궁금한 점', '이해가 안 된 부분'), A('review', '복습 계획', '예: 3일 뒤 예제 다시 풀기')]},
     {id:'book', l:'독서 노트', f:[A('reason', '읽는 이유', '이 책에서 얻고 싶은 것'), A('summary', '핵심 내용', '장별로 또는 3줄로'), A('quote', '인상 깊은 구절', '쪽수와 함께'), A('think', '내 생각', '동의·반대·떠오른 생각'), A('apply', '적용할 점', '예: 매일 아침 10분')]},
     {id:'cornell', l:'코넬 노트', f:[A('notes', '필기 (Record)', '수업·책 내용을 의미 있게 그대로'), A('cue', '단서와 질문 (Reduce)', '필기를 핵심어·질문으로 줄이기'), A('summary', '요약', '페이지마다 한두 문장으로')]},
@@ -2603,7 +2612,7 @@ const NOTE_TPLS = {
     {id:'skill', l:'기술 익히기', f:[A('goal', '목표', '예: 혼자서 웹페이지 하나 만들기'), A('steps', '단계별 연습', '쉬운 것부터 순서대로'), A('practice', '연습 기록', '오늘 해 본 것'), A('problem', '막힌 점과 해결', '어떻게 풀었나요?'), A('nextstep', '다음 연습', '다음에 할 것')]},
     {id:'lang', l:'어학', f:[A('expr', '새 표현', '단어·표현과 뜻'), A('example', '예문', '직접 만든 문장'), A('mistake', '자주 틀리는 것', '헷갈리는 표현'), A('review', '복습 계획', '언제 다시 볼까요?')]}],
   memo:[
-    {id:'basic', l:'빈 메모', f:[]},
+    {id:'basic', l:'빈 메모', hidden:true, f:[]},
     {id:'meeting', l:'회의록', f:[T('when', '일시·참석자', '예: 11/20 15:00 · 민수, 지영'), A('agenda', '안건', '오늘 정할 것'), A('discussion', '논의 요약', '나온 의견'), A('decision', '결정 사항', '정해진 것'), A('todo', '실행 항목', '누가 · 무엇을 · 언제까지')]},
     {id:'oneone', l:'1:1 미팅', f:[T('when', '상대·날짜', '예: 팀장님 · 11/20'), A('share', '근황 공유', '요즘 하고 있는 일'), A('topics', '이야기할 것', '묻거나 상의할 것'), A('feedback', '피드백', '주고받은 의견'), A('todo', '후속 조치', '누가 · 무엇을 · 언제까지')]},
     {id:'kpt', l:'KPT 회고', f:[A('keep', '잘된 점 (Keep)', '계속할 것'), A('problem', '아쉬운 점 (Problem)', '문제였던 것'), A('try', '시도할 점 (Try)', '다음에 바꿔 볼 것')]},
@@ -2614,6 +2623,8 @@ const NOTE_TPLS = {
     {id:'todo', l:'할 일 정리', f:[A('must', '꼭 할 일', '오늘 반드시'), A('should', '하면 좋은 일', '시간이 나면'), A('later', '나중에', '이번 주 안에'), A('delegate', '맡길 일', '다른 사람에게')]},
     {id:'weekly', l:'주간 계획', f:[A('goals', '이번 주 목표', '3개 이내로'), A('schedule', '주요 일정', '요일별로'), A('focus', '집중할 것', '가장 중요한 한 가지'), A('worry', '걱정되는 것', '미리 대비할 것')]}]
 };
+/* 직접 만든 템플릿: s.mine.ntpls.list = [{id:'u…', k:서랍, l:이름, blocks:[본문 블록]}] */
+const userTpls = (s, k) => ((s.mine?.ntpls?.list) || []).filter(t => t && t.k === k && Array.isArray(t.blocks));
 const noteTpls = d => (d && NOTE_TPLS[d.k]) || null;
 const noteTpl = (d, id) => { const ts = noteTpls(d); return ts ? ts.find(t => t.id === id) || ts[0] : null; };
 /* 이 서랍 템플릿들의 모든 칸(키 중복 없이) */
@@ -2659,12 +2670,12 @@ function noteComplete(s, n) {
 function noteReward(s, n) { const {cat} = noteNorm(s, n), pt = noteDrawer(s, cat)?.pt || 0; return {pt, xp:pt * 10, coins:pt * 10}; }
 const STUDY_LIMITS = [25, 50, 90];
 
-Object.assign(__exports,{NOTE_POOL,BASE_DRAWERS,NOTE_TPLS,noteTpls,noteTpl,noteTplFields,noteDrawers,noteDrawer,noteNorm,noteComplete,noteReward,STUDY_LIMITS});
+Object.assign(__exports,{NOTE_POOL,BASE_DRAWERS,NOTE_TPLS,userTpls,noteTpls,noteTpl,noteTplFields,noteDrawers,noteDrawer,noteNorm,noteComplete,noteReward,STUDY_LIMITS});
 },
 "legacy-app.js":function(__require,__exports){
 "use strict";
 const {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, levelStart, koreaDate, economySummary, migrateEconomy} = __require("economy.js");
-const {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete, noteTpls, noteTpl, noteTplFields} = __require("notes.js");
+const {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete, noteTpls, noteTpl, noteTplFields, userTpls} = __require("notes.js");
 const {LEGAL_META, TERMS, PRIVACY} = __require("legal.js");
 const {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} = __require("day-activities.js");
 function startLegacyApp({runtime, storage, seed = null, account = null, community = null}) {
@@ -3878,6 +3889,14 @@ const delDrop = (act, id, armKey) => `<div class="ntdd" role="menu"><button data
 /* 오늘 저널 열기(이미 쓴 날이면 수정). text가 있고 저널이 비었으면 이어 붙인다 */
 function openDiaryToday(text){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:d ? !!diaryPost(d.id) : false, date:today(), edit:!!d};
   const t0 = d ? d.text || "" : S.drafts["pl-text"] || ""; S.drafts["pl-text"] = text && !t0.trim() ? text : t0; if (LP && LP.sheet) LP = null; openSheet({type:"diary"}); }
+/* 템플릿 편집 화면: 이름 + 본문 블록. 자료를 쓸 때 템플릿 선택에서 불러온다 */
+function tplEdSheet(c){ const C = noteDrawer(S, c.dk);
+  if (!LP || LP.c !== c) LP = {sheet:true, c, id:"tp", blocks:(c.blocks0 || []).length ? c.blocks0.map(x => ({...bkNorm(x)})) : textBlocks("")};
+  LP.ph = "템플릿에 넣을 틀을 적어요 · '/'로 블록 선택";
+  return sheetWrap(`${nic(C.ic)}${esc(C.l)} 템플릿`, "", `<textarea class="nttitle" id="tp-l" data-grow rows="1" maxlength="30" placeholder="템플릿 이름">${D("tp-l")}</textarea>
+    <div class="nfedw"><div class="nted nfed" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}
+    <p class="tphint">제목·목록·체크리스트·토글처럼 자주 쓰는 틀을 만들어 두면, 자료를 쓸 때 템플릿 선택에서 바로 불러와요.</p>
+    ${c.id ? `<button class="link danger ntdel" data-act="tp-del">${S.armed === "tp" + c.id ? "한 번 더 누르면 삭제돼요" : "템플릿 삭제"}</button>` : ""}`, `<span class="pgright"><button class="pgsave" data-act="tp-save">저장</button></span>`); }
 function noteSheet(c){
   const n = c.id && S.mine[c.id], C = noteDrawer(S, c.cat), gs = Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.status !== "done");
   /* 켜고 끌 수 있는 건 위쪽 정보 칸(속성)뿐. 아래 글 상자(요약·이유·목표 등)는 항상 보인다 */
@@ -3932,8 +3951,10 @@ function noteSheet(c){
   const BF = [...C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body" && !x.bottom), ...tF0, ...noteTplFields(C).filter(x => !tF0.some(y => y.k === x.k) && String(S.drafts["nf-" + x.k] || "").trim())].filter(whenOk);
   c._bf = BF.map(x => x.k);
   if (!c.blocks){ const filled = BF.filter(x => (D("nf-" + x.k) || "").trim()).map(x => x.k); c.blocks = n && !c.tplTouched && (filled.length || D("nf-body").trim()) ? filled : BF.map(x => x.k); } /* 템플릿은 기본으로 보인다 */
-  const tplBtn = tpls ? `<button class="nttplbtn" data-act="nt-tplpick" aria-haspopup="dialog">${nic("layout")}<span>${tpl ? `템플릿 · <b>${esc(tpl.l)}</b>` : "템플릿 선택"}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>` : "";
-  const tplPop = tpls && c.tplOpen ? `<div class="ntqpop" data-act="nt-tplclose"><div class="ntqpop-in" data-act="dpstay" role="dialog" aria-label="템플릿 선택"><div class="ntqpop-h"><b>${esc(C.l)} 템플릿</b><button class="iconbtn" data-act="nt-tplclose" aria-label="닫기">${I.close}</button></div><div class="ntql">${[{id:"none", l:"템플릿 없이", f:[]}, ...tpls.filter(t => t.f.length)].map(t => `<button class="ntqi ${t.id === tId ? "on" : ""}" data-act="nt-tplset" data-v="${t.id}"><span><b>${esc(t.l)}</b><small>${t.f.length ? esc(t.f.map(x => x.l).join(" · ")) : "빈 내용으로 자유롭게"}</small></span></button>`).join("")}</div></div></div>` : "";
+  const uts = userTpls(S, C.k), tplOK = !!tpls || C.f.some(x => x.k === "body") || ntFreeBody(C);
+  const tplBtn = tplOK ? `<button class="nttplbtn" data-act="nt-tplpick" aria-haspopup="dialog">${nic("layout")}<span>${tpl ? `템플릿 · <b>${esc(tpl.l)}</b>` : "템플릿 선택"}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>` : "";
+  const utRow = t => `<div class="ntqi ntqu"><button class="ntqum" data-act="nt-tplset" data-v="${esc(t.id)}"><span><b>${esc(t.l)}</b><small>${esc(t.blocks.map(bkText).filter(x => x.trim()).slice(0, 3).join(" · ") || "빈 템플릿")}</small></span></button><button class="iconbtn ntqued" data-act="nt-tpledit" data-v="${esc(t.id)}" aria-label="${esc(t.l)} 템플릿 수정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button></div>`;
+  const tplPop = tplOK && c.tplOpen ? `<div class="ntqpop" data-act="nt-tplclose"><div class="ntqpop-in" data-act="dpstay" role="dialog" aria-label="템플릿 선택"><div class="ntqpop-h"><b>${esc(C.l)} 템플릿</b><button class="iconbtn" data-act="nt-tplclose" aria-label="닫기">${I.close}</button></div><div class="ntql"><button class="ntqnew" data-act="nt-tplnew">+ 새 템플릿 만들기</button>${(R => R({id:"none", l:"템플릿 없이", f:[]}) + (uts.length ? `<p class="ntqsec">내 템플릿</p>${uts.map(utRow).join("")}` : "") + ((tpls || []).some(t => t.f.length && !t.hidden) ? `<p class="ntqsec">추천 템플릿</p>${(tpls || []).filter(t => t.f.length && !t.hidden).map(R).join("")}` : ""))(t => `<button class="ntqi ${t.id === tId ? "on" : ""}" data-act="nt-tplset" data-v="${t.id}"><span><b>${esc(t.l)}</b><small>${t.f.length ? esc(t.f.map(x => x.l).join(" · ")) : "빈 내용으로 자유롭게"}</small></span></button>`)}</div></div></div>` : "";
   const vis = BF.filter(x => c.blocks.includes(x.k));
   const tplHtml = vis.filter(x => !x.task).map(block).join("") + (vis.length < BF.length ? `<button class="nttpl" data-act="nt-tpl">${nic(C.ic)}${esc(tpl ? tpl.l : C.l)} 템플릿</button>` : "") + tplPop; /* 하나라도 지우면 되살리는 버튼 */
   const tbar = c.tedit ? `<div class="nttbar2"><button class="ntpc on" data-act="nt-tedit">완료</button></div>` : "";
@@ -4958,7 +4979,7 @@ $("#fileIn").addEventListener("change", async e => { const files = [...e.target.
 /* ================= sheets ================= */
 function openSheet(c){ if (c) delete S.drafts["pp-in"]; S.compose = c; renderSheet(); }
 /* 자료 작성 화면은 완료 버튼 없이 닫을 때(뒤로) 자동 저장한다. 아무것도 안 적었으면 그냥 닫는다 */
-function closeSheet(){ const nc = S.compose; if (nc && nc.type === "diary" && !nc.noSave && !nc.saving){ nc.saving = true; const ok = saveDiary(true, () => { nc.noSave = true; closeSheet(); });
+function closeSheet(){ const nc = S.compose; if (nc && nc.type === "tpled"){ delete S.drafts["tp-l"]; const back = nc.back; closeSheet0(); if (back){ back.tplOpen = true; openSheet(back); } return; } if (nc && nc.type === "diary" && !nc.noSave && !nc.saving){ nc.saving = true; const ok = saveDiary(true, () => { nc.noSave = true; closeSheet(); });
     if (!ok){ nc.noSave = true; closeSheet(); } else Promise.resolve(ok).then(() => { if (!nc.noSave) nc.saving = false; }); return; }
   if (nc && nc.type === "note" && !nc.noSave && !nc.saving){ nc.saving = true; preserveSheetDrafts();
     const ok = saveNote(nc, (key, r, fresh) => { nc.noSave = true; closeSheet(); dumpDone(nc); if (r && fresh && r.xp > 0) toast("자료 완성!"); }, true);
@@ -5099,7 +5120,7 @@ function preserveSheetDrafts() {
   document.querySelectorAll('.sheet input[id], .sheet textarea[id]').forEach(el => { if(!['checkbox','radio','file'].includes(el.type)) S.drafts[el.id]=el.value; });
 }
 let sheetDrawn = null; const sheetTops = new WeakMap();
-function sheetWrap(title, desc, body, right = ""){ const creation=false,sub=title.startsWith('스테이지');/* 같은 팝업을 다시 그릴 때(삭제 버튼 두 번 누르기, 확인창에서 돌아오기 등)는 스크롤 위치를 유지한다 */ const oldSh = $("#overlay .sheet"); if (oldSh && sheetDrawn && typeof sheetDrawn === "object") sheetTops.set(sheetDrawn, oldSh.scrollTop); const keepTop = S.compose && typeof S.compose === "object" ? sheetTops.get(S.compose) || 0 : 0; sheetDrawn = S.compose; const pg = !!(S.compose && (S.compose.type === "note" || S.compose.type === "diary")); /* 자료·저널 추가·수정은 팝업 대신 화면 전체를 쓰는 페이지로 연다 */ $("#overlay").innerHTML = `<div class="scrim${pg ? " pagemode" : ""}" data-act="sheet-bg"><div class="sheet${pg ? " page" : ""}" role="dialog" aria-modal="true">${pg ? `<h2 class="pgh"><button data-act="sheet-close" aria-label="뒤로">${I.back}</button><span>${title}</span>${right}</h2>` : `<h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>`}${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}${sheetQPop(S.compose)}</div></div>`; initTW();  if (keepTop){ const ns = $("#overlay .sheet"); if (ns) ns.scrollTop = keepTop; } }
+function sheetWrap(title, desc, body, right = ""){ const creation=false,sub=title.startsWith('스테이지');/* 같은 팝업을 다시 그릴 때(삭제 버튼 두 번 누르기, 확인창에서 돌아오기 등)는 스크롤 위치를 유지한다 */ const oldSh = $("#overlay .sheet"); if (oldSh && sheetDrawn && typeof sheetDrawn === "object") sheetTops.set(sheetDrawn, oldSh.scrollTop); const keepTop = S.compose && typeof S.compose === "object" ? sheetTops.get(S.compose) || 0 : 0; sheetDrawn = S.compose; const pg = !!(S.compose && (S.compose.type === "note" || S.compose.type === "diary" || S.compose.type === "tpled")); /* 자료·저널 추가·수정은 팝업 대신 화면 전체를 쓰는 페이지로 연다 */ $("#overlay").innerHTML = `<div class="scrim${pg ? " pagemode" : ""}" data-act="sheet-bg"><div class="sheet${pg ? " page" : ""}" role="dialog" aria-modal="true">${pg ? `<h2 class="pgh"><button data-act="sheet-close" aria-label="뒤로">${I.back}</button><span>${title}</span>${right}</h2>` : `<h2><span>${title}</span><button data-act="sheet-close" aria-label="닫기">${I.close}</button></h2>`}${desc ? `<p class="desc">${desc}</p>` : ""}${creation?`<p class="hint">최초 생성 ${sub?'10 XP · 5 코인 / 주 2회':'20 XP · 10 코인 / 주 1회'} · 같은 목표 삭제·재생성은 추가 지급되지 않아요.</p>`:''}${body}${sheetQPop(S.compose)}</div></div>`; initTW();  if (keepTop){ const ns = $("#overlay .sheet"); if (ns) ns.scrollTop = keepTop; } }
 /* 뒤로가기로 팝업 닫기: 팝업이 열리면 기록을 하나 쌓고, 뒤로가기(popstate)가 오면 팝업만 닫는다 */
 let sheetHist = false, popSkip = false;
 const HS = typeof history !== "undefined" && history && history.pushState ? history : null;
@@ -5223,6 +5244,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null; if (LP && LP.
     return sheetWrap(`${n} · ${l}`, "", `<div class="aihead"><span class="aiic">${aIcon(k)}</span><p class="aidesc">${AREA_DESC[k]}</p></div>
       <p class="sect3">${l} 영역 퀘스트</p><section class="card tight">${rows || `<p class="empty-row">아직 ${l} 영역을 붙인 퀘스트가 없어요.</p>`}</section>`); }
   if (c.type === "note") return noteSheet(c);
+  if (c.type === "tpled") return tplEdSheet(c);
   if (c.type === "apick"){ const cur = (S.parentSheet || {}).area;
     return sheetWrap("영역", "", `<div class="sheetlist mlist">${AREAS.map(([k,,,l]) => `<button class="row mitem" data-act="apick-set" data-v="${k}"><span class="t"><b class="apk">${aIcon(k)}${l}</b></span>${cur === k ? `<span class="pick">✓</span>` : ""}</button>`).join("")}</div>${cur ? `<button class="btn sec full" data-act="apick-set" data-v="">선택 안 함</button>` : ""}`); }
   if (c.type === "ntmenu"){ const n = S.mine[c.id]; if (!n) return sheetWrap("자료", "", `<p class="empty-row">삭제된 자료예요.</p>`); const {f} = ntN(n), t = f.title || String(f.body || "").split("\n")[0].slice(0, 40) || "자료", learn = ntN(n).cat === "learn";
@@ -5789,7 +5811,19 @@ document.addEventListener("click", e => {
     case "nt-chclose": preserveSheetDrafts(); c.chOpen = null; renderSheet(); return;
     case "nt-chset": { preserveSheetDrafts(); c.vals = c.vals || {}; c.vals[b.dataset.f] = b.dataset.v || null; c.chOpen = null; renderSheet(); return; }
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
-    case "nt-tplset": { preserveSheetDrafts(); ntKeys().forEach(k => { const el = document.getElementById(k); if (el && typeof el.value === "string") S.drafts[k] = el.value; }); c.tpl = b.dataset.v; c.tplTouched = true; c.tplOpen = false; c.blocks = null; renderSheet(); setTimeout(() => { const t = $("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input"); t && t.focus && t.focus(); }, 40); return; }
+    case "nt-tplnew": case "nt-tpledit": { preserveSheetDrafts(); if (LP && LP.c === c){ bkSync(); c._blocks = LP.blocks; } c.tplOpen = false; const ut = a === "nt-tpledit" ? userTpls(S, c.cat).find(t => t.id === b.dataset.v) : null;
+      S.drafts["tp-l"] = ut ? ut.l : ""; LP = null; openSheet({type:"tpled", dk:c.cat, id:ut ? ut.id : null, blocks0:ut ? ut.blocks : null, back:c}); return; }
+    case "tp-save": { if (!LP || LP.c !== c) return; bkSync(); const l = pv("tp-l").trim(); if (!l){ toast("템플릿 이름을 적어 주세요"); const x = $("#tp-l"); x && x.focus(); return; }
+      const bl = bkStore(LP.blocks); while (bl.length && bl[bl.length - 1].t === "p" && !bkText(bl[bl.length - 1]).trim()) bl.pop(); if (!bl.length){ toast("템플릿 내용을 적어 주세요"); return; }
+      const list = ((S.mine.ntpls || {}).list || []).filter(t => t.id !== c.id), rec = {id:c.id || "u" + uid8(), k:c.dk, l, blocks:bl}, i = ((S.mine.ntpls || {}).list || []).findIndex(t => t.id === c.id);
+      if (i >= 0) list.splice(i, 0, rec); else list.push(rec);
+      run(() => api.putMine("ntpls", {kind:"ntpls", list}), () => { delete S.drafts["tp-l"]; toast(c.id ? "템플릿을 수정했어요" : "템플릿을 만들었어요"); const back = c.back; closeSheet0(); if (back){ back.tplOpen = true; openSheet(back); } }); return; }
+    case "tp-del": { if (S.armed !== "tp" + c.id){ arm("tp" + c.id); renderSheet(); return; } S.armed = null; const list = ((S.mine.ntpls || {}).list || []).filter(t => t.id !== c.id);
+      run(() => api.putMine("ntpls", {kind:"ntpls", list}), () => { delete S.drafts["tp-l"]; toast("템플릿을 삭제했어요"); const back = c.back; closeSheet0(); if (back){ back.tplOpen = true; openSheet(back); } }); return; }
+    case "nt-tplset": { const ut = userTpls(S, c.cat).find(t => t.id === b.dataset.v);
+      if (ut){ /* 내 템플릿: 본문 블록을 불러온다. 본문이 비어 있으면 바꾸고, 적어 둔 게 있으면 아래에 붙인다 */ preserveSheetDrafts(); if (LP && LP.c === c){ bkHist(); const nb = ut.blocks.map(x => ({...bkNorm(x), id:uid8() + Math.random().toString(36).slice(2, 5)})); LP.blocks = bkPlain(LP.blocks).trim() ? [...LP.blocks, ...nb] : nb; S.drafts["nf-body"] = bkPlain(LP.blocks); }
+        c.tplOpen = false; renderSheet(); return; }
+      preserveSheetDrafts(); ntKeys().forEach(k => { const el = document.getElementById(k); if (el && typeof el.value === "string") S.drafts[k] = el.value; }); c.tpl = b.dataset.v; c.tplTouched = true; c.tplOpen = false; c.blocks = null; renderSheet(); setTimeout(() => { const t = $("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input"); t && t.focus && t.focus(); }, 40); return; }
     case "nt-tplpick": preserveSheetDrafts(); c.tplOpen = true; renderSheet(); return;
     case "nt-tplclose": preserveSheetDrafts(); c.tplOpen = false; renderSheet(); return; /* 템플릿 바꾸기: 적어 둔 칸은 남는다 */
     case "nt-tpl": { preserveSheetDrafts(); c.blocks = (c._bf || []).slice(); renderSheet(); setTimeout(() => { const t = $("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input"); t && t.focus(); }, 30); return; }
