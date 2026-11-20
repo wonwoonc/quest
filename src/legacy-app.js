@@ -1058,6 +1058,18 @@ function jCard(d){
   const [y, m, dd] = d.date.split("-").map(Number), wd = "일월화수목금토"[new Date(y, m-1, dd).getDay()];
   return `<article class="card ntcard jcard" data-act="journal-view" data-id="${d.id}" role="button" tabindex="0"><div class="nttop"><span class="ntcat">${nic("journal")}저널</span><small class="num">${m}.${dd}</small></div><h3>${m}월 ${dd}일 ${wd}요일</h3><button class="btn sec xs jedit" data-act="dedit" data-id="${d.id}">수정</button><p class="ntsub">컨디션 ${esc(d.cond ?? "-")}%${d.emo ? ` · ${esc(d.emo)}` : ""}</p></article>`;
 }
+/* 퀘스트 화면의 '자료': 이 퀘스트(메인이면 스테이지 포함)에 연결한 자료실 항목 */
+function qNotes(p, subs, sp){
+  const ids = new Set([p.id, ...(sp ? [] : subs.map(x => x.id))]);
+  const ns = mineOf("note").filter(n => n.projectId && ids.has(n.projectId)).sort((a,b) => (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0));
+  const open = p.status !== "done" && !isCx(p);
+  if (!ns.length && !open) return "";
+  const row = n => { const {cat, f} = ntN(n), C = noteDrawer(S, cat), t = f.title || (f.url && ntHost(f.url)) || (n.files && n.files[0] && n.files[0].name) || (v => v.length > 40 ? v.slice(0, 40) + "…" : v)(String(f.body || f.summary || f.why || "")) || "제목 없음";
+    const st = n.projectId !== p.id && S.projects[n.projectId] ? S.projects[n.projectId].title : "", done = noteComplete(S, n);
+    return `<button class="ntrow" data-act="nt-edit" data-id="${n.id}"><span class="ntri">${nic(C.ic)}</span><span class="t"><b>${esc(t)}</b><small>${esc(C.l)}${st ? ` · ${esc(st)}` : ""}${done ? ` · 완성` : ""}</small></span>${f.url && safeUrl(f.url) ? `<span class="ntrh">${esc(ntHost(safeUrl(f.url)))}</span>` : ""}<span class="chev2 r">${I.chev}</span></button>`; };
+  return `<section class="card tight qlist qnotes"><div class="ch"><h2>자료</h2><span class="side num">${ns.length}</span></div>${ns.map(row).join("")}${ns.length ? "" : `<p class="empty-row">이 퀘스트에 참고할 자료나 배운 내용을 모아 두세요.</p>`}
+    ${open ? `<button class="morebtn add" data-act="nt-new" data-p="${p.id}">+ 자료 추가</button>` : ""}</section>`;
+}
 function ntCard(n){
   const {cat, f} = ntN(n), C = noteDrawer(S, cat), pj = n.projectId && S.projects[n.projectId], d = new Date(n.updatedAt || n.createdAt || Date.now());
   const h3 = v => v ? `<h3>${esc(v)}</h3>` : "", p = v => v ? `<p class="ntbody">${esc(v)}</p>` : "", sub = (...xs) => { const l = xs.filter(Boolean); return l.length ? `<p class="ntsub">${l.join(" · ")}</p>` : ""; };
@@ -1737,6 +1749,7 @@ function viewGoal(){
         ${p.status !== "done" && !isCx(p) ? `<button class="morebtn add" data-act="sheet" data-k="add" data-v="daily" data-p="${p.id}">+ 일일 퀘스트 추가</button>` : ""}</section>`; }
     h += `<section class="card tight qlist"><div class="ch"><h2>미션</h2>${allT.length ? (fd ? `<button class="gmchip on" data-act="gmpick" data-p="${p.id}">${mDayLabel(fd)}</button>` : `<button class="gmchip${gv ? "" : " cur"}" data-act="gmpick" data-p="${p.id}">전체 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`) + ["week", "month"].map(v => `<button class="gmchip gmv${gv && gv.v === v ? " on" : ""}" data-act="gmv" data-p="${p.id}" data-v="${v}" aria-pressed="${!!(gv && gv.v === v)}">${v === "week" ? "주" : "월"}</button>`).join("") : ""}<span class="side num">${allT.filter(m => m.done).length}/${allT.length}</span></div>${trows}${allT.length ? "" : `<p class="empty-row">미션이 없어요.</p>`}
       ${p.status !== "done" ? `<button class="morebtn add" data-act="taskadd" data-p="${p.id}">+ 미션 추가</button>` : ""}</section>`;
+    h += qNotes(p, subs, sp);
   }
   h += posts.length ? `<article class="card feedcard">${posts.map((x, i) => postRow(x, {line:i < posts.length-1, inThread:true})).join("")}</article>` : `<div class="card empty">아직 스토리가 없어요.</div>`;
   return h;
@@ -2730,7 +2743,7 @@ document.addEventListener("click", e => {
     case "fv-back": openSheet(c.back); return;
     case "nt-cat": S.ntCat = b.dataset.v; break;
     case "nt-new": { ntKeys().forEach(k => delete S.drafts[k]); const DR = noteDrawers(S), cat = DR.some(d => d.k === S.ntCat && !d.hidden) ? S.ntCat : (DR.find(d => !d.hidden) || DR[0]).k;
-      openSheet({type:"note", cat, vals:{}, area:null, projectId:null}); setTimeout(() => { const x = $(".sheet input[type=text], .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
+      openSheet({type:"note", cat, vals:{}, area:null, projectId:b.dataset.p && S.projects[b.dataset.p] ? b.dataset.p : null}); setTimeout(() => { const x = $(".sheet input[type=text], .sheet textarea"); x && x.focus && x.focus(); }, 50); return; }
     case "nt-edit": { const n = S.mine[id]; if (!n) return; if (ntN(n).cat === "learn" && !b.dataset.info){ push({name:"learn", id}, "#learn"); return; } const {cat, f} = ntN(n); ntKeys().forEach(k => delete S.drafts[k]);
       const vals = {}; Object.entries(f).forEach(([k, v]) => { if (k === "rating" || ["status","media","type"].includes(k)) vals[k] = v; else S.drafts["nf-" + k] = v || ""; });
       openSheet({type:"note", id, cat, vals, area:n.area || null, projectId:n.projectId || null, files:[...(n.files || [])]}); return; }
