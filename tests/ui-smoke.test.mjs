@@ -1679,18 +1679,15 @@ test('자료 작성: 완료·삭제 버튼 없음, 뒤로 가면 자동 저장(�
   h.click('nt-new'); assert.doesNotMatch(ov(),/data-act="submit-note"|data-act="nt-del"/);
   h.click('sheet-close'); await h.settle(); assert.equal(notes().length,0,'empty note is not saved');
   h.click('nt-new'); h.click('nt-kind',{v:'ref'}); h.nodes.set('nf-title',{value:'자동 저장 참고자료'}); h.nodes.set('nf-summary',{value:'요약'});
-  assert.doesNotMatch(ov(),/data-act="nt-tog"/); h.click('nt-emenu'); h.click('nt-tedit');
-  assert.match(ov(),/data-act="nt-tog"[^>]*data-f="media"/); assert.doesNotMatch(ov(),/data-act="nt-tog"[^>]*data-f="summary"/,'text boxes below are not toggled'); assert.doesNotMatch(ov(),/× 로 빼고|ntx/);
-  h.click('nt-tog',{f:'media'}); assert.doesNotMatch(ov(),/data-act="nt-val" data-f="media"/); assert.match(ov(),/꺼짐/);
-  h.click('nt-tog',{f:'media'}); assert.match(ov(),/data-act="nt-val" data-f="media"/); h.click('nt-tog',{f:'media'}); h.click('nt-tedit'); assert.doesNotMatch(ov(),/꺼짐/);
+  h.click('nt-emenu'); assert.doesNotMatch(ov(),/data-act="nt-tedit"|data-act="nt-tog"/); assert.match(ov(),/data-act="nt-discard"/); h.click('nt-emenu');
   h.click('sheet-close'); await h.settle();
-  const n = notes()[0]; assert.ok(n); assert.equal(n.cat,'ref'); assert.equal(n.f.title,'자동 저장 참고자료'); assert.deepEqual(n.hideF,['media']); assert.equal(n.f.summary,'요약');
-  const u0 = n.updatedAt; h.click('nt-edit',{id:n.id}); assert.doesNotMatch(ov(),/data-f="media"/); h.click('sheet-close'); await h.settle(); assert.equal(notes()[0].updatedAt,u0,'unchanged note is not rewritten');
+  const n = notes()[0]; assert.ok(n); assert.equal(n.cat,'ref'); assert.equal(n.f.title,'자동 저장 참고자료'); assert.ok(!n.hideF); assert.equal(n.f.summary,'요약');
+  const u0 = n.updatedAt; h.click('nt-edit',{id:n.id}); assert.match(ov(),/data-f="media"/); h.click('sheet-close'); await h.settle(); assert.equal(notes()[0].updatedAt,u0,'unchanged note is not rewritten');
   assert.match(app(),new RegExp(`data-act="nt-menu" data-id="${n.id}"`)); h.click('nt-menu',{id:n.id}); assert.match(ov(),/data-act="nt-edit"[\s\S]*수정[\s\S]*data-act="nt-del"[\s\S]*삭제/);
   h.click('nt-del',{id:n.id}); assert.match(ov(),/자료를 삭제할까요/); h.click('cfok'); await h.settle(); assert.equal(notes().length,0);
   // 작성 화면 ⋯ 메뉴: 수정·삭제. 기존 자료는 삭제(되살아나지 않음), 새 자료는 저장 없이 나가기
   h.click('nt-new'); h.nodes.set('nf-title',{value:'지울 자료'}); h.click('sheet-close'); await h.settle(); const z = notes()[0]; assert.ok(z);
-  h.click('nt-edit',{id:z.id}); h.click('nt-emenu'); assert.match(ov(),/data-act="nt-tedit"[\s\S]*수정[\s\S]*data-act="nt-del"[\s\S]*삭제/);
+  h.click('nt-edit',{id:z.id}); h.click('nt-emenu'); assert.match(ov(),/data-act="nt-del"[\s\S]*삭제/); assert.doesNotMatch(ov(),/nt-tedit/);
   h.click('nt-del',{id:z.id}); h.click('cfok'); await h.settle(); assert.equal(notes().length,0); assert.equal(h.nodes.get('overlay').innerHTML.includes('nttitle'),false);
   h.click('nt-new'); h.nodes.set('nf-title',{value:'버릴 글'}); h.click('nt-emenu'); assert.match(ov(),/data-act="nt-discard"/); h.click('nt-discard'); assert.match(ov(),/작성 중인 내용을 지울까요/); h.click('cfok'); await h.settle(); assert.equal(notes().length,0);
 });

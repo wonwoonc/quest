@@ -1824,6 +1824,7 @@ a.row{color:inherit;text-decoration:none}
 .ntdrop{grid-column:2;width:100%;max-width:240px}
 .ntdi{padding:9px 11px;font-size:14px}.ntdi.sub{padding-left:22px;font-size:13.5px}
 .ntdi small{display:inline-flex;align-items:center;gap:2px}.ntdi small .ntdc{width:12px;height:12px}
+.ntdrop{width:max-content;max-width:100%;min-width:140px}.ntdi{white-space:nowrap}.ntdi>small{margin-left:14px}
 </style>
 <script>
 (function(){"use strict";
@@ -3495,7 +3496,7 @@ const ntFreeBody = C => !C.f.some(x => x.k === "body");
 function noteSheet(c){
   const n = c.id && S.mine[c.id], C = noteDrawer(S, c.cat), gs = Object.values(S.projects).filter(p => !isCx(p) && p.owner === S.me && p.status !== "done");
   /* 켜고 끌 수 있는 건 위쪽 정보 칸(속성)뿐. 아래 글 상자(요약·이유·목표 등)는 항상 보인다 */
-  const hid = (c.hideF || []).filter(k => C.f.some(x => x.k === k && ntIsProp(x))), whenOk = x => !x.when || Object.entries(x.when).every(([k, vs]) => vs.includes((c.vals || {})[k])), shown = x => (!ntIsProp(x) || !hid.includes(x.k)) && whenOk(x);
+  const hid = [], whenOk = x => !x.when || Object.entries(x.when).every(([k, vs]) => vs.includes((c.vals || {})[k])), shown = x => (!ntIsProp(x) || !hid.includes(x.k)) && whenOk(x);
   const vals = c.vals || {}, tF = C.f.find(x => x.k === "title");
   const xb = x => true ? "" : `<button class="ntx" data-act="nt-hide" data-f="${x.k}" aria-label="${esc(x.l)} 칸 지우기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button>`;
   const isProp = x => x.k !== "title" && !x.task && x.t !== "area" && !x.bottom;
@@ -3532,7 +3533,7 @@ function noteSheet(c){
   const hasUrl = C.k === "memo" && DR.some(d => d.k === "ref") && NT_URL_RE.test(D("nf-title") + " " + D("nf-body"));
   const pill = `<button class="ntkind ${c.unsorted ? "uns" : C.k}" data-act="nt-kpick" aria-expanded="${!!c.kpick}">${c.unsorted ? `${nic("inbox")}서랍 고르기` : `${nic(C.ic)}${esc(C.l)}`}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
   /* ⋯ 메뉴 → 수정: 이 자료의 칸(핵심 요약·링크·종류 등)을 빼거나 다시 넣는다 */
-  const menu = c.menu ? `<div class="ntemenu ntmenu" role="menu"><button class="row mitem" data-act="nt-tedit" role="menuitem"><span class="t"><b>${nic("memo")}수정</b></span></button><button class="row mitem danger" data-act="${n ? "nt-del" : "nt-discard"}" data-id="${n ? n.id : ""}" role="menuitem"><span class="t"><b>${nic("trash")}삭제</b></span></button></div>` : "";
+  const menu = c.menu ? `<div class="ntemenu ntmenu" role="menu"><button class="row mitem danger" data-act="${n ? "nt-del" : "nt-discard"}" data-id="${n ? n.id : ""}" role="menuitem"><span class="t"><b>${nic("trash")}삭제</b></span></button></div>` : "";
   /* ⋯ → 수정: 이 자료에서 쓸 칸을 스위치로 켜고 끈다 */
   const tbar = c.tedit ? `<div class="nttbar2"><button class="ntpc on" data-act="nt-tedit">완료</button></div>` : "";
   return sheetWrap(pill, "", `${menu}${kinds}${tbar}
@@ -3553,7 +3554,7 @@ const ntKeys = () => [...new Set(["nf-body", ...noteDrawers(S).flatMap(C => C.f.
 /* collects the open note sheet; resolves to the saved note id or null */
 function saveNote(c, after, quiet){
   const C = noteDrawer(S, c.cat), old = c.id && S.mine[c.id], prev = old && ntN(old).cat === C.k ? {...ntN(old).f} : {}, f = prev;
-  const hid = (c.hideF || []).filter(k => C.f.some(x => x.k === k && ntIsProp(x)));
+  const hid = []; /* 칸 끄기 기능은 없앴다: 예전에 꺼 둔 칸도 다시 모두 보인다 */
   C.f.forEach(x => { if (hid.includes(x.k)){ delete f[x.k]; return; } if (x.when && !Object.entries(x.when).every(([k, vs]) => vs.includes((c.vals || {})[k]))){ delete f[x.k]; return; } const v = ["choice","stars"].includes(x.t) ? (c.vals || {})[x.k] : pv("nf-" + x.k).trim(); if (v) f[x.k] = x.t === "url" ? ntUrl(v) : v; else delete f[x.k]; });
   if (ntFreeBody(C)){ const v = pv("nf-body").trim(); if (v) f.body = v; else delete f.body; }
   if (C.k === "ref" && f.url && !(c.vals || {}).media){ const m = ntMediaOf(f.url); if (m) f.media = m; }
