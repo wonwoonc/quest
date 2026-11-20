@@ -1524,6 +1524,10 @@ test('overdue quest: card overlay (dashboard + quest screen), extend, give up (a
   h.click('project',{p:'m'}); assert.match(app(),/포기한 메인 퀘스트예요/); h.click('prestore',{p:'m'}); await h.settle();
   assert.equal(h.snapshot().projects.m.status,'active');
   h.click('pdone2',{p:'m'}); h.click('cfok'); await h.settle(); assert.equal(h.snapshot().projects.m.status,'done');
+  const xp0=h.snapshot().economy?.claims?.['goal:m']; 
+  h.click('project',{p:'m'}); assert.match(app(),/data-act="pundone" data-p="m">달성 취소/); h.click('pundone',{p:'m'}); assert.match(ov(),/메인 퀘스트 달성을 취소할까요/); assert.match(ov(),/경험치와 코인이 회수/);
+  h.click('cfok'); await h.settle(); const s2=h.snapshot(); assert.equal(s2.projects.m.status,'active'); assert.ok(!s2.projects.m.doneAt);
+  const g=Object.entries(s2.economy?.claims||{}).find(([k])=>k.includes('m')&&k.startsWith('goal')); if(g) assert.equal(g[1].active,false);
 });
 
 test('calendar events: add from empty slot (no reward), shown in day/week/month + dashboard line, edit, convert to mission, delete',async()=>{

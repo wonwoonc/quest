@@ -1751,6 +1751,9 @@ a.row{color:inherit;text-decoration:none}
 .sheet input.ntpin:focus,.sheet textarea.nttitle:focus,.sheet textarea.ntbody-in:focus,.sheet .ntblk textarea:focus,.sheet .ntbox textarea:focus{background:none}
 .sheet .ntbox.task .nttask input{background:var(--card);border:0}
 .ntkp{min-height:48px}
+
+.trophyline .trundo{margin-left:auto;border:0;background:none;color:var(--sub);font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:2px 0;flex:none}
+.cfbox p{white-space:pre-line}
 </style>
 <script>
 (function(){"use strict";
@@ -4183,7 +4186,7 @@ function viewGoal(){
     <div class="tags">${isCx(p) ? `<span class="tag">포기</span>` : p.status !== "done" ? (isPlanned(p) ? `<span class="tag">시작 전</span>` : `<span class="tag dd">진행 중</span>`) : ""}${p.end && p.status !== "done" && !isCx(p) ? `<span class="tag dd">${dday(p.end)}</span>` : ""}${(() => { const own = areasOf(p), inh = own.length ? own : areaUp(p.parentId); return inh.map(k => { const A = AREAS.find(a => a[0] === k); return `<span class="tag atag ${own.length ? "" : "inh"}" title="${own.length ? "영역" : "메인 퀘스트 영역"}">${aIcon(k)}${A[3]}</span>`; }).join(""); })()}</div>
     ${pr.total && p.metric ? `<div class="prog"><span class="num">미션 ${pr.done}/${pr.total}</span></div>` : ""}
     ${metricBox(p)}
-    ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요</div>` : ""}
+    ${p.status === "done" ? `<div class="trophyline">🏆 ${ago(p.doneAt)} 전에 ${sp ? "완료" : "달성"}했어요${mine ? `<button class="trundo" data-act="pundone" data-p="${p.id}">${sp ? "완료" : "달성"} 취소</button>` : ""}</div>` : ""}
     ${isCx(p) ? `<div class="trophyline cxline">${p.cancelAt ? `${ago(p.cancelAt)} 전에 ` : ""}포기한 ${kind}예요</div>${mine && !(par && isCx(par)) ? `<button class="btn sec full" data-act="prestore" data-p="${p.id}">다시 진행하기</button>` : ""}` : ""}
     ${mine && p.status !== "done" && !isCx(p) ? `<div class="btnrow three">${p.metric ? `<button class="btn soft mlogbtn" data-act="mlog" data-p="${p.id}">📈 수치 기록</button>` : `<button class="btn sec mlogbtn" data-act="gedit" data-p="${p.id}">📈 수치 켜기</button>`}<button class="btn" data-act="compose" data-p="${p.id}">스토리</button><button class="btn gold" data-act="pdone" data-p="${p.id}">${S.armed==="pd"+p.id ? "한 번 더 누르면 " + (sp ? "완료" : "달성") : (sp ? "✓ 완료" : "🏆 달성")}</button></div>` : ""}
   </section>`;
@@ -5320,6 +5323,11 @@ document.addEventListener("click", e => {
     case "pdue": { const p = S.projects[pid]; if (!p) return; openSheet({type:"pdue", pid, end:addD(today(), 7)}); return; }
     case "pext-go": { const p = S.projects[c.pid]; if (!p) return; if (!c.end || c.end <= today()){ toast("오늘 이후 날짜를 골라 주세요"); return; } const d = {...p, end:c.end}; delete d.id;
       run(() => api.putProject(c.pid, d), () => { closeSheet(); toast(`${fmtD(c.end)}까지 연장했어요`); }); return; }
+    /* 달성(완료) 취소: 진행 중으로 되돌리고 그때 받은 보상은 경제 규칙대로 회수된다. 완료한 스테이지를 되돌리면 달성한 메인 퀘스트도 함께 되돌린다 */
+    case "pundone": { const p = S.projects[pid]; if (!p || p.status !== "done") return; const sp = isProj(p), par = sp && S.projects[p.parentId], both = !!(par && par.status === "done");
+      ask({t:`${sp ? "스테이지 완료를" : "메인 퀘스트 달성을"}취소할까요?`, d:`${p.title}\n받은 경험치와 코인이 회수되고 진행 중으로 돌아가요.${both ? `\n메인 퀘스트 '${par.title}'의 달성도 함께 취소돼요.` : ""}`, ok:"되돌리기"}, () => {
+        const back = x => { const d = {...x, status:"active"}; delete d.id; delete d.doneAt; return d; };
+        run(async () => { await api.putProject(pid, back(p)); if (both) await api.putProject(par.id, back(par)); }, () => { if (sp) syncProgress(p.parentId); toast(`${sp ? "완료를" : "달성을"} 취소했어요`); }); }); return; }
     case "prestore": { const p = S.projects[pid]; if (!p) return; const d = {...p, status:"active"}; delete d.id; delete d.cancelAt;
       run(() => api.putProject(pid, d), () => { if (isProj(p)) syncProgress(p.parentId); toast("다시 진행해요"); }); return; }
     case "pdel": if (S.armed === "px"+pid){ S.armed = null; const sp = isProj(S.projects[pid]); run(async () => { const ids = [pid, ...subsOf(pid).map(x => x.id)]; for (const m of mineOf("mission").filter(m => ids.includes(m.projectId))) await api.delMine(m.id); for (const x of subsOf(pid)) await api.delProject(x.id); await api.delProject(pid); }, () => { closeSheet(); toast(sp ? "스테이지를 삭제했어요" : "메인 퀘스트를 삭제했어요"); history.back(); }); } else { arm("px"+pid); if (S.compose) renderSheet(); } return;
