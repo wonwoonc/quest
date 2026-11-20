@@ -1337,6 +1337,18 @@ test('자료 추가 → 저널 → 다른 서랍: 적던 내용 그대로 (오�
   h.click('nt-kpick'); h.click('dj-kind',{v:'idea'}); await h.settle(); o = h.nodes.get('overlay').innerHTML;
   assert.match(o, /보스 레이드/); assert.match(o, /친구랑 같이/); assert.equal(h.snapshot().mine['d-'+td].text, '이미 쓴 저널');
 });
+test('자료 템플릿: 서랍마다 여러 템플릿, 바꿔도 적은 칸은 남고 저장된다',async()=>{
+  const h = await profileUI(); h.route('notes'); await h.settle(); const ov = () => h.nodes.get('overlay').innerHTML;
+  h.click('nt-new'); h.click('nt-kind',{v:'ref'});
+  assert.match(ov(), /data-act="nt-tplset" data-v="basic" aria-selected="true"/); assert.match(ov(), /data-v="article"[^>]*>아티클·리포트/); assert.match(ov(), /data-v="research"/);
+  h.nodes.set('nf-title',{value:'리포트'}); h.nodes.set('nf-summary',{value:'요약입니다'}); h.click('nt-tplset',{v:'article'});
+  assert.match(ov(), /id="nf-evidence"/); assert.match(ov(), /id="nf-quote"/); assert.match(ov(), /요약입니다/);
+  h.nodes.set('nf-evidence',{value:'출처 3곳'}); h.click('nt-tplset',{v:'video'}); assert.match(ov(), /id="nf-timeline"/); assert.match(ov(), /출처 3곳/, 'filled field from another template stays');
+  h.click('sheet-close'); await h.settle();
+  const n = Object.values(h.snapshot().mine).find(m => m.kind === 'note'); assert.equal(n.tpl, 'video'); assert.equal(n.f.evidence, '출처 3곳'); assert.equal(n.f.summary, '요약입니다');
+  h.click('nt-new'); h.click('nt-kind',{v:'memo'}); assert.match(ov(), /data-v="meeting"[^>]*>회의록/); h.click('nt-tplset',{v:'meeting'}); assert.match(ov(), /id="nf-agenda"/); assert.match(ov(), /id="nf-decision"/);
+  h.click('nt-new'); h.click('nt-kind',{v:'idea'}); h.click('nt-tplset',{v:'lean'}); assert.match(ov(), /id="nf-next"[\s\S]*미션 추가|미션 추가[\s\S]*id="nf-next"/, 'every idea template keeps next action');
+});
 test('저널: 지난 날짜로 쓰기 (보상 없음), 카드에서 수정',async()=>{
   const h = await profileUI(); h.route('notes'); await h.settle(); h.click('nt-cat',{v:'journal'}); await h.settle();
   assert.doesNotMatch(h.nodes.get('app').innerHTML, />\+ 저널 추가</);

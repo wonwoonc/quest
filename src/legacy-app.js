@@ -1,5 +1,5 @@
 import {TIERS, DAILY_DIFFICULTY, TASK_DIFFICULTY, activityReward, tierKey, economyLevel, levelStart, koreaDate, economySummary, migrateEconomy} from './economy.js';
-import {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete} from './notes.js';
+import {NOTE_POOL, noteDrawers, noteDrawer, noteNorm, noteComplete, noteTpls, noteTpl, noteTplFields} from './notes.js';
 import {LEGAL_META, TERMS, PRIVACY} from './legal.js';
 import {activityDate, isOwnPrivateEntry, buildDayActivityIndex, selectDayActivities} from './day-activities.js';
 export function startLegacyApp({runtime, storage, seed = null, account = null, community = null}) {
@@ -449,7 +449,10 @@ function schedule(){ if (!raf) raf = requestAnimationFrame(() => { raf = 0; rend
 const WEB = matchMedia("(min-width:1024px)");
 S.navMini = !!LS.get("navMini", false);
 WEB.addEventListener && WEB.addEventListener("change", () => schedule());
-function render(){ { const a = document.activeElement; if (S.view.name === "learn" && a && a.closest && a.closest("#nted")){ S.lpPending = true; return; } } IXC = null;
+/* 퀘스트 제목은 줄바꿈 없이 한 줄: 넘치면 글자 크기를 줄인다(최소 12px, 그래도 넘치면 말줄임) */
+function fitTitles(){ document.querySelectorAll(".gth h2, .pgc .pgtl h3").forEach(el => { el.style.fontSize = ""; let fs = parseFloat(getComputedStyle(el).fontSize) || 18; while (el.scrollWidth > el.clientWidth + 1 && fs > 12){ fs -= 0.5; el.style.fontSize = fs + "px"; } }); }
+let fitT = 0; addEventListener("resize", () => { clearTimeout(fitT); fitT = setTimeout(fitTitles, 120); });
+function render(){ requestAnimationFrame(fitTitles); { const a = document.activeElement; if (S.view.name === "learn" && a && a.closest && a.closest("#nted")){ S.lpPending = true; return; } } IXC = null;
   MY = S.me ? computeMine() : null;
   const setup = !!entryScreen || !hasProfile();
   document.body.classList.toggle('onboarding', setup);
@@ -1177,10 +1180,14 @@ function noteSheet(c){
   /* ⋯ → 수정: 이 자료에서 쓸 칸을 스위치로 켜고 끈다 */
   /* 아래 글 상자(왜 좋은가요?·핵심 요약·다음 행동·학습 목표…)는 서랍 템플릿: 내용이 없으면 '템플릿' 버튼만 두고, 누르면 나온다.
      빈 상자에서 백스페이스를 누르면 그 상자가 지워진다 */
-  const BF = C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body" && !x.bottom && whenOk(x));
-  if (!c.blocks){ const filled = BF.filter(x => (D("nf-" + x.k) || "").trim()).map(x => x.k); c.blocks = n && (filled.length || D("nf-body").trim()) ? filled : BF.map(x => x.k); } /* 템플릿은 기본으로 보인다 */
+  /* 서랍 템플릿: 고른 템플릿의 칸 + 다른 템플릿에서 이미 적어 둔 칸(템플릿을 바꿔도 남는다) */
+  const tpls = noteTpls(C), tpl = noteTpl(C, c.tpl || (n && n.tpl)), tF0 = tpl ? tpl.f : [];
+  const BF = [...C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body" && !x.bottom), ...tF0, ...noteTplFields(C).filter(x => !tF0.some(y => y.k === x.k) && String(S.drafts["nf-" + x.k] || "").trim())].filter(whenOk);
+  c._bf = BF.map(x => x.k);
+  if (!c.blocks){ const filled = BF.filter(x => (D("nf-" + x.k) || "").trim()).map(x => x.k); c.blocks = n && !c.tplTouched && (filled.length || D("nf-body").trim()) ? filled : BF.map(x => x.k); } /* 템플릿은 기본으로 보인다 */
+  const tabs = tpls && tpls.length > 1 ? `<div class="nttabs" role="tablist" aria-label="템플릿" data-swipe>${tpls.map(t => `<button class="nttab" role="tab" data-act="nt-tplset" data-v="${t.id}" aria-selected="${t.id === tpl.id}">${esc(t.l)}</button>`).join("")}</div>` : "";
   const vis = BF.filter(x => c.blocks.includes(x.k));
-  const tplHtml = vis.map(block).join("") + (vis.length < BF.length ? `<button class="nttpl" data-act="nt-tpl">${nic(C.ic)}${esc(C.l)} 템플릿</button>` : ""); /* 하나라도 지우면 되살리는 버튼 */
+  const tplHtml = vis.map(block).join("") + (vis.length < BF.length ? `<button class="nttpl" data-act="nt-tpl">${nic(C.ic)}${esc(tpl ? tpl.l : C.l)} 템플릿</button>` : ""); /* 하나라도 지우면 되살리는 버튼 */
   const tbar = c.tedit ? `<div class="nttbar2"><button class="ntpc on" data-act="nt-tedit">완료</button></div>` : "";
   /* 본문: 학습 노트와 같은 블록 편집기('/' 메뉴, '# ' '- ' '> ' 단축 입력). 저장은 화면을 닫을 때 */
   const bodyOn = C.f.some(x => x.k === "body") || ntFreeBody(C);
@@ -1188,7 +1195,7 @@ function noteSheet(c){
     const nz = v => String(v || "").replace(/\s+/g, " ").trim(); LP = {sheet:true, c, id:"nf", blocks:c._blocks || (bb && bb.length && nz(bkPlain(bb)) === nz(t0) ? bb : textBlocks(t0))}; delete c._blocks; }
   if (bodyOn) LP.ph = `${c.unsorted ? "떠오르는 대로 적어요" : C.k === "memo" ? "자유롭게 적어요" : "자유롭게 이어서 적어요"} · '/'로 블록 선택`;
   if (c.pickFirst) return sheetWrap(pill, "", `<p class="ntpickq">어떤 서랍에 담을까요?</p>${kinds}`, ""); /* 자료 추가: 서랍부터 고른다 */
-  return sheetWrap(pill, "", `${kinds}${tbar}
+  return sheetWrap(pill, "", `${kinds}${tbar}${tabs}
     ${tF ? `<textarea class="nttitle" id="nf-title" data-grow rows="1" maxlength="200" placeholder="${C.k === "idea" ? "떠오른 아이디어를 한 줄로" : C.k === "memo" ? "제목" : "제목"}">${D("nf-title")}</textarea>` : ""}
     ${props ? `<div class="ntprops">${props}</div>` : ""}
     ${tplHtml}
@@ -1202,13 +1209,13 @@ function ntSendSheet(c){
   const opt = (k, t, d, rec) => `<button class="ntsendo ${rec ? "rec" : ""}" data-act="nt-send" data-v="${k}"><b>${t}${rec ? `<span class="ntrec">추천</span>` : ""}</b><small>${d}</small></button>`;
   return sheetWrap("어디로 보낼까요?", "", `<p class="bdtext">${esc(c.name)}</p><div class="ntsend">${opt("task", "미션", "한 번 하면 끝나는 일 · 날짜와 시간을 정해요", !daily)}${opt("daily", "일일", "반복해서 할 습관 · 연속 기록이 쌓여요", daily)}</div>`);
 }
-const ntKeys = () => [...new Set(["nf-body", ...noteDrawers(S).flatMap(C => C.f.filter(x => !["choice","stars"].includes(x.t)).map(x => "nf-" + x.k))])];
+const ntKeys = () => [...new Set(["nf-body", ...noteDrawers(S).flatMap(C => [...C.f, ...noteTplFields(C)].filter(x => !["choice","stars"].includes(x.t)).map(x => "nf-" + x.k))])];
 /* collects the open note sheet; resolves to the saved note id or null */
 function saveNote(c, after, quiet){
   const live = LP && LP.sheet && LP.c === c && $("#nfed"); if (live){ bkSync(); S.drafts["nf-body"] = bkPlain(LP.blocks); }
   const C = noteDrawer(S, c.cat), old = c.id && S.mine[c.id], prev = old && ntN(old).cat === C.k ? {...ntN(old).f} : {}, f = prev;
   const hid = []; /* 칸 끄기 기능은 없앴다: 예전에 꺼 둔 칸도 다시 모두 보인다 */
-  C.f.forEach(x => { if (hid.includes(x.k)){ delete f[x.k]; return; } if (x.when && !Object.entries(x.when).every(([k, vs]) => vs.includes((c.vals || {})[k]))){ delete f[x.k]; return; } const v = ["choice","stars"].includes(x.t) ? (c.vals || {})[x.k] : pv("nf-" + x.k).trim(); if (v) f[x.k] = x.t === "url" ? ntUrl(v) : v; else delete f[x.k]; });
+  [...C.f, ...noteTplFields(C).filter(x => !C.f.some(y => y.k === x.k))].forEach(x => { if (hid.includes(x.k)){ delete f[x.k]; return; } if (x.when && !Object.entries(x.when).every(([k, vs]) => vs.includes((c.vals || {})[k]))){ delete f[x.k]; return; } const v = ["choice","stars"].includes(x.t) ? (c.vals || {})[x.k] : pv("nf-" + x.k).trim(); if (v) f[x.k] = x.t === "url" ? ntUrl(v) : v; else delete f[x.k]; });
   if (ntFreeBody(C)){ const v = pv("nf-body").trim(); if (v) f.body = v; else delete f.body; }
   if (C.k === "ref" && f.url && !(c.vals || {}).media){ const m = ntMediaOf(f.url); if (m) f.media = m; }
   const files = C.k === "ref" ? (c.files || []) : (old && old.files) || [];
@@ -1217,8 +1224,8 @@ function saveNote(c, after, quiet){
   /* 본문 블록(제목·목록·토글 등). 글자만 있는 본문이면 블록은 따로 두지 않는다 */
   const bb = live ? (f.body && LP.blocks.some(b => b.t !== "p" || b.ind || /</.test(b.h || "")) ? bkStore(LP.blocks) : undefined) : old && old.bodyBlocks;
   /* 바뀐 게 없으면 저장하지 않는다(뒤로 가기 자동 저장 때 순서가 바뀌지 않게) */
-  if (old && ntN(old).cat === C.k && JSON.stringify(ntN(old).f) === JSON.stringify(f) && JSON.stringify(old.files || []) === JSON.stringify(files) && JSON.stringify(ntAreas(old.area)) === JSON.stringify(ntAreas(c.area)) && (old.projectId || null) === (c.projectId && S.projects[c.projectId] ? c.projectId : null) && JSON.stringify(old.hideF || []) === JSON.stringify(hid) && !!old.unsorted === !!c.unsorted && JSON.stringify(old.bodyBlocks || null) === JSON.stringify(bb || null)){ after(key, null, false); return true; }
-  return run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, unsorted:c.unsorted ? true : undefined, needSend:(old && old.needSend) || (C.k === "idea" && !was) ? true : undefined, f, bodyBlocks:bb, files, hideF:hid.length ? hid : undefined, area:ntAreas(c.area).length ? ntAreas(c.area) : null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); (c.rmFiles || []).forEach(FDB.del); c.newFiles = []; c.rmFiles = []; after(key, r, !was && noteComplete(S, S.mine[key])); });
+  if (old && ntN(old).cat === C.k && JSON.stringify(ntN(old).f) === JSON.stringify(f) && JSON.stringify(old.files || []) === JSON.stringify(files) && JSON.stringify(ntAreas(old.area)) === JSON.stringify(ntAreas(c.area)) && (old.projectId || null) === (c.projectId && S.projects[c.projectId] ? c.projectId : null) && JSON.stringify(old.hideF || []) === JSON.stringify(hid) && !!old.unsorted === !!c.unsorted && JSON.stringify(old.bodyBlocks || null) === JSON.stringify(bb || null) && (!c.tpl || c.tpl === old.tpl)){ after(key, null, false); return true; }
+  return run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, unsorted:c.unsorted ? true : undefined, needSend:(old && old.needSend) || (C.k === "idea" && !was) ? true : undefined, f, bodyBlocks:bb, tpl:noteTpls(C) ? (c.tpl || (old && old.tpl) || undefined) : undefined, files, hideF:hid.length ? hid : undefined, area:ntAreas(c.area).length ? ntAreas(c.area) : null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); (c.rmFiles || []).forEach(FDB.del); c.newFiles = []; c.rmFiles = []; after(key, r, !was && noteComplete(S, S.mine[key])); });
 }
 /* drawer manager + editor */
 function drawerSheet(c){
@@ -2913,13 +2920,14 @@ document.addEventListener("click", e => {
         openSheet({type:"note", cat:v, unsorted:false, vals:{}, area:null, projectId:pj}); setTimeout(() => { const x = document.getElementById("nf-title"); x && x.focus && x.focus(); }, 60); return; }
       preserveSheetDrafts(); if (b.dataset.v === "journal"){ const gv = k => { const el = document.getElementById(k); return el ? el.value : S.drafts[k]; }, tx = [gv("nf-title"), gv("nf-body")].map(x => String(x || "").trim()).filter(Boolean).join("\n"); c.noSave = true; c.kpick = false; c.menu = false; c.pickFirst = false;
       const keep = {}; ntKeys().forEach(k => { const v = gv(k); if (v != null && v !== "") keep[k] = String(v); delete S.drafts[k]; }); /* 적던 자료는 그대로 보관해 두었다가 다른 서랍으로 돌아갈 때 되살린다 */
-      const kb = LP && LP.sheet && LP.c === c ? LP.blocks : null; openDiaryToday(tx); if (S.compose && S.compose.type === "diary") S.compose.fromNote = {c, drafts:keep, blocks:kb, entry:String(S.drafts["pl-text"] || "").trim()}; renderSheet(); return; } const wasPick = c.pickFirst; c.pickFirst = false; if (wasPick) setTimeout(() => { const x = document.getElementById("nf-title"); x && x.focus && x.focus(); }, 60); c.cat = b.dataset.v; c.kpick = false; c.unsorted = false; c.blocks = null; const K = noteDrawer(S, c.cat);
+      const kb = LP && LP.sheet && LP.c === c ? LP.blocks : null; openDiaryToday(tx); if (S.compose && S.compose.type === "diary") S.compose.fromNote = {c, drafts:keep, blocks:kb, entry:String(S.drafts["pl-text"] || "").trim()}; renderSheet(); return; } const wasPick = c.pickFirst; c.pickFirst = false; if (wasPick) setTimeout(() => { const x = document.getElementById("nf-title"); x && x.focus && x.focus(); }, 60); c.cat = b.dataset.v; c.kpick = false; c.unsorted = false; c.blocks = null; c.tpl = null; c.tplTouched = false; const K = noteDrawer(S, c.cat);
       /* 메모에 적은 링크는 참고자료 '링크' 칸으로 옮기고, 주소로 종류(영상·글·SNS)를 정한다 */
       if (K.f.some(x => x.k === "url") && !(S.drafts["nf-url"] || "").trim()){ const m = ((S.drafts["nf-body"] || "") + " " + (S.drafts["nf-title"] || "")).match(NT_URL_RE); if (m){ S.drafts["nf-url"] = m[0]; S.drafts["nf-body"] = (S.drafts["nf-body"] || "").replace(m[0], "").replace(/^\s*\n/, "").trim(); if (LP && LP.sheet){ const bb = LP.blocks.filter(b => !bkText(b).includes(m[0]) || bkText(b).replace(m[0], "").trim()); bb.forEach(b => { if (bkText(b).includes(m[0])) b.h = esc(bkText(b).replace(m[0], "").trim()); }); LP.blocks = bb.length ? bb : textBlocks(""); } } }
       const mo = K.f.find(x => x.k === "media"), u = S.drafts["nf-url"]; if (mo && u && !(c.vals || {}).media){ const m = ntMediaOf(u); if (m && mo.o.includes(m)){ c.vals = c.vals || {}; c.vals.media = m; } }
       renderSheet(); return; }
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
-    case "nt-tpl": { preserveSheetDrafts(); const K = noteDrawer(S, c.cat); c.blocks = K.f.filter(x => x.k !== "title" && x.k !== "body" && !x.bottom && (x.task || x.t === "area")).map(x => x.k); renderSheet(); setTimeout(() => { const t = $("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input"); t && t.focus(); }, 30); return; }
+    case "nt-tplset": { preserveSheetDrafts(); ntKeys().forEach(k => { const el = document.getElementById(k); if (el && typeof el.value === "string") S.drafts[k] = el.value; }); c.tpl = b.dataset.v; c.tplTouched = true; c.blocks = null; renderSheet(); const sel = $("#overlay .nttab[aria-selected=true]"); if (sel && sel.scrollIntoView) sel.scrollIntoView({block:"nearest", inline:"center"}); return; } /* 템플릿 바꾸기: 적어 둔 칸은 남는다 */
+    case "nt-tpl": { preserveSheetDrafts(); c.blocks = (c._bf || []).slice(); renderSheet(); setTimeout(() => { const t = $("#overlay .ntblk textarea, #overlay .ntbox textarea, #overlay .ntbox input"); t && t.focus(); }, 30); return; }
     case "nt-drop": { preserveSheetDrafts(); c.drop = c.drop === b.dataset.v ? null : b.dataset.v; if (c.drop === "q") c.qexp = null; renderSheet(); return; }
     case "nt-qexp": c.qexp = b.dataset.v || null; renderSheet(); return;
     case "nt-qclose": c.drop = null; c.qexp = null; renderSheet(); return;
