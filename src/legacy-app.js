@@ -1156,9 +1156,7 @@ function noteSheet(c){
     if (off) return `<span class="ntpl off">${esc(x.l)}</span><div class="ntpv off"><span class="ntoff">꺼짐</span>${tg}</div>`;
     let ctl;
     if (x.t === "choice" && x.bottom) ctl = `<div class="ntpch">${x.o.map(o => `<button class="ntpc" data-act="nt-val" data-f="${x.k}" data-v="${o}" aria-pressed="${v === o}">${o}</button>`).join("")}</div>`; /* 학습 상태는 칩 그대로 */
-    else if (x.t === "choice"){ const open = c.chOpen === x.k; /* 고르는 칸은 선택 버튼 하나 → 바로 아래 목록 */
-      ctl = `<div class="ntpq"><button class="ntpc ${v ? "on" : "add"}" data-act="nt-chpick" data-f="${x.k}" aria-expanded="${open}">${v ? esc(v) : "선택"}${chev(open)}</button></div>`;
-      if (open) return `<span class="ntpl">${esc(x.l)}</span><div class="ntpv">${ctl}</div><div class="ntdrop" role="listbox" aria-label="${esc(x.l)}">${x.o.map(o => `<button class="ntdi ${v === o ? "on" : ""}" data-act="nt-chset" data-f="${x.k}" data-v="${esc(o)}" role="option" aria-selected="${v === o}">${esc(o)}${v === o ? ckI2 : ""}</button>`).join("")}${v ? `<button class="ntdi off" data-act="nt-chset" data-f="${x.k}" data-v="">선택 안 함</button>` : ""}</div>`; }
+    else if (x.t === "choice") ctl = `<div class="ntaic" style="--n:${x.o.length}" role="group" aria-label="${esc(x.l)}">${x.o.map(o => `<button class="ntai" data-act="nt-val" data-f="${x.k}" data-v="${esc(o)}" aria-pressed="${v === o}">${esc(o)}</button>`).join("")}</div>`; /* 종류도 영역처럼 칩 한 줄(다시 누르면 해제) */
     else if (x.t === "stars") ctl = `<div class="ntrate sm">${[1,2,3,4,5].map(i => `<button data-act="nt-val" data-f="${x.k}" data-v="${i}" aria-label="${i}점" aria-pressed="${(v||0) >= i}">${nic("star")}</button>`).join("")}</div>`;
     else ctl = `<input class="ntpin" type="${x.t === "url" ? "url" : x.t === "date" ? "date" : "text"}" id="${id}" maxlength="${x.t === "url" ? 500 : 200}" placeholder="${esc(x.t === "url" ? "링크 붙여 넣기" : (x.p || "").replace(/^예:\s*/, "") || "적기")}" value="${D(id)}">`;
     return `<span class="ntpl">${esc(x.l)}</span><div class="ntpv">${ctl}${tg}</div>`; };
@@ -1178,7 +1176,7 @@ function noteSheet(c){
   /* 영역: 칩으로 바로 고르기. 고른 칩을 다시 누르면 해제 */
   /* 영역: 아이콘 한 줄, 누르면 바로 켜고 끈다(최대 2개) */
   const aOn = ntAreas(c.area);
-  const aRow = C.pt ? `<span class="ntpl">영역</span><div class="ntaic" role="group" aria-label="영역">${AREAS.map(([k,,,l]) => `<button class="ntai" data-act="nt-aset" data-v="${k}" aria-pressed="${aOn.includes(k)}">${aIcon(k)}<span>${l}</span></button>`).join("")}</div>` : "";
+  const aRow = C.pt ? `<span class="ntpl">영역</span><div class="ntaic" style="--n:${AREAS.length}" role="group" aria-label="영역">${AREAS.map(([k,,,l]) => `<button class="ntai" data-act="nt-aset" data-v="${k}" aria-pressed="${aOn.includes(k)}">${aIcon(k)}<span>${l}</span></button>`).join("")}</div>` : "";
   const fRow = C.k === "ref" ? `<span class="ntpl">파일</span><div class="flist sm">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < F_MAX ? `<button class="ntpc add" data-act="nf-pick">+ 첨부</button>` : ""}</div>` : "";
   const bot = C.f.filter(x => x.bottom).map(prop).join("");
   const props = C.f.filter(isProp).map(prop).join("") + fRow + qRow + aRow + bot; /* 학습 상태는 영역 아래 */
