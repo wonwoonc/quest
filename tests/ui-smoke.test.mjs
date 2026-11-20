@@ -1346,6 +1346,8 @@ test('자료 템플릿: 서랍마다 여러 템플릿, 바꿔도 적은 칸은 �
   h.nodes.set('nf-evidence',{value:'출처 3곳'}); h.click('nt-tplset',{v:'video'}); assert.match(ov(), /id="nf-timeline"/); assert.match(ov(), /출처 3곳/, 'filled field from another template stays');
   h.click('sheet-close'); await h.settle();
   const n = Object.values(h.snapshot().mine).find(m => m.kind === 'note'); assert.equal(n.tpl, 'video'); assert.equal(n.f.evidence, '출처 3곳'); assert.equal(n.f.summary, '요약입니다');
+  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(), /data-act="nt-chpick" data-f="type"[^>]*>선택/); assert.match(ov(), /data-act="nt-val" data-f="status"/, 'learn status stays as chips');
+  h.click('nt-chpick',{f:'type'}); assert.match(ov(), /data-act="nt-chset" data-f="type" data-v="책"/); h.click('nt-chset',{f:'type',v:'책'}); assert.doesNotMatch(ov(), /ntqpop/); assert.match(ov(), /data-act="nt-chpick" data-f="type"[^>]*>책/);
   h.click('nt-new'); h.click('nt-kind',{v:'memo'}); h.click('nt-tplpick'); assert.match(ov(), /data-v="meeting"[\s\S]*?회의록/); h.click('nt-tplset',{v:'meeting'}); assert.match(ov(), /id="nf-agenda"/); assert.match(ov(), /id="nf-decision"/);
   h.click('nt-new'); h.click('nt-kind',{v:'idea'}); h.click('nt-tplset',{v:'lean'}); assert.match(ov(), /id="nf-next"[\s\S]*미션 추가|미션 추가[\s\S]*id="nf-next"/, 'every idea template keeps next action');
 });
