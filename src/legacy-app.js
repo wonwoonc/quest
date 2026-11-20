@@ -598,7 +598,7 @@ function renderReplyBar(){
   if (changed){ const t = $("#rb-text"); if (t){ t.value = typed; rbFit(t); } }
 }
 function rbFit(t){ t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 120) + "px"; const b = $(".rbsend"); if (b) b.disabled = !t.value.trim() || S.busy; }
-document.addEventListener("input", e => { if (e.target && e.target.id === "nf-body"){ const tb = $("#overlay .nttpl"); if (tb) tb.hidden = !!e.target.value.trim() || !!$("#overlay .ntblk, #overlay .ntbox"); } if (e.target && (e.target.id === "nf-body" || e.target.id === "nf-title")){ const sg = $("#overlay .ntsug"), kd = $("#overlay .ntkind"); if (sg && kd && kd.classList.contains("memo")) sg.hidden = !NT_URL_RE.test((($("#nf-title")||{}).value || "") + " " + (($("#nf-body")||{}).value || "")); } if (e.target && e.target.id === "rb-text"){ S.drafts["rb-text"] = e.target.value; rbFit(e.target); } if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-grow")) growFit(e.target); });
+document.addEventListener("input", e => { if (e.target && (e.target.id === "nf-body" || e.target.id === "nf-title")){ const sg = $("#overlay .ntsug"), kd = $("#overlay .ntkind"); if (sg && kd && kd.classList.contains("memo")) sg.hidden = !NT_URL_RE.test((($("#nf-title")||{}).value || "") + " " + (($("#nf-body")||{}).value || "")); } if (e.target && e.target.id === "rb-text"){ S.drafts["rb-text"] = e.target.value; rbFit(e.target); } if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-grow")) growFit(e.target); });
 /* 글이 늘어나면(엔터 포함) 입력창도 같이 길어진다. 너무 길면 그 안에서 스크롤 */
 function growFit(t){ t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 480) + "px"; }
 
@@ -1152,9 +1152,9 @@ function noteSheet(c){
   /* 아래 글 상자(왜 좋은가요?·핵심 요약·다음 행동·학습 목표…)는 서랍 템플릿: 내용이 없으면 '템플릿' 버튼만 두고, 누르면 나온다.
      빈 상자에서 백스페이스를 누르면 그 상자가 지워진다 */
   const BF = C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body" && !x.bottom && whenOk(x));
-  if (!c.blocks) c.blocks = BF.filter(x => (D("nf-" + x.k) || "").trim()).map(x => x.k);
+  if (!c.blocks){ const filled = BF.filter(x => (D("nf-" + x.k) || "").trim()).map(x => x.k); c.blocks = n && (filled.length || D("nf-body").trim()) ? filled : BF.map(x => x.k); } /* 템플릿은 기본으로 보인다 */
   const vis = BF.filter(x => c.blocks.includes(x.k));
-  const tplHtml = vis.map(block).join("") + (BF.length ? `<button class="nttpl" data-act="nt-tpl" ${vis.length || D("nf-body").trim() ? "hidden" : ""}>${nic(C.ic)}${esc(C.l)} 템플릿</button>` : "");
+  const tplHtml = vis.map(block).join("") + (vis.length < BF.length ? `<button class="nttpl" data-act="nt-tpl">${nic(C.ic)}${esc(C.l)} 템플릿</button>` : ""); /* 하나라도 지우면 되살리는 버튼 */
   const tbar = c.tedit ? `<div class="nttbar2"><button class="ntpc on" data-act="nt-tedit">완료</button></div>` : "";
   return sheetWrap(pill, "", `${menu}${kinds}${tbar}
     ${tF ? `<textarea class="nttitle" id="nf-title" data-grow rows="1" maxlength="200" placeholder="${C.k === "idea" ? "떠오른 아이디어를 한 줄로" : C.k === "memo" ? "제목" : "제목"}">${D("nf-title")}</textarea>` : ""}
