@@ -2473,7 +2473,8 @@ function noteComplete(s, n) {
   if (!n || n.kind !== 'note') return false;
   const {cat, f} = noteNorm(s, n), d = noteDrawer(s, cat);
   if (!d || !d.pt) return false;
-  if (cat === 'idea') return has(f.next);
+  /* 아이디어는 '다음 행동'을 미션으로 추가했을 때 완성(sent). needSend 표시가 없는 예전 아이디어는 예전 기준(다음 행동을 적으면 완성)을 그대로 둔다 */
+  if (cat === 'idea') return has(f.next) && (!n.needSend || !!n.sent);
   if (cat === 'ref') return has(f.summary) && has(f.why);
   if (cat === 'learn') return f.status === '완료';
   return d.f.length > 0 && d.f.every(x => has(f[x.k]));
@@ -3605,7 +3606,7 @@ function noteSheet(c){
     else ctl = `<input class="ntpin" type="${x.t === "url" ? "url" : x.t === "date" ? "date" : "text"}" id="${id}" maxlength="${x.t === "url" ? 500 : 200}" placeholder="${esc(x.t === "url" ? "링크 붙여 넣기" : (x.p || "").replace(/^예:\s*/, "") || "적기")}" value="${D(id)}">`;
     return `<span class="ntpl">${x.t === "url" ? nic("link") : ""}${esc(x.l)}</span><div class="ntpv">${ctl}${xb(x)}</div>`; };
   const block = x => { if (!shown(x)) return ""; const id = "nf-" + x.k;
-    if (x.task) return `<div class="ntbox task"><span class="ntbl">${esc(x.l)}${xb(x)}</span><div class="nttask"><input type="text" id="${id}" maxlength="200" placeholder="${esc(x.p || "")}" value="${D(id)}"><button class="btn sec xs" data-act="nt-task" data-f="${x.k}">미션·일일로</button></div></div>`;
+    if (x.task) return `<div class="ntbox task"><span class="ntbl">${esc(x.l)}${xb(x)}</span><div class="nttask"><input type="text" id="${id}" maxlength="200" placeholder="${esc(x.p || "")}" value="${D(id)}"><button class="btn sec xs" data-act="nt-task" data-f="${x.k}">미션 추가</button></div></div>`;
     const box = x.k === "summary";
     return `<div class="${box ? "ntbox sum" : "ntblk"}"><span class="ntbl">${esc(x.l)}${xb(x)}</span><textarea id="${id}" data-grow rows="${box ? 3 : 2}" maxlength="10000" placeholder="${esc(x.p || "")}">${D(id)}</textarea></div>`; };
   const pj = c.projectId && S.projects[c.projectId];
@@ -3648,7 +3649,7 @@ function saveNote(c, after, quiet){
   const key = old ? c.id : "nt"+uid8(), now = Date.now(), was = old && noteComplete(S, old);
   /* 바뀐 게 없으면 저장하지 않는다(뒤로 가기 자동 저장 때 순서가 바뀌지 않게) */
   if (old && ntN(old).cat === C.k && JSON.stringify(ntN(old).f) === JSON.stringify(f) && JSON.stringify(old.files || []) === JSON.stringify(files) && (old.area || null) === (c.area || null) && (old.projectId || null) === (c.projectId && S.projects[c.projectId] ? c.projectId : null) && JSON.stringify(old.hideF || []) === JSON.stringify(hid) && !!old.unsorted === !!c.unsorted){ after(key, null, false); return true; }
-  return run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, unsorted:c.unsorted ? true : undefined, f, files, hideF:hid.length ? hid : undefined, area:c.area || null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); (c.rmFiles || []).forEach(FDB.del); c.newFiles = []; c.rmFiles = []; after(key, r, !was && noteComplete(S, S.mine[key])); });
+  return run(() => api.putMine(key, {...(old || {}), kind:"note", cat:C.k, unsorted:c.unsorted ? true : undefined, needSend:(old && old.needSend) || (C.k === "idea" && !was) ? true : undefined, f, files, hideF:hid.length ? hid : undefined, area:c.area || null, projectId:c.projectId && S.projects[c.projectId] ? c.projectId : null, createdAt:old ? old.createdAt : now, updatedAt:now}), r => { ntKeys().forEach(k => delete S.drafts[k]); (c.rmFiles || []).forEach(FDB.del); c.newFiles = []; c.rmFiles = []; after(key, r, !was && noteComplete(S, S.mine[key])); });
 }
 /* drawer manager + editor */
 function drawerSheet(c){
@@ -5240,7 +5241,8 @@ document.addEventListener("click", e => {
         const old = c.eid && S.mine[c.eid];
         run(() => api.putMine(c.eid || uid8(), {...(old || {createdAt:Date.now()}), ...ev}), () => { delete S.drafts["ta-name"]; closeSheet(); dumpDone(c); delete S.drafts["ev-place"]; delete S.drafts["ev-note"]; toast(old ? "일정을 고쳤어요" : "일정을 추가했어요"); }); return; }
       if (!name){ toast("미션 이름을 적어 주세요"); $("#ta-name").focus(); return; } if (!c.due){ toast("날짜를 골라 주세요"); return; } if (!c.time){ toast("시간을 골라 주세요"); return; } const pj = c.projectId || null;
-      run(() => api.putMine(uid8(), {kind:"mission", name, ...readPlan(c, false), lv:c.lv||"normal", area:(c.area||[]).slice(0,2), due:c.due||"", time:c.due ? (c.time||"") : "", etime:c.due && c.time && c.etime > c.time ? c.etime : "", period:"", today:false, projectId:pj, ...(c.noteId ? {noteId:c.noteId} : {}), done:false, createdAt:Date.now()}).then(r => c.eid && S.mine[c.eid] ? api.delMine(c.eid).then(() => r) : r), () => { delete S.drafts["ta-name"]; closeSheet(); dumpDone(c); toast(c.eid ? "미션으로 바꿨어요" : "✅ 미션을 추가했어요"); if (pj) syncProgress(pj); }); return; }
+      run(() => api.putMine(uid8(), {kind:"mission", name, ...readPlan(c, false), lv:c.lv||"normal", area:(c.area||[]).slice(0,2), due:c.due||"", time:c.due ? (c.time||"") : "", etime:c.due && c.time && c.etime > c.time ? c.etime : "", period:"", today:false, projectId:pj, ...(c.noteId ? {noteId:c.noteId} : {}), done:false, createdAt:Date.now()}).then(r => c.eid && S.mine[c.eid] ? api.delMine(c.eid).then(() => r) : r), () => { delete S.drafts["ta-name"]; closeSheet(); dumpDone(c); toast(c.eid ? "미션으로 바꿨어요" : "✅ 미션을 추가했어요"); if (pj) syncProgress(pj);
+        const nt = c.noteId && S.mine[c.noteId]; if (nt && nt.kind === "note" && !nt.sent) api.putMine(c.noteId, {...nt, sent:true, updatedAt:Date.now()}).then(r => { schedule(); if (r && r.xp > 0) toast("자료 완성!"); }, () => {}); }); return; }
     case "gmenu": e.stopPropagation(); openSheet({type:"gmenu", pid}); return;
     case "ev-type": { const ev = b.dataset.v === "ev"; if (ev === !!c.ev) return; preserveSheetDrafts(); keepEvFields(c); c.ev = ev; c._tk = "time"; c._tw = false; c._dp = null; if (!c.time) c.time = "09:00"; if (c.ev){ if (!c.edate || c.edate < c.due) c.edate = c.due; if (!c.etime || c.etime <= c.time) c.etime = addMin(c.time, 60); } renderSheet(); return; }
     case "ev-allday": preserveSheetDrafts(); keepEvFields(c); c.allday = !c.allday; c._tw = false; renderSheet(); return;
@@ -5295,7 +5297,8 @@ document.addEventListener("click", e => {
     case "nt-area": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
     case "submit-note": saveNote(c, (key, r, fresh) => { c.noSave = true; closeSheet(); dumpDone(c); if (fresh && r && r.xp > 0) toast(fresh && r && r.xp > 0 ? "자료 완성!" : c.id ? "자료를 저장했어요" : "자료실에 담았어요"); }); return;
     case "nt-task": { const name = pv("nf-" + b.dataset.f).trim(); if (!name){ toast("먼저 내용을 적어 주세요"); return; } const pj = c.projectId || null;
-      saveNote(c, (key, r, fresh) => { openSheet({type:"ntsend", noteId:key, name, projectId:pj && S.projects[pj] ? pj : null}); if (fresh && r && r.xp > 0){ toast("자료 완성!"); } }); return; }
+      /* 자료를 먼저 저장하고(보상 없음) 바로 미션 추가 화면으로. 미션을 실제로 추가하면 그때 아이디어가 완성된다 */
+      saveNote(c, key => { c.noSave = true; const p0 = pj && S.projects[pj] ? pj : null; S.drafts["ta-name"] = name; openSheet({type:"taskadd", lv:"normal", due:today(), time:"", period:"", projectId:p0, area:p0 ? areaUp(p0).slice(0, 2) : [], noteId:key}); }); return; }
     case "nt-send": { const v = b.dataset.v, name = c.name, key = c.noteId, pj = c.projectId;
       if (v === "task"){ S.drafts["ta-name"] = name; openSheet({type:"taskadd", lv:"normal", due:today(), time:"", period:"", projectId:pj, area:pj ? areaUp(pj).slice(0, 2) : [], noteId:key}); return; }
       S.drafts["ad-name"] = name; openSheet({type:"add", kind:"daily", more:true, lv:"normal", hlv:"easy", days:[0,1,2,3,4,5,6], rpt:"", due:"", period:"", projectId:null, parentId:null, unit:null, area:[], noteId:key}); return; }

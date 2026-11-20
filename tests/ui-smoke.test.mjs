@@ -381,12 +381,13 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   h.nodes.set('nf-title',{value:'레이드 퀘스트'}); h.nodes.set('nf-why',{value:'같이 하면 끝까지 간다'}); h.click('submit-note'); await h.settle();
   assert.equal(notes().length,1); assert.equal(xp(),x0,'incomplete note gives nothing');
   const n0 = notes()[0]; h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-next',{value:'매일 아침 서비스 조사'}); h.click('submit-note'); await h.settle();
-  assert.equal(xp(),x0+10,'completion grants 10 XP');
-  h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-why',{value:'수정'}); h.click('submit-note'); await h.settle();
-  assert.equal(xp(),x0+10,'editing does not re-grant'); assert.equal(notes()[0].f.next,'매일 아침 서비스 조사');
-  h.click('nt-edit',{id:n0.id}); h.click('nt-task',{f:'next'}); await h.settle();
-  assert.match(ov(),/어디로 보낼까요/); assert.match(ov(),/ntsendo rec" data-act="nt-send" data-v="daily"/); h.click('nt-send',{v:'task'});
+  assert.equal(xp(),x0,'writing the next action alone gives nothing');
+  h.click('nt-edit',{id:n0.id}); assert.match(ov(),/data-act="nt-task" data-f="next">미션 추가/); h.click('nt-task',{f:'next'}); await h.settle();
+  assert.match(ov(),/미션 추가/); assert.equal(xp(),x0,'opening mission add gives nothing');
   h.nodes.set('ta-name',{value:'매일 아침 서비스 조사'}); h.click('dppick',{k:'due',v:'2099-12-31'}); h.click('submit-taskadd'); await h.settle();
+  assert.equal(xp(),x0+10,'adding the mission completes the idea (10 XP)'); assert.equal(notes()[0].f.next,'매일 아침 서비스 조사');
+  h.click('nt-edit',{id:n0.id}); h.nodes.set('nf-why',{value:'수정'}); h.click('submit-note'); await h.settle();
+  assert.equal(xp(),x0+10,'editing does not re-grant');
   assert.ok(Object.values(h.snapshot().mine).some(m => m.kind === 'mission' && m.noteId === n0.id)); assert.match(app(),/미션 진행 중/);
   h.click('nt-edit',{id:n0.id}); h.click('nt-del',{id:n0.id}); assert.match(h.nodes.get('overlay').innerHTML,/자료를 삭제할까요\?/); assert.equal(notes().length,1); h.click('cfok'); await h.settle();
   assert.equal(notes().length,0); assert.equal(xp(),x0,'deleting reverses the reward');

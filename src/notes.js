@@ -68,7 +68,8 @@ export function noteComplete(s, n) {
   if (!n || n.kind !== 'note') return false;
   const {cat, f} = noteNorm(s, n), d = noteDrawer(s, cat);
   if (!d || !d.pt) return false;
-  if (cat === 'idea') return has(f.next);
+  /* 아이디어는 '다음 행동'을 미션으로 추가했을 때 완성(sent). needSend 표시가 없는 예전 아이디어는 예전 기준(다음 행동을 적으면 완성)을 그대로 둔다 */
+  if (cat === 'idea') return has(f.next) && (!n.needSend || !!n.sent);
   if (cat === 'ref') return has(f.summary) && has(f.why);
   if (cat === 'learn') return f.status === '완료';
   return d.f.length > 0 && d.f.every(x => has(f[x.k]));
