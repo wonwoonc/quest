@@ -1,6 +1,6 @@
 /** 자료실(notes) schema shared by UI and economy.
  * Base drawers are fixed; custom drawers live in s.mine.drawers.list as {k,l,e,fields:[pool keys],area}.
- * Rewards are granted once, when a note first becomes "complete" (see noteComplete). Memo never rewards.
+ * Rewards are granted once, when a note first becomes "complete" (see noteComplete). Memo and ref never reward.
  */
 export const NOTE_POOL = [
   {k:'title', t:'text', l:'제목', p:'제목'},
@@ -16,7 +16,7 @@ export const NOTE_POOL = [
 export const BASE_DRAWERS = [
   {k:'idea', l:'아이디어', ic:'idea', pt:1, area:null, hint:'떠오른 순간 한 줄로 붙잡고, 다음 행동까지 적으면 완성이에요.', need:'다음 행동', f:[
     {k:'title', t:'text', l:'한 줄 아이디어', p:'예: 친구와 함께 깨는 레이드 퀘스트'}]},
-  {k:'ref', l:'참고자료', ic:'link', pt:1, area:null, hint:'나중에 볼 글·영상·파일. 요약과 저장한 이유를 남기면 완성이에요.', need:'핵심 요약 + 저장한 이유', f:[
+  {k:'ref', l:'참고자료', ic:'link', pt:0, area:null, hint:'나중에 볼 글·영상·파일을 모아 둬요.', need:'', f:[
     {k:'media', t:'choice', l:'종류', o:['글','영상','SNS','파일','기타']},
     {k:'title', t:'text', l:'제목', p:'예: 아침 루틴을 바꾼 5가지 습관'},
     {k:'url', t:'url', l:'링크', p:'https://...'}]},
@@ -116,7 +116,7 @@ export function noteComplete(s, n) {
   if (!d || !d.pt) return false;
   /* 아이디어는 '다음 행동'을 미션으로 추가했을 때 완성(sent). needSend 표시가 없는 예전 아이디어는 예전 기준(다음 행동을 적으면 완성)을 그대로 둔다 */
   if (cat === 'idea') return has(f.next) && (!n.needSend || !!n.sent);
-  if (cat === 'ref') return has(f.summary) && has(f.why);
+  /* 참고자료는 보상이 없다(pt 0). 예전에 받은 보상은 그대로 둔다 */
   if (cat === 'learn') return f.status === '완료';
   return d.f.length > 0 && d.f.every(x => has(f[x.k]));
 }

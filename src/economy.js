@@ -155,7 +155,7 @@ export function processEconomy(s,before,at,me='me') {
   }
   // 완료한 미션을 삭제하면 그 완료로 받은 경험치·코인(첫 완료 보너스 포함)을 회수한다. 주간 보너스는 아래에서 다시 계산된다.
   for(const [id,old] of Object.entries(before.mine))if(old.kind==='mission'&&old.done&&!s.mine[id])activity(s,key('task',id),'task',old,koreaDate(at),at,false);
-  for(const [id,old] of Object.entries(before.mine))if(old.kind==='note'&&!s.mine[id]){reverse(s,key('note',id),at);for(const x of old.sessions||[])reverse(s,key('study',id,x.id),at);}
+  for(const [id,old] of Object.entries(before.mine))if(old.kind==='note'&&!s.mine[id]){if(noteComplete(before,old))reverse(s,key('note',id),at); /* 보상 규칙이 바뀌어 지금은 미완성인 예전 자료(참고자료 등)는 받은 보상을 회수하지 않는다 */for(const x of old.sessions||[])reverse(s,key('study',id,x.id),at);}
   for(const [id,p] of Object.entries(s.feed)){const old=before.feed[id];if(p.author===me&&p.ref&&Number.isFinite(p.value)&&p.value!==old?.value)metric(s,p.ref.id,p.value,at);}
   for(const [id,p] of Object.entries(s.projects))if(p.owner===me){const old=before.projects[id],fp=fingerprint(s,p);
     if(!old&&!e.seenGoals[key('id',id)]){const seen=e.seenGoals[fp];e.seenGoals[key('id',id)]=true;e.seenGoals[fp]=true;const sub=!!p.parentId;claim(s,key('create',id),sub?'subCreate':'mainCreate',{xp:sub?10:20,coins:sub?5:10},at,{eligible:!seen&&!!norm(p.title)&&(sub?!!s.projects[p.parentId]&&!s.projects[p.parentId].parentId:!!p.end)});}

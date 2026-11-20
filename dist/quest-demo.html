@@ -1895,6 +1895,7 @@ a.row{color:inherit;text-decoration:none}
 /* 작성 화면(페이지 모드)은 스크롤 막대를 숨긴다(스크롤은 그대로) */
 .scrim.pagemode,.sheet.page,.sheet.page textarea{scrollbar-width:none;-ms-overflow-style:none}.scrim.pagemode::-webkit-scrollbar,.sheet.page::-webkit-scrollbar,.sheet.page textarea::-webkit-scrollbar{display:none;width:0;height:0}
 .ntdone{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--accent-soft);padding:0}.ntdone .nic{width:13px;height:13px;margin:0;vertical-align:0}
+.ntdi.off{color:var(--muted);font-weight:500}.ntdi .ntqck{width:16px;height:16px;margin-left:14px}.ntdhint{margin:0;padding:7px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
 </style>
 <script>
 (function(){"use strict";
@@ -2332,7 +2333,7 @@ function processEconomy(s,before,at,me='me') {
   }
   // 완료한 미션을 삭제하면 그 완료로 받은 경험치·코인(첫 완료 보너스 포함)을 회수한다. 주간 보너스는 아래에서 다시 계산된다.
   for(const [id,old] of Object.entries(before.mine))if(old.kind==='mission'&&old.done&&!s.mine[id])activity(s,key('task',id),'task',old,koreaDate(at),at,false);
-  for(const [id,old] of Object.entries(before.mine))if(old.kind==='note'&&!s.mine[id]){reverse(s,key('note',id),at);for(const x of old.sessions||[])reverse(s,key('study',id,x.id),at);}
+  for(const [id,old] of Object.entries(before.mine))if(old.kind==='note'&&!s.mine[id]){if(noteComplete(before,old))reverse(s,key('note',id),at); /* 보상 규칙이 바뀌어 지금은 미완성인 예전 자료(참고자료 등)는 받은 보상을 회수하지 않는다 */for(const x of old.sessions||[])reverse(s,key('study',id,x.id),at);}
   for(const [id,p] of Object.entries(s.feed)){const old=before.feed[id];if(p.author===me&&p.ref&&Number.isFinite(p.value)&&p.value!==old?.value)metric(s,p.ref.id,p.value,at);}
   for(const [id,p] of Object.entries(s.projects))if(p.owner===me){const old=before.projects[id],fp=fingerprint(s,p);
     if(!old&&!e.seenGoals[key('id',id)]){const seen=e.seenGoals[fp];e.seenGoals[key('id',id)]=true;e.seenGoals[fp]=true;const sub=!!p.parentId;claim(s,key('create',id),sub?'subCreate':'mainCreate',{xp:sub?10:20,coins:sub?5:10},at,{eligible:!seen&&!!norm(p.title)&&(sub?!!s.projects[p.parentId]&&!s.projects[p.parentId].parentId:!!p.end)});}
@@ -2375,7 +2376,7 @@ Object.assign(__exports,{ENGINE_VERSION,POLICY_VERSION,MAX_LEVEL,TIERS,LABELS,DI
 "use strict";
 /** 자료실(notes) schema shared by UI and economy.
  * Base drawers are fixed; custom drawers live in s.mine.drawers.list as {k,l,e,fields:[pool keys],area}.
- * Rewards are granted once, when a note first becomes "complete" (see noteComplete). Memo never rewards.
+ * Rewards are granted once, when a note first becomes "complete" (see noteComplete). Memo and ref never reward.
  */
 const NOTE_POOL = [
   {k:'title', t:'text', l:'제목', p:'제목'},
@@ -2391,7 +2392,7 @@ const NOTE_POOL = [
 const BASE_DRAWERS = [
   {k:'idea', l:'아이디어', ic:'idea', pt:1, area:null, hint:'떠오른 순간 한 줄로 붙잡고, 다음 행동까지 적으면 완성이에요.', need:'다음 행동', f:[
     {k:'title', t:'text', l:'한 줄 아이디어', p:'예: 친구와 함께 깨는 레이드 퀘스트'}]},
-  {k:'ref', l:'참고자료', ic:'link', pt:1, area:null, hint:'나중에 볼 글·영상·파일. 요약과 저장한 이유를 남기면 완성이에요.', need:'핵심 요약 + 저장한 이유', f:[
+  {k:'ref', l:'참고자료', ic:'link', pt:0, area:null, hint:'나중에 볼 글·영상·파일을 모아 둬요.', need:'', f:[
     {k:'media', t:'choice', l:'종류', o:['글','영상','SNS','파일','기타']},
     {k:'title', t:'text', l:'제목', p:'예: 아침 루틴을 바꾼 5가지 습관'},
     {k:'url', t:'url', l:'링크', p:'https://...'}]},
@@ -2491,7 +2492,7 @@ function noteComplete(s, n) {
   if (!d || !d.pt) return false;
   /* 아이디어는 '다음 행동'을 미션으로 추가했을 때 완성(sent). needSend 표시가 없는 예전 아이디어는 예전 기준(다음 행동을 적으면 완성)을 그대로 둔다 */
   if (cat === 'idea') return has(f.next) && (!n.needSend || !!n.sent);
-  if (cat === 'ref') return has(f.summary) && has(f.why);
+  /* 참고자료는 보상이 없다(pt 0). 예전에 받은 보상은 그대로 둔다 */
   if (cat === 'learn') return f.status === '완료';
   return d.f.length > 0 && d.f.every(x => has(f[x.k]));
 }
@@ -3650,12 +3651,14 @@ function noteSheet(c){
   const vals = c.vals || {}, tF = C.f.find(x => x.k === "title");
   const xb = x => true ? "" : `<button class="ntx" data-act="nt-hide" data-f="${x.k}" aria-label="${esc(x.l)} 칸 지우기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button>`;
   const isProp = x => x.k !== "title" && !x.task && x.t !== "area" && !x.bottom;
+  const ckI2 = `<svg class="ntqck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
   const prop = x => { const off = hid.includes(x.k); if (!whenOk(x) || (off && !c.tedit)) return ""; const id = "nf-" + x.k, v = vals[x.k], tg = c.tedit ? sw("nt-tog", !off, `data-f="${x.k}" aria-label="${esc(x.l)}"`) : "";
     if (off) return `<span class="ntpl off">${esc(x.l)}</span><div class="ntpv off"><span class="ntoff">꺼짐</span>${tg}</div>`;
     let ctl;
     if (x.t === "choice" && x.bottom) ctl = `<div class="ntpch">${x.o.map(o => `<button class="ntpc" data-act="nt-val" data-f="${x.k}" data-v="${o}" aria-pressed="${v === o}">${o}</button>`).join("")}</div>`; /* 학습 상태는 칩 그대로 */
-    else if (x.t === "choice"){ const open = c.chOpen === x.k; /* 고르는 칸은 선택 버튼 하나 → 팝업 목록 */
-      ctl = `<div class="ntpq"><button class="ntpc ${v ? "on" : "add"}" data-act="nt-chpick" data-f="${x.k}" aria-haspopup="dialog" aria-expanded="${open}">${v ? esc(v) : "선택"}${chev(open)}</button></div>` + (open ? `<div class="ntqpop" data-act="nt-chclose"><div class="ntqpop-in" data-act="dpstay" role="dialog" aria-label="${esc(x.l)}"><div class="ntqpop-h"><b>${esc(x.l)}</b><button class="iconbtn" data-act="nt-chclose" aria-label="닫기">${I.close}</button></div><div class="ntql">${x.o.map(o => `<button class="ntqi ${v === o ? "on" : ""}" data-act="nt-chset" data-f="${x.k}" data-v="${esc(o)}"><span><b>${esc(o)}</b></span>${v === o ? `<svg class="ntqck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>` : ""}</button>`).join("")}</div>${v ? `<button class="ntqoff" data-act="nt-chset" data-f="${x.k}" data-v="">선택 안 함</button>` : ""}</div></div>` : ""); }
+    else if (x.t === "choice"){ const open = c.chOpen === x.k; /* 고르는 칸은 선택 버튼 하나 → 바로 아래 목록 */
+      ctl = `<div class="ntpq"><button class="ntpc ${v ? "on" : "add"}" data-act="nt-chpick" data-f="${x.k}" aria-expanded="${open}">${v ? esc(v) : "선택"}${chev(open)}</button></div>`;
+      if (open) return `<span class="ntpl">${esc(x.l)}</span><div class="ntpv">${ctl}</div><div class="ntdrop" role="listbox" aria-label="${esc(x.l)}">${x.o.map(o => `<button class="ntdi ${v === o ? "on" : ""}" data-act="nt-chset" data-f="${x.k}" data-v="${esc(o)}" role="option" aria-selected="${v === o}">${esc(o)}${v === o ? ckI2 : ""}</button>`).join("")}${v ? `<button class="ntdi off" data-act="nt-chset" data-f="${x.k}" data-v="">선택 안 함</button>` : ""}</div>`; }
     else if (x.t === "stars") ctl = `<div class="ntrate sm">${[1,2,3,4,5].map(i => `<button data-act="nt-val" data-f="${x.k}" data-v="${i}" aria-label="${i}점" aria-pressed="${(v||0) >= i}">${nic("star")}</button>`).join("")}</div>`;
     else ctl = `<input class="ntpin" type="${x.t === "url" ? "url" : x.t === "date" ? "date" : "text"}" id="${id}" maxlength="${x.t === "url" ? 500 : 200}" placeholder="${esc(x.t === "url" ? "링크 붙여 넣기" : (x.p || "").replace(/^예:\s*/, "") || "적기")}" value="${D(id)}">`;
     return `<span class="ntpl">${esc(x.l)}</span><div class="ntpv">${ctl}${tg}</div>`; };
@@ -3673,7 +3676,9 @@ function noteSheet(c){
   const qRow = gs.length || pj ? `<span class="ntpl">퀘스트</span><div class="ntpq">${pj ? `<button class="ntpc on" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">${esc(pj.title)}${chev(qOpen)}</button>` : `<button class="ntpc add" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">+ 연결${chev(qOpen)}</button>`}</div>${qList}` : "";
   const aSel = c.area && AREAS.find(a => a[0] === c.area);
   /* 영역: 칩으로 바로 고르기. 고른 칩을 다시 누르면 해제 */
-  const aRow = C.pt ? `<span class="ntpl jtop">영역</span><div class="ntpch">${AREAS.map(([k,,,l]) => `<button class="ntpc" data-act="nt-aset" data-v="${k}" aria-pressed="${ntAreas(c.area).includes(k)}">${l}</button>`).join("")}</div>` : "";
+  /* 영역: 선택 버튼 하나 → 바로 아래 목록에서 최대 2개 */
+  const aOn = ntAreas(c.area), aOpen2 = c.chOpen === "area";
+  const aRow = C.pt ? `<span class="ntpl">영역</span><div class="ntpv"><div class="ntpq"><button class="ntpc ${aOn.length ? "on" : "add"}" data-act="nt-chpick" data-f="area" aria-expanded="${aOpen2}">${aOn.length ? aOn.map(k => esc(AREAS.find(a => a[0] === k)[3])).join(" · ") : "선택"}${chev(aOpen2)}</button></div></div>${aOpen2 ? `<div class="ntdrop" role="listbox" aria-multiselectable="true" aria-label="영역">${AREAS.map(([k,,,l]) => `<button class="ntdi ${aOn.includes(k) ? "on" : ""}" data-act="nt-aset" data-v="${k}" role="option" aria-selected="${aOn.includes(k)}" aria-pressed="${aOn.includes(k)}">${l}${aOn.includes(k) ? ckI2 : ""}</button>`).join("")}<p class="ntdhint">최대 2개</p></div>` : ""}` : "";
   const fRow = C.k === "ref" ? `<span class="ntpl">파일</span><div class="flist sm">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < F_MAX ? `<button class="ntpc add" data-act="nf-pick">+ 첨부</button>` : ""}</div>` : "";
   const bot = C.f.filter(x => x.bottom).map(prop).join("");
   const props = C.f.filter(isProp).map(prop).join("") + fRow + qRow + aRow + bot; /* 학습 상태는 영역 아래 */
@@ -3687,7 +3692,7 @@ function noteSheet(c){
   /* 아래 글 상자(왜 좋은가요?·핵심 요약·다음 행동·학습 목표…)는 서랍 템플릿: 내용이 없으면 '템플릿' 버튼만 두고, 누르면 나온다.
      빈 상자에서 백스페이스를 누르면 그 상자가 지워진다 */
   /* 서랍 템플릿: 고른 템플릿의 칸 + 다른 템플릿에서 이미 적어 둔 칸(템플릿을 바꿔도 남는다) */
-  const tpls = noteTpls(C), tId = c.tpl || (n && n.tpl) || "none", tpl = tpls && tId !== "none" ? noteTpl(C, tId) : null, tF0 = tpl ? tpl.f : []; /* 새 자료는 빈 내용으로 시작, 템플릿은 골랐을 때만 */
+  const tpls = noteTpls(C), tId = c.tpl || (n && n.tpl) || "none", tpl = tpls && tId !== "none" ? noteTpl(C, tId) : null, tF0 = tpl ? tpl.f : (C.k === "idea" ? noteTplFields(C).filter(x => x.k === "next") : []); /* 새 자료는 빈 내용으로 시작, 템플릿은 골랐을 때만. 아이디어의 '다음 행동'은 늘 보인다(완성 조건) */
   const BF = [...C.f.filter(x => x.k !== "title" && !isProp(x) && x.k !== "body" && !x.bottom), ...tF0, ...noteTplFields(C).filter(x => !tF0.some(y => y.k === x.k) && String(S.drafts["nf-" + x.k] || "").trim())].filter(whenOk);
   c._bf = BF.map(x => x.k);
   if (!c.blocks){ const filled = BF.filter(x => (D("nf-" + x.k) || "").trim()).map(x => x.k); c.blocks = n && !c.tplTouched && (filled.length || D("nf-body").trim()) ? filled : BF.map(x => x.k); } /* 템플릿은 기본으로 보인다 */
@@ -5432,7 +5437,7 @@ document.addEventListener("click", e => {
       if (K.f.some(x => x.k === "url") && !(S.drafts["nf-url"] || "").trim()){ const m = ((S.drafts["nf-body"] || "") + " " + (S.drafts["nf-title"] || "")).match(NT_URL_RE); if (m){ S.drafts["nf-url"] = m[0]; S.drafts["nf-body"] = (S.drafts["nf-body"] || "").replace(m[0], "").replace(/^\s*\n/, "").trim(); if (LP && LP.sheet){ const bb = LP.blocks.filter(b => !bkText(b).includes(m[0]) || bkText(b).replace(m[0], "").trim()); bb.forEach(b => { if (bkText(b).includes(m[0])) b.h = esc(bkText(b).replace(m[0], "").trim()); }); LP.blocks = bb.length ? bb : textBlocks(""); } } }
       const mo = K.f.find(x => x.k === "media"), u = S.drafts["nf-url"]; if (mo && u && !(c.vals || {}).media){ const m = ntMediaOf(u); if (m && mo.o.includes(m)){ c.vals = c.vals || {}; c.vals.media = m; } }
       renderSheet(); return; }
-    case "nt-chpick": preserveSheetDrafts(); c.chOpen = b.dataset.f; renderSheet(); return;
+    case "nt-chpick": preserveSheetDrafts(); c.chOpen = c.chOpen === b.dataset.f ? null : b.dataset.f; renderSheet(); return;
     case "nt-chclose": preserveSheetDrafts(); c.chOpen = null; renderSheet(); return;
     case "nt-chset": { preserveSheetDrafts(); c.vals = c.vals || {}; c.vals[b.dataset.f] = b.dataset.v || null; c.chOpen = null; renderSheet(); return; }
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
