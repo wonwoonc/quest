@@ -2091,9 +2091,9 @@ a.row{color:inherit;text-decoration:none}
 :root[data-theme="dark"] .tl .tlscroll .tlc .qrow.evq{background:rgba(61,123,224,.18)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tl .tlscroll .tlc .qrow.evq{background:rgba(61,123,224,.18)}}
 .tlrow.now{position:relative}
-.tlrow.now::after{content:"";position:absolute;left:56px;right:0;top:calc(var(--nm,0) * 100%);height:2px;background:#E5503A;z-index:2;pointer-events:none}
-.tlrow.now::before{content:"";position:absolute;left:51px;top:calc(var(--nm,0) * 100% - 4px);width:10px;height:10px;border-radius:50%;background:#E5503A;z-index:2;pointer-events:none}
-.tlrow.now .tlh{color:#E5503A}
+.tlrow.now::after{content:"";position:absolute;left:56px;right:0;top:calc(var(--nm,0) * 100%);height:2px;background:var(--accent);z-index:2;pointer-events:none}
+.tlrow.now::before{content:"";position:absolute;left:51px;top:calc(var(--nm,0) * 100% - 4px);width:10px;height:10px;border-radius:50%;background:var(--accent);z-index:2;pointer-events:none}
+.tlrow.now .tlh{color:var(--accent)}
 /* 주: 한 화면에 3일, 큰 날짜 숫자, 오늘은 초록 원 */
 @media (max-width:1023.98px){.wg{grid-template-columns:44px repeat(7,calc((min(100vw - 32px, 540px) - 44px)/2.6))}}
 @media (min-width:1024px){#app[data-v="cal"] > .chead{max-width:860px}}
