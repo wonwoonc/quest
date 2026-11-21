@@ -150,7 +150,7 @@ const S = emptySnapshot();
     q3:{kind:"quest", name:"토익 단어 50개", purpose:"850점 넘기기", days:[1,2,3,4,5], lv:"hard", area:["growth","career"], active:true, done:{}, createdAt:N-9*DAY},
     q4:{kind:"quest", name:"하루 계획 세우기", purpose:"집중하는 하루", days:[0,1,2,3,4,5,6], lv:"normal", area:["growth"], active:true, done:{[dk(N)]:N-2*H, ...days(2)}, createdAt:N-8*DAY},
     m1:{kind:"mission", lv:"hard", time:"19:00", name:"실전 모의고사 1회 풀기", today:true, projectId:"pme", done:false, createdAt:N-DAY},
-    m2:{kind:"mission", time:"10:00", name:"주간 보고서 제출", today:true, projectId:null, done:false, createdAt:N-DAY},
+    m2:{kind:"mission", time:"10:00", etime:"12:00", name:"주간 보고서 제출", today:true, projectId:null, done:false, createdAt:N-DAY},
     m3:{kind:"mission", name:"단어장 1회독", today:false, projectId:"pme", done:true, doneAt:N-2*DAY, createdAt:N-9*DAY},
     m4:{kind:"mission", name:"파트5 오답노트 정리", today:false, projectId:"pme5", done:false, createdAt:N-3*DAY},
     m5:{kind:"mission", lv:"easy", name:"치과 예약하기", today:false, projectId:null, done:false, createdAt:N-2*DAY},

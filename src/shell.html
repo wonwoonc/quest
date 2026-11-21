@@ -2111,6 +2111,16 @@ a.row{color:inherit;text-decoration:none}
 .ymon .ymini i.l1::after{opacity:.45}
 .ymon .ymini i.t{outline:0;background:var(--accent)!important;color:#fff!important;border-radius:50%}
 .ymon .ymini i.t::after{display:none}
+/* 여러 시간에 걸친 미션·일정은 그 시간만큼 배경을 채운다(한 칸에 하나일 때) */
+.tl .tlscroll .tlrow.merged .tlc{display:flex;flex-direction:column}
+.tl .tlscroll .tlrow.merged .tlc > .qrow:first-child:nth-last-child(2){flex:1;align-items:flex-start;padding-top:6px}
+.wgc.cell[style*="span"]{display:flex;flex-direction:column}
+.wgc.cell[style*="span"] > .wti:first-child:nth-last-child(2){flex:1;margin-bottom:3px}
+.wgc .wti.wck:not(.wev):not(.habit):not(.ghost):not(.done){background:var(--accent-soft)!important;padding:4px 5px}
+.wgc .wti.habit:not(.done){background:var(--xp-soft)!important;padding:4px 5px}
+.wgc .wti.wev:not(.done){background:#E8EEFB!important;box-shadow:inset 3px 0 0 #3D7BE0;padding:4px 5px 4px 7px}
+:root[data-theme="dark"] .wgc .wti.wev:not(.done){background:rgba(61,123,224,.18)!important}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .wgc .wti.wev:not(.done){background:rgba(61,123,224,.18)!important}}
 </style>
 <!--APP_ENTRY-->
 </body></html>
