@@ -1809,7 +1809,7 @@ test('템플릿: 이름이 기본인 템플릿은 목록에서 빠지고, 내 �
 });
 test('대시보드 맨 아래에 캘린더 화면(일·주·월·연)이 그대로 들어간다',async()=>{
   const h = await profileUI(), app = () => h.nodes.get('app').innerHTML; h.route('dash'); await h.settle();
-  assert.match(app(), /<section class="dcal" aria-label="캘린더"><h2 class="dcalh">캘린더<\/h2><div class="seg" role="group" aria-label="보기" data-swipe>/);
+  assert.match(app(), /<section class="dcal" aria-label="캘린더"><div class="seg" role="group" aria-label="보기"><button data-act="cmode"/);
   h.click('cmode',{v:'month'}); await h.settle(); assert.match(app(), /class="dcal"[\s\S]*data-act="cmode" data-v="month" aria-pressed="true"/);
   h.route('cal'); await h.settle(); assert.doesNotMatch(app(), /class="dcal"/); assert.match(app(), /data-act="cmode" data-v="day"/, 'calendar menu still works');
 });
