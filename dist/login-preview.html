@@ -2095,7 +2095,7 @@ a.row{color:inherit;text-decoration:none}
 .tlrow.now::before{content:"";position:absolute;left:51px;top:calc(var(--nm,0) * 100% - 4px);width:10px;height:10px;border-radius:50%;background:#E5503A;z-index:2;pointer-events:none}
 .tlrow.now .tlh{color:#E5503A}
 /* 주: 한 화면에 3일, 큰 날짜 숫자, 오늘은 초록 원 */
-@media (max-width:1023.98px){.wg{grid-template-columns:44px repeat(7,calc((min(100vw - 32px, 540px) - 44px)/3))}}
+@media (max-width:1023.98px){.wg{grid-template-columns:44px repeat(7,calc((min(100vw - 32px, 540px) - 44px)/2.6))}}
 @media (min-width:1024px){#app[data-v="cal"] > .chead{max-width:860px}}
 .wgc.head{flex-direction:row;align-items:center;justify-content:center;gap:5px;padding:9px 2px}
 .wgc.head .wdn{font-size:11.5px;color:var(--muted);font-weight:600}
@@ -2123,6 +2123,7 @@ a.row{color:inherit;text-decoration:none}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .wgc .wti.wev:not(.done){background:rgba(61,123,224,.18)!important}}
 /* 일정 앞 파랑 띠는 쓰지 않는다(색과 체크 모양으로 구분) */
 .wti.wev{border-left:0!important}
+.tlscroll{overscroll-behavior-y:auto} /* 일 보기 시간표 끝까지 스크롤하면 화면 전체가 이어서 스크롤된다 */
 </style>
 <script>
 (function(){"use strict";
@@ -3740,7 +3741,7 @@ function viewCal(){
     
     const chip = m => m._ghost ? `<div class="wti wck ghost" data-act="tedit" data-id="${m.id}" role="button" tabindex="0" title="오늘로 넘어간 미션"><span class="gdot">↷</span><div class="wtx"><span>${esc(m.name)}</span></div></div>` : `<div class="wti wck ${m.done ? "done" : ""}" data-act="tedit" data-id="${m.id}" role="button" tabindex="0"><button class="wchk ${m.done ? "on" : ""}" data-act="mcheck" data-id="${m.id}" aria-pressed="${!!m.done}" aria-label="${esc(m.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(m.name)}</span></div></div>`;
     h += `<div class="wgrid" id="wgscroll" data-d="${s0}" data-first="${first}"><div class="wg">`;
-    h += `<div class="wgc corner"></div>` + days.map(d => { const x = pd(d); return `<button class="wgc head ${d === t ? "is-today" : ""} ${x.getDay() === 0 ? "sun" : x.getDay() === 6 ? "sat" : ""}" data-act="cdate" data-v="${d}"><span class="wdn">${WD[x.getDay()]}</span><b class="num">${x.getDate()}</b></button>`; }).join("");
+    h += `<div class="wgc corner"></div>` + days.map(d => { const x = pd(d); return `<button class="wgc head ${d === t ? "is-today" : ""} ${x.getDay() === 0 ? "sun" : x.getDay() === 6 ? "sat" : ""}" data-act="cdate" data-v="${d}"><b class="num">${x.getDate()}</b><span class="wdn">${WD[x.getDay()]}</span></button>`; }).join("");
     if (anyAllday) h += `<div class="wgc tlab">종일</div>` + days.map(d => `<div class="wgc cell allday ${d === t ? "is-today" : ""}">${(evs[d] || []).filter(e => !e.time).map(evChip).join("")}${byTime((by[d] || []).filter(m => !m.time)).map(chip).join("")}${hbByDay[d].filter(q => !q.time).map(q => calHabitChip(q, d)).join("")}</div>`).join("");
     const WG = Object.fromEntries(days.map(d => [d, hourGroups([...(evs[d] || []).filter(e => e.time).map(e => ({time:e.time, end:entEnd(e.time, evEndTm(e)), html:evChip(e)})), ...byTime((by[d] || []).filter(m => m.time)).map(m => ({time:m.time, end:entEnd(m.time, m.etime), html:chip(m)})), ...hbByDay[d].filter(q => q.time).map(q => ({time:q.time, end:0, html:calHabitChip(q, d)}))])]));
     for (let hr = 1; hr <= 24; hr++){

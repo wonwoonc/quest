@@ -2095,7 +2095,7 @@ a.row{color:inherit;text-decoration:none}
 .tlrow.now::before{content:"";position:absolute;left:51px;top:calc(var(--nm,0) * 100% - 4px);width:10px;height:10px;border-radius:50%;background:#E5503A;z-index:2;pointer-events:none}
 .tlrow.now .tlh{color:#E5503A}
 /* 주: 한 화면에 3일, 큰 날짜 숫자, 오늘은 초록 원 */
-@media (max-width:1023.98px){.wg{grid-template-columns:44px repeat(7,calc((min(100vw - 32px, 540px) - 44px)/3))}}
+@media (max-width:1023.98px){.wg{grid-template-columns:44px repeat(7,calc((min(100vw - 32px, 540px) - 44px)/2.6))}}
 @media (min-width:1024px){#app[data-v="cal"] > .chead{max-width:860px}}
 .wgc.head{flex-direction:row;align-items:center;justify-content:center;gap:5px;padding:9px 2px}
 .wgc.head .wdn{font-size:11.5px;color:var(--muted);font-weight:600}
@@ -2123,6 +2123,7 @@ a.row{color:inherit;text-decoration:none}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .wgc .wti.wev:not(.done){background:rgba(61,123,224,.18)!important}}
 /* 일정 앞 파랑 띠는 쓰지 않는다(색과 체크 모양으로 구분) */
 .wti.wev{border-left:0!important}
+.tlscroll{overscroll-behavior-y:auto} /* 일 보기 시간표 끝까지 스크롤하면 화면 전체가 이어서 스크롤된다 */
 </style>
 <script type="module" src="./src/entry.js"></script>
 </body></html>
