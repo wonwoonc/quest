@@ -392,7 +392,7 @@ test('자료실: 4 base drawers, learn note completion grants XP/coins/stat once
   assert.equal(notes().length,0); assert.equal(xp(),x0,'deleting reverses the reward');
   // learning: detail screen with chapters (Cornell notes per chapter) and wrap-up
   h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.doesNotMatch(ov(),/id="nf-goal"/,'starts empty'); assert.match(ov(),/data-act="nt-tplpick"[^>]*>[\s\S]*?템플릿 선택/); h.click('nt-tplpick'); assert.match(ov(),/코넬 노트/); h.click('nt-tplset',{v:'basic'}); assert.match(ov(),/학습 목표/); assert.doesNotMatch(ov(),/data-act="nt-tpl"/); assert.doesNotMatch(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'강의'}); assert.match(ov(),/id="nf-url"/); h.click('nt-val',{f:'type',v:'책'}); assert.doesNotMatch(ov(),/id="nf-url"/); assert.doesNotMatch(ov(),/XP|코인/);
-  assert.match(ov(),/class="ntaic"/); h.click('nt-aset',{v:'health'}); h.click('nt-aset',{v:'career'}); h.click('nt-aset',{v:'money'}); assert.equal((ov().match(/data-act="nt-aset"[^>]*aria-pressed="true"/g)||[]).length,2,'up to two areas');
+  assert.match(ov(),/data-act="nt-pk" data-v="area"[^>]*>선택</); h.click('nt-pk',{v:'area'}); assert.match(ov(),/class="ntpch jemo open" role="group" aria-label="영역"/); h.click('nt-aset',{v:'health'}); assert.doesNotMatch(ov(),/data-act="nt-aset"/,'closes after a pick'); h.click('nt-pk',{v:'area'}); h.click('nt-aset',{v:'career'}); h.click('nt-pk',{v:'area'}); h.click('nt-aset',{v:'money'}); assert.equal((ov().match(/data-act="nt-aset"[^>]*aria-pressed="true"/g)||[]).length,2,'up to two areas'); h.click('nt-pk',{v:'area'});
   h.nodes.set('nf-title',{value:'데이터 분석 입문'}); h.click('submit-note'); await h.settle();
   const L = notes()[0]; assert.deepEqual(L.area,['health','career']); assert.equal(L.cat,'learn'); assert.doesNotMatch(app(),/id="nted"/,'learning opens like other drawers');
   h.click('nt-edit',{id:L.id}); assert.match(ov(),/class="nttitle"/); assert.match(ov(),/data-f="status"/); h.click('sheet-close'); await h.settle();
@@ -1345,8 +1345,8 @@ test('자료 템플릿: 서랍마다 여러 템플릿, 바꿔도 적은 칸은 �
   h.nodes.set('nf-evidence',{value:'출처 3곳'}); h.click('nt-tplset',{v:'video'}); assert.match(ov(), /id="nf-timeline"/); assert.match(ov(), /출처 3곳/, 'filled field from another template stays');
   h.click('sheet-close'); await h.settle();
   const n = Object.values(h.snapshot().mine).find(m => m.kind === 'note'); assert.equal(n.tpl, 'video'); assert.equal(n.f.evidence, '출처 3곳'); assert.equal(n.f.summary, '요약입니다');
-  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(), /class="ntaic" style="--n:4"[\s\S]*?data-act="nt-val" data-f="type" data-v="책"/, 'kind is a one-row chip group'); assert.match(ov(), /data-act="nt-val" data-f="status"/, 'learn status stays as chips');
-  h.click('nt-val',{f:'type',v:'책'}); assert.match(ov(), /data-f="type" data-v="책" aria-pressed="true"/);
+  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(), /data-act="nt-pk" data-v="type"[^>]*>선택</, 'kind starts as one pick button'); h.click('nt-pk',{v:'type'}); assert.match(ov(), /class="ntpch jemo open"[^>]*>[\s\S]*?data-act="nt-val" data-f="type" data-v="책"/, 'opens chips in place'); assert.match(ov(), /data-act="nt-val" data-f="status"/, 'learn status stays as chips');
+  h.click('nt-val',{f:'type',v:'책'}); assert.match(ov(), /class="ntpc on" data-act="nt-pk" data-v="type"[^>]*>책</);
   h.click('nt-new'); h.click('nt-kind',{v:'memo'}); h.click('nt-tplpick'); assert.match(ov(), /data-v="meeting"[\s\S]*?회의록/); h.click('nt-tplset',{v:'meeting'}); assert.match(ov(), /id="nf-agenda"/); assert.match(ov(), /id="nf-decision"/);
   h.click('nt-new'); h.click('nt-kind',{v:'idea'}); h.click('nt-tplset',{v:'lean'}); assert.match(ov(), /id="nfed"[\s\S]*class="ntmkdock"[\s\S]*id="nf-next"[\s\S]*현실로/, 'every idea template keeps next action');
 });
@@ -1730,7 +1730,7 @@ test('자료 작성: 완료·삭제 버튼 없음, 뒤로 가면 자동 저장(�
   h.click('nt-emenu'); assert.doesNotMatch(ov(),/data-act="nt-tedit"|data-act="nt-tog"/); assert.match(ov(),/data-act="nt-discard"/); h.click('nt-emenu');
   h.click('sheet-close'); await h.settle();
   const n = notes()[0]; assert.ok(n); assert.equal(n.cat,'ref'); assert.equal(n.f.title,'자동 저장 참고자료'); assert.ok(!n.hideF); assert.equal(n.f.summary,'요약');
-  const u0 = n.updatedAt; h.click('nt-edit',{id:n.id}); assert.match(ov(),/data-f="media"/); h.click('sheet-close'); await h.settle(); assert.equal(notes()[0].updatedAt,u0,'unchanged note is not rewritten');
+  const u0 = n.updatedAt; h.click('nt-edit',{id:n.id}); assert.match(ov(),/data-act="nt-pk" data-v="media"/); h.click('sheet-close'); await h.settle(); assert.equal(notes()[0].updatedAt,u0,'unchanged note is not rewritten');
   assert.match(app(),new RegExp(`data-act="nt-menu" data-id="${n.id}"`)); h.click('nt-menu',{id:n.id}); { const dd = (app().match(/class="ntdd"[\s\S]*?<\/div>/) || [''])[0]; assert.match(dd,/data-act="nt-del"[\s\S]*삭제/); assert.doesNotMatch(dd,/nt-edit|수정/,'card menu has only delete'); }
   h.click('nt-del',{id:n.id}); assert.match(ov(),/자료를 삭제할까요/); h.click('cfok'); await h.settle(); assert.equal(notes().length,0);
   // 작성 화면 ⋯ 메뉴: 수정·삭제. 기존 자료는 삭제(되살아나지 않음), 새 자료는 저장 없이 나가기
@@ -1829,4 +1829,11 @@ test('작성 화면 메뉴: 글자 크기 작게·중간·크게 (자료·저널
   const h=await profileUI(), ov=()=>h.nodes.get('overlay').innerHTML; h.route('notes'); await h.settle();
   h.click('nt-new'); h.click('nt-kind',{v:'memo'}); h.click('nt-emenu'); assert.match(ov(),/글자 크기[\s\S]*data-act="ed-fs" data-v="s" aria-pressed="false">작게[\s\S]*data-v="m" aria-pressed="true">중간[\s\S]*data-v="l" aria-pressed="false">크게/);
   h.click('sheet-close'); await h.settle(); h.click('nt-new'); h.click('nt-kind',{v:'journal'}); await h.settle(); h.click('nt-emenu'); assert.match(ov(),/data-act="ed-fs" data-v="l"/); assert.doesNotMatch(ov(),/data-act="ldel"/,'new journal has no delete');
+});
+test('작성 화면 정보 칸 숨기기/보기 (자료·저널 함께, 이 기기에 기억)',async()=>{
+  const h=await profileUI(), ov=()=>h.nodes.get('overlay').innerHTML; h.route('notes'); await h.settle();
+  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/class="ntprops"[\s\S]*data-act="nt-props" aria-expanded="true">정보 숨기기/);
+  h.click('nt-props'); assert.doesNotMatch(ov(),/class="ntprops"/); assert.match(ov(),/data-act="nt-props" aria-expanded="false">정보 보기/);
+  h.click('sheet-close'); await h.settle(); h.click('nt-new'); h.click('nt-kind',{v:'journal'}); await h.settle(); assert.doesNotMatch(ov(),/class="ntprops"/,'journal follows the same setting');
+  h.click('nt-props'); assert.match(ov(),/class="ntprops"/);
 });

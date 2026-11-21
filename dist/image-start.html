@@ -2134,6 +2134,9 @@ a.row{color:inherit;text-decoration:none}
 .ntdd:has(.ntfs){min-width:200px}
 .nfed.fs-s .blk .bx{font-size:14px}.nfed.fs-s .blk.t-h1 .bx{font-size:21px}.nfed.fs-s .blk.t-h2 .bx{font-size:17px}.nfed.fs-s .blk.t-h3 .bx{font-size:15px}
 .nfed.fs-l .blk .bx{font-size:19px}.nfed.fs-l .blk.t-h1 .bx{font-size:28px}.nfed.fs-l .blk.t-h2 .bx{font-size:22px}.nfed.fs-l .blk.t-h3 .bx{font-size:20px}
+/* 정보 숨기기/보기 */
+.ntpropt{display:flex;align-items:center;gap:3px;margin:-4px 0 10px auto;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);padding:4px 2px;cursor:pointer}
+.ntpropt svg{width:14px;height:14px}
 </style>
 <script>
 (function(){"use strict";
@@ -3407,7 +3410,7 @@ function diaryPage(d, P){ const dt = P.date || today(), t0 = today(), past = dt 
     <span class="ntpl ${P.emoOpen ? "jtop" : ""}">감정</span><div class="ntpch jemo">${P.emoOpen ? `${EMOS.map(([n]) => emo(n)).join("")}${myEmos().map(n => emo(n, true)).join("")}${P.custom ? `<span class="jemoin"><input type="text" id="pl-emo" maxlength="10" placeholder="감정" value="${D("pl-emo")}" aria-label="감정 직접 입력"><button class="ntpc on" data-act="emoadd">추가</button></span>` : `<button class="ntpc add" data-act="emocustom">+ 직접</button>`}` : `<button class="ntpc ${P.emo ? "on" : ""}" data-act="jemo" aria-expanded="false">${P.emo ? esc(P.emo) : "선택"}</button>`}</div>`;
   return `<button class="nttitle jtitle" data-act="jdpick" aria-expanded="${open}">${x.getMonth()+1}월 ${x.getDate()}일 ${WD[x.getDay()]}요일${past ? "" : `<small>오늘</small>`}<svg class="ntdc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${open ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"}"/></svg></button>${cal}
     ${past && !d ? `<p class="jpast">지난 날짜는 보상 없이 기록만 남아요</p>` : ""}
-    <div class="ntprops">${props}</div>
+    ${propsWrap(props)}
     ${(() => { /* 본문: 자료 작성과 같은 블록 편집기 */ if (!LP || !LP.sheet || LP.c !== c){ const t0 = S.drafts["pl-text"] ?? (d && d.text) ?? "", bb = d && Array.isArray(d.blocks) ? d.blocks.map(bkNorm) : null, nz = v => String(v || "").replace(/\s+/g, " ").trim();
       LP = {sheet:true, c, id:"nf", blocks:bb && bb.length && nz(bkPlain(bb)) === nz(t0) ? bb : textBlocks(t0)}; }
       LP.ph = "오늘 있었던 일, 떠오른 생각을 자유롭게 적어요 · '/'로 블록 선택";
@@ -3960,6 +3963,10 @@ const ntFreeBody = C => !C.f.some(x => x.k === "body");
 const delDrop = (act, id, armKey, top = "") => `<div class="ntdd" role="menu">${top}${act ? `<button data-act="${act}" data-id="${esc(id || "")}" role="menuitem">${nic("trash")}${S.armed === armKey ? "한 번 더 누르면 삭제" : "삭제"}</button>` : ""}</div>`;
 /* 작성 화면 본문 글자 크기(이 기기에서 모든 자료·저널에 같이 적용) */
 S.edFs = (() => { try { const v = LS.get("edFs", "m"); return ["s","m","l"].includes(v) ? v : "m"; } catch { return "m"; } })();
+/* 작성 화면 정보 칸(종류·별점·퀘스트·영역·컨디션 등) 숨기기: 이 기기에서 모든 자료·저널에 같이 */
+S.propsHide = (() => { try { return !!LS.get("propsHide", 0); } catch { return false; } })();
+const propsWrap = props => S.propsHide ? `<button class="ntpropt" data-act="nt-props" aria-expanded="false">정보 보기<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`
+  : `<div class="ntprops">${props}</div><button class="ntpropt" data-act="nt-props" aria-expanded="true">정보 숨기기<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>`;
 const edFsCls = () => S.edFs !== "m" ? " fs-" + S.edFs : "";
 const edFsRow = () => `<div class="ntfs"><span>글자 크기</span><div class="ntfsb" role="group" aria-label="글자 크기">${[["s","작게"],["m","중간"],["l","크게"]].map(([k, l]) => `<button data-act="ed-fs" data-v="${k}" aria-pressed="${S.edFs === k}">${l}</button>`).join("")}</div></div>`;
 /* 오늘 저널 열기(이미 쓴 날이면 수정). text가 있고 저널이 비었으면 이어 붙인다 */
@@ -3987,10 +3994,12 @@ function noteSheet(c){
     if (off) return `<span class="ntpl off">${esc(x.l)}</span><div class="ntpv off"><span class="ntoff">꺼짐</span>${tg}</div>`;
     let ctl;
     if (x.t === "choice" && x.bottom) ctl = `<div class="ntpch">${x.o.map(o => `<button class="ntpc" data-act="nt-val" data-f="${x.k}" data-v="${o}" aria-pressed="${v === o}">${o}</button>`).join("")}</div>`; /* 학습 상태는 칩 그대로 */
-    else if (x.t === "choice") ctl = `<div class="ntaic" style="--n:${x.o.length}" role="group" aria-label="${esc(x.l)}">${x.o.map(o => `<button class="ntai" data-act="nt-val" data-f="${x.k}" data-v="${esc(o)}" aria-pressed="${v === o}">${esc(o)}</button>`).join("")}</div>`; /* 종류도 영역처럼 칩 한 줄(다시 누르면 해제) */
+    else if (x.t === "choice") ctl = c.pk === x.k /* 저널 감정처럼: 버튼 하나 → 누르면 그 자리에 칩이 펼쳐지고, 고르면 다시 접힌다 */
+      ? `<div class="ntpch jemo open" role="group" aria-label="${esc(x.l)}">${x.o.map(o => `<button class="ntpc" data-act="nt-val" data-f="${x.k}" data-v="${esc(o)}" aria-pressed="${v === o}">${esc(o)}</button>`).join("")}</div>`
+      : `<div class="ntpch jemo"><button class="ntpc ${v ? "on" : ""}" data-act="nt-pk" data-v="${x.k}" aria-expanded="false" aria-label="${esc(x.l)} 고르기">${v ? esc(v) : "선택"}</button></div>`;
     else if (x.t === "stars") ctl = `<div class="ntrate sm">${[1,2,3,4,5].map(i => `<button data-act="nt-val" data-f="${x.k}" data-v="${i}" aria-label="${i}점" aria-pressed="${(v||0) >= i}">${nic("star")}</button>`).join("")}</div>`;
     else ctl = `<input class="ntpin" type="${x.t === "url" ? "url" : x.t === "date" ? "date" : "text"}" id="${id}" maxlength="${x.t === "url" ? 500 : 200}" placeholder="${esc(x.t === "url" ? "링크 붙여 넣기" : (x.p || "").replace(/^예:\s*/, "") || "적기")}" value="${D(id)}">`;
-    return `<span class="ntpl">${esc(x.l)}</span><div class="ntpv">${ctl}${tg}</div>`; };
+    return `<span class="ntpl${x.t === "choice" && !x.bottom && c.pk === x.k ? " jtop" : ""}">${esc(x.l)}</span><div class="ntpv">${ctl}${tg}</div>`; };
   const block = x => { if (!shown(x)) return ""; const id = "nf-" + x.k;
     if (x.task){ const mk = c.drop === "mk"; /* 실행할 일: 작은 한 줄. '퀘스트로' 누르면 아래로 미션·일일·메인 중 고르는 목록 */
       return `<div class="ntbox task ntmk"><div class="nttask"><span class="ntbl">${esc(x.l)}${xb(x)}</span><input type="text" id="${id}" maxlength="200" placeholder="${esc(x.p || "")}" value="${D(id)}"><button class="ntmkb" data-act="nt-drop" data-v="mk" aria-expanded="${mk}">현실로${chev(!mk)}</button></div>
@@ -4009,7 +4018,9 @@ function noteSheet(c){
   /* 영역: 칩으로 바로 고르기. 고른 칩을 다시 누르면 해제 */
   /* 영역: 아이콘 한 줄, 누르면 바로 켜고 끈다(최대 2개) */
   const aOn = ntAreas(c.area);
-  const aRow = C.pt ? `<span class="ntpl">영역</span><div class="ntaic" style="--n:${AREAS.length}" role="group" aria-label="영역">${AREAS.map(([k,,,l]) => `<button class="ntai" data-act="nt-aset" data-v="${k}" aria-pressed="${aOn.includes(k)}">${aIcon(k)}<span>${l}</span></button>`).join("")}</div>` : "";
+  const aRow = !C.pt ? "" : c.pk === "area"
+    ? `<span class="ntpl jtop">영역</span><div class="ntpch jemo open" role="group" aria-label="영역">${AREAS.map(([k,,,l]) => `<button class="ntpc" data-act="nt-aset" data-v="${k}" aria-pressed="${aOn.includes(k)}">${esc(l)}</button>`).join("")}</div>`
+    : `<span class="ntpl">영역</span><div class="ntpch jemo"><button class="ntpc ${aOn.length ? "on" : ""}" data-act="nt-pk" data-v="area" aria-expanded="false" aria-label="영역 고르기">${aOn.length ? aOn.map(k => esc((AREAS.find(a => a[0] === k) || [])[3] || k)).join(" · ") : "선택"}</button></div>`;
   const fRow = C.k === "ref" ? `<span class="ntpl">파일</span><div class="flist sm">${(c.files || []).map(f => fChip(f, true)).join("")}${(c.files || []).length < F_MAX ? `<button class="ntpc add" data-act="nf-pick">+ 첨부</button>` : ""}</div>` : "";
   const bot = C.f.filter(x => x.bottom).map(prop).join("");
   const props = C.f.filter(isProp).map(prop).join("") + fRow + qRow + aRow + bot; /* 학습 상태는 영역 아래 */
@@ -4042,7 +4053,7 @@ function noteSheet(c){
   if (c.pickFirst) return sheetWrap(pill, "", `<p class="ntpickq">어떤 서랍에 담을까요?</p>${kinds}`, ""); /* 자료 추가: 서랍부터 고른다 */
   return sheetWrap(pill, "", `${kinds}${tbar}
     ${tF ? `<textarea class="nttitle" id="nf-title" data-grow rows="1" maxlength="200" placeholder="${C.k === "idea" ? "떠오른 아이디어를 한 줄로" : C.k === "memo" ? "제목" : "제목"}">${D("nf-title")}</textarea>` : ""}
-    ${props ? `<div class="ntprops">${props}</div>` : ""}
+    ${props ? propsWrap(props) : ""}
     ${tplBtn}${tplHtml}
     ${bodyOn ? `<div class="nfedw${vis.some(x => x.task) ? " short" : ""}"><div class="nted nfed${edFsCls()}" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}` : ""}
     ${(t => t ? `<div class="ntmkdock">${t}</div>` : "")(vis.filter(x => x.task).map(block).join(""))}
@@ -5894,7 +5905,9 @@ document.addEventListener("click", e => {
     case "nt-chpick": preserveSheetDrafts(); c.chOpen = c.chOpen === b.dataset.f ? null : b.dataset.f; renderSheet(); return;
     case "nt-chclose": preserveSheetDrafts(); c.chOpen = null; renderSheet(); return;
     case "nt-chset": { preserveSheetDrafts(); c.vals = c.vals || {}; c.vals[b.dataset.f] = b.dataset.v || null; c.chOpen = null; renderSheet(); return; }
-    case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; renderSheet(); return; }
+    case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; if (c.pk === f) c.pk = null; if (LP && LP.c === c) bkSync(); renderSheet(); return; }
+    case "nt-pk": preserveSheetDrafts(); if (LP && LP.c === c) bkSync(); c.pk = c.pk === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
+    case "nt-props": { preserveSheetDrafts(); if (LP && LP.c === c) bkSync(); S.propsHide = !S.propsHide; try { LS.set("propsHide", S.propsHide ? 1 : 0); } catch {} renderSheet(); return; }
     case "nt-tplnew": case "nt-tpledit": { preserveSheetDrafts(); if (LP && LP.c === c){ bkSync(); c._blocks = LP.blocks; } c.tplOpen = false; const ut = a === "nt-tpledit" ? userTpls(S, c.cat).find(t => t.id === b.dataset.v) : null;
       S.drafts["tp-l"] = ut ? ut.l : ""; LP = null; openSheet({type:"tpled", dk:c.cat, id:ut ? ut.id : null, blocks0:ut ? ut.blocks : null, back:c}); return; }
     case "tp-save": { if (!LP || LP.c !== c) return; bkSync(); const l = pv("tp-l").trim(); if (!l){ toast("템플릿 이름을 적어 주세요"); const x = $("#tp-l"); x && x.focus(); return; }
@@ -5915,7 +5928,7 @@ document.addEventListener("click", e => {
     case "nt-qexp": c.qexp = b.dataset.v || null; renderSheet(); return;
     case "nt-qclose": c.drop = null; c.qexp = null; renderSheet(); return;
     case "nt-qset": preserveSheetDrafts(); c.projectId = b.dataset.v || null; c.drop = null; c.qexp = null; renderSheet(); return;
-    case "nt-aset": { preserveSheetDrafts(); const a = ntAreas(c.area), v = b.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else if (v){ if (a.length >= 2){ toast("영역은 2개까지 고를 수 있어요"); return; } a.push(v); } c.area = a; c.drop = null; renderSheet(); return; }
+    case "nt-aset": { preserveSheetDrafts(); const a = ntAreas(c.area), v = b.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else if (v){ if (a.length >= 2){ toast("영역은 2개까지 고를 수 있어요"); return; } a.push(v); } c.area = a; c.drop = null; c.pk = null; if (LP && LP.c === c) bkSync(); renderSheet(); return; }
     case "nt-apick": preserveSheetDrafts(); S.parentSheet = c; openSheet({type:"apick"}); return;
     case "apick-set": { const par = S.parentSheet; if (par) par.area = b.dataset.v || null; closeSheet(); return; }
     case "nt-area": preserveSheetDrafts(); c.area = c.area === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
