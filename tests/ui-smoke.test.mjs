@@ -1830,10 +1830,13 @@ test('작성 화면 메뉴: 글자 크기 작게·중간·크게 (자료·저널
   h.click('nt-new'); h.click('nt-kind',{v:'memo'}); h.click('nt-emenu'); assert.match(ov(),/글자 크기[\s\S]*data-act="ed-fs" data-v="s" aria-pressed="false">작게[\s\S]*data-v="m" aria-pressed="true">중간[\s\S]*data-v="l" aria-pressed="false">크게/);
   h.click('sheet-close'); await h.settle(); h.click('nt-new'); h.click('nt-kind',{v:'journal'}); await h.settle(); h.click('nt-emenu'); assert.match(ov(),/data-act="ed-fs" data-v="l"/); assert.doesNotMatch(ov(),/data-act="ldel"/,'new journal has no delete');
 });
-test('작성 화면 정보 칸 숨기기/보기 (자료·저널 함께, 이 기기에 기억)',async()=>{
-  const h=await profileUI(), ov=()=>h.nodes.get('overlay').innerHTML; h.route('notes'); await h.settle();
+test('작성 화면 정보 칸 숨기기/보기: 새 자료는 늘 펼친 채, 저장된 자료는 기기 설정',async()=>{
+  const h=await profileUI(), ov=()=>h.nodes.get('overlay').innerHTML, notes=()=>Object.values(h.snapshot().mine).filter(x=>x.kind==='note'); h.route('notes'); await h.settle();
   h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/class="ntprops nodiv"[\s\S]*data-act="nt-props" aria-expanded="true" aria-label="정보 숨기기"/);
-  h.click('nt-props'); assert.doesNotMatch(ov(),/class="ntprops"/); assert.match(ov(),/data-act="nt-props" aria-expanded="false" aria-label="정보 보기"/);
-  h.click('sheet-close'); await h.settle(); h.click('nt-new'); h.click('nt-kind',{v:'journal'}); await h.settle(); assert.doesNotMatch(ov(),/class="ntprops"/,'journal follows the same setting');
-  h.click('nt-props'); assert.match(ov(),/class="ntprops nodiv"/);
+  h.click('nt-props'); assert.doesNotMatch(ov(),/class="ntprops/); assert.match(ov(),/data-act="nt-props" aria-expanded="false" aria-label="정보 보기"/);
+  h.nodes.set('nf-title',{value:'저장할 학습'}); h.click('sheet-close'); await h.settle(); const n=notes()[0]; assert.ok(n);
+  h.click('nt-new'); h.click('nt-kind',{v:'ref'}); assert.match(ov(),/class="ntprops nodiv"/,'hiding a new note does not change the default'); h.click('sheet-close'); await h.settle();
+  h.click('nt-edit',{id:n.id}); assert.match(ov(),/class="ntprops nodiv"/); h.click('nt-props'); assert.doesNotMatch(ov(),/class="ntprops/); h.click('sheet-close'); await h.settle();
+  h.click('nt-new'); h.click('nt-kind',{v:'journal'}); await h.settle(); assert.match(ov(),/class="ntprops nodiv"/,'new journal starts open'); h.click('sheet-close'); await h.settle();
+  h.click('nt-edit',{id:n.id}); assert.doesNotMatch(ov(),/class="ntprops/,'saved notes follow the device setting');
 });

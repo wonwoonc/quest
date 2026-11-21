@@ -3541,7 +3541,7 @@ function diaryPage(d, P){ const dt = P.date || today(), t0 = today(), past = dt 
     <span class="ntpl ${P.emoOpen ? "jtop" : ""}">감정</span><div class="ntpch jemo">${P.emoOpen ? `${EMOS.map(([n]) => emo(n)).join("")}${myEmos().map(n => emo(n, true)).join("")}${P.custom ? `<span class="jemoin"><input type="text" id="pl-emo" maxlength="10" placeholder="감정" value="${D("pl-emo")}" aria-label="감정 직접 입력"><button class="ntpc on" data-act="emoadd">추가</button></span>` : `<button class="ntpc add" data-act="emocustom">+ 직접</button>`}` : `<button class="ntpc ${P.emo ? "on" : ""}" data-act="jemo" aria-expanded="false">${P.emo ? esc(P.emo) : "선택"}</button>`}</div>`;
   return `<button class="nttitle jtitle" data-act="jdpick" aria-expanded="${open}">${x.getMonth()+1}월 ${x.getDate()}일 ${WD[x.getDay()]}요일${past ? "" : `<small>오늘</small>`}<svg class="ntdc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${open ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"}"/></svg></button>${cal}
     ${past && !d ? `<p class="jpast">지난 날짜는 보상 없이 기록만 남아요</p>` : ""}
-    ${propsWrap(props)}
+    ${propsWrap(props, !d)}
     ${(() => { /* 본문: 자료 작성과 같은 블록 편집기 */ if (!LP || !LP.sheet || LP.c !== c){ const t0 = S.drafts["pl-text"] ?? (d && d.text) ?? "", bb = d && Array.isArray(d.blocks) ? d.blocks.map(bkNorm) : null, nz = v => String(v || "").replace(/\s+/g, " ").trim();
       LP = {sheet:true, c, id:"nf", blocks:bb && bb.length && nz(bkPlain(bb)) === nz(t0) ? bb : textBlocks(t0)}; }
       LP.ph = "오늘 있었던 일, 떠오른 생각을 자유롭게 적어요 · '/'로 블록 선택";
@@ -4096,10 +4096,11 @@ const delDrop = (act, id, armKey, top = "") => `<div class="ntdd" role="menu">${
 S.edFs = (() => { try { const v = LS.get("edFs", "m"); return ["s","m","l"].includes(v) ? v : "m"; } catch { return "m"; } })();
 /* 작성 화면 정보 칸(종류·별점·퀘스트·영역·컨디션 등) 숨기기: 이 기기에서 모든 자료·저널에 같이 */
 S.propsHide = (() => { try { return !!LS.get("propsHide", 0); } catch { return false; } })();
-const propsWrap = props => { const ic = up => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${up ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"}"/></svg>`;
+/* 새로 쓰는 자료·저널은 정보 칸을 늘 펼친 채 시작한다(접어도 그 화면에서만). 저장된 걸 열 때만 기기 설정을 따른다 */
+const propsWrap = (props, isNew) => { const c0 = S.compose || {}; c0._pnew = !!isNew; const hide = isNew ? !!c0._phide : S.propsHide; const ic = up => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${up ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"}"/></svg>`;
   /* 구분선 가운데 작은 아이콘 버튼으로 접고 편다 */
-  const bar = `<div class="ntpdiv"><button class="ntpropt" data-act="nt-props" aria-expanded="${!S.propsHide}" aria-label="${S.propsHide ? "정보 보기" : "정보 숨기기"}" title="${S.propsHide ? "정보 보기" : "정보 숨기기"}">${ic(!S.propsHide)}</button></div>`;
-  return S.propsHide ? bar : `<div class="ntprops nodiv">${props}</div>${bar}`; };
+  const bar = `<div class="ntpdiv"><button class="ntpropt" data-act="nt-props" aria-expanded="${!hide}" aria-label="${hide ? "정보 보기" : "정보 숨기기"}" title="${hide ? "정보 보기" : "정보 숨기기"}">${ic(!hide)}</button></div>`;
+  return hide ? bar : `<div class="ntprops nodiv">${props}</div>${bar}`; };
 const edFsCls = () => S.edFs !== "m" ? " fs-" + S.edFs : "";
 const edFsRow = () => `<div class="ntfs"><span>글자 크기</span><div class="ntfsb" role="group" aria-label="글자 크기">${[["s","작게"],["m","중간"],["l","크게"]].map(([k, l]) => `<button data-act="ed-fs" data-v="${k}" aria-pressed="${S.edFs === k}">${l}</button>`).join("")}</div></div>`;
 /* 오늘 저널 열기(이미 쓴 날이면 수정). text가 있고 저널이 비었으면 이어 붙인다 */
@@ -4186,7 +4187,7 @@ function noteSheet(c){
   if (c.pickFirst) return sheetWrap(pill, "", `<p class="ntpickq">어떤 서랍에 담을까요?</p>${kinds}`, ""); /* 자료 추가: 서랍부터 고른다 */
   return sheetWrap(pill, "", `${kinds}${tbar}
     ${tF ? `<textarea class="nttitle" id="nf-title" data-grow rows="1" maxlength="200" placeholder="${C.k === "idea" ? "떠오른 아이디어를 한 줄로" : C.k === "memo" ? "제목" : "제목"}">${D("nf-title")}</textarea>` : ""}
-    ${props ? propsWrap(props) : ""}
+    ${props ? propsWrap(props, !n) : ""}
     ${tplBtn}${tplHtml}
     ${bodyOn ? `<div class="nfedw${vis.some(x => x.task) ? " short" : ""}"><div class="nted nfed${edFsCls()}" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}` : ""}
     ${(t => t ? `<div class="ntmkdock">${t}</div>` : "")(vis.filter(x => x.task).map(block).join(""))}
@@ -6040,7 +6041,7 @@ document.addEventListener("click", e => {
     case "nt-chset": { preserveSheetDrafts(); c.vals = c.vals || {}; c.vals[b.dataset.f] = b.dataset.v || null; c.chOpen = null; renderSheet(); return; }
     case "nt-val": { preserveSheetDrafts(); const f = b.dataset.f, v = f === "rating" ? +b.dataset.v : b.dataset.v; c.vals = c.vals || {}; c.vals[f] = c.vals[f] === v ? null : v; if (c.pk === f) c.pk = null; if (LP && LP.c === c) bkSync(); renderSheet(); return; }
     case "nt-pk": preserveSheetDrafts(); if (LP && LP.c === c) bkSync(); c.pk = c.pk === b.dataset.v ? null : b.dataset.v; renderSheet(); return;
-    case "nt-props": { preserveSheetDrafts(); if (LP && LP.c === c) bkSync(); S.propsHide = !S.propsHide; try { LS.set("propsHide", S.propsHide ? 1 : 0); } catch {} renderSheet(); return; }
+    case "nt-props": { preserveSheetDrafts(); if (LP && LP.c === c) bkSync(); if (c._pnew) c._phide = !c._phide; else { S.propsHide = !S.propsHide; try { LS.set("propsHide", S.propsHide ? 1 : 0); } catch {} } renderSheet(); return; }
     case "nt-tplnew": case "nt-tpledit": { preserveSheetDrafts(); if (LP && LP.c === c){ bkSync(); c._blocks = LP.blocks; } c.tplOpen = false; const ut = a === "nt-tpledit" ? userTpls(S, c.cat).find(t => t.id === b.dataset.v) : null;
       S.drafts["tp-l"] = ut ? ut.l : ""; LP = null; openSheet({type:"tpled", dk:c.cat, id:ut ? ut.id : null, blocks0:ut ? ut.blocks : null, back:c}); return; }
     case "tp-save": { if (!LP || LP.c !== c) return; bkSync(); const l = pv("tp-l").trim(); if (!l){ toast("템플릿 이름을 적어 주세요"); const x = $("#tp-l"); x && x.focus(); return; }
