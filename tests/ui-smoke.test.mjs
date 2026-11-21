@@ -1832,8 +1832,8 @@ test('작성 화면 메뉴: 글자 크기 작게·중간·크게 (자료·저널
 });
 test('작성 화면 정보 칸 숨기기/보기 (자료·저널 함께, 이 기기에 기억)',async()=>{
   const h=await profileUI(), ov=()=>h.nodes.get('overlay').innerHTML; h.route('notes'); await h.settle();
-  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/class="ntprops"[\s\S]*data-act="nt-props" aria-expanded="true">정보 숨기기/);
-  h.click('nt-props'); assert.doesNotMatch(ov(),/class="ntprops"/); assert.match(ov(),/data-act="nt-props" aria-expanded="false">정보 보기/);
+  h.click('nt-new'); h.click('nt-kind',{v:'learn'}); assert.match(ov(),/class="ntprops nodiv"[\s\S]*data-act="nt-props" aria-expanded="true" aria-label="정보 숨기기"/);
+  h.click('nt-props'); assert.doesNotMatch(ov(),/class="ntprops"/); assert.match(ov(),/data-act="nt-props" aria-expanded="false" aria-label="정보 보기"/);
   h.click('sheet-close'); await h.settle(); h.click('nt-new'); h.click('nt-kind',{v:'journal'}); await h.settle(); assert.doesNotMatch(ov(),/class="ntprops"/,'journal follows the same setting');
-  h.click('nt-props'); assert.match(ov(),/class="ntprops"/);
+  h.click('nt-props'); assert.match(ov(),/class="ntprops nodiv"/);
 });

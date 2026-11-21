@@ -1218,8 +1218,10 @@ const delDrop = (act, id, armKey, top = "") => `<div class="ntdd" role="menu">${
 S.edFs = (() => { try { const v = LS.get("edFs", "m"); return ["s","m","l"].includes(v) ? v : "m"; } catch { return "m"; } })();
 /* 작성 화면 정보 칸(종류·별점·퀘스트·영역·컨디션 등) 숨기기: 이 기기에서 모든 자료·저널에 같이 */
 S.propsHide = (() => { try { return !!LS.get("propsHide", 0); } catch { return false; } })();
-const propsWrap = props => S.propsHide ? `<button class="ntpropt" data-act="nt-props" aria-expanded="false">정보 보기<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`
-  : `<div class="ntprops">${props}</div><button class="ntpropt" data-act="nt-props" aria-expanded="true">정보 숨기기<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>`;
+const propsWrap = props => { const ic = up => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${up ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"}"/></svg>`;
+  /* 구분선 가운데 작은 아이콘 버튼으로 접고 편다 */
+  const bar = `<div class="ntpdiv"><button class="ntpropt" data-act="nt-props" aria-expanded="${!S.propsHide}" aria-label="${S.propsHide ? "정보 보기" : "정보 숨기기"}" title="${S.propsHide ? "정보 보기" : "정보 숨기기"}">${ic(!S.propsHide)}</button></div>`;
+  return S.propsHide ? bar : `<div class="ntprops nodiv">${props}</div>${bar}`; };
 const edFsCls = () => S.edFs !== "m" ? " fs-" + S.edFs : "";
 const edFsRow = () => `<div class="ntfs"><span>글자 크기</span><div class="ntfsb" role="group" aria-label="글자 크기">${[["s","작게"],["m","중간"],["l","크게"]].map(([k, l]) => `<button data-act="ed-fs" data-v="${k}" aria-pressed="${S.edFs === k}">${l}</button>`).join("")}</div></div>`;
 /* 오늘 저널 열기(이미 쓴 날이면 수정). text가 있고 저널이 비었으면 이어 붙인다 */
