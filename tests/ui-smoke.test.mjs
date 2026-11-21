@@ -1813,7 +1813,7 @@ test('대시보드 맨 아래에 캘린더 화면(일·주·월·연)이 그대�
   const h = await profileUI(), app = () => h.nodes.get('app').innerHTML; h.route('dash'); await h.settle();
   assert.match(app(), /<section class="dcal" aria-label="캘린더"><div class="chead">[\s\S]*<div class="cvt" role="group" aria-label="보기"><button data-act="cmode"/);
   h.click('cmode',{v:'month'}); await h.settle(); assert.match(app(), /class="dcal"[\s\S]*data-act="cmode" data-v="month" aria-pressed="true"/);
-  assert.match(h.nodes.get('topbar').innerHTML, /data-act="to-cal" aria-label="캘린더로"/, 'jump-to-calendar icon on the dashboard');
+  assert.doesNotMatch(h.nodes.get('topbar').innerHTML, /data-act="to-cal"/, 'no calendar icon in the top bar');
   h.route('cal'); await h.settle(); assert.match(h.nodes.get('nav').innerHTML, /href="#dash"[^>]*aria-current="page"|aria-current="page"[^>]*href="#dash"/, 'old #cal opens the dashboard'); assert.doesNotMatch(h.nodes.get('nav').innerHTML, /href="#cal"/, 'no calendar menu');
 });
 test('월 보기: 일퀘·일정·미션을 시간 순으로(시간 없는 것 먼저), 넷까지 보이고 나머지는 +N',async()=>{
