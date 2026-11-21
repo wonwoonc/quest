@@ -2141,6 +2141,10 @@ a.row{color:inherit;text-decoration:none}
 .ntpropt{position:relative;width:28px;height:22px;display:grid;place-items:center;border:1px solid var(--line);background:var(--card);border-radius:999px;color:var(--muted);cursor:pointer;padding:0}
 .ntpropt svg{width:14px;height:14px}
 .ntpropt:hover{color:var(--ink)}
+/* 자료 작성의 퀘스트 선택: 가운데 팝업 */
+.qsheet-bg.center{align-items:center;padding:16px}
+.qsheet-bg.center .qsheet{border-radius:20px;max-height:70vh;padding:14px 16px 16px;box-shadow:0 12px 40px rgb(0 0 0 / .2);animation:qsfade .16s ease-out}
+@keyframes qsfade{from{transform:scale(.97);opacity:.4}to{transform:none;opacity:1}}
 </style>
 <script type="module" src="./src/demo-entry.js"></script>
 </body></html>

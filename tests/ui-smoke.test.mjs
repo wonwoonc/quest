@@ -10,6 +10,8 @@ function harness(snapshot, search = '', {trial = false} = {}) {
   if (snapshot) data.set('quest:foundation:empty:v2',JSON.stringify(snapshot));
   const node = id => ({id,innerHTML:'',textContent:'',dataset:{},style:{},classList:{add(){},remove(){},toggle(){},contains(){return false}},addEventListener(){},querySelector:() => null,querySelectorAll:() => [],getBoundingClientRect:() => ({top:0,height:0})});
   for (const id of ['app','topbar','nav','drawer','overlay','toast','pill','replybar','fileIn','characterUploadIn','characterCameraIn','demo-label']) nodes.set(id,node(id));
+  // 캘린더 메뉴는 대시보드 맨 아래로 옮겼다: route('cal')로 연 테스트는 그 캘린더 부분만 본다
+  let calOnly = false; { const app = nodes.get('app'); let raw = ''; Object.defineProperty(app,'innerHTML',{get(){ if (calOnly){ const i = raw.indexOf('<section class="dcal"'); if (i >= 0) return raw.slice(i); } return raw; },set(v){ raw = v; },configurable:true}); }
   const body = node('body'); body.appendChild = () => {};
   const document = {body,activeElement:null,documentElement:{dataset:trial ? {edition:'trial'} : {},style:{setProperty(){}},removeAttribute(){},setAttribute(){}},
     querySelector:s => s.startsWith('#') ? nodes.get(s.slice(1)) || null : null,
@@ -28,7 +30,7 @@ function harness(snapshot, search = '', {trial = false} = {}) {
     IntersectionObserver:class {observe(){} disconnect(){}},MutationObserver:class {observe(){} disconnect(){}}});
   context.window = context;
   const flush = () => { let count = 0; while(frames.length) { if (++count > 30) throw new Error('Render loop'); frames.shift()(); } };
-  const route = name => { context.location.hash = '#'+name; for (const fn of winEvents.hashchange || []) fn(); flush(); };
+  const route = name => { calOnly = name === 'cal'; context.location.hash = '#'+name; for (const fn of winEvents.hashchange || []) fn(); flush(); };
   const click = (act, dataset = {}) => {
     let stopped = false;
     const button = {dataset:{act,...dataset}};
@@ -1436,21 +1438,21 @@ test('release info: terms, privacy policy and contact in main edition only; shee
 test('menu: bottom bar = dash/community/+write/shop/notes; profile moved to the top bar next to notifications; drawer + PC sidebar list everything plus settings; reorder and reset',async()=>{
   const h=await profileUI();h.route('shop');let nav=h.nodes.get('nav').innerHTML;
   const order=()=>[...h.nodes.get('nav').innerHTML.matchAll(/<a href="#(\w+)"(?: class="(nm|nset)")? aria-label="[^"]*"/g)].map(m=>m[1]+(m[2]?'*':''));
-  assert.deepEqual(order(),['qmanage*','dash','feed','shop','notes','cal*','settings*'],'PC sidebar: 퀘스트 first; bottom bar: dash/feed/shop/notes');
+  assert.deepEqual(order(),['qmanage*','dash','feed','shop','notes','settings*'],'PC sidebar: 퀘스트 first; bottom bar: dash/feed/shop/notes');
   assert.doesNotMatch(nav,/navmore|더보기|href="#me"/);
   assert.match(nav,/href="#feed"[^>]*>[\s\S]*?<\/a><a href="#write" class="nwr" aria-label="스토리 쓰기"[^>]*>[\s\S]*?<\/a><a href="#shop"/,'+ sits in the middle');
   const top=h.nodes.get('topbar').innerHTML;assert.match(top,/class="iconbtn menubtn" data-act="drawer" aria-label="메뉴 열기"/);assert.match(top,/<h1 class="tmain">상점/);assert.doesNotMatch(top,/data-v="settings"/,'gear moved to the menu');
   assert.match(top,/<a class="iconbtn" href="#me" aria-label="프로필">/);
   const drw=h.nodes.get('drawer').innerHTML;
-  assert.deepEqual([...drw.matchAll(/data-act="navgo" data-v="(\w+)"/g)].map(m=>m[1]),['qmanage','dash','feed','shop','notes','cal','settings']);
+  assert.deepEqual([...drw.matchAll(/data-act="navgo" data-v="(\w+)"/g)].map(m=>m[1]),['qmanage','dash','feed','shop','notes','settings']);
   assert.match(drw,/data-v="shop" aria-current="page"/);
   h.route('me');assert.match(h.nodes.get('topbar').innerHTML,/<h1 class="tmain">프로필/);assert.match(h.nodes.get('topbar').innerHTML,/aria-label="프로필" aria-current="page"/,'profile button stays on the profile page, marked current');assert.match(h.nodes.get('topbar').innerHTML,/aria-label="알림"/);
   h.route('settings');assert.match(h.nodes.get('topbar').innerHTML,/data-act="back"[\s\S]*<h1>설정/,'sub pages keep back + title');assert.doesNotMatch(h.nodes.get('topbar').innerHTML,/menubtn/);
   h.click('navedit');assert.match(h.nodes.get('overlay').innerHTML,/메뉴 순서[\s\S]*하단 메뉴[\s\S]*메뉴 버튼에만/);
   h.click('nav-mv',{v:'#qmanage',d:'-1'});
-  assert.deepEqual(order(),['dash','feed','shop','qmanage','notes*','cal*','settings*'],'퀘스트 in the bottom bar keeps its place');
-  const prefs=JSON.parse(h.data.get('quest:foundation:empty:v2:preferences'));assert.deepEqual(prefs.navOrder,['#dash','#feed','#shop','#qmanage','#notes','#cal']);
-  h.click('nav-reset');assert.deepEqual(order(),['qmanage*','dash','feed','shop','notes','cal*','settings*']);
+  assert.deepEqual(order(),['dash','feed','shop','qmanage','notes*','settings*'],'퀘스트 in the bottom bar keeps its place');
+  const prefs=JSON.parse(h.data.get('quest:foundation:empty:v2:preferences'));assert.deepEqual(prefs.navOrder,['#dash','#feed','#shop','#qmanage','#notes']);
+  h.click('nav-reset');assert.deepEqual(order(),['qmanage*','dash','feed','shop','notes','settings*']);
   h.click('sheet-close');h.click('navgo',{v:'shop'});assert.equal(h.context.location.hash,'#shop');assert.equal(h.nodes.get('overlay').innerHTML,'');
   // 예전에 '#me'가 들어간 순서를 저장했어도 메뉴에서 빠진다
   h.data.set('quest:foundation:empty:v2:preferences',JSON.stringify({navOrder:['#me','#notes','#dash']}));h.route('dash');assert.deepEqual(order().slice(0,4),['qmanage*','notes','dash','feed']);
@@ -1811,7 +1813,8 @@ test('대시보드 맨 아래에 캘린더 화면(일·주·월·연)이 그대�
   const h = await profileUI(), app = () => h.nodes.get('app').innerHTML; h.route('dash'); await h.settle();
   assert.match(app(), /<section class="dcal" aria-label="캘린더"><div class="chead">[\s\S]*<div class="cvt" role="group" aria-label="보기"><button data-act="cmode"/);
   h.click('cmode',{v:'month'}); await h.settle(); assert.match(app(), /class="dcal"[\s\S]*data-act="cmode" data-v="month" aria-pressed="true"/);
-  h.route('cal'); await h.settle(); assert.doesNotMatch(app(), /class="dcal"/); assert.match(app(), /data-act="cmode" data-v="day"/, 'calendar menu still works');
+  assert.match(h.nodes.get('topbar').innerHTML, /data-act="to-cal" aria-label="캘린더로"/, 'jump-to-calendar icon on the dashboard');
+  h.route('cal'); await h.settle(); assert.match(h.nodes.get('nav').innerHTML, /href="#dash"[^>]*aria-current="page"|aria-current="page"[^>]*href="#dash"/, 'old #cal opens the dashboard'); assert.doesNotMatch(h.nodes.get('nav').innerHTML, /href="#cal"/, 'no calendar menu');
 });
 test('월 보기: 일퀘·일정·미션을 시간 순으로(시간 없는 것 먼저), 넷까지 보이고 나머지는 +N',async()=>{
   const base=await profileUI(), saved=base.snapshot(), day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10), wd=new Date(day+'T00:00:00').getDay();

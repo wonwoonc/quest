@@ -503,6 +503,7 @@ function render(){ requestAnimationFrame(fitTitles); { const a = document.active
     tls.onscroll = () => { S.tlKey = key; S.tlTop = tls.scrollTop; }; }
   const ycur = document.querySelector(".ymon.ycur");
   if (ycur && S.yCenter){ S.yCenter = false; if (S.view.name === "cal") requestAnimationFrame(() => window.scrollTo(0, 0)); } // 연 보기는 맨 위(1월)부터
+  if (S.toCal && S.view.name === "dash"){ S.toCal = false; const dc = document.querySelector(".dcal"); if (dc) setTimeout(() => { try { dc.scrollIntoView({block:"start"}); } catch (_) {} }, 80); }
   let announced = false;
   if (S.me && S.lastXp != null){
     /* 이미 알려 준 알림은 다시 띄우지 않는다: 마지막으로 알린 시각을 기기에 저장하고, 처음엔 지금까지 온 알림을 모두 '알림 끝'으로 본다(서버 시계가 조금 빨라도 새로고침마다 뜨지 않게). */
@@ -529,6 +530,7 @@ function renderTop(){
   const title = {today:"퀘스트", feed:"커뮤니티", post:"스레드", project:isProj(S.projects[S.view.pid]) ? "스테이지" : "메인 퀘스트", activity:"알림", settings:"설정", qmanage:"퀘스트", daily:"일일 퀘스트", stats:"프로필", shop:"상점", cal:"캘린더", notes:"자료실", learn:"학습", calday:S.view.date ? `${fmtD(S.view.date)} 기록` : "기록", dash:"대시보드", write:S.wrMode === "dump" ? "브레인 덤프" : "스토리 쓰기"}[v] || (isMine() ? "프로필" : "");
   const n = activityItems().filter(x => x.at > actSeen).length + followReqs().filter(x => !(x.at <= actSeen)).length;
   setHtml($("#topbar"), `${sub ? `<button class="iconbtn back" data-act="back" aria-label="뒤로">${I.back}</button>` : `<button class="iconbtn menubtn" data-act="drawer" aria-label="메뉴 열기" aria-expanded="${document.body.classList.contains("drawer")}">${MENU_SVG}</button>`}<h1${sub ? "" : ' class="tmain"'}>${title}</h1>
+    ${S.me && v === "dash" && hasProfile() ? `<button class="iconbtn" data-act="to-cal" aria-label="캘린더로" title="캘린더"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></button>` : ""}
     ${S.me && !TRIAL && v !== "settings" ? `<button class="iconbtn" data-act="go" data-v="activity" aria-label="알림"${v === "activity" ? ' aria-current="page"' : ""}>${I.bell}${n ? `<span class="dot num">${n>99?"99+":n}</span>` : ""}</button>` : ""}
     ${hasProfile() && v !== "settings" ? `<a class="iconbtn" href="#me" aria-label="프로필"${isMine() ? ' aria-current="page"' : ""}>${PROFILE_SVG}</a>` : ""}`);
 }
@@ -538,10 +540,9 @@ const NAV = {
   "#dash": ["대시보드", `${I.dash}`, v => v === "dash"],
   "#feed": ["커뮤니티", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7.5" r="3"/><path d="M2.5 20v-2a6.5 6.5 0 0 1 13 0v2M16 4.7a3 3 0 0 1 0 5.6M18 12a6 6 0 0 1 3.5 5.5V20"/></svg>`, v => v === "feed"],
   "#notes": ["자료실", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5h-7L10 5H5a1.5 1.5 0 0 0-1.5 1.5Z"/><path d="M8 12.5h8M8 15.5h5"/></svg>`, v => v === "notes" || v === "learn"],
-  "#shop": ["상점", `${I.bag}`, v => v === "shop"],
-  "#cal": ["캘린더", `${I.cal}`, v => v === "cal"]
-};
-const NAV_DEFAULT = ["#dash", "#feed", "#shop", "#notes", "#qmanage", "#cal"], NAV_BAR = 4;
+  "#shop": ["상점", `${I.bag}`, v => v === "shop"]
+}; /* 캘린더 메뉴는 없앴다: 대시보드 맨 아래 캘린더로 옮김(#cal 주소는 그 자리로 보낸다) */
+const NAV_DEFAULT = ["#dash", "#feed", "#shop", "#notes", "#qmanage"], NAV_BAR = 4;
 const PLUS_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>`;
 /* 프로필(내 스토리·캐릭터)은 메뉴가 아니라 상단 알림 옆 버튼으로 연다 */
 const PROFILE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20.2c.9-3.7 3.9-5.9 7.5-5.9s6.6 2.2 7.5 5.9"/></svg>`;
@@ -1268,7 +1269,7 @@ function noteSheet(c){
   const qOpen = c.drop === "q", aOpen = c.drop === "a";
   const mains = goalsOf(S.me).filter(g => g.status !== "done" && !isCx(g)).sort(gOrder);
   /* 메인 퀘스트만 먼저. 스테이지가 있는 메인은 누르면 그 아래로 '메인 퀘스트에 연결' + 스테이지가 펼쳐진다 */
-  const qList = qOpen ? questPop({title:"메인 퀘스트 연결", cur:c.projectId, onlyMain:true, sub:c.qexp, set:"nt-qset", subAct:"nt-qexp", close:"nt-qclose"}) : "";
+  const qList = qOpen ? questPop({title:"메인 퀘스트 연결", cur:c.projectId, onlyMain:true, center:true, sub:c.qexp, set:"nt-qset", subAct:"nt-qexp", close:"nt-qclose"}) : "";
   const qRow = gs.length || pj ? `<span class="ntpl">퀘스트</span><div class="ntpq">${pj ? `<button class="ntpc on" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">${esc(pj.title)}${chev(qOpen)}</button>` : `<button class="ntpc add" data-act="nt-drop" data-v="q" aria-expanded="${qOpen}">+ 연결${chev(qOpen)}</button>`}</div>${qList}` : "";
   const aSel = c.area && AREAS.find(a => a[0] === c.area);
   /* 영역: 칩으로 바로 고르기. 고른 칩을 다시 누르면 해제 */
@@ -2408,7 +2409,7 @@ function questPop(o){ const live = x => x.status !== "done" && !isCx(x) && !isPl
       ${ss.length ? `<div class="qsst">${ss.map(x => `<button class="qsr ${o.cur === x.id ? "sel" : ""}" data-act="${o.set}" data-v="${x.id}" aria-pressed="${o.cur === x.id}"><span class="qsrt">${esc(x.title)}</span>${x.end ? `<small>${dday(x.end)}</small>` : ""}${o.cur === x.id ? `<svg class="qsck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>` : ""}</button>`).join("")}</div>` : ""}</div>`; };
   const list = mains.map(card).join("") + orphan.map(x => `<div class="qsc ${o.cur === x.id ? "on" : ""}" data-qt="${esc(x.title)}"><button class="qsr ${o.cur === x.id ? "sel" : ""}" data-act="${o.set}" data-v="${x.id}"><span class="qsrt">${esc(x.title)}</span></button></div>`).join("");
   const many = mains.length + orphan.length > 4;
-  return `<div class="qsheet-bg" data-act="${o.close}"><div class="qsheet" data-act="dpstay" role="dialog" aria-label="${esc(o.title)}"><div class="qsgrab" aria-hidden="true"></div><div class="qshd"><b>${esc(o.title)}</b><button class="iconbtn" data-act="${o.close}" aria-label="닫기">${I.close}</button></div>
+  return `<div class="qsheet-bg${o.center ? " center" : ""}" data-act="${o.close}"><div class="qsheet" data-act="dpstay" role="dialog" aria-label="${esc(o.title)}">${o.center ? "" : `<div class="qsgrab" aria-hidden="true"></div>`}<div class="qshd"><b>${esc(o.title)}</b><button class="iconbtn" data-act="${o.close}" aria-label="닫기">${I.close}</button></div>
     ${many ? `<input class="qsfind" type="search" placeholder="퀘스트 찾기" aria-label="퀘스트 찾기" data-qfind>` : ""}
     <div class="qslist">${list || `<p class="empty-row">진행 중인 ${o.onlyMain ? "메인 " : ""}퀘스트가 없어요.</p>`}</div>${o.cur && !o.noOff ? `<button class="qsoff" data-act="${o.set}" data-v="">연결 안 함</button>` : ""}</div></div>`; }
 document.addEventListener("input", e => { if (!e.target || !e.target.matches || !e.target.matches("[data-qfind]")) return; const q = e.target.value.trim().toLowerCase(); e.target.closest(".qsheet").querySelectorAll(".qsc").forEach(el => { el.hidden = !!q && !(el.dataset.qt || "").toLowerCase().includes(q); }); });
@@ -2795,7 +2796,7 @@ function route(){
 
   else if (h === "#today" || h === "#grow") S.view = {name:"today"};
   else if (h === "#shop") S.view = {name:"shop"};
-  else if (h === "#cal"){ if (prev !== "cal" && S.calKeep){ S.calKeep = false; S.view = {name:"cal"}; } else if (prev !== "cal"){ S.tlTop = S.wgTop = null; S.yCenter = true; if (S.cal){ S.cal.mode = "day"; S.cal.date = today(); } } S.view = {name:"cal"}; }
+  else if (h === "#cal"){ S.calKeep = false; S.view = {name:"dash"}; S.toCal = true; try { history.replaceState(history.state, "", "#dash"); } catch (_) {} }
   else if (h === "#settings") S.view = {name:"settings"};
   else if (h === "#stats"){ S.view = {name:"stats"}; }
   else if (h === "#daily"){ S.view = {name:"daily"}; }
@@ -2805,7 +2806,7 @@ function route(){
   else if (h === "#write"){ if (!hasProfile() || !S.canWrite){ go("dash"); return; } S.view = {name:"write"}; }
   else if (h === "#notes") S.view = {name:"notes"};
   else if (h === "#learn" || h === "#lnpage"){ if (!(S.view.name === "learn" && S.mine[S.view.id])){ const q = savedView("#learn"); if (q && S.mine[q.id]) S.view = q; else { S.view = {name:"notes"}; LP = null; } } }
-  else if (h === "#calday"){ if (prev !== "calday"){ const q = savedView("#calday"); S.view = q && q.date ? q : {name:"cal"}; } }
+  else if (h === "#calday"){ if (prev !== "calday"){ const q = savedView("#calday"); if (q && q.date) S.view = q; else { S.view = {name:"dash"}; S.toCal = true; } } }
   else if (PARAMV[h]){ const q = savedView(h); if (q && JSON.stringify(q) !== JSON.stringify(S.view)) S.view = q; else if (prev !== PARAMV[h]) S.view = q || {name:"feed"}; }
   else S.view = !h || h === "#" ? {name:"dash"} : {name:"feed"};
   schedule(); const k = viewKey(); if (k !== prevKey) requestAnimationFrame(() => requestAnimationFrame(() => scrollTo(0, S.scrolls[k] || 0)));
@@ -2987,6 +2988,7 @@ document.addEventListener("click", e => {
     case "journal-view": { const d = S.mine[id]; if (d?.kind === 'diary' && isOwnPrivateEntry(d,S.me)) openSheet({type:'journal-detail',id}); return; }
     case "day-post": if (S.feed[pid]?.author === S.me){ closeSheet(); openPost(pid); } return;
     case "day-project": if (S.projects[pid]?.owner === S.me){ closeSheet(); openGoal(pid); } return;
+    case "to-cal": { const dc = $(".dcal"); if (dc) try { dc.scrollIntoView({behavior:"smooth", block:"start"}); } catch (_) { dc.scrollIntoView(); } return; }
     case "day-schedule": if (activityDate(b.dataset.v) === b.dataset.v){ closeSheet(); S.cal = S.cal || {}; S.cal.date = b.dataset.v; S.cal.mode = 'day'; S.tlTop = S.wgTop = null; if (S.view.name === "calday"){ S.calKeep = true; go("cal"); return; } } break;
     case "dopen": S.openDiary = S.openDiary === id ? null : id; if (S.compose && S.compose.type === "logs") renderSheet(); break;
     case "theme": LS.set("theme", b.dataset.v); applyTheme(); break;
