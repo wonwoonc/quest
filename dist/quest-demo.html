@@ -4859,7 +4859,7 @@ function storyComposer(page = false){
 /* 스토리 쓰기 페이지(하단 +): 프로필의 스토리 작성 박스와 같은 박스(같은 입력·퀘스트 연결·사진 상태를 함께 쓴다) */
 /* + 버튼 페이지: 스토리 쓰기 / 브레인 덤프 */
 function viewWrite(){ const m = S.wrMode === "dump" ? "dump" : "story";
-  const seg = `<div class="seg wrseg" role="group" aria-label="쓰기 종류">${[["story","스토리"],["dump","브레인 덤프"]].map(([k,l]) => `<button data-act="wrmode" data-v="${k}" aria-pressed="${m === k}">${l}</button>`).join("")}</div>`;
+  const seg = `<div class="seg wrseg" role="group" aria-label="쓰기 종류" data-swipe>${[["story","스토리"],["dump","브레인 덤프"]].map(([k,l]) => `<button data-act="wrmode" data-v="${k}" aria-pressed="${m === k}">${l}</button>`).join("")}</div>`;
   if (m === "story") return seg + storyComposer(true);
   const vis = mineOf("dump").sort((a,b) => (a.createdAt||0) - (b.createdAt||0)), n = vis.length;
   return seg + `<section class="card bdump bdpage"><div class="ch"><h2>브레인 덤프</h2>${n ? `<span class="side num">${n}</span>` : ""}</div>
