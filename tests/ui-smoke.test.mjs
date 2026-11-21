@@ -1813,3 +1813,15 @@ test('대시보드 맨 아래에 캘린더 화면(일·주·월·연)이 그대�
   h.click('cmode',{v:'month'}); await h.settle(); assert.match(app(), /class="dcal"[\s\S]*data-act="cmode" data-v="month" aria-pressed="true"/);
   h.route('cal'); await h.settle(); assert.doesNotMatch(app(), /class="dcal"/); assert.match(app(), /data-act="cmode" data-v="day"/, 'calendar menu still works');
 });
+test('월 보기: 일퀘·일정·미션을 시간 순으로(시간 없는 것 먼저), 넷까지 보이고 나머지는 +N',async()=>{
+  const base=await profileUI(), saved=base.snapshot(), day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10), wd=new Date(day+'T00:00:00').getDay();
+  saved.mine={...saved.mine,
+    ma:{id:'ma',kind:'mission',name:'저녁미션',lv:'normal',due:day,time:'21:00',done:false,createdAt:1},
+    mb:{id:'mb',kind:'mission',name:'무시간미션',lv:'normal',due:day,done:false,createdAt:2},
+    ev:{id:'ev',kind:'event',name:'점심약속',date:day,time:'12:00',createdAt:3},
+    hq:{id:'hq',kind:'quest',name:'아침일퀘',lv:'normal',days:[wd],time:'07:00',active:true,createdAt:4,done:{}}};
+  const h=await profileUI(saved); h.route('cal'); h.click('cmode',{v:'month'}); await h.settle();
+  const html0=h.nodes.get('app').innerHTML, st0=html0.indexOf(`data-act="cdate" data-v="${day}"`), cell=html0.slice(st0, html0.indexOf('<div class="mcell', st0));
+  const pos=k=>cell.indexOf(k); assert.ok(pos('무시간미션')>=0 && pos('아침일퀘')>=0 && pos('점심약속')>=0 && pos('저녁미션')>=0, cell.slice(0,400));
+  assert.ok(pos('무시간미션')<pos('아침일퀘') && pos('아침일퀘')<pos('점심약속') && pos('점심약속')<pos('저녁미션'));
+});
