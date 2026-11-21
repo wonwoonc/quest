@@ -500,40 +500,15 @@ async function calendarActivityUI() {
   const h = await profileUI(saved); h.route('cal'); h.click('cpick',{v:date,m:'month'});
   return h;
 }
-test('past month date buttons open the day records page; back returns to the same month without storage changes',async()=>{
+test('month date buttons (past, today, future) switch to the day view in place; no records page',async()=>{
   const h = await calendarActivityUI(), before = h.snapshot(), month = h.nodes.get('app').innerHTML;
   const button = month.match(/<button class="mn" data-act="([^"]+)" data-v="(2026-11-02)"[^>]*>/);
-  assert.ok(button); assert.match(button[0],/날짜 눌러 기록 보기 · 기록·완료 9개/);
+  assert.ok(button); assert.match(button[0],/일 보기로 · 기록·완료 9개/);
   h.click(button[1],{v:button[2]});
-  assert.equal(h.context.location.hash,'#calday'); assert.equal(h.nodes.get('overlay').innerHTML,'');
-  assert.match(h.nodes.get('topbar').innerHTML,/data-act="back"/);
-  const sheet = h.nodes.get('app').innerHTML;
-  for (const text of ['첫 저널','두 번째 저널','공유 스토리','두 번째 스토리','완료 일일','실제 완료 미션','기간 완료 미션','완료 메인','완료 스테이지','<h3>완료 <span','날짜 미확인','과거 완료 미션','class="dsum"','완료한 미션','data-act="cdaystep" data-v="2026-11-01"']) assert.ok(sheet.includes(text),text);
-  assert.doesNotMatch(sheet,/기록이 없어요|못 한 미션|예정 · 미션|기록·완료 · 한국 시간/,'empty sections hidden');
-  h.click('cdaystep',{v:'2026-11-01'}); assert.match(h.nodes.get('app').innerHTML,/data-date="2026-11-01"/); h.click('cdaystep',{v:'2026-11-02'}); assert.equal(h.nodes.get('app').innerHTML,sheet,'step back restores same day');
-  assert.match(sheet,/data-date="2026-11-02"/); assert.match(sheet,/&lt;img src=x&gt; &amp; 안전/);
-  assert.doesNotMatch(sheet,/다른 사용자|<img src=x>|class="tday\b|id="pl-text"|data-act="psave"/);
-  assertNoNestedButtons(sheet); assert.deepEqual(h.snapshot(),before);
-  h.route('cal'); assert.equal(h.nodes.get('app').innerHTML,month,'back keeps month view');
-  h.click('cstep',{v:'1'}); assert.match(h.nodes.get('app').innerHTML,/class="ctt"[^>]*>12월/);
-  h.click('cstep',{v:'-1'}); assert.match(h.nodes.get('app').innerHTML,/class="ctt"[^>]*>11월/);
-  h.click('cmode',{v:'week'}); assert.match(h.nodes.get('app').innerHTML,/class="wgrid"/);
-  h.click('cmode',{v:'month'}); assert.match(h.nodes.get('app').innerHTML,/class="mgrid|data-act="cdate"/); assert.doesNotMatch(h.nodes.get('app').innerHTML,/지난 날짜는 기록 보기/);
-});
-test('day records page journal view never initializes editor; story and goals navigate; today/future open the day tab',async()=>{
-  const h = await calendarActivityUI(), before = h.snapshot();
-  h.click('cdate',{v:'2026-11-02'}); assert.equal(h.context.location.hash,'#calday'); h.click('journal-view',{id:'oddJournal'});
-  assert.match(h.nodes.get('overlay').innerHTML,/data-act="dedit"/); assert.match(h.nodes.get('overlay').innerHTML,/첫 저널 &lt;img/);
-  assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/textarea|data-act="psave"/); assert.deepEqual(h.snapshot(),before);
-  h.click('cdate',{v:'2026-11-02'}); h.click('day-post',{p:'minePost'});
-  assert.equal(h.context.location.hash,'#post'); assert.match(h.nodes.get('app').innerHTML,/공유 스토리/); assert.equal(h.nodes.get('overlay').innerHTML,'');
-  h.route('cal'); h.click('cdate',{v:'2026-11-02'}); h.click('day-project',{p:'sub'});
-  assert.equal(h.context.location.hash,'#goal'); assert.match(h.nodes.get('app').innerHTML,/완료 스테이지/);
-  h.route('cal'); h.click('cdate',{v:'2026-01-15'}); assert.match(h.nodes.get('app').innerHTML,/이 날의 기록이나 완료한 항목이 없어요/);
-  assert.doesNotMatch(h.nodes.get('app').innerHTML,/data-act="journal-view"|data-act="day-post"/);
-  h.click('day-schedule',{v:'2026-01-15'}); assert.equal(h.context.location.hash,'#cal'); h.route('cal'); assert.match(h.nodes.get('app').innerHTML,/1월 15일/);
-  h.click('cdate',{v:'2099-11-02'}); assert.equal(h.context.location.hash,'#cal'); assert.equal(h.nodes.get('overlay').innerHTML,'');
-  assert.match(h.nodes.get('app').innerHTML,/data-d="2099-11-02"/); assert.match(h.nodes.get('app').innerHTML,/data-act="cmode" data-v="day" aria-pressed="true"/);
+  assert.notEqual(h.context.location.hash,'#calday'); assert.equal(h.nodes.get('overlay').innerHTML,'');
+  const day = h.nodes.get('app').innerHTML; assert.match(day,/data-act="cmode" data-v="day" aria-pressed="true"/); assert.match(day,/11월 2일/); assert.match(day,/data-d="2026-11-02"/);
+  assert.deepEqual(h.snapshot(),before);
+  h.click('cdate',{v:'2099-11-02'}); assert.match(h.nodes.get('app').innerHTML,/data-d="2099-11-02"/);
   h.click('taskadd',{d:'2099-11-02',tm:'14:00'}); assert.match(h.nodes.get('overlay').innerHTML,/14:00/);
   assert.deepEqual(h.snapshot(),before);
 });
