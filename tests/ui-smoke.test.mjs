@@ -1009,7 +1009,7 @@ for(const wide of [true,false])for(const mini of [false,true]){
     const html=await readFile(root+'/dist/quest.html','utf8');
     vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],next.context);next.flush();next.route('dash');
     const tree=layoutTree(next.nodes.get('app').innerHTML);
-    assert.equal(tree.children.length,1,'no economy summary sibling outside dashboard');
+    assert.equal(tree.children.length,2,'no economy summary sibling outside dashboard (dashboard grid + calendar)');assert.ok(tree.children[1].classes.includes('dcal'),'calendar sits at the bottom');
     const grid=tree.children[0];assert.ok(grid.classes.includes('wd-top'));
     assert.deepEqual(grid.children.map(n=>n.classes[0]),['wd-pcol','wd-goals','wd-chips','wd-bot'],'profile/goal/chips/bottom grid order with no empty summary row');
     assert.ok(grid.children[0].children.length>0,'profile column remains populated');
@@ -1365,7 +1365,7 @@ test('저널: 지난 날짜로 쓰기 (보상 없음), 카드에서 수정',asyn
   h.click('nt-new'); h.click('nt-kind',{v:'journal'}); const o = h.nodes.get('overlay').innerHTML;
   assert.match(o, /data-act="jdpick"[^>]*>.*오늘/); assert.doesNotMatch(o, /어제|깜빡한 날/);
   h.click('jdpick'); const cal = h.nodes.get('overlay').innerHTML; assert.match(cal, /data-act="dppick" data-k="jd"/); assert.doesNotMatch(o+cal, /type="date"/);
-  const t0 = cal.match(/class="sel tdy" data-act="dppick" data-k="jd" data-v="([\d-]+)"/)[1], d0 = new Date(t0+'T00:00:00'); d0.setDate(d0.getDate()-1);
+  const t0 = cal.match(/class="sel tdy[^"]*" data-act="dppick" data-k="jd" data-v="([\d-]+)"/)[1], d0 = new Date(t0+'T00:00:00'); d0.setDate(d0.getDate()-1);
   const y = d0.getFullYear()+'-'+String(d0.getMonth()+1).padStart(2,'0')+'-'+String(d0.getDate()).padStart(2,'0');
   h.click('dppick',{k:'jd',v:y}); assert.doesNotMatch(h.nodes.get('overlay').innerHTML, /data-k="jd"/); assert.match(h.nodes.get('overlay').innerHTML, /보상 없이 기록만/); assert.match(h.nodes.get('overlay').innerHTML, new RegExp((d0.getMonth()+1)+'월 '+d0.getDate()+'일'));
   h.click('pemo',{v:'평온'}); h.nodes.set('pl-text',{value:'어제 쓴 저널'}); h.nodes.set('pl-cond',{value:'60'}); assert.doesNotMatch(h.nodes.get('overlay').innerHTML,/data-act="psave"/); h.click('sheet-close'); await h.settle();
@@ -1806,4 +1806,10 @@ test('템플릿: 이름이 기본인 템플릿은 목록에서 빠지고, 내 �
   assert.match(o, /내 템플릿[\s\S]*data-act="nt-tplset" data-v="u1"><span><b>주간 회고 &lt;b&gt;<\/b><small>잘한 점/); assert.doesNotMatch(o, /다른 서랍/); assert.match(o, /data-act="nt-tpledit" data-v="u1"/);
   h.click('nt-tplnew'); assert.match(ov(), /id="tp-l"/); assert.match(ov(), /data-act="tp-save"/); assert.doesNotMatch(ov(), /data-act="tp-del"/);
   h.click('sheet-close'); assert.match(ov(), /data-act="nt-tplnew"/, 'back to the picker');
+});
+test('대시보드 맨 아래에 캘린더 화면(일·주·월·연)이 그대로 들어간다',async()=>{
+  const h = await profileUI(), app = () => h.nodes.get('app').innerHTML; h.route('dash'); await h.settle();
+  assert.match(app(), /<section class="dcal" aria-label="캘린더"><h2 class="dcalh">캘린더<\/h2><div class="seg" role="group" aria-label="보기" data-swipe>/);
+  h.click('cmode',{v:'month'}); await h.settle(); assert.match(app(), /class="dcal"[\s\S]*data-act="cmode" data-v="month" aria-pressed="true"/);
+  h.route('cal'); await h.settle(); assert.doesNotMatch(app(), /class="dcal"/); assert.match(app(), /data-act="cmode" data-v="day"/, 'calendar menu still works');
 });

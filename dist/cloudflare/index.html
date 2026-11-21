@@ -2066,6 +2066,9 @@ a.row{color:inherit;text-decoration:none}
 .ntqnew{width:100%;margin:0 0 4px;border:1px dashed var(--line);background:none;border-radius:12px;padding:11px;font:inherit;font-size:14px;font-weight:600;color:var(--accent);cursor:pointer}
 .tphint{font-size:12.5px;color:var(--muted);margin:4px 0 12px}
 .pgh span .nic{width:18px;height:18px;margin-right:6px;vertical-align:-3px}
+/* 대시보드 맨 아래 캘린더 */
+.dcal{margin-top:28px;padding-top:24px;border-top:1px solid var(--line)}
+.dcalh{font-size:18px;margin:0 0 12px}
 </style>
 <script>
 (function(){"use strict";
@@ -3305,7 +3308,7 @@ function render(){ requestAnimationFrame(fitTitles); { const a = document.active
       const row = tls.querySelector(`[data-h="${Math.max(1, target - 1)}"]`) || tls.querySelector(`[data-h="${target}"]`); tls.scrollTop = row ? Math.max(0, row.offsetTop) : 0; S.tlKey = key; S.tlTop = tls.scrollTop; }
     tls.onscroll = () => { S.tlKey = key; S.tlTop = tls.scrollTop; }; }
   const ycur = document.querySelector(".ymon.ycur");
-  if (ycur && S.yCenter){ S.yCenter = false; requestAnimationFrame(() => window.scrollTo(0, 0)); } // 연 보기는 맨 위(1월)부터
+  if (ycur && S.yCenter){ S.yCenter = false; if (S.view.name === "cal") requestAnimationFrame(() => window.scrollTo(0, 0)); } // 연 보기는 맨 위(1월)부터
   let announced = false;
   if (S.me && S.lastXp != null){
     /* 이미 알려 준 알림은 다시 띄우지 않는다: 마지막으로 알린 시각을 기기에 저장하고, 처음엔 지금까지 온 알림을 모두 '알림 끝'으로 본다(서버 시계가 조금 빨라도 새로고침마다 뜨지 않게). */
@@ -4947,6 +4950,8 @@ function viewWebDash(){
       <div class="wd-tl"><div class="wd-sec dp-mission"><div class="wd-merge wd-fix">${(() => { S._noToday = true; S._noTime = true; let tt; try{ tt = taskTab({noUp:true}); } finally { S._noToday = false; S._noTime = false; }
         return tt; })()}</div></div>
         <div class="wd-sec dp-journal"><div class="wd-stack wd-logst">${logToday()}</div></div></div></div></div>`;
+  /* 캘린더 화면을 그대로 대시보드 맨 아래에 둔다(캘린더 메뉴도 그대로 있다) */
+  h += `<section class="dcal" aria-label="캘린더"><h2 class="dcalh">캘린더</h2>${viewCal()}</section>`;
   return h;
 }
 function viewProfile(){
@@ -5063,7 +5068,7 @@ function keepChipsInView(root){ root.querySelectorAll("[data-swipe], .chips, .se
     // 화면 본문 어디서든(글 아래 빈 곳 포함). 상단·메뉴·팝업, 입력칸, 가로로 넘기는 영역은 제외
     if (!t.closest || t.closest("#topbar,#nav,.nav,#drawer,#overlay,#toast,#replybar,input,textarea,select,[contenteditable],.chips,.seg,.car,.twc,.wgrid")) return; /* 메인 퀘스트 카드(길게 눌러 순서 바꾸기) 위에서도 밀면 넘어간다 */
     for (let el = t; el && el !== document.body; el = el.parentElement){ if (el.scrollWidth > el.clientWidth + 24 && /(auto|scroll)/.test(getComputedStyle(el).overflowX)) return; }
-    const g = $("#app [data-swipe]"); if (!g) return; sw = {x:e.touches[0].clientX, y:e.touches[0].clientY, at:Date.now(), g}; }, {passive:true});
+    const g = (e.target.closest && e.target.closest(".dcal") && $("#app .dcal [data-swipe]")) || $("#app [data-swipe]"); if (!g) return; /* 대시보드 캘린더 안에서 밀면 일·주·월·연이 넘어간다 */ sw = {x:e.touches[0].clientX, y:e.touches[0].clientY, at:Date.now(), g}; }, {passive:true});
   document.addEventListener("touchend", e => { const s0 = sw; sw = null; if (!s0 || !e.changedTouches.length) return;
     const dx = e.changedTouches[0].clientX - s0.x, dy = e.changedTouches[0].clientY - s0.y;
     if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6 || Date.now() - s0.at > 700 || !document.contains(s0.g)) return;
