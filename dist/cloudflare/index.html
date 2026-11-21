@@ -2069,6 +2069,48 @@ a.row{color:inherit;text-decoration:none}
 /* 대시보드 맨 아래 캘린더 */
 .dcal{margin-top:28px;padding-top:24px;border-top:1px solid var(--line)}
 .dcalh{font-size:18px;margin:0 0 12px}
+/* 캘린더 디자인(투두이스트·틱틱 참고): 한 줄 머리, 3일 주간, 지금 선, 연 보기 점 */
+.chead{display:flex;align-items:center;gap:2px;margin:2px 0 12px}
+.chead .ctt{display:inline-flex;align-items:center;gap:3px;border:0;background:none;font:inherit;font-size:19px;font-weight:800;color:var(--ink);padding:4px 4px 4px 2px;white-space:nowrap;cursor:pointer}
+.chead b.ctt{cursor:default}
+.chead .ctt svg{width:15px;height:15px;color:var(--muted)}
+.chead .ctt small{font-size:13px;color:var(--muted);font-weight:700}
+.chead .ctt .sat{color:#3D7BE0}.chead .ctt .sun{color:#E5484D}
+.chead .cst{width:32px;height:32px;color:var(--sub)}.chead .cst svg{width:17px;height:17px}.chead .cst.fwd svg{transform:scaleX(-1)}
+.chead .csp{flex:1}
+.cvt{display:flex;background:color-mix(in srgb,var(--line) 75%,var(--bg));border-radius:10px;padding:2px;flex:none}
+.cvt button{border:0;background:none;font:inherit;font-size:12.5px;font-weight:700;color:var(--muted);padding:5px 8px;border-radius:8px;cursor:pointer}
+.cvt button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.ctoday{flex:none;margin-left:4px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:5px 9px;font:inherit;font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer;white-space:nowrap}
+.ctoday[aria-current="date"]{color:var(--muted)}
+@media (max-width:380px){.chead .ctt{font-size:17px}.cvt button{padding:5px 6px}}
+/* 일: 시간 블록 + 지금 선 */
+.tl .tlscroll .tlc .qrow{background:var(--accent-soft);border-radius:10px;margin:3px 8px 3px 0;min-height:34px;position:relative;z-index:3;width:auto}
+.tl .tlscroll .tlc .qrow.evq{background:#E8EEFB;box-shadow:inset 3px 0 0 #3D7BE0}
+.tl .tlscroll .tlc .qrow.hbq{background:var(--xp-soft)}
+:root[data-theme="dark"] .tl .tlscroll .tlc .qrow.evq{background:rgba(61,123,224,.18)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tl .tlscroll .tlc .qrow.evq{background:rgba(61,123,224,.18)}}
+.tlrow.now{position:relative}
+.tlrow.now::after{content:"";position:absolute;left:56px;right:0;top:calc(var(--nm,0) * 100%);height:2px;background:#E5503A;z-index:2;pointer-events:none}
+.tlrow.now::before{content:"";position:absolute;left:51px;top:calc(var(--nm,0) * 100% - 4px);width:10px;height:10px;border-radius:50%;background:#E5503A;z-index:2;pointer-events:none}
+.tlrow.now .tlh{color:#E5503A}
+/* 주: 한 화면에 3일, 큰 날짜 숫자, 오늘은 초록 원 */
+@media (max-width:1023.98px){.wg{grid-template-columns:44px repeat(7,calc((min(100vw - 32px, 540px) - 44px)/3))}}
+@media (min-width:1024px){#app[data-v="cal"] > .chead{max-width:860px}}
+.wgc.head{flex-direction:column;align-items:center;gap:2px;padding:8px 2px 8px}
+.wgc.head .wdn{font-size:11.5px;color:var(--muted);font-weight:600}
+.wgc.head b.num{font-size:17px;font-weight:800;width:32px;height:32px;display:grid;place-items:center;border-radius:50%}
+.wgc.head.is-today b.num{background:var(--accent);color:#fff!important}
+.wgc.head.sat .wdn{color:#3D7BE0}.wgc.head.sun .wdn{color:#E5484D}
+.wgc.corner,.wgc.head{background:var(--card)!important}
+.wgc.cell.is-today{background:color-mix(in srgb,var(--accent-soft) 35%,var(--card))}
+/* 연: 칠하기 대신 점, 오늘은 초록 원, 이번 달 테두리 */
+.ymon.ycur{box-shadow:inset 0 0 0 2px var(--accent)}
+.ymon .ymini i.l1,.ymon .ymini i.l2,.ymon .ymini i.l3{background:none;color:var(--sub);position:relative}
+.ymon .ymini i.l1::after,.ymon .ymini i.l2::after,.ymon .ymini i.l3::after{content:"";position:absolute;left:50%;bottom:0;width:3px;height:3px;margin-left:-1.5px;border-radius:50%;background:var(--accent)}
+.ymon .ymini i.l1::after{opacity:.45}
+.ymon .ymini i.t{outline:0;background:var(--accent)!important;color:#fff!important;border-radius:50%}
+.ymon .ymini i.t::after{display:none}
 </style>
 <script>
 (function(){"use strict";
@@ -3782,11 +3824,13 @@ function viewCal(){
   if (!hasProfile()) return viewToday();
   const C = S.cal || (S.cal = {mode:"day", date:today()}), mode = C.mode, date = C.date, by = tasksByDate(), evs = evsByDate(), t = today();
   const cnt = d => { const l = (by[d] || []).filter(m => !m._ghost); return {n:l.length, done:l.filter(m => m.done).length, late:l.some(m => !m.done && d < t)}; };
-  let h = `<div class="seg" role="group" aria-label="보기" data-swipe>${[["day","일"],["week","주"],["month","월"],["year","연"]].map(([k,l]) => `<button data-act="cmode" data-v="${k}" aria-pressed="${mode===k}">${l}</button>`).join("")}</div>`;
   const D0 = pd(date);
   // 캘린더에는 퀘스트 카드를 두지 않는다(일정·미션만 보여 준다).
-  const title = mode === "day" ? `${D0.getMonth()+1}월 ${D0.getDate()}일 <span class="${D0.getDay() === 6 ? "sat" : D0.getDay() === 0 ? "sun" : ""}">${WD[D0.getDay()]}요일</span>` : mode === "week" ? (() => { const a = pd(sunStart(date)), b2 = pd(addD(sunStart(date), 6)); return `${a.getMonth()+1}.${a.getDate()} – ${b2.getMonth()+1}.${b2.getDate()}`; })() : mode === "month" ? `${D0.getFullYear()}년 ${D0.getMonth()+1}월` : `${D0.getFullYear()}년`;
-  h += `<div class="calnav"><button class="iconbtn" data-act="cstep" data-v="-1" aria-label="이전">${I.back}</button><b>${title}</b><button class="iconbtn fwd" data-act="cstep" data-v="1" aria-label="다음">${I.back}</button>${date !== t ? `<button class="btn sec xs" data-act="ctoday">오늘</button>` : ""}</div>`;
+  const title = mode === "day" ? `${D0.getMonth()+1}월 ${D0.getDate()}일 <span class="${D0.getDay() === 6 ? "sat" : D0.getDay() === 0 ? "sun" : ""}">${WD[D0.getDay()]}</span>` : mode === "week" ? (() => { const a = pd(sunStart(date)), b2 = pd(addD(sunStart(date), 6)); return `${a.getMonth()+1}.${a.getDate()} – ${a.getMonth() === b2.getMonth() ? "" : b2.getMonth()+1 + "."}${b2.getDate()}`; })() : mode === "month" ? `${D0.getMonth()+1}월${D0.getFullYear() !== pd(t).getFullYear() ? ` <small>${D0.getFullYear()}</small>` : ""}` : `${D0.getFullYear()}년`;
+  /* 한 줄 머리: 제목(누르면 한 단계 넓게: 일·주→월→연) ‹ › · 작은 보기 전환 · 오늘 (투두이스트·틱틱 참고) */
+  const up = {day:"month", week:"month", month:"year"}[mode], chevD = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
+  let h = `<div class="chead">${up ? `<button class="ctt" data-act="cmode" data-v="${up}" aria-label="${up === "year" ? "연" : "월"} 보기로">${title}${chevD}</button>` : `<b class="ctt">${title}</b>`}<button class="iconbtn cst" data-act="cstep" data-v="-1" aria-label="이전">${I.back}</button><button class="iconbtn cst fwd" data-act="cstep" data-v="1" aria-label="다음">${I.back}</button><span class="csp"></span>
+    <div class="cvt" role="group" aria-label="보기" data-swipe>${[["day","일"],["week","주"],["month","월"],["year","연"]].map(([k,l]) => `<button data-act="cmode" data-v="${k}" aria-pressed="${mode===k}">${l}</button>`).join("")}</div><button class="ctoday" data-act="ctoday" ${date === t ? 'aria-current="date"' : ""}>오늘</button></div>`;
   const calTaskRow = m => taskRow(m, true, false, {showTime:false, showDate:false});
   const byTime = l => l.slice().sort((a,b) => (a.time||"99") < (b.time||"99") ? -1 : (a.time||"99") > (b.time||"99") ? 1 : a.done - b.done);
   if (mode === "day"){
@@ -3798,7 +3842,8 @@ function viewCal(){
     const G = hourGroups([...evTimed.map(e => ({time:e.time, end:entEnd(e.time, evEndTm(e)), html:evRow(e, false)})), ...byTime(timed).map(m => ({time:m.time, end:entEnd(m.time, m.etime), html:calTaskRow(m)})), ...hbTimed.map(q => ({time:q.time, end:0, html:calHabitRow(q, date)}))]);
     for (let hr = 1; hr <= 24; hr++){ if (G.covered.has(hr)) continue; const g = G.starts[hr], rows = g ? g.rows : 1, now = date === t && nowH >= hr && nowH < hr + rows;
       const labs = Array.from({length:rows}, (_, i) => `<span class="num" data-hl="${hr + i}">${hl(hr + i)}</span>`).join("");
-      h += `<div class="tlrow ${now ? "now" : ""} ${rows > 1 ? "merged" : ""}" data-h="${hr}"${rows > 1 ? ` style="--rows:${rows}"` : ""}><span class="tlh">${labs}</span><div class="tlc">${g ? g.list.sort((x, y) => x.time < y.time ? -1 : x.time > y.time ? 1 : 0).map(x => x.html).join("") : ""}${!g ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : `<button class="tlempty tlmore" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 하나 더 추가"></button>`}</div></div>`; }
+      const nm = now ? ((nowH - hr) + new Date().getMinutes() / 60) / rows : 0;
+      h += `<div class="tlrow ${now ? "now" : ""} ${rows > 1 ? "merged" : ""}" data-h="${hr}"${rows > 1 || now ? ` style="${[rows > 1 ? `--rows:${rows}` : "", now ? `--nm:${nm.toFixed(3)}` : ""].filter(Boolean).join(";")}"` : ""}><span class="tlh">${labs}</span><div class="tlc">${g ? g.list.sort((x, y) => x.time < y.time ? -1 : x.time > y.time ? 1 : 0).map(x => x.html).join("") : ""}${!g ? `<button class="tlempty" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 일정 추가"></button>` : `<button class="tlempty tlmore" data-act="taskadd" data-ev="1" data-d="${date}" data-tm="${pad(hr % 24)}:00" aria-label="${hl(hr)}에 하나 더 추가"></button>`}</div></div>`; }
     h += `</div>`;
     h += `</section>`;
   } else if (mode === "week"){
@@ -3810,7 +3855,7 @@ function viewCal(){
     
     const chip = m => m._ghost ? `<div class="wti wck ghost" data-act="tedit" data-id="${m.id}" role="button" tabindex="0" title="오늘로 넘어간 미션"><span class="gdot">↷</span><div class="wtx"><span>${esc(m.name)}</span></div></div>` : `<div class="wti wck ${m.done ? "done" : ""}" data-act="tedit" data-id="${m.id}" role="button" tabindex="0"><button class="wchk ${m.done ? "on" : ""}" data-act="mcheck" data-id="${m.id}" aria-pressed="${!!m.done}" aria-label="${esc(m.name)} 완료">${I.check}</button><div class="wtx"><span>${esc(m.name)}</span></div></div>`;
     h += `<div class="wgrid" id="wgscroll" data-d="${s0}" data-first="${first}"><div class="wg">`;
-    h += `<div class="wgc corner"></div>` + days.map(d => { const x = pd(d); return `<button class="wgc head ${d === t ? "is-today" : ""} ${x.getDay() === 0 ? "sun" : x.getDay() === 6 ? "sat" : ""}" data-act="cdate" data-v="${d}"><b>${WD[x.getDay()]}</b><span class="num">${x.getMonth()+1}/${x.getDate()}</span></button>`; }).join("");
+    h += `<div class="wgc corner"></div>` + days.map(d => { const x = pd(d); return `<button class="wgc head ${d === t ? "is-today" : ""} ${x.getDay() === 0 ? "sun" : x.getDay() === 6 ? "sat" : ""}" data-act="cdate" data-v="${d}"><span class="wdn">${WD[x.getDay()]}</span><b class="num">${x.getDate()}</b></button>`; }).join("");
     if (anyAllday) h += `<div class="wgc tlab">종일</div>` + days.map(d => `<div class="wgc cell allday ${d === t ? "is-today" : ""}">${(evs[d] || []).filter(e => !e.time).map(evChip).join("")}${byTime((by[d] || []).filter(m => !m.time)).map(chip).join("")}${hbByDay[d].filter(q => !q.time).map(q => calHabitChip(q, d)).join("")}</div>`).join("");
     const WG = Object.fromEntries(days.map(d => [d, hourGroups([...(evs[d] || []).filter(e => e.time).map(e => ({time:e.time, end:entEnd(e.time, evEndTm(e)), html:evChip(e)})), ...byTime((by[d] || []).filter(m => m.time)).map(m => ({time:m.time, end:entEnd(m.time, m.etime), html:chip(m)})), ...hbByDay[d].filter(q => q.time).map(q => ({time:q.time, end:0, html:calHabitChip(q, d)}))])]));
     for (let hr = 1; hr <= 24; hr++){
@@ -4951,7 +4996,7 @@ function viewWebDash(){
         return tt; })()}</div></div>
         <div class="wd-sec dp-journal"><div class="wd-stack wd-logst">${logToday()}</div></div></div></div></div>`;
   /* 캘린더 화면을 그대로 대시보드 맨 아래에 둔다(캘린더 메뉴도 그대로 있다) */
-  h += `<section class="dcal" aria-label="캘린더">${viewCal().replace('<div class="seg" role="group" aria-label="보기" data-swipe>', '<div class="seg" role="group" aria-label="보기">')}</section>`;
+  h += `<section class="dcal" aria-label="캘린더">${viewCal().replace('<div class="cvt" role="group" aria-label="보기" data-swipe>', '<div class="cvt" role="group" aria-label="보기">')}</section>`;
   return h;
 }
 function viewProfile(){

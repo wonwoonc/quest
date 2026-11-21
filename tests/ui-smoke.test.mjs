@@ -513,8 +513,8 @@ test('past month date buttons open the day records page; back returns to the sam
   assert.doesNotMatch(sheet,/다른 사용자|<img src=x>|class="tday\b|id="pl-text"|data-act="psave"/);
   assertNoNestedButtons(sheet); assert.deepEqual(h.snapshot(),before);
   h.route('cal'); assert.equal(h.nodes.get('app').innerHTML,month,'back keeps month view');
-  h.click('cstep',{v:'1'}); assert.match(h.nodes.get('app').innerHTML,/2026년 12월/);
-  h.click('cstep',{v:'-1'}); assert.match(h.nodes.get('app').innerHTML,/2026년 11월/);
+  h.click('cstep',{v:'1'}); assert.match(h.nodes.get('app').innerHTML,/class="ctt"[^>]*>12월/);
+  h.click('cstep',{v:'-1'}); assert.match(h.nodes.get('app').innerHTML,/class="ctt"[^>]*>11월/);
   h.click('cmode',{v:'week'}); assert.match(h.nodes.get('app').innerHTML,/class="wgrid"/);
   h.click('cmode',{v:'month'}); assert.match(h.nodes.get('app').innerHTML,/class="mgrid|data-act="cdate"/); assert.doesNotMatch(h.nodes.get('app').innerHTML,/지난 날짜는 기록 보기/);
 });
@@ -585,7 +585,7 @@ for (const mode of ['day','week','month','year']) {
     const h = await linkedUI(); h.route('cal'); h.click('cmode',{v:mode});
     const html = h.nodes.get('app').innerHTML;
     assert.doesNotMatch(html,/<span class="tday\b/);
-    assert.match(html,/class="calnav"/);
+    assert.match(html,/class="chead"/);
     assertNoNestedButtons(html);
     const badges = timeBadges(html), before = h.snapshot();
     assert.doesNotMatch(html,/task-quest-tag|퀘스트 상세 보기/);
@@ -1641,8 +1641,8 @@ test('day/week view: hour cells covered by a long mission/event are merged into 
   const base=await profileUI(), saved=base.snapshot(), day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
   saved.mine={...saved.mine,lm:{id:'lm',kind:'mission',name:'긴미션',lv:'normal',due:day,time:'13:00',etime:'15:00',done:false,createdAt:1},le:{id:'le',kind:'event',name:'긴일정',date:day,time:'10:00',etime:'12:30',createdAt:2},in:{id:'in',kind:'mission',name:'안쪽미션',lv:'normal',due:day,time:'11:00',done:false,createdAt:3}};
   const h=await profileUI(saved); h.route('cal'); const app=()=>h.nodes.get('app').innerHTML;
-  const a=app(); assert.match(a,/class="tlrow[^"]*merged" data-h="10" style="--rows:3"[\s\S]*?긴일정[\s\S]*?안쪽미션/); assert.ok(!/class="tlrow[^"]*" data-h="11"/.test(a)); assert.ok(!/class="tlrow[^"]*" data-h="12"/.test(a));
-  assert.match(a,/class="tlrow[^"]*merged" data-h="13" style="--rows:2"[\s\S]*?긴미션/); assert.ok(!/class="tlrow[^"]*" data-h="14"/.test(a)); assert.match(a,/class="tlrow[^"]*" data-h="15"/);
+  const a=app(); assert.match(a,/class="tlrow[^"]*merged" data-h="10" style="--rows:3[;"][\s\S]*?긴일정[\s\S]*?안쪽미션/); assert.ok(!/class="tlrow[^"]*" data-h="11"/.test(a)); assert.ok(!/class="tlrow[^"]*" data-h="12"/.test(a));
+  assert.match(a,/class="tlrow[^"]*merged" data-h="13" style="--rows:2[;"][\s\S]*?긴미션/); assert.ok(!/class="tlrow[^"]*" data-h="14"/.test(a)); assert.match(a,/class="tlrow[^"]*" data-h="15"/);
   assert.equal((a.match(/data-act="evedit" data-id="le"/g)||[]).length,1); assert.equal((a.match(/data-act="tedit" data-id="lm"/g)||[]).length,1);
   h.click('cmode',{v:'week'}); const w=app(); assert.match(w,/grid-row:span 3"[^>]*>[\s\S]*?긴일정/); assert.match(w,/grid-row:span 2"[^>]*>[\s\S]*?긴미션/); assert.equal((w.match(/data-act="evedit" data-id="le"/g)||[]).length,1); assert.equal((w.match(/data-act="tedit" data-id="lm"/g)||[]).length,1);
 });
@@ -1809,7 +1809,7 @@ test('템플릿: 이름이 기본인 템플릿은 목록에서 빠지고, 내 �
 });
 test('대시보드 맨 아래에 캘린더 화면(일·주·월·연)이 그대로 들어간다',async()=>{
   const h = await profileUI(), app = () => h.nodes.get('app').innerHTML; h.route('dash'); await h.settle();
-  assert.match(app(), /<section class="dcal" aria-label="캘린더"><div class="seg" role="group" aria-label="보기"><button data-act="cmode"/);
+  assert.match(app(), /<section class="dcal" aria-label="캘린더"><div class="chead">[\s\S]*<div class="cvt" role="group" aria-label="보기"><button data-act="cmode"/);
   h.click('cmode',{v:'month'}); await h.settle(); assert.match(app(), /class="dcal"[\s\S]*data-act="cmode" data-v="month" aria-pressed="true"/);
   h.route('cal'); await h.settle(); assert.doesNotMatch(app(), /class="dcal"/); assert.match(app(), /data-act="cmode" data-v="day"/, 'calendar menu still works');
 });
