@@ -2124,6 +2124,16 @@ a.row{color:inherit;text-decoration:none}
 /* 일정 앞 파랑 띠는 쓰지 않는다(색과 체크 모양으로 구분) */
 .wti.wev{border-left:0!important}
 .tlscroll{overscroll-behavior-y:auto} /* 일 보기 시간표 끝까지 스크롤하면 화면 전체가 이어서 스크롤된다 */
+/* 작성 화면 글자 크기: 메뉴에서 작게·중간·크게 */
+.ntdd .ntfs{padding:8px 10px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.ntdd .ntfs > span{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.ntdd .ntfsb{display:flex;background:var(--fill);border-radius:9px;padding:2px;gap:2px}
+.ntdd .ntfsb button,.sheet.page h2.pgh .ntdd .ntfsb button{flex:1;justify-content:center;border:0;background:none;color:var(--sub);font:600 13px/1.2 var(--f);padding:7px 6px;border-radius:7px;width:auto;margin:0}
+.ntdd .ntfsb button[aria-pressed="true"],.sheet.page h2.pgh .ntdd .ntfsb button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.ntdd .ntfsb button:hover{background:var(--card)}
+.ntdd:has(.ntfs){min-width:200px}
+.nfed.fs-s .blk .bx{font-size:14px}.nfed.fs-s .blk.t-h1 .bx{font-size:21px}.nfed.fs-s .blk.t-h2 .bx{font-size:17px}.nfed.fs-s .blk.t-h3 .bx{font-size:15px}
+.nfed.fs-l .blk .bx{font-size:19px}.nfed.fs-l .blk.t-h1 .bx{font-size:28px}.nfed.fs-l .blk.t-h2 .bx{font-size:22px}.nfed.fs-l .blk.t-h3 .bx{font-size:20px}
 </style>
 <!--APP_ENTRY-->
 </body></html>

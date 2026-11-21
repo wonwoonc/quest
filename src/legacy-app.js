@@ -667,7 +667,7 @@ function diaryPage(d, P){ const dt = P.date || today(), t0 = today(), past = dt 
     ${(() => { /* 본문: 자료 작성과 같은 블록 편집기 */ if (!LP || !LP.sheet || LP.c !== c){ const t0 = S.drafts["pl-text"] ?? (d && d.text) ?? "", bb = d && Array.isArray(d.blocks) ? d.blocks.map(bkNorm) : null, nz = v => String(v || "").replace(/\s+/g, " ").trim();
       LP = {sheet:true, c, id:"nf", blocks:bb && bb.length && nz(bkPlain(bb)) === nz(t0) ? bb : textBlocks(t0)}; }
       LP.ph = "오늘 있었던 일, 떠오른 생각을 자유롭게 적어요 · '/'로 블록 선택";
-      return `<div class="nfedw"><div class="nted nfed" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}`; })()}`; }
+      return `<div class="nfedw"><div class="nted nfed${edFsCls()}" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}`; })()}`; }
 /* 저널 저장. quiet면 감정이 없어도 저장하고 알림을 띄우지 않는다. 저장할 게 없으면 false */
 function saveDiary(quiet, after){ if (!S.canWrite) return false; const P = S.planner, te = dq("#pl-text"), ce = dq("#pl-cond");
   const live = !te && LP && LP.sheet && LP.c === S.compose && $("#nfed"); if (live){ bkSync(); S.drafts["pl-text"] = bkPlain(LP.blocks); }
@@ -1213,7 +1213,11 @@ const ntMediaOf = u => { const h = (() => { try { return new URL(ntUrl(u)).hostn
 const ntIsProp = x => x.k !== "title" && !x.task && x.t !== "area";
 const ntFreeBody = C => !C.f.some(x => x.k === "body");
 /* ⋯ 버튼 바로 아래 작은 메뉴: 삭제만 */
-const delDrop = (act, id, armKey) => `<div class="ntdd" role="menu"><button data-act="${act}" data-id="${esc(id || "")}" role="menuitem">${nic("trash")}${S.armed === armKey ? "한 번 더 누르면 삭제" : "삭제"}</button></div>`;
+const delDrop = (act, id, armKey, top = "") => `<div class="ntdd" role="menu">${top}${act ? `<button data-act="${act}" data-id="${esc(id || "")}" role="menuitem">${nic("trash")}${S.armed === armKey ? "한 번 더 누르면 삭제" : "삭제"}</button>` : ""}</div>`;
+/* 작성 화면 본문 글자 크기(이 기기에서 모든 자료·저널에 같이 적용) */
+S.edFs = (() => { try { const v = LS.get("edFs", "m"); return ["s","m","l"].includes(v) ? v : "m"; } catch { return "m"; } })();
+const edFsCls = () => S.edFs !== "m" ? " fs-" + S.edFs : "";
+const edFsRow = () => `<div class="ntfs"><span>글자 크기</span><div class="ntfsb" role="group" aria-label="글자 크기">${[["s","작게"],["m","중간"],["l","크게"]].map(([k, l]) => `<button data-act="ed-fs" data-v="${k}" aria-pressed="${S.edFs === k}">${l}</button>`).join("")}</div></div>`;
 /* 오늘 저널 열기(이미 쓴 날이면 수정). text가 있고 저널이 비었으면 이어 붙인다 */
 function openDiaryToday(text){ const d = S.mine["d-"+today()]; S.planner = {cond:d ? d.cond : 70, emo:d ? d.emo : null, share:d ? !!diaryPost(d.id) : false, date:today(), edit:!!d};
   const t0 = d ? d.text || "" : S.drafts["pl-text"] || ""; S.drafts["pl-text"] = text && !t0.trim() ? text : t0; if (LP && LP.sheet) LP = null; openSheet({type:"diary"}); }
@@ -1222,7 +1226,7 @@ function tplEdSheet(c){ const C = noteDrawer(S, c.dk);
   if (!LP || LP.c !== c) LP = {sheet:true, c, id:"tp", blocks:(c.blocks0 || []).length ? c.blocks0.map(x => ({...bkNorm(x)})) : textBlocks("")};
   LP.ph = "템플릿에 넣을 틀을 적어요 · '/'로 블록 선택";
   return sheetWrap(`${nic(C.ic)}${esc(C.l)} 템플릿`, "", `<textarea class="nttitle" id="tp-l" data-grow rows="1" maxlength="30" placeholder="템플릿 이름">${D("tp-l")}</textarea>
-    <div class="nfedw"><div class="nted nfed" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}
+    <div class="nfedw"><div class="nted nfed${edFsCls()}" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}
     <p class="tphint">제목·목록·체크리스트·토글처럼 자주 쓰는 틀을 만들어 두면, 자료를 쓸 때 템플릿 선택에서 바로 불러와요.</p>
     ${c.id ? `<button class="link danger ntdel" data-act="tp-del">${S.armed === "tp" + c.id ? "한 번 더 누르면 삭제돼요" : "템플릿 삭제"}</button>` : ""}`, `<span class="pgright"><button class="pgsave" data-act="tp-save">저장</button></span>`); }
 function noteSheet(c){
@@ -1270,7 +1274,7 @@ function noteSheet(c){
   const hasUrl = C.k === "memo" && DR.some(d => d.k === "ref") && NT_URL_RE.test(D("nf-title") + " " + D("nf-body"));
   const pill = n && !c.unsorted ? `<button class="ntkind ${C.k} fixed" disabled>${nic(C.ic)}${esc(C.l)}</button>` : `<button class="ntkind ${c.unsorted ? "uns" : C.k}" data-act="nt-kpick" aria-expanded="${!!c.kpick}">${c.unsorted ? `${nic("inbox")}서랍 고르기` : `${nic(C.ic)}${esc(C.l)}`}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
   /* ⋯ 메뉴 → 수정: 이 자료의 칸(핵심 요약·링크·종류 등)을 빼거나 다시 넣는다 */
-  const menu = c.menu ? delDrop(n ? "nt-del" : "nt-discard", n ? n.id : "", n ? "nd" + n.id : "") : "";
+  const menu = c.menu ? delDrop(n ? "nt-del" : "nt-discard", n ? n.id : "", n ? "nd" + n.id : "", edFsRow()) : "";
   /* ⋯ → 수정: 이 자료에서 쓸 칸을 스위치로 켜고 끈다 */
   /* 아래 글 상자(왜 좋은가요?·핵심 요약·다음 행동·학습 목표…)는 서랍 템플릿: 내용이 없으면 '템플릿' 버튼만 두고, 누르면 나온다.
      빈 상자에서 백스페이스를 누르면 그 상자가 지워진다 */
@@ -1296,7 +1300,7 @@ function noteSheet(c){
     ${tF ? `<textarea class="nttitle" id="nf-title" data-grow rows="1" maxlength="200" placeholder="${C.k === "idea" ? "떠오른 아이디어를 한 줄로" : C.k === "memo" ? "제목" : "제목"}">${D("nf-title")}</textarea>` : ""}
     ${props ? `<div class="ntprops">${props}</div>` : ""}
     ${tplBtn}${tplHtml}
-    ${bodyOn ? `<div class="nfedw${vis.some(x => x.task) ? " short" : ""}"><div class="nted nfed" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}` : ""}
+    ${bodyOn ? `<div class="nfedw${vis.some(x => x.task) ? " short" : ""}"><div class="nted nfed${edFsCls()}" id="nfed" data-act="ln-tail">${bkHtml(LP.blocks, false, LP.ph)}</div><div class="bkmenu" id="nfbkmenu" hidden></div></div>${BK_SELBAR("nfbksel")}` : ""}
     ${(t => t ? `<div class="ntmkdock">${t}</div>` : "")(vis.filter(x => x.task).map(block).join(""))}
     ${n && C.k === "learn" && Array.isArray(n.blocks) && n.blocks.some(b => bkText(b).trim()) ? `<button class="ntlnote" data-act="ln-open" data-id="${n.id}">${nic("book")}<span><b>학습 노트</b><small>정리한 노트 ${n.blocks.filter(b => bkText(b).trim()).length}줄 · 열기</small></span><svg class="ntra" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>` : ""}
     <div class="ntsug" ${hasUrl ? "" : "hidden"}><span>${nic("link")}링크가 있어요</span><button class="ntpc on" data-act="nt-kind" data-v="ref">참고자료로 정리</button></div>
@@ -2543,7 +2547,7 @@ function renderSheet(){ queueMicrotask(syncSheetHist); IXC = null; if (LP && LP.
     <button class="btn big full" data-act="submit-tedit" ${S.busy?"disabled":""}>저장</button>
     <button class="btn full sec" style="margin-top:10px;color:var(--warn)" data-act="tdel">${S.armed === "td"+c.id ? "한 번 더 누르면 삭제" : "삭제"}</button>`); }
   if (c.type === "diary"){ const P = S.planner, dt = P.date || today(), d = S.mine["d-"+dt], x0 = pd(dt);
-    return sheetWrap(d && !c.fromNote ? `<span class="ntkind journal">${nic("journal")}저널</span>` : `<button class="ntkind journal" data-act="nt-kpick" aria-expanded="${!!c.kpick}">${nic("journal")}저널<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`, "", (c.kpick && (!d || c.fromNote) ? `<div class="ntkpick" role="group" aria-label="종류">${noteDrawers(S).filter(K => !K.hidden).map(K => `<button class="ntkp" data-act="dj-kind" data-v="${K.k}" aria-pressed="false">${nic(K.ic)}<b>${esc(K.l)}</b></button>`).join("")}<button class="ntkp" data-act="dj-kind" data-v="journal" aria-pressed="true">${nic("journal")}<b>저널</b></button></div>` : "") + diaryPage(d, P), d ? `<span class="ntmw"><button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>${c.menu ? delDrop("ldel", "d-" + d.date, "ldd-" + d.date) : ""}</span>` : ""); }
+    return sheetWrap(d && !c.fromNote ? `<span class="ntkind journal">${nic("journal")}저널</span>` : `<button class="ntkind journal" data-act="nt-kpick" aria-expanded="${!!c.kpick}">${nic("journal")}저널<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`, "", (c.kpick && (!d || c.fromNote) ? `<div class="ntkpick" role="group" aria-label="종류">${noteDrawers(S).filter(K => !K.hidden).map(K => `<button class="ntkp" data-act="dj-kind" data-v="${K.k}" aria-pressed="false">${nic(K.ic)}<b>${esc(K.l)}</b></button>`).join("")}<button class="ntkp" data-act="dj-kind" data-v="journal" aria-pressed="true">${nic("journal")}<b>저널</b></button></div>` : "") + diaryPage(d, P), `<span class="ntmw"><button class="ntmenubtn" data-act="nt-emenu" aria-label="메뉴" aria-expanded="${!!c.menu}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>${c.menu ? delDrop(d ? "ldel" : "", d ? "d-" + d.date : "", d ? "ldd-" + d.date : "", edFsRow()) : ""}</span>`); }
   if (c.type === "pmenu"){ const p = S.feed[c.pid]; if (!p){ closeSheet(); return; } const mine = p.author === S.me, a = p.author, f = isFollowing(S.me, a);
     const item = (act, label, sub2, warn) => `<button class="row mitem ${warn ? "warn" : ""}" data-act="${act}" data-p="${p.id}" data-u="${esc(a)}"><span class="t"><b>${label}</b>${sub2 ? `<small>${sub2}</small>` : ""}</span></button>`;
     return sheetWrap(mine ? "내 스토리" : esc(nameOf(a)) + "님의 스토리", "", `<div class="sheetlist mlist">${mine
@@ -3119,6 +3123,8 @@ document.addEventListener("click", e => {
     case "nt-discard": ask({t:"작성 중인 내용을 지울까요?", d:"저장하지 않고 나가요.", ok:"삭제"}, () => { if (S.compose && S.compose.type === "note"){ S.compose.noSave = true; closeSheet(); } }); return;
     case "ln-open": { const nid = b.dataset.id; closeSheet(); push({name:"learn", id:nid}, "#learn"); return; }
     case "nt-emenu": preserveSheetDrafts(); c.menu = !c.menu; c.kpick = false; renderSheet(); return;
+    case "ed-fs": { const v = b.dataset.v; if (!["s","m","l"].includes(v)) return; S.edFs = v; try { LS.set("edFs", v); } catch {} const ed = $("#nfed"); if (ed){ ed.classList.remove("fs-s", "fs-l"); if (v !== "m") ed.classList.add("fs-" + v); }
+      document.querySelectorAll('.ntfsb [data-act="ed-fs"]').forEach(x => x.setAttribute("aria-pressed", x.dataset.v === v)); return; }
     case "nt-tedit": preserveSheetDrafts(); c.menu = false; c.tedit = !c.tedit; renderSheet(); return;
     case "nt-tog": { preserveSheetDrafts(); const k = b.dataset.f, h0 = c.hideF || []; c.hideF = h0.includes(k) ? h0.filter(x => x !== k) : [...h0, k]; if (!h0.includes(k)){ delete S.drafts["nf-" + k]; if (c.vals) delete c.vals[k]; } renderSheet(); return; }
     case "nt-hide": preserveSheetDrafts(); c.hideF = [...new Set([...(c.hideF || []), b.dataset.f])]; delete S.drafts["nf-" + b.dataset.f]; if (c.vals) delete c.vals[b.dataset.f]; renderSheet(); return;

@@ -1825,3 +1825,8 @@ test('월 보기: 일퀘·일정·미션을 시간 순으로(시간 없는 것 �
   const pos=k=>cell.indexOf(k); assert.ok(pos('무시간미션')>=0 && pos('아침일퀘')>=0 && pos('점심약속')>=0 && pos('저녁미션')>=0, cell.slice(0,400));
   assert.ok(pos('무시간미션')<pos('아침일퀘') && pos('아침일퀘')<pos('점심약속') && pos('점심약속')<pos('저녁미션'));
 });
+test('작성 화면 메뉴: 글자 크기 작게·중간·크게 (자료·저널 모두)',async()=>{
+  const h=await profileUI(), ov=()=>h.nodes.get('overlay').innerHTML; h.route('notes'); await h.settle();
+  h.click('nt-new'); h.click('nt-kind',{v:'memo'}); h.click('nt-emenu'); assert.match(ov(),/글자 크기[\s\S]*data-act="ed-fs" data-v="s" aria-pressed="false">작게[\s\S]*data-v="m" aria-pressed="true">중간[\s\S]*data-v="l" aria-pressed="false">크게/);
+  h.click('sheet-close'); await h.settle(); h.click('nt-new'); h.click('nt-kind',{v:'journal'}); await h.settle(); h.click('nt-emenu'); assert.match(ov(),/data-act="ed-fs" data-v="l"/); assert.doesNotMatch(ov(),/data-act="ldel"/,'new journal has no delete');
+});
